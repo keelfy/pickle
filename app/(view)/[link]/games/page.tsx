@@ -7,18 +7,19 @@ import {
     CardHeader,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import SearchInput from "@/components/ui/search-input";
 import { fetchApi } from "@/utils/api/server";
 import { Clapperboard, Gamepad, Search, Tv } from "lucide-react";
 import Link from "next/link";
 
 type Props = {
-    params: {
+    params: Promise<{
         username: string;
-    };
+    }>;
 };
 
-const Page = async ({ params: { username } }: Props) => {
+const Page = async ({ params }: Props) => {
+    const username = (await params).username;
+
     const notes = await fetchApi<GameNote[]>(
         `/v1/users/by-username/${username}/game-notes`
     );

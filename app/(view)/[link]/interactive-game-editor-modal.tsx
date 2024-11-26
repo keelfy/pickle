@@ -367,7 +367,9 @@ const InteractiveGameEditorModal = () => {
                                         ).toLocaleDateString()}
                                     </span>
                                     <span>{order.ordererUsername}</span>
-                                    <span className="text-muted-foreground">&mdash;</span>
+                                    <span className="text-muted-foreground">
+                                        &mdash;
+                                    </span>
                                     <span>{order.amount}$</span>
                                 </div>
                             ))}

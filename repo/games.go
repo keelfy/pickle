@@ -1,4 +1,4 @@
-package repositories
+package repo
 
 import (
 	"encoding/json"
@@ -8,11 +8,20 @@ import (
 
 	"github.com/pickle.pw/monolith/models"
 	"github.com/pickle.pw/monolith/storage"
+	"github.com/supabase-community/supabase-go"
 )
+
+type Games struct {
+	sb *supabase.Client
+}
+
+func NewGameRepository(sb *supabase.Client) *Games {
+	return &Games{sb: sb}
+}
 
 const gamesTable = "games"
 
-func GetGames(from, to int) (*[]models.Game, error) {
+func (repo *Games) GetGames(from, to int) (*[]models.Game, error) {
 	sb := storage.InitSupabase()
 	bytes, _, err := sb.From(gamesTable).Select("*", "", false).Range(from, to, "").Execute()
 	if err != nil {
@@ -29,7 +38,7 @@ func GetGames(from, to int) (*[]models.Game, error) {
 	return games, nil
 }
 
-func SearchForAGame(query string, from, to int) (*[]models.Game, error) {
+func (repo *Games) SearchForAGame(query string, from, to int) (*[]models.Game, error) {
 	sb := storage.InitSupabase()
 
 	query = strings.ReplaceAll(query, " ", "+")

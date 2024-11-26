@@ -15,3 +15,7 @@ func GetSupabaseUrl() string {
 func GetSupabaseKey() string {
 	return os.Getenv("SUPABASE_KEY")
 }
+
+func GetJWTSecret() []byte {
+	return []byte(os.Getenv("JWT_SECRET"))
+}

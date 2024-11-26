@@ -5,31 +5,32 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/pickle.pw/monolith/repositories"
+	"github.com/pickle.pw/monolith/repo"
 	"github.com/pickle.pw/monolith/utils"
 )
 
-type gameHandler struct {
+type Game struct {
+	gameRepo *repo.Games
 }
 
-func NewGamesHandler() *gameHandler {
-	return &gameHandler{}
+func NewGamesHandler(gameRepo *repo.Games) *Game {
+	return &Game{gameRepo: gameRepo}
 }
 
-func (h *gameHandler) GetGames(w http.ResponseWriter, r *http.Request) {
+func (h *Game) GetGames(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Query().Has("query") {
 		h.SearchForAGame(w, r)
 		return
 	}
 
-	from, to := utils.GetPagination(r)
-	response, err := repositories.GetGames(from, to)
+	from, to, _, _ := utils.GetPagination(r)
+	response, err := h.gameRepo.GetGames(from, to)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(utils.HeaderContentType, utils.ApplicationJsonType)
 	w.WriteHeader(http.StatusOK)
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
@@ -37,17 +38,17 @@ func (h *gameHandler) GetGames(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *gameHandler) SearchForAGame(w http.ResponseWriter, r *http.Request) {
+func (h *Game) SearchForAGame(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("query")
 
-	from, to := utils.GetPagination(r)
-	response, err := repositories.SearchForAGame(query, from, to)
+	from, to, _, _ := utils.GetPagination(r)
+	response, err := h.gameRepo.SearchForAGame(query, from, to)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(utils.HeaderContentType, utils.ApplicationJsonType)
 	w.WriteHeader(http.StatusOK)
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {

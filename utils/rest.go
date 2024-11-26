@@ -5,13 +5,16 @@ import (
 	"strconv"
 )
 
-func GetPagination(r *http.Request) (from, to int) {
+const HeaderContentType = "Content-Type"
+const ApplicationJsonType = "application/json"
+
+func GetPagination(r *http.Request) (from, to, page, size int) {
 	page, err := strconv.Atoi(r.URL.Query().Get("page"))
 	if err != nil {
 		page = 0
 	}
 
-	size, err := strconv.Atoi(r.URL.Query().Get("size"))
+	size, err = strconv.Atoi(r.URL.Query().Get("size"))
 	if err != nil {
 		size = 20
 	}
@@ -23,5 +26,5 @@ func GetPagination(r *http.Request) (from, to int) {
 	}
 
 	from = page * size
-	return from, from + size - 1
+	return from, from + size - 1, page, size
 }

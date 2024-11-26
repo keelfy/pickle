@@ -6,14 +6,14 @@ import (
 	"net/http"
 )
 
-type statusHandler struct {
+type Status struct {
 }
 
-func NewStatusHandler() *statusHandler {
-	return &statusHandler{}
+func NewStatusHandler() *Status {
+	return &Status{}
 }
 
-func (h *statusHandler) Health(w http.ResponseWriter, r *http.Request) {
+func (h *Status) Health(w http.ResponseWriter, r *http.Request) {
 	response := map[string]any{
 		"status": "OK",
 	}

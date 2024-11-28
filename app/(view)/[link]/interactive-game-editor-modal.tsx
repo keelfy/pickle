@@ -40,6 +40,7 @@ import {
     Upload,
 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import React, { useEffect } from "react";
 import { useOrderModal } from "./order-modal-context";
 
@@ -247,137 +248,152 @@ const InteractiveGameEditorModal = () => {
                                             Release Date
                                         </td>
                                         <td>
-                                            <div className="flex items-center space-x-1">
-                                                <div className="text-sm">
-                                                    {new Date(
-                                                        releaseDate ??
-                                                            new Date()
-                                                    ).toLocaleDateString()}
-                                                </div>
-                                                <DateTimePicker
-                                                    granularity="day"
-                                                    value={releaseDate}
-                                                    onChange={setReleaseDate}
-                                                    triggerButtonProps={{
-                                                        size: "icon",
-                                                        variant: "ghost",
-                                                        className: "w-6 h-6",
-                                                    }}
-                                                >
+                                            <DateTimePicker
+                                                granularity="day"
+                                                value={releaseDate}
+                                                onChange={setReleaseDate}
+                                                triggerButtonProps={{
+                                                    size: "icon",
+                                                    variant: "ghost",
+                                                    className: "w-full h-6",
+                                                }}
+                                            >
+                                                <div className="flex w-full items-center justify-between space-x-1 p-1">
+                                                    <div className="text-sm">
+                                                        {new Date(
+                                                            releaseDate ??
+                                                                new Date()
+                                                        ).toLocaleDateString()}
+                                                    </div>
                                                     <Edit />
-                                                </DateTimePicker>
-                                            </div>
+                                                </div>
+                                            </DateTimePicker>
                                         </td>
                                     </tr>
                                     <tr>
                                         <td className="w-1/2 text-sm">Link</td>
                                         <td className="w-1/2">
-                                            <Button
-                                                variant="ghost"
-                                                className="w-full h-6 p-0"
-                                            >
-                                                <div className="flex items-center space-x-0.5 text-sm text-muted-foreground">
-                                                    <Image
-                                                        src={faviconUrl}
-                                                        alt="Link favicon"
-                                                        className="w-4 h-4 flex-shrink-0"
-                                                        width={16}
-                                                        height={16}
-                                                    />
-                                                    <span>/</span>
-                                                    <p
-                                                        className="w-24 truncate"
-                                                        dir="rtl"
+                                            <div className="flex justify-between items-center">
+                                                <Button
+                                                    variant="ghost"
+                                                    className="flex-1 h-6 p-0"
+                                                >
+                                                    <Link
+                                                        href={url}
+                                                        target="_blank"
+                                                        className="flex items-center space-x-0.5 text-sm text-muted-foreground"
                                                     >
-                                                        <span className="text-xs">
-                                                            {url}
-                                                        </span>
-                                                    </p>
-                                                </div>
-                                            </Button>
+                                                        <Image
+                                                            src={faviconUrl}
+                                                            alt="Link favicon"
+                                                            className="w-4 h-4 flex-shrink-0"
+                                                            width={16}
+                                                            height={16}
+                                                        />
+                                                        <span>/</span>
+                                                        <p
+                                                            className="w-16 truncate"
+                                                            dir="rtl"
+                                                        >
+                                                            <span className="text-xs">
+                                                                {url}
+                                                            </span>
+                                                        </p>
+                                                    </Link>
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    className="w-6 h-6"
+                                                    size="icon"
+                                                >
+                                                    <Edit />
+                                                </Button>
+                                            </div>
                                         </td>
                                     </tr>
                                     <tr>
                                         <td className="pt-4 text-sm">Status</td>
                                         <td className="pt-4">
-                                            <div className="flex items-center space-x-1">
-                                                <div className="text-sm">
-                                                    {gameStatuses
-                                                        .filter(
-                                                            (s) =>
-                                                                s.value ==
-                                                                gameStatus
-                                                        )
-                                                        .map((s) => s.label)
-                                                        .join()}
-                                                </div>
-                                                <Popover
-                                                    open={open}
-                                                    onOpenChange={setOpen}
-                                                >
-                                                    <PopoverTrigger asChild>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="w-6 h-6"
-                                                            role="combobox"
-                                                            aria-expanded={open}
-                                                        >
+                                            <Popover
+                                                open={open}
+                                                onOpenChange={setOpen}
+                                            >
+                                                <PopoverTrigger asChild>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="w-full h-6"
+                                                        role="combobox"
+                                                        aria-expanded={open}
+                                                    >
+                                                        <div className="flex w-full items-center justify-between space-x-1 p-1">
+                                                            <div className="text-sm">
+                                                                {gameStatuses
+                                                                    .filter(
+                                                                        (s) =>
+                                                                            s.value ==
+                                                                            gameStatus
+                                                                    )
+                                                                    .map(
+                                                                        (s) =>
+                                                                            s.label
+                                                                    )
+                                                                    .join()}
+                                                            </div>
                                                             <Edit />
-                                                        </Button>
-                                                    </PopoverTrigger>
-                                                    <PopoverContent className="w-[200px] p-0">
-                                                        <Command>
-                                                            <CommandInput placeholder="Search status..." />
-                                                            <CommandList>
-                                                                <CommandEmpty>
-                                                                    No status
-                                                                    found.
-                                                                </CommandEmpty>
-                                                                <CommandGroup>
-                                                                    {gameStatuses.map(
-                                                                        (
-                                                                            status
-                                                                        ) => (
-                                                                            <CommandItem
-                                                                                key={
-                                                                                    status.value
-                                                                                }
-                                                                                value={
-                                                                                    status.value
-                                                                                }
-                                                                                onSelect={(
+                                                        </div>
+                                                    </Button>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-[200px] p-0">
+                                                    <Command>
+                                                        <CommandInput placeholder="Search status..." />
+                                                        <CommandList>
+                                                            <CommandEmpty>
+                                                                No status found.
+                                                            </CommandEmpty>
+                                                            <CommandGroup>
+                                                                {gameStatuses.map(
+                                                                    (
+                                                                        status
+                                                                    ) => (
+                                                                        <CommandItem
+                                                                            key={
+                                                                                status.value
+                                                                            }
+                                                                            value={
+                                                                                status.value
+                                                                            }
+                                                                            onSelect={(
+                                                                                currentValue
+                                                                            ) => {
+                                                                                setGameStatus(
                                                                                     currentValue
-                                                                                ) => {
-                                                                                    setGameStatus(
-                                                                                        currentValue
-                                                                                    );
-                                                                                    setOpen(
-                                                                                        false
-                                                                                    );
-                                                                                }}
-                                                                            >
-                                                                                <Check
-                                                                                    className={cn(
-                                                                                        "mr-2 h-4 w-4",
-                                                                                        gameStatus ===
-                                                                                            status.value
-                                                                                            ? "opacity-100"
-                                                                                            : "opacity-0"
-                                                                                    )}
-                                                                                />
-                                                                                {
-                                                                                    status.label
-                                                                                }
-                                                                            </CommandItem>
-                                                                        )
-                                                                    )}
-                                                                </CommandGroup>
-                                                            </CommandList>
-                                                        </Command>
-                                                    </PopoverContent>
-                                                </Popover>
-                                            </div>
+                                                                                );
+                                                                                setOpen(
+                                                                                    false
+                                                                                );
+                                                                            }}
+                                                                        >
+                                                                            <Check
+                                                                                className={cn(
+                                                                                    "mr-2 h-4 w-4",
+                                                                                    gameStatus ===
+                                                                                        status.value
+                                                                                        ? "opacity-100"
+                                                                                        : "opacity-0"
+                                                                                )}
+                                                                            />
+                                                                            {
+                                                                                status.label
+                                                                            }
+                                                                        </CommandItem>
+                                                                    )
+                                                                )}
+                                                            </CommandGroup>
+                                                        </CommandList>
+                                                    </Command>
+                                                </PopoverContent>
+                                            </Popover>
                                         </td>
                                     </tr>
                                     <tr>
@@ -392,99 +408,102 @@ const InteractiveGameEditorModal = () => {
                                             Completion Status
                                         </td>
                                         <td>
-                                            <div className="flex items-center space-x-1">
-                                                <div
-                                                    className={cn(
-                                                        "text-sm",
-                                                        gameStatus !== "played"
-                                                            ? "text-muted-foreground"
-                                                            : ""
-                                                    )}
-                                                >
-                                                    {completionStatuses
-                                                        .filter(
-                                                            (s) =>
-                                                                s.value ==
-                                                                completionStatus
-                                                        )
-                                                        .map((s) => s.label)
-                                                        .join()}
-                                                </div>
-                                                <Popover
-                                                    open={completionStatusOpen}
-                                                    onOpenChange={
-                                                        setCompletionStatusOpen
-                                                    }
-                                                >
-                                                    <PopoverTrigger asChild>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="w-6 h-6"
-                                                            role="combobox"
-                                                            aria-expanded={
-                                                                completionStatusOpen
-                                                            }
-                                                            disabled={
-                                                                gameStatus !==
-                                                                "played"
-                                                            }
-                                                        >
+                                            <Popover
+                                                open={completionStatusOpen}
+                                                onOpenChange={
+                                                    setCompletionStatusOpen
+                                                }
+                                            >
+                                                <PopoverTrigger asChild>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="w-full h-6"
+                                                        role="combobox"
+                                                        aria-expanded={
+                                                            completionStatusOpen
+                                                        }
+                                                        disabled={
+                                                            gameStatus !==
+                                                            "played"
+                                                        }
+                                                    >
+                                                        <div className="flex w-full items-center justify-between space-x-1 p-1">
+                                                            <div
+                                                                className={cn(
+                                                                    "text-sm",
+                                                                    gameStatus !==
+                                                                        "played"
+                                                                        ? "text-muted-foreground"
+                                                                        : ""
+                                                                )}
+                                                            >
+                                                                {completionStatuses
+                                                                    .filter(
+                                                                        (s) =>
+                                                                            s.value ==
+                                                                            completionStatus
+                                                                    )
+                                                                    .map(
+                                                                        (s) =>
+                                                                            s.label
+                                                                    )
+                                                                    .join()}
+                                                            </div>
                                                             <Edit />
-                                                        </Button>
-                                                    </PopoverTrigger>
-                                                    <PopoverContent className="w-[200px] p-0">
-                                                        <Command>
-                                                            <CommandInput placeholder="Search status..." />
-                                                            <CommandList>
-                                                                <CommandEmpty>
-                                                                    No status
-                                                                    found.
-                                                                </CommandEmpty>
-                                                                <CommandGroup>
-                                                                    {completionStatuses.map(
-                                                                        (
-                                                                            status
-                                                                        ) => (
-                                                                            <CommandItem
-                                                                                key={
-                                                                                    status.value
-                                                                                }
-                                                                                value={
-                                                                                    status.value
-                                                                                }
-                                                                                onSelect={(
+                                                        </div>
+                                                    </Button>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-[200px] p-0">
+                                                    <Command>
+                                                        <CommandInput placeholder="Search status..." />
+                                                        <CommandList>
+                                                            <CommandEmpty>
+                                                                No status found.
+                                                            </CommandEmpty>
+                                                            <CommandGroup>
+                                                                {completionStatuses.map(
+                                                                    (
+                                                                        status
+                                                                    ) => (
+                                                                        <CommandItem
+                                                                            key={
+                                                                                status.value
+                                                                            }
+                                                                            value={
+                                                                                status.value
+                                                                            }
+                                                                            onSelect={(
+                                                                                currentValue
+                                                                            ) => {
+                                                                                setCompletionStatus(
                                                                                     currentValue
-                                                                                ) => {
-                                                                                    setCompletionStatus(
-                                                                                        currentValue
-                                                                                    );
-                                                                                    setCompletionStatusOpen(
-                                                                                        false
-                                                                                    );
-                                                                                }}
-                                                                            >
-                                                                                <Check
-                                                                                    className={cn(
-                                                                                        "mr-2 h-4 w-4",
-                                                                                        completionStatus ===
-                                                                                            status.value
-                                                                                            ? "opacity-100"
-                                                                                            : "opacity-0"
-                                                                                    )}
-                                                                                />
-                                                                                {
-                                                                                    status.label
-                                                                                }
-                                                                            </CommandItem>
-                                                                        )
-                                                                    )}
-                                                                </CommandGroup>
-                                                            </CommandList>
-                                                        </Command>
-                                                    </PopoverContent>
-                                                </Popover>
-                                            </div>
+                                                                                );
+                                                                                setCompletionStatusOpen(
+                                                                                    false
+                                                                                );
+                                                                            }}
+                                                                        >
+                                                                            <Check
+                                                                                className={cn(
+                                                                                    "mr-2 h-4 w-4",
+                                                                                    completionStatus ===
+                                                                                        status.value
+                                                                                        ? "opacity-100"
+                                                                                        : "opacity-0"
+                                                                                )}
+                                                                            />
+                                                                            {
+                                                                                status.label
+                                                                            }
+                                                                        </CommandItem>
+                                                                    )
+                                                                )}
+                                                            </CommandGroup>
+                                                        </CommandList>
+                                                    </Command>
+                                                </PopoverContent>
+                                            </Popover>
                                         </td>
                                     </tr>
                                     <tr>
@@ -499,36 +518,36 @@ const InteractiveGameEditorModal = () => {
                                             Completion Date
                                         </td>
                                         <td>
-                                            <div className="flex items-center space-x-1">
-                                                <div
-                                                    className={cn(
-                                                        "text-sm",
-                                                        gameStatus !== "played"
-                                                            ? "text-muted-foreground"
-                                                            : ""
-                                                    )}
-                                                >
-                                                    {new Date(
-                                                        completionDate ??
-                                                            new Date()
-                                                    ).toLocaleDateString()}
-                                                </div>
-                                                <DateTimePicker
-                                                    granularity="day"
-                                                    value={completionDate}
-                                                    onChange={setCompletionDate}
-                                                    triggerButtonProps={{
-                                                        size: "icon",
-                                                        variant: "ghost",
-                                                        className: "w-6 h-6",
-                                                        disabled:
+                                            <DateTimePicker
+                                                granularity="day"
+                                                value={completionDate}
+                                                onChange={setCompletionDate}
+                                                triggerButtonProps={{
+                                                    size: "icon",
+                                                    variant: "ghost",
+                                                    className: "w-full h-6",
+                                                    disabled:
+                                                        gameStatus !== "played",
+                                                }}
+                                            >
+                                                <div className="flex w-full items-center justify-between space-x-1 p-1">
+                                                    <div
+                                                        className={cn(
+                                                            "text-sm",
                                                             gameStatus !==
-                                                            "played",
-                                                    }}
-                                                >
+                                                                "played"
+                                                                ? "text-muted-foreground"
+                                                                : ""
+                                                        )}
+                                                    >
+                                                        {new Date(
+                                                            completionDate ??
+                                                                new Date()
+                                                        ).toLocaleDateString()}
+                                                    </div>
                                                     <Edit />
-                                                </DateTimePicker>
-                                            </div>
+                                                </div>
+                                            </DateTimePicker>
                                         </td>
                                     </tr>
                                 </tbody>

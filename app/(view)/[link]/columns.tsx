@@ -76,15 +76,12 @@ export const columns: ColumnDef<Order>[] = [
                             <MoreHorizontal className="h-4 w-4" />
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                    <DropdownMenuContent> 
                         <DropdownMenuItem onClick={() => openModal("approve", order)}>
                             Approve
                         </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem>View customer</DropdownMenuItem>
-                        <DropdownMenuItem>
-                            View payment details
+                        <DropdownMenuItem onClick={() => openModal("deny", order)}>
+                            Deny
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>

@@ -28,6 +28,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/utils/cn";
 import {
@@ -48,12 +49,39 @@ const gameStatuses = [
         label: "Planned",
     },
     {
-        value: "playing",
+        value: "in_progress",
         label: "Playing",
     },
     {
+        value: "played",
+        label: "Played",
+    },
+    {
+        value: "skipped",
+        label: "Skipped",
+    },
+    {
+        value: "awaits_auction",
+        label: "Awaits auction",
+    },
+    {
+        value: "review",
+        label: "On review",
+    },
+];
+
+const completionStatuses = [
+    {
         value: "completed",
-        label: "Completed",
+        label: "Finished",
+    },
+    {
+        value: "not_completed",
+        label: "Not Finished",
+    },
+    {
+        value: "endless",
+        label: "Endless",
     },
 ];
 
@@ -61,15 +89,39 @@ const InteractiveGameEditorModal = () => {
     const { currentModal, order, openModal, closeModal } = useOrderModal();
     const [open, setOpen] = React.useState(false);
     const [detailsOpen, setDetailsOpen] = React.useState(false);
-    const [value, setValue] = React.useState("");
+    const [gameStatus, setGameStatus] = React.useState("");
     const [releaseDate, setReleaseDate] = React.useState<Date>();
+    const [completionDate, setCompletionDate] = React.useState<Date>();
+    const [completionStatus, setCompletionStatus] = React.useState("");
+    const [completionStatusOpen, setCompletionStatusOpen] =
+        React.useState(false);
 
     const fileUpload = React.useRef<HTMLInputElement>(null);
     const [image, setImage] = React.useState<File | null>(null);
     const [preview, setPreview] = React.useState<string | null>(null);
 
+    const [url, setUrl] = React.useState(
+        "https://store.steampowered.com/app/1086940/Baldurs_Gate_3/"
+    );
+    const [faviconUrl, setFaviconUrl] = React.useState("");
+
+    const handleLoadFavicon = () => {
+        try {
+            const parsedUrl = new URL(url);
+            const favicon = `${parsedUrl.origin}/favicon.ico`;
+            setFaviconUrl(favicon);
+        } catch (error) {
+            alert("Please enter a valid URL");
+            setFaviconUrl("");
+        }
+    };
+
     useEffect(() => {
-        setValue("planned");
+        setGameStatus("review");
+        setCompletionDate(undefined);
+        setReleaseDate(undefined);
+        setCompletionStatus("not_completed");
+        handleLoadFavicon();
     }, [order?.id]);
 
     useEffect(() => {
@@ -111,36 +163,34 @@ const InteractiveGameEditorModal = () => {
                 </DialogHeader>
 
                 <div className="space-y-6">
-                    <div className="flex space-x-4">
+                    <div className="flex items-start space-x-4">
                         {!preview && (
-                            <div className="flex items-center justify-center">
-                                <label className="flex flex-col items-center justify-center min-w-[173px] min-h-[208px] border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-5 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600">
-                                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                        <Upload className="w-8 h-8 mb-4" />
-                                        <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
-                                            <span className="font-semibold">
-                                                Click to upload
-                                            </span>
-                                            <br />
-                                            or drag and drop
-                                        </p>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                                            SVG, PNG, JPG or GIF
-                                            <br />
-                                            (MAX. 800x400px)
-                                        </p>
-                                    </div>
-                                    <input
-                                        id="dropzone-file"
-                                        type="file"
-                                        className="hidden"
-                                        accept="image/*"
-                                        onChange={(e) =>
-                                            handleFileChange(e.target.files)
-                                        }
-                                    />
-                                </label>
-                            </div>
+                            <label className="flex flex-col items-center justify-center min-w-[173px] min-h-[208px] border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-5 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600">
+                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                    <Upload className="w-8 h-8 mb-4" />
+                                    <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
+                                        <span className="font-semibold">
+                                            Click to upload
+                                        </span>
+                                        <br />
+                                        or drag and drop
+                                    </p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                                        SVG, PNG, JPG or GIF
+                                        <br />
+                                        (MAX. 800x400px)
+                                    </p>
+                                </div>
+                                <input
+                                    id="dropzone-file"
+                                    type="file"
+                                    className="hidden"
+                                    accept="image/*"
+                                    onChange={(e) =>
+                                        handleFileChange(e.target.files)
+                                    }
+                                />
+                            </label>
                         )}
 
                         {preview && (
@@ -187,51 +237,80 @@ const InteractiveGameEditorModal = () => {
                                 </div>
                             </div>
                         )}
-                        {/* <div className="min-w-[173px] min-h-[208px] rounded-md border flex flex-col items-center justify-center space-y-2">
-                            <div className="text-center">Upload poster</div>
-                            <Button variant="outline" size="icon">
-                                <Upload />
-                            </Button>
-                        </div> */}
 
-                        <div className="w-full flex flex-col space-y-4">
+                        <div className="w-full flex flex-col space-y-2">
                             <div className="text-xl">{order.message}</div>
                             <table className="border-separate border-spacing-1">
                                 <tbody>
                                     <tr>
-                                        <td className="w-1/2">Release date</td>
+                                        <td className="w-1/2 text-sm">
+                                            Release Date
+                                        </td>
                                         <td>
                                             <div className="flex items-center space-x-1">
-                                                <div>
+                                                <div className="text-sm">
                                                     {new Date(
                                                         releaseDate ??
-                                                            "01/01/1900"
+                                                            new Date()
                                                     ).toLocaleDateString()}
                                                 </div>
                                                 <DateTimePicker
                                                     granularity="day"
+                                                    value={releaseDate}
+                                                    onChange={setReleaseDate}
                                                     triggerButtonProps={{
                                                         size: "icon",
                                                         variant: "ghost",
                                                         className: "w-6 h-6",
                                                     }}
                                                 >
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="w-6 h-6"
-                                                    >
-                                                        <Edit />
-                                                    </Button>
+                                                    <Edit />
                                                 </DateTimePicker>
                                             </div>
                                         </td>
                                     </tr>
                                     <tr>
-                                        <td>Status</td>
-                                        <td>
+                                        <td className="w-1/2 text-sm">Link</td>
+                                        <td className="w-1/2">
+                                            <Button
+                                                variant="ghost"
+                                                className="w-full h-6 p-0"
+                                            >
+                                                <div className="flex items-center space-x-0.5 text-sm text-muted-foreground">
+                                                    <Image
+                                                        src={faviconUrl}
+                                                        alt="Link favicon"
+                                                        className="w-4 h-4 flex-shrink-0"
+                                                        width={16}
+                                                        height={16}
+                                                    />
+                                                    <span>/</span>
+                                                    <p
+                                                        className="w-24 truncate"
+                                                        dir="rtl"
+                                                    >
+                                                        <span className="text-xs">
+                                                            {url}
+                                                        </span>
+                                                    </p>
+                                                </div>
+                                            </Button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td className="pt-4 text-sm">Status</td>
+                                        <td className="pt-4">
                                             <div className="flex items-center space-x-1">
-                                                <div>{value}</div>
+                                                <div className="text-sm">
+                                                    {gameStatuses
+                                                        .filter(
+                                                            (s) =>
+                                                                s.value ==
+                                                                gameStatus
+                                                        )
+                                                        .map((s) => s.label)
+                                                        .join()}
+                                                </div>
                                                 <Popover
                                                     open={open}
                                                     onOpenChange={setOpen}
@@ -270,11 +349,8 @@ const InteractiveGameEditorModal = () => {
                                                                                 onSelect={(
                                                                                     currentValue
                                                                                 ) => {
-                                                                                    setValue(
-                                                                                        currentValue ===
-                                                                                            value
-                                                                                            ? ""
-                                                                                            : currentValue
+                                                                                    setGameStatus(
+                                                                                        currentValue
                                                                                     );
                                                                                     setOpen(
                                                                                         false
@@ -284,7 +360,7 @@ const InteractiveGameEditorModal = () => {
                                                                                 <Check
                                                                                     className={cn(
                                                                                         "mr-2 h-4 w-4",
-                                                                                        value ===
+                                                                                        gameStatus ===
                                                                                             status.value
                                                                                             ? "opacity-100"
                                                                                             : "opacity-0"
@@ -305,19 +381,159 @@ const InteractiveGameEditorModal = () => {
                                         </td>
                                     </tr>
                                     <tr>
-                                        <td className="pt-4">Request date</td>
-                                        <td className="pt-4">
-                                            {new Date().toLocaleDateString()}
+                                        <td
+                                            className={cn(
+                                                "text-sm",
+                                                gameStatus !== "played"
+                                                    ? "text-muted-foreground"
+                                                    : ""
+                                            )}
+                                        >
+                                            Completion Status
+                                        </td>
+                                        <td>
+                                            <div className="flex items-center space-x-1">
+                                                <div
+                                                    className={cn(
+                                                        "text-sm",
+                                                        gameStatus !== "played"
+                                                            ? "text-muted-foreground"
+                                                            : ""
+                                                    )}
+                                                >
+                                                    {completionStatuses
+                                                        .filter(
+                                                            (s) =>
+                                                                s.value ==
+                                                                completionStatus
+                                                        )
+                                                        .map((s) => s.label)
+                                                        .join()}
+                                                </div>
+                                                <Popover
+                                                    open={completionStatusOpen}
+                                                    onOpenChange={
+                                                        setCompletionStatusOpen
+                                                    }
+                                                >
+                                                    <PopoverTrigger asChild>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="w-6 h-6"
+                                                            role="combobox"
+                                                            aria-expanded={
+                                                                completionStatusOpen
+                                                            }
+                                                            disabled={
+                                                                gameStatus !==
+                                                                "played"
+                                                            }
+                                                        >
+                                                            <Edit />
+                                                        </Button>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-[200px] p-0">
+                                                        <Command>
+                                                            <CommandInput placeholder="Search status..." />
+                                                            <CommandList>
+                                                                <CommandEmpty>
+                                                                    No status
+                                                                    found.
+                                                                </CommandEmpty>
+                                                                <CommandGroup>
+                                                                    {completionStatuses.map(
+                                                                        (
+                                                                            status
+                                                                        ) => (
+                                                                            <CommandItem
+                                                                                key={
+                                                                                    status.value
+                                                                                }
+                                                                                value={
+                                                                                    status.value
+                                                                                }
+                                                                                onSelect={(
+                                                                                    currentValue
+                                                                                ) => {
+                                                                                    setCompletionStatus(
+                                                                                        currentValue
+                                                                                    );
+                                                                                    setCompletionStatusOpen(
+                                                                                        false
+                                                                                    );
+                                                                                }}
+                                                                            >
+                                                                                <Check
+                                                                                    className={cn(
+                                                                                        "mr-2 h-4 w-4",
+                                                                                        completionStatus ===
+                                                                                            status.value
+                                                                                            ? "opacity-100"
+                                                                                            : "opacity-0"
+                                                                                    )}
+                                                                                />
+                                                                                {
+                                                                                    status.label
+                                                                                }
+                                                                            </CommandItem>
+                                                                        )
+                                                                    )}
+                                                                </CommandGroup>
+                                                            </CommandList>
+                                                        </Command>
+                                                    </PopoverContent>
+                                                </Popover>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td
+                                            className={cn(
+                                                "text-sm",
+                                                gameStatus !== "played"
+                                                    ? "text-muted-foreground"
+                                                    : ""
+                                            )}
+                                        >
+                                            Completion Date
+                                        </td>
+                                        <td>
+                                            <div className="flex items-center space-x-1">
+                                                <div
+                                                    className={cn(
+                                                        "text-sm",
+                                                        gameStatus !== "played"
+                                                            ? "text-muted-foreground"
+                                                            : ""
+                                                    )}
+                                                >
+                                                    {new Date(
+                                                        completionDate ??
+                                                            new Date()
+                                                    ).toLocaleDateString()}
+                                                </div>
+                                                <DateTimePicker
+                                                    granularity="day"
+                                                    value={completionDate}
+                                                    onChange={setCompletionDate}
+                                                    triggerButtonProps={{
+                                                        size: "icon",
+                                                        variant: "ghost",
+                                                        className: "w-6 h-6",
+                                                        disabled:
+                                                            gameStatus !==
+                                                            "played",
+                                                    }}
+                                                >
+                                                    <Edit />
+                                                </DateTimePicker>
+                                            </div>
                                         </td>
                                     </tr>
                                 </tbody>
                             </table>
                         </div>
-                    </div>
-
-                    <div className="space-y-2">
-                        <div className="text-md font-semibold">Comment</div>
-                        <Textarea placeholder="Type your comment here." />
                     </div>
 
                     <div className="space-y-2">
@@ -337,6 +553,26 @@ const InteractiveGameEditorModal = () => {
                             </div>
                             <span className="ml-2 font-semibold">{4}/10</span>
                         </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <div className="text-md font-semibold">Comment</div>
+                        <Textarea placeholder="Type your comment here." />
+                    </div>
+
+                    <div className="space-y-2">
+                        <div className="text-md font-semibold">Highlights</div>
+                        <ScrollArea className="max-w-[29rem] whitespace-nowrap">
+                            <div className="flex space-x-2 pb-4">
+                                {Array.from({ length: 10 }).map((_, index) => (
+                                    <div
+                                        key={index}
+                                        className="w-[192px] h-[108px] bg-white rounded-sm"
+                                    />
+                                ))}
+                            </div>
+                            <ScrollBar orientation="horizontal" />
+                        </ScrollArea>
                     </div>
 
                     <Collapsible
@@ -377,11 +613,14 @@ const InteractiveGameEditorModal = () => {
                     </Collapsible>
                 </div>
                 <DialogFooter>
+                    <Button
+                        variant="secondary"
+                        onClick={() => openModal("approve", order)}
+                    >
+                        Back
+                    </Button>
                     <Button onClick={() => openModal("deny", order)}>
                         Continue
-                    </Button>
-                    <Button variant="secondary" onClick={closeModal}>
-                        Cancel
                     </Button>
                 </DialogFooter>
             </DialogContent>

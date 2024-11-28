@@ -157,7 +157,7 @@ const ApproveModal = () => {
                 >
                     <div className="flex items-center justify-between space-x-4">
                         <h4 className="text-md font-semibold">
-                            Immutable details
+                            Orderer Details
                         </h4>
                         <CollapsibleTrigger asChild>
                             <Button variant="ghost" size="sm">
@@ -195,15 +195,15 @@ const ApproveModal = () => {
                 </Collapsible>
 
                 <DialogFooter>
+                    <Button variant="secondary" onClick={closeModal}>
+                        Cancel
+                    </Button>
                     <Button
                         onClick={() =>
                             openModal("interactive-game-editor", order)
                         }
                     >
                         Continue
-                    </Button>
-                    <Button variant="secondary" onClick={closeModal}>
-                        Cancel
                     </Button>
                 </DialogFooter>
             </DialogContent>

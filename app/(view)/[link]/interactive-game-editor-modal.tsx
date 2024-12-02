@@ -98,52 +98,39 @@ const formSchema = z.object({
     completionDate: z.date().optional(),
     completionStatus: z.string(),
     comment: z.string().optional(),
-    rate: z.number().optional(),
+    rate: z.number().max(10).min(1).optional(),
     highlights: z.array(z.string()).optional(),
-    posterUrl: z.string().optional(),
+    gameLink: z.string().optional(),
 });
 
 const InteractiveGameEditorModal = () => {
     const { currentModal, order, openModal, closeModal } = useOrderModal();
-    const [open, setOpen] = React.useState(false);
     const [detailsOpen, setDetailsOpen] = React.useState(false);
-    const [gameStatus, setGameStatus] = React.useState("");
-    const [releaseDate, setReleaseDate] = React.useState<Date>();
-    const [completionDate, setCompletionDate] = React.useState<Date>();
-    const [completionStatus, setCompletionStatus] = React.useState("");
-    const [completionStatusOpen, setCompletionStatusOpen] =
-        React.useState(false);
 
     const fileUpload = React.useRef<HTMLInputElement>(null);
     const [image, setImage] = React.useState<File | null>(null);
     const [preview, setPreview] = React.useState<string | null>(null);
 
+    const [hoveredStar, setHoveredStar] = React.useState<number>();
+
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
             gameStatus: "review",
+            completionStatus: "not_completed",
         },
     });
 
     useEffect(() => {
+        form.reset();
         form.setValue("orderId", order?.id);
-        form.setValue("gameStatus", "review");
-        form.setValue("releaseDate", undefined);
-        form.setValue("completionDate", undefined);
-        form.setValue("completionStatus", "not_completed");
         form.setValue(
-            "posterUrl",
+            "gameLink",
             "https://store.steampowered.com/app/1086940/Baldurs_Gate_3/"
         );
-
-        setGameStatus("review");
-        setCompletionDate(undefined);
-        setReleaseDate(undefined);
-        setCompletionStatus("not_completed");
     }, [order?.id]);
 
     useEffect(() => {
-        setOpen(false);
         setDetailsOpen(false);
         setPreview(null);
         setImage(null);
@@ -155,6 +142,7 @@ const InteractiveGameEditorModal = () => {
 
     const onSubmit = (values: z.infer<typeof formSchema>) => {
         console.log(values);
+        // openModal("deny", order);
     };
 
     const handleFileChange = (files: FileList | null) => {
@@ -315,7 +303,7 @@ const InteractiveGameEditorModal = () => {
                                                 <td className="w-1/2">
                                                     <FormField
                                                         control={form.control}
-                                                        name="posterUrl"
+                                                        name="gameLink"
                                                         render={({ field }) => (
                                                             <FormItem>
                                                                 <div className="flex justify-between items-center">
@@ -451,147 +439,137 @@ const InteractiveGameEditorModal = () => {
                                                     Completion Status
                                                 </td>
                                                 <td>
-                                                    <Popover
-                                                        open={
-                                                            completionStatusOpen
-                                                        }
-                                                        onOpenChange={
-                                                            setCompletionStatusOpen
-                                                        }
-                                                    >
-                                                        <PopoverTrigger asChild>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="w-full h-6"
-                                                                role="combobox"
-                                                                aria-expanded={
-                                                                    completionStatusOpen
-                                                                }
-                                                            >
-                                                                <div className="flex w-full items-center justify-between space-x-1 p-1">
-                                                                    <div className="text-sm">
-                                                                        {completionStatuses
-                                                                            .filter(
-                                                                                (
-                                                                                    s
-                                                                                ) =>
-                                                                                    s.value ==
-                                                                                    completionStatus
-                                                                            )
-                                                                            .map(
-                                                                                (
-                                                                                    s
-                                                                                ) =>
-                                                                                    s.label
-                                                                            )
-                                                                            .join()}
-                                                                    </div>
-                                                                    <Edit />
-                                                                </div>
-                                                            </Button>
-                                                        </PopoverTrigger>
-                                                        <PopoverContent className="w-[200px] p-0">
-                                                            <Command>
-                                                                <CommandInput placeholder="Search status..." />
-                                                                <CommandList>
-                                                                    <CommandEmpty>
-                                                                        No
-                                                                        status
-                                                                        found.
-                                                                    </CommandEmpty>
-                                                                    <CommandGroup>
-                                                                        {completionStatuses.map(
-                                                                            (
-                                                                                status
-                                                                            ) => (
-                                                                                <CommandItem
-                                                                                    key={
-                                                                                        status.value
-                                                                                    }
-                                                                                    value={
-                                                                                        status.value
-                                                                                    }
-                                                                                    onSelect={(
-                                                                                        currentValue
-                                                                                    ) => {
-                                                                                        setCompletionStatus(
-                                                                                            currentValue
-                                                                                        );
-                                                                                        setCompletionStatusOpen(
-                                                                                            false
-                                                                                        );
-                                                                                    }}
-                                                                                >
-                                                                                    <Check
-                                                                                        className={cn(
-                                                                                            "mr-2 h-4 w-4",
-                                                                                            completionStatus ===
-                                                                                                status.value
-                                                                                                ? "opacity-100"
-                                                                                                : "opacity-0"
-                                                                                        )}
-                                                                                    />
-                                                                                    {
-                                                                                        status.label
-                                                                                    }
-                                                                                </CommandItem>
-                                                                            )
-                                                                        )}
-                                                                    </CommandGroup>
-                                                                </CommandList>
-                                                            </Command>
-                                                        </PopoverContent>
-                                                    </Popover>
+                                                    <FormField
+                                                        control={form.control}
+                                                        name="completionStatus"
+                                                        render={({ field }) => (
+                                                            <FormItem>
+                                                                <Popover>
+                                                                    <PopoverTrigger
+                                                                        asChild
+                                                                    >
+                                                                        <FormControl>
+                                                                            <Button
+                                                                                variant="ghost"
+                                                                                size="icon"
+                                                                                className="w-full h-6"
+                                                                                role="combobox"
+                                                                            >
+                                                                                <div className="flex w-full items-center justify-between space-x-1 p-1">
+                                                                                    <div className="text-sm">
+                                                                                        {completionStatuses
+                                                                                            .filter(
+                                                                                                (
+                                                                                                    s
+                                                                                                ) =>
+                                                                                                    s.value ==
+                                                                                                    field.value
+                                                                                            )
+                                                                                            .map(
+                                                                                                (
+                                                                                                    s
+                                                                                                ) =>
+                                                                                                    s.label
+                                                                                            )
+                                                                                            .join()}
+                                                                                    </div>
+                                                                                    <Edit />
+                                                                                </div>
+                                                                            </Button>
+                                                                        </FormControl>
+                                                                    </PopoverTrigger>
+                                                                    <PopoverContent className="w-[200px] p-0">
+                                                                        <Command>
+                                                                            <CommandInput placeholder="Search status..." />
+                                                                            <CommandList>
+                                                                                <CommandEmpty>
+                                                                                    No
+                                                                                    status
+                                                                                    found.
+                                                                                </CommandEmpty>
+                                                                                <CommandGroup>
+                                                                                    {completionStatuses.map(
+                                                                                        (
+                                                                                            status
+                                                                                        ) => (
+                                                                                            <CommandItem
+                                                                                                key={
+                                                                                                    status.value
+                                                                                                }
+                                                                                                value={
+                                                                                                    status.value
+                                                                                                }
+                                                                                                onSelect={() => {
+                                                                                                    form.setValue(
+                                                                                                        "completionStatus",
+                                                                                                        status.value
+                                                                                                    );
+                                                                                                    form.setFocus(
+                                                                                                        "completionStatus"
+                                                                                                    );
+                                                                                                }}
+                                                                                            >
+                                                                                                <Check
+                                                                                                    className={cn(
+                                                                                                        "mr-2 h-4 w-4",
+                                                                                                        field.value ===
+                                                                                                            status.value
+                                                                                                            ? "opacity-100"
+                                                                                                            : "opacity-0"
+                                                                                                    )}
+                                                                                                />
+                                                                                                <PopoverClose className="w-full text-start">
+                                                                                                    {
+                                                                                                        status.label
+                                                                                                    }
+                                                                                                </PopoverClose>
+                                                                                            </CommandItem>
+                                                                                        )
+                                                                                    )}
+                                                                                </CommandGroup>
+                                                                            </CommandList>
+                                                                        </Command>
+                                                                    </PopoverContent>
+                                                                </Popover>
+                                                            </FormItem>
+                                                        )}
+                                                    />
                                                 </td>
                                             </tr>
                                             <tr>
-                                                <td
-                                                    className={cn(
-                                                        "text-sm",
-                                                        completionStatus !==
-                                                            "completed"
-                                                            ? "text-muted-foreground"
-                                                            : ""
-                                                    )}
-                                                >
+                                                <td className="text-sm">
                                                     Completion Date
                                                 </td>
                                                 <td>
-                                                    <DateTimePicker
-                                                        granularity="day"
-                                                        value={completionDate}
-                                                        onChange={
-                                                            setCompletionDate
-                                                        }
-                                                        triggerButtonProps={{
-                                                            size: "icon",
-                                                            variant: "ghost",
-                                                            className:
-                                                                "w-full h-6",
-                                                            disabled:
-                                                                completionStatus !==
-                                                                "completed",
-                                                        }}
-                                                    >
-                                                        <div className="flex w-full items-center justify-between space-x-1 p-1">
-                                                            <div
-                                                                className={cn(
-                                                                    "text-sm",
-                                                                    completionStatus !==
-                                                                        "completed"
-                                                                        ? "text-muted-foreground"
-                                                                        : ""
-                                                                )}
-                                                            >
-                                                                {new Date(
-                                                                    completionDate ??
-                                                                        new Date()
-                                                                ).toLocaleDateString()}
-                                                            </div>
-                                                            <Edit />
-                                                        </div>
-                                                    </DateTimePicker>
+                                                    <FormField
+                                                        control={form.control}
+                                                        name="completionDate"
+                                                        render={({ field }) => (
+                                                            <FormItem>
+                                                                <DateTimePicker
+                                                                    granularity="day"
+                                                                    {...field}
+                                                                    triggerButtonProps={{
+                                                                        size: "icon",
+                                                                        variant:
+                                                                            "ghost",
+                                                                        className:
+                                                                            "w-full h-6",
+                                                                    }}
+                                                                >
+                                                                    <div className="flex w-full items-center justify-between space-x-1 p-1">
+                                                                        <div className="text-sm">
+                                                                            {new Date(
+                                                                                field.value ??
+                                                                                    new Date()
+                                                                            ).toLocaleDateString()}
+                                                                        </div>
+                                                                        <Edit />
+                                                                    </div>
+                                                                </DateTimePicker>
+                                                            </FormItem>
+                                                        )}
+                                                    />
                                                 </td>
                                             </tr>
                                         </tbody>
@@ -604,20 +582,71 @@ const InteractiveGameEditorModal = () => {
                                     Rate
                                 </div>
                                 <div className="flex items-center mb-4">
-                                    <div className="flex items-center">
-                                        {[...Array(10)].map((_, i) => (
-                                            <StarIcon
-                                                key={i}
-                                                className={`w-5 h-5 ${
-                                                    i < 4
-                                                        ? "text-yellow-400 fill-current"
-                                                        : "text-gray-300"
-                                                }`}
-                                            />
-                                        ))}
-                                    </div>
-                                    <span className="ml-2 font-semibold">
-                                        {4}/10
+                                    <FormField
+                                        control={form.control}
+                                        name="rate"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <div className="flex items-center">
+                                                    {[...Array(10)].map(
+                                                        (_, i) => (
+                                                            <StarIcon
+                                                                key={i}
+                                                                onMouseEnter={() =>
+                                                                    setHoveredStar(
+                                                                        i
+                                                                    )
+                                                                }
+                                                                onMouseLeave={() =>
+                                                                    setHoveredStar(
+                                                                        undefined
+                                                                    )
+                                                                }
+                                                                onClick={() => {
+                                                                    form.setValue(
+                                                                        "rate",
+                                                                        field.value ==
+                                                                            i +
+                                                                                1
+                                                                            ? undefined
+                                                                            : i +
+                                                                                  1
+                                                                    );
+                                                                    form.setFocus(
+                                                                        "rate"
+                                                                    );
+                                                                }}
+                                                                className={cn(
+                                                                    "w-6 h-6 cursor-pointer",
+                                                                    field.value &&
+                                                                        i <
+                                                                            field.value
+                                                                        ? "fill-current"
+                                                                        : "",
+                                                                    (field.value &&
+                                                                        i <
+                                                                            field.value) ||
+                                                                        (hoveredStar &&
+                                                                            hoveredStar >=
+                                                                                i)
+                                                                        ? "text-yellow-400"
+                                                                        : "text-accent-foreground",
+                                                                    "transition-colors"
+                                                                )}
+                                                            />
+                                                        )
+                                                    )}
+                                                </div>
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <span className="ml-2 font-semibold text-lg">
+                                        {form.watch("rate") ? (
+                                            form.watch("rate")!!
+                                        ) : (
+                                            <>&mdash;</>
+                                        )}
+                                        /10
                                     </span>
                                 </div>
                             </div>
@@ -626,7 +655,20 @@ const InteractiveGameEditorModal = () => {
                                 <div className="text-md font-semibold">
                                     Comment
                                 </div>
-                                <Textarea placeholder="Type your comment here." />
+                                <FormField
+                                    control={form.control}
+                                    name="comment"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormControl>
+                                                <Textarea
+                                                    {...field}
+                                                    placeholder="Type your comment here."
+                                                />
+                                            </FormControl>
+                                        </FormItem>
+                                    )}
+                                />
                             </div>
 
                             <div className="space-y-2">
@@ -691,16 +733,14 @@ const InteractiveGameEditorModal = () => {
                                 </CollapsibleContent>
                             </Collapsible>
                         </div>
-                        <DialogFooter>
+                        <DialogFooter className="mt-4">
                             <Button
                                 variant="secondary"
                                 onClick={() => openModal("approve", order)}
                             >
                                 Back
                             </Button>
-                            <Button onClick={() => openModal("deny", order)}>
-                                Continue
-                            </Button>
+                            <Button type="submit">Continue</Button>
                         </DialogFooter>
                     </form>
                 </Form>

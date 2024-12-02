@@ -7,7 +7,7 @@ type Props = ButtonProps & {
 
 const EditableStatusButton = ({ value, ...props }: Props) => {
     return (
-        <Button variant="ghost" size="icon" className="w-full h-6" {...props}>
+        <Button variant="ghost" size="icon" className="w-full h-8" {...props}>
             <div className="flex w-full items-center justify-between space-x-1 p-1">
                 <div className="text-sm">{value}</div>
                 <Edit />

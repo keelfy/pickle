@@ -5,7 +5,7 @@ const nextConfig = {
             { hostname: "flowbite.com" },
             { hostname: "cdn2.steamgriddb.com" },
             { hostname: "store.steampowered.com" },
-            { hostname: "itch.io" },
+            { hostname: "mrdrnose.itch.io" },
         ],
     },
 };

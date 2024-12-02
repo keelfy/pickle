@@ -1,10 +1,8 @@
 import {
     Command,
-    CommandEmpty,
     CommandGroup,
-    CommandInput,
     CommandItem,
-    CommandList,
+    CommandList
 } from "@/components/ui/command";
 import { cn } from "@/utils/cn";
 import { Check } from "lucide-react";
@@ -24,9 +22,7 @@ type Props = {
 const StatusCommand = ({ statuses, value, onChange, getLabel }: Props) => {
     return (
         <Command>
-            <CommandInput placeholder="Search status..." />
             <CommandList>
-                <CommandEmpty>No status found.</CommandEmpty>
                 <CommandGroup>
                     {statuses.map((status) => (
                         <CommandItem

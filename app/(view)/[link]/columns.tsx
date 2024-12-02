@@ -6,8 +6,6 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ColumnDef } from "@tanstack/react-table";
@@ -17,7 +15,7 @@ import { useOrderModal } from "./order-modal-context";
 export const columns: ColumnDef<Order>[] = [
     {
         accessorKey: "ordererUsername",
-        header: () => <div>Orderer</div>,
+        header: () => <div>User</div>,
     },
     {
         accessorKey: "categoryType",
@@ -28,9 +26,7 @@ export const columns: ColumnDef<Order>[] = [
         accessorKey: "message",
         header: "Message",
         cell: ({ row }) => (
-            <div className="max-w-96 text-wrap">
-                {row.getValue("message")}
-            </div>
+            <div className="max-w-96 text-wrap">{row.getValue("message")}</div>
         ),
     },
     {
@@ -57,34 +53,44 @@ export const columns: ColumnDef<Order>[] = [
         accessorKey: "createdAt",
         header: () => <div>Date</div>,
         cell: ({ row }) => (
-            <div className="text-right">
+            <div className="text-start">
                 {new Date(row.getValue("createdAt")).toLocaleDateString()}
             </div>
         ),
     },
     {
         id: "actions",
+        header: () => <div className="text-center">Manage</div>,
         cell: ({ row }) => {
             const order = row.original;
             const { openModal } = useOrderModal();
 
             return (
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Open menu</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent> 
-                        <DropdownMenuItem onClick={() => openModal("approve", order)}>
-                            Approve
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => openModal("deny", order)}>
-                            Deny
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                <div className="text-center">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                className="h-8 w-8 p-0 text-center"
+                            >
+                                <span className="sr-only">Open menu</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                            <DropdownMenuItem
+                                onClick={() => openModal("approve", order)}
+                            >
+                                Approve
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                                onClick={() => openModal("deny", order)}
+                            >
+                                Deny
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
             );
         },
     },

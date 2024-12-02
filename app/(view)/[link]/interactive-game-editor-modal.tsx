@@ -1,19 +1,11 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
     Collapsible,
     CollapsibleContent,
     CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import {
-    Command,
-    CommandEmpty,
-    CommandGroup,
-    CommandInput,
-    CommandItem,
-    CommandList,
-} from "@/components/ui/command";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
 import {
     Dialog,
@@ -24,6 +16,8 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
     Popover,
     PopoverContent,
@@ -31,22 +25,25 @@ import {
 } from "@/components/ui/popover";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/utils/cn";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PopoverClose } from "@radix-ui/react-popover";
-import {
-    Check,
-    ChevronsUpDown,
-    Edit,
-    StarIcon,
-    Trash,
-    Upload,
-} from "lucide-react";
+import { ChevronsUpDown, Edit, Trash, Upload } from "lucide-react";
 import Image from "next/image";
 import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import EditableDate from "./components/editable-date";
+import EditableStatusButton from "./components/editable-status-button";
 import GameLink from "./components/game-link";
+import RatingRow from "./components/rating-row";
+import StatusCommand from "./components/status-command";
 import { useOrderModal } from "./order-modal-context";
 
 const gameStatuses = [
@@ -110,8 +107,6 @@ const InteractiveGameEditorModal = () => {
     const fileUpload = React.useRef<HTMLInputElement>(null);
     const [image, setImage] = React.useState<File | null>(null);
     const [preview, setPreview] = React.useState<string | null>(null);
-
-    const [hoveredStar, setHoveredStar] = React.useState<number>();
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -259,8 +254,10 @@ const InteractiveGameEditorModal = () => {
                                     <table className="border-separate border-spacing-1">
                                         <tbody>
                                             <tr>
-                                                <td className="w-1/2 text-sm">
-                                                    Release Date
+                                                <td className="w-1/2">
+                                                    <Label className="text-sm">
+                                                        Release Date
+                                                    </Label>
                                                 </td>
                                                 <td>
                                                     <FormField
@@ -280,15 +277,11 @@ const InteractiveGameEditorModal = () => {
                                                                                 "w-full h-6",
                                                                         }}
                                                                     >
-                                                                        <div className="flex w-full items-center justify-between space-x-1 p-1">
-                                                                            <div className="text-sm">
-                                                                                {new Date(
-                                                                                    field.value ??
-                                                                                        new Date()
-                                                                                ).toLocaleDateString()}
-                                                                            </div>
-                                                                            <Edit />
-                                                                        </div>
+                                                                        <EditableDate
+                                                                            value={
+                                                                                field.value
+                                                                            }
+                                                                        />
                                                                     </DateTimePicker>
                                                                 </FormControl>
                                                             </FormItem>
@@ -297,44 +290,81 @@ const InteractiveGameEditorModal = () => {
                                                 </td>
                                             </tr>
                                             <tr>
-                                                <td className="w-1/2 text-sm">
-                                                    Link
+                                                <td className="w-1/2">
+                                                    <Label className="text-sm">
+                                                        Link
+                                                    </Label>
                                                 </td>
                                                 <td className="w-1/2">
-                                                    <FormField
-                                                        control={form.control}
-                                                        name="gameLink"
-                                                        render={({ field }) => (
-                                                            <FormItem>
-                                                                <div className="flex justify-between items-center">
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        className="flex-1 h-6 p-0"
-                                                                    >
-                                                                        <GameLink
-                                                                            url={
-                                                                                field.value
-                                                                            }
-                                                                        />
-                                                                    </Button>
-                                                                    <FormControl>
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            className="w-6 h-6"
-                                                                            size="icon"
+                                                    <div className="flex justify-between items-center">
+                                                        <GameLink
+                                                            url={form.watch(
+                                                                "gameLink"
+                                                            )}
+                                                            className={cn(
+                                                                buttonVariants({
+                                                                    variant:
+                                                                        "ghost",
+                                                                }),
+                                                                "flex-1 h-6 p-1"
+                                                            )}
+                                                        />
+                                                        <FormField
+                                                            control={
+                                                                form.control
+                                                            }
+                                                            name="gameLink"
+                                                            render={({
+                                                                field,
+                                                            }) => (
+                                                                <FormItem>
+                                                                    <Popover>
+                                                                        <PopoverTrigger
+                                                                            asChild
                                                                         >
-                                                                            <Edit />
-                                                                        </Button>
-                                                                    </FormControl>
-                                                                </div>
-                                                            </FormItem>
-                                                        )}
-                                                    />
+                                                                            <FormControl>
+                                                                                <Button
+                                                                                    variant="ghost"
+                                                                                    className="w-6 h-6"
+                                                                                    size="icon"
+                                                                                >
+                                                                                    <Edit />
+                                                                                </Button>
+                                                                            </FormControl>
+                                                                        </PopoverTrigger>
+                                                                        <PopoverContent className="w-80 p-0">
+                                                                            <Input
+                                                                                placeholder="Paste URL here..."
+                                                                                {...field}
+                                                                            />
+                                                                        </PopoverContent>
+                                                                    </Popover>
+                                                                </FormItem>
+                                                            )}
+                                                        />
+                                                    </div>
                                                 </td>
                                             </tr>
                                             <tr>
-                                                <td className="pt-4 text-sm">
-                                                    Status
+                                                <td className="pt-4">
+                                                    <TooltipProvider>
+                                                        <Tooltip>
+                                                            <TooltipTrigger>
+                                                                <Label className="text-sm">
+                                                                    Status
+                                                                </Label>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>
+                                                                <p>
+                                                                    The status
+                                                                    of your
+                                                                    playthrough
+                                                                    for this
+                                                                    game.
+                                                                </p>
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </TooltipProvider>
                                                 </td>
                                                 <td className="pt-4">
                                                     <FormField
@@ -347,86 +377,55 @@ const InteractiveGameEditorModal = () => {
                                                                         asChild
                                                                     >
                                                                         <FormControl>
-                                                                            <Button
-                                                                                variant="ghost"
-                                                                                size="icon"
-                                                                                className="w-full h-6"
+                                                                            <EditableStatusButton
+                                                                                value={gameStatuses
+                                                                                    .filter(
+                                                                                        (
+                                                                                            s
+                                                                                        ) =>
+                                                                                            s.value ==
+                                                                                            field.value
+                                                                                    )
+                                                                                    .map(
+                                                                                        (
+                                                                                            s
+                                                                                        ) =>
+                                                                                            s.label
+                                                                                    )
+                                                                                    .join()}
                                                                                 role="combobox"
-                                                                            >
-                                                                                <div className="flex w-full items-center justify-between space-x-1 p-1">
-                                                                                    <div className="text-sm">
-                                                                                        {gameStatuses
-                                                                                            .filter(
-                                                                                                (
-                                                                                                    s
-                                                                                                ) =>
-                                                                                                    s.value ==
-                                                                                                    field.value
-                                                                                            )
-                                                                                            .map(
-                                                                                                (
-                                                                                                    s
-                                                                                                ) =>
-                                                                                                    s.label
-                                                                                            )
-                                                                                            .join()}
-                                                                                    </div>
-                                                                                    <Edit />
-                                                                                </div>
-                                                                            </Button>
+                                                                            />
                                                                         </FormControl>
                                                                     </PopoverTrigger>
                                                                     <PopoverContent className="w-[200px] p-0">
-                                                                        <Command>
-                                                                            <CommandInput placeholder="Search status..." />
-                                                                            <CommandList>
-                                                                                <CommandEmpty>
-                                                                                    No
-                                                                                    status
-                                                                                    found.
-                                                                                </CommandEmpty>
-                                                                                <CommandGroup>
-                                                                                    {gameStatuses.map(
-                                                                                        (
-                                                                                            status
-                                                                                        ) => (
-                                                                                            <CommandItem
-                                                                                                key={
-                                                                                                    status.value
-                                                                                                }
-                                                                                                value={
-                                                                                                    status.value
-                                                                                                }
-                                                                                                onSelect={() => {
-                                                                                                    form.setValue(
-                                                                                                        "gameStatus",
-                                                                                                        status.value
-                                                                                                    );
-                                                                                                    form.setFocus(
-                                                                                                        "gameStatus"
-                                                                                                    );
-                                                                                                }}
-                                                                                            >
-                                                                                                <Check
-                                                                                                    className={cn(
-                                                                                                        "mr-2 h-4 w-4",
-                                                                                                        field.value ===
-                                                                                                            status.value
-                                                                                                            ? "opacity-100"
-                                                                                                            : "opacity-0"
-                                                                                                    )}
-                                                                                                />
-                                                                                                <PopoverClose className="w-full text-start">
-                                                                                                    {
-                                                                                                        status.label
-                                                                                                    }
-                                                                                                </PopoverClose>
-                                                                                            </CommandItem>
-                                                                                        )
-                                                                                    )}
-                                                                                </CommandGroup>
-                                                                            </CommandList>
-                                                                        </Command>
+                                                                        <StatusCommand
+                                                                            statuses={
+                                                                                gameStatuses
+                                                                            }
+                                                                            value={
+                                                                                field.value
+                                                                            }
+                                                                            onChange={(
+                                                                                value
+                                                                            ) => {
+                                                                                form.setValue(
+                                                                                    "gameStatus",
+                                                                                    value
+                                                                                );
+                                                                                form.setFocus(
+                                                                                    "gameStatus"
+                                                                                );
+                                                                            }}
+                                                                            getLabel={(
+                                                                                status
+                                                                            ) => (
+                                                                                <PopoverClose className="w-full text-start">
+                                                                                    {
+                                                                                        status.label
+                                                                                    }
+                                                                                </PopoverClose>
+                                                                            )}
+                                                                        />
                                                                     </PopoverContent>
                                                                 </Popover>
                                                             </FormItem>
@@ -435,8 +434,10 @@ const InteractiveGameEditorModal = () => {
                                                 </td>
                                             </tr>
                                             <tr>
-                                                <td className="text-sm">
-                                                    Completion Status
+                                                <td>
+                                                    <Label className="text-sm">
+                                                        Completion Status
+                                                    </Label>
                                                 </td>
                                                 <td>
                                                     <FormField
@@ -449,86 +450,55 @@ const InteractiveGameEditorModal = () => {
                                                                         asChild
                                                                     >
                                                                         <FormControl>
-                                                                            <Button
-                                                                                variant="ghost"
-                                                                                size="icon"
-                                                                                className="w-full h-6"
+                                                                            <EditableStatusButton
+                                                                                value={completionStatuses
+                                                                                    .filter(
+                                                                                        (
+                                                                                            s
+                                                                                        ) =>
+                                                                                            s.value ==
+                                                                                            field.value
+                                                                                    )
+                                                                                    .map(
+                                                                                        (
+                                                                                            s
+                                                                                        ) =>
+                                                                                            s.label
+                                                                                    )
+                                                                                    .join()}
                                                                                 role="combobox"
-                                                                            >
-                                                                                <div className="flex w-full items-center justify-between space-x-1 p-1">
-                                                                                    <div className="text-sm">
-                                                                                        {completionStatuses
-                                                                                            .filter(
-                                                                                                (
-                                                                                                    s
-                                                                                                ) =>
-                                                                                                    s.value ==
-                                                                                                    field.value
-                                                                                            )
-                                                                                            .map(
-                                                                                                (
-                                                                                                    s
-                                                                                                ) =>
-                                                                                                    s.label
-                                                                                            )
-                                                                                            .join()}
-                                                                                    </div>
-                                                                                    <Edit />
-                                                                                </div>
-                                                                            </Button>
+                                                                            />
                                                                         </FormControl>
                                                                     </PopoverTrigger>
                                                                     <PopoverContent className="w-[200px] p-0">
-                                                                        <Command>
-                                                                            <CommandInput placeholder="Search status..." />
-                                                                            <CommandList>
-                                                                                <CommandEmpty>
-                                                                                    No
-                                                                                    status
-                                                                                    found.
-                                                                                </CommandEmpty>
-                                                                                <CommandGroup>
-                                                                                    {completionStatuses.map(
-                                                                                        (
-                                                                                            status
-                                                                                        ) => (
-                                                                                            <CommandItem
-                                                                                                key={
-                                                                                                    status.value
-                                                                                                }
-                                                                                                value={
-                                                                                                    status.value
-                                                                                                }
-                                                                                                onSelect={() => {
-                                                                                                    form.setValue(
-                                                                                                        "completionStatus",
-                                                                                                        status.value
-                                                                                                    );
-                                                                                                    form.setFocus(
-                                                                                                        "completionStatus"
-                                                                                                    );
-                                                                                                }}
-                                                                                            >
-                                                                                                <Check
-                                                                                                    className={cn(
-                                                                                                        "mr-2 h-4 w-4",
-                                                                                                        field.value ===
-                                                                                                            status.value
-                                                                                                            ? "opacity-100"
-                                                                                                            : "opacity-0"
-                                                                                                    )}
-                                                                                                />
-                                                                                                <PopoverClose className="w-full text-start">
-                                                                                                    {
-                                                                                                        status.label
-                                                                                                    }
-                                                                                                </PopoverClose>
-                                                                                            </CommandItem>
-                                                                                        )
-                                                                                    )}
-                                                                                </CommandGroup>
-                                                                            </CommandList>
-                                                                        </Command>
+                                                                        <StatusCommand
+                                                                            statuses={
+                                                                                completionStatuses
+                                                                            }
+                                                                            value={
+                                                                                field.value
+                                                                            }
+                                                                            onChange={(
+                                                                                value
+                                                                            ) => {
+                                                                                form.setValue(
+                                                                                    "completionStatus",
+                                                                                    value
+                                                                                );
+                                                                                form.setFocus(
+                                                                                    "completionStatus"
+                                                                                );
+                                                                            }}
+                                                                            getLabel={(
+                                                                                status
+                                                                            ) => (
+                                                                                <PopoverClose className="w-full text-start">
+                                                                                    {
+                                                                                        status.label
+                                                                                    }
+                                                                                </PopoverClose>
+                                                                            )}
+                                                                        />
                                                                     </PopoverContent>
                                                                 </Popover>
                                                             </FormItem>
@@ -537,8 +507,10 @@ const InteractiveGameEditorModal = () => {
                                                 </td>
                                             </tr>
                                             <tr>
-                                                <td className="text-sm">
-                                                    Completion Date
+                                                <td>
+                                                    <Label className="text-sm">
+                                                        Completion Date
+                                                    </Label>
                                                 </td>
                                                 <td>
                                                     <FormField
@@ -547,6 +519,9 @@ const InteractiveGameEditorModal = () => {
                                                         render={({ field }) => (
                                                             <FormItem>
                                                                 <DateTimePicker
+                                                                    locale={{
+                                                                        code: navigator.language,
+                                                                    }}
                                                                     granularity="day"
                                                                     {...field}
                                                                     triggerButtonProps={{
@@ -557,15 +532,11 @@ const InteractiveGameEditorModal = () => {
                                                                             "w-full h-6",
                                                                     }}
                                                                 >
-                                                                    <div className="flex w-full items-center justify-between space-x-1 p-1">
-                                                                        <div className="text-sm">
-                                                                            {new Date(
-                                                                                field.value ??
-                                                                                    new Date()
-                                                                            ).toLocaleDateString()}
-                                                                        </div>
-                                                                        <Edit />
-                                                                    </div>
+                                                                    <EditableDate
+                                                                        value={
+                                                                            field.value
+                                                                        }
+                                                                    />
                                                                 </DateTimePicker>
                                                             </FormItem>
                                                         )}
@@ -578,65 +549,16 @@ const InteractiveGameEditorModal = () => {
                             </div>
 
                             <div className="space-y-2">
-                                <div className="text-md font-semibold">
+                                <Label className="text-md font-semibold">
                                     Rate
-                                </div>
+                                </Label>
                                 <div className="flex items-center mb-4">
                                     <FormField
                                         control={form.control}
                                         name="rate"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <div className="flex items-center">
-                                                    {[...Array(10)].map(
-                                                        (_, i) => (
-                                                            <StarIcon
-                                                                key={i}
-                                                                onMouseEnter={() =>
-                                                                    setHoveredStar(
-                                                                        i
-                                                                    )
-                                                                }
-                                                                onMouseLeave={() =>
-                                                                    setHoveredStar(
-                                                                        undefined
-                                                                    )
-                                                                }
-                                                                onClick={() => {
-                                                                    form.setValue(
-                                                                        "rate",
-                                                                        field.value ==
-                                                                            i +
-                                                                                1
-                                                                            ? undefined
-                                                                            : i +
-                                                                                  1
-                                                                    );
-                                                                    form.setFocus(
-                                                                        "rate"
-                                                                    );
-                                                                }}
-                                                                className={cn(
-                                                                    "w-6 h-6 cursor-pointer",
-                                                                    field.value &&
-                                                                        i <
-                                                                            field.value
-                                                                        ? "fill-current"
-                                                                        : "",
-                                                                    (field.value &&
-                                                                        i <
-                                                                            field.value) ||
-                                                                        (hoveredStar &&
-                                                                            hoveredStar >=
-                                                                                i)
-                                                                        ? "text-yellow-400"
-                                                                        : "text-accent-foreground",
-                                                                    "transition-colors"
-                                                                )}
-                                                            />
-                                                        )
-                                                    )}
-                                                </div>
+                                                <RatingRow {...field} />
                                             </FormItem>
                                         )}
                                     />
@@ -652,29 +574,25 @@ const InteractiveGameEditorModal = () => {
                             </div>
 
                             <div className="space-y-2">
-                                <div className="text-md font-semibold">
+                                <Label className="text-md font-semibold">
                                     Comment
-                                </div>
+                                </Label>
                                 <FormField
                                     control={form.control}
                                     name="comment"
                                     render={({ field }) => (
-                                        <FormItem>
-                                            <FormControl>
-                                                <Textarea
-                                                    {...field}
-                                                    placeholder="Type your comment here."
-                                                />
-                                            </FormControl>
-                                        </FormItem>
+                                        <Textarea
+                                            {...field}
+                                            placeholder="Type your comment here."
+                                        />
                                     )}
                                 />
                             </div>
 
                             <div className="space-y-2">
-                                <div className="text-md font-semibold">
+                                <Label className="text-md font-semibold">
                                     Highlights
-                                </div>
+                                </Label>
                                 <ScrollArea className="max-w-[29rem] whitespace-nowrap">
                                     <div className="flex space-x-2 pb-4">
                                         {Array.from({ length: 10 }).map(
@@ -696,9 +614,9 @@ const InteractiveGameEditorModal = () => {
                                 className="space-y-2"
                             >
                                 <div className="flex items-center justify-between space-x-4">
-                                    <div className="text-md font-semibold">
+                                    <Label className="text-md font-semibold">
                                         Requesters (5)
-                                    </div>
+                                    </Label>
                                     <CollapsibleTrigger asChild>
                                         <Button variant="ghost" size="sm">
                                             <ChevronsUpDown className="h-4 w-4" />

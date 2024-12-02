@@ -7,9 +7,10 @@ import React from "react";
 
 type Props = {
     url?: string;
+    className?: string;
 };
 
-const GameLink = ({ url }: Props) => {
+const GameLink = ({ url, className }: Props) => {
     const [faviconUrl, setFaviconUrl] = React.useState<string>();
 
     const handleLoadFavicon = () => {
@@ -36,7 +37,7 @@ const GameLink = ({ url }: Props) => {
         <Link
             href={url ?? "#"}
             target="_blank"
-            className="flex items-center space-x-0.5 text-sm text-muted-foreground"
+            className={cn(className, "flex items-center text-sm text-muted-foreground")}
         >
             {faviconUrl && (
                 <>
@@ -51,7 +52,7 @@ const GameLink = ({ url }: Props) => {
                 </>
             )}
             <p
-                className={cn("truncate", faviconUrl ? "w-16" : "w-20")}
+                className={cn("truncate", faviconUrl ? "w-20" : "w-24")}
                 dir="rtl"
             >
                 <span className="text-xs">{url}</span>

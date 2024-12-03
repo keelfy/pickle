@@ -33,9 +33,9 @@ const RootLayout = async ({ children }: { children: React.ReactNode }) => {
         data: { user },
     } = await supabase.auth.getUser();
 
-    const { username } = user
+    const details: UserDetails | undefined = user
         ? await fetchApi<UserDetails>(`/v1/users/${user?.id}`)
-        : {};
+        : undefined;
 
     return (
         <main className="min-h-screen bg-background">
@@ -134,20 +134,22 @@ const RootLayout = async ({ children }: { children: React.ReactNode }) => {
                                                 <Avatar className="w-8 h-8">
                                                     <AvatarImage src="https://github.com/shadcn.png" />
                                                     <AvatarFallback>
-                                                        {username?.substring(
+                                                        {details?.username?.substring(
                                                             0,
                                                             1
                                                         )}
                                                     </AvatarFallback>
                                                 </Avatar>
-                                                {username}
+                                                {details?.username}
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent className="w-44">
                                                 <DropdownMenuLabel>
-                                                    {username}
+                                                    {details?.username}
                                                 </DropdownMenuLabel>
                                                 <DropdownMenuSeparator />
-                                                <Link href={`/${username}`}>
+                                                <Link
+                                                    href={`/${details?.username}`}
+                                                >
                                                     <DropdownMenuItem>
                                                         My page
                                                     </DropdownMenuItem>

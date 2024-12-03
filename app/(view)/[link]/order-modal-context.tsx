@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useContext, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import React, { createContext, useContext, useState } from "react";
 
 type ModalContextType = {
     currentModal: ModalName | null;
@@ -20,15 +21,26 @@ type ModalName =
     | "approve"
     | "deny"
     | "interactive-game-editor"
-    | "approve-confirmation";
+    | "approve-confirmation"
+    | "search";
 
 export const OrderModalProvider = ({
     children,
 }: React.HTMLAttributes<HTMLDivElement>) => {
+    const pathname = usePathname();
+    const router = useRouter();
+    const searchParams = useSearchParams();
+
     const [currentModal, setCurrentModal] = useState<ModalName | null>(null);
     const [order, setOrder] = useState<Order | null>(null);
 
-    const openModal = (modalName: ModalName, order: Order) => {
+    const clearModalParams = () => {
+        const params = new URLSearchParams(searchParams);
+        params.delete("modal");
+        router.push(pathname + "?" + params.toString());
+    };
+
+    const openModal = (modalName: ModalName, order: Order | null) => {
         setCurrentModal(modalName);
         setOrder(order);
     };
@@ -36,7 +48,17 @@ export const OrderModalProvider = ({
     const closeModal = () => {
         setCurrentModal(null);
         setOrder(null);
+        clearModalParams();
     };
+
+    React.useEffect(() => {
+        if (searchParams.has("modal")) {
+            const modalName = searchParams.get("modal") as ModalName;
+            if (modalName === "search") {
+                openModal(modalName, null);
+            }
+        }
+    }, [searchParams]);
 
     return (
         <ModalContext.Provider

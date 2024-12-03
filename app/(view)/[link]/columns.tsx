@@ -11,27 +11,28 @@ import {
 import { ColumnDef } from "@tanstack/react-table";
 import { MoreHorizontal } from "lucide-react";
 import { useOrderModal } from "./order-modal-context";
+import { Label } from "@/components/ui/label";
 
 export const columns: ColumnDef<Order>[] = [
     {
         accessorKey: "ordererUsername",
-        header: () => <div>User</div>,
+        header: () => <Label>User</Label>,
     },
     {
         accessorKey: "categoryType",
-        header: () => <div>Category</div>,
+        header: () => <Label>Category</Label>,
         cell: ({ row }) => <div>{row.getValue("categoryType")}</div>,
     },
     {
         accessorKey: "message",
-        header: "Message",
+        header: () => <Label>Message</Label>,
         cell: ({ row }) => (
             <div className="max-w-96 text-wrap">{row.getValue("message")}</div>
         ),
     },
     {
         accessorKey: "status",
-        header: () => <div>Status</div>,
+        header: () => <Label>Status</Label>,
         cell: ({ row }) => {
             const status = row.getValue("status") as string;
             return (
@@ -51,7 +52,7 @@ export const columns: ColumnDef<Order>[] = [
     },
     {
         accessorKey: "createdAt",
-        header: () => <div>Date</div>,
+        header: () => <Label>Date</Label>,
         cell: ({ row }) => (
             <div className="text-start">
                 {new Date(row.getValue("createdAt")).toLocaleDateString()}
@@ -60,7 +61,7 @@ export const columns: ColumnDef<Order>[] = [
     },
     {
         id: "actions",
-        header: () => <div className="text-center">Manage</div>,
+        header: () => <Label className="text-center">Manage</Label>,
         cell: ({ row }) => {
             const order = row.original;
             const { openModal } = useOrderModal();

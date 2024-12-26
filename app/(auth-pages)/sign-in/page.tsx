@@ -1,18 +1,18 @@
-import { Message } from "@/components/form-message";
-import LoginForm from "@/components/login-form";
+import AuthForm from "@/components/auth-form";
+import { Message } from "@/components/auth-form-message";
 
 type Props = {
     searchParams: Promise<Message>;
 };
 
-const LoginPage = async ({ searchParams }: Props) => {
+export default async function SignInPage({ searchParams }: Props) {
     const message = await searchParams;
 
     return (
-        <div className="flex h-screen w-screen items-center justify-center px-4">
-            <LoginForm message={message} />
-        </div>
+        <AuthForm
+            message={message}
+            registration={false}
+            className="mx-auto flex-1"
+        />
     );
-};
-
-export default LoginPage;
+}

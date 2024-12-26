@@ -21,7 +21,7 @@ const Page = async ({ params }: Props) => {
     const username = (await params).username;
 
     const notes = await fetchApi<GameNote[]>(
-        `/v1/users/by-username/${username}/game-notes`
+        `/v1/profiles/${username}/game-notes`
     );
 
     const pathname = "/games";

@@ -6,7 +6,7 @@ import React, { createContext, useContext, useState } from "react";
 type ModalContextType = {
     currentModal: ModalName | null;
     order: Order | null;
-    openModal: (modalName: ModalName, order: Order) => void;
+    openModal: (modalName: ModalName, order: Order | null) => void;
     closeModal: () => void;
 };
 
@@ -17,12 +17,14 @@ const ModalContext = createContext<ModalContextType>({
     closeModal: () => {},
 });
 
-type ModalName =
+export type ModalName =
     | "approve"
     | "deny"
     | "interactive-game-editor"
     | "approve-confirmation"
-    | "search";
+    | "search"
+    | "create"
+    | "profile-settings";
 
 export const OrderModalProvider = ({
     children,
@@ -40,9 +42,10 @@ export const OrderModalProvider = ({
         router.push(pathname + "?" + params.toString());
     };
 
-    const openModal = (modalName: ModalName, order: Order | null) => {
+    const openModal = (modalName: ModalName, order?: Order | null) => {
         setCurrentModal(modalName);
-        setOrder(order);
+        setOrder(order ?? null);
+        console.log("Opened modal", modalName);
     };
 
     const closeModal = () => {
@@ -54,9 +57,7 @@ export const OrderModalProvider = ({
     React.useEffect(() => {
         if (searchParams.has("modal")) {
             const modalName = searchParams.get("modal") as ModalName;
-            if (modalName === "search") {
-                openModal(modalName, null);
-            }
+            openModal(modalName, null);
         }
     }, [searchParams]);
 

@@ -1,5 +1,5 @@
 import { forgotPasswordAction } from "@/app/actions";
-import { FormMessage, Message } from "@/components/form-message";
+import { AuthFormMessage, Message } from "@/components/auth-form-message";
 import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,7 +38,7 @@ export default async function ForgotPassword({ searchParams }: Props) {
                     <SubmitButton formAction={forgotPasswordAction}>
                         Reset Password
                     </SubmitButton>
-                    <FormMessage message={message} />
+                    <AuthFormMessage message={message} />
                 </div>
             </form>
             <SmtpMessage />

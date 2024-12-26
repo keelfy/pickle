@@ -1,5 +1,3 @@
-"use client";
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,34 +9,28 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-    Pagination,
-    PaginationContent,
-    PaginationEllipsis,
-    PaginationItem,
-    PaginationLink,
-    PaginationNext,
-    PaginationPrevious,
-} from "@/components/ui/pagination";
-import { fetchWithAuth } from "@/utils/api/client";
-import {
-    Filter,
-    Instagram,
-    Search,
-    SortAsc,
-    Twitch,
-    Twitter,
-    Youtube,
-} from "lucide-react";
-import { useSearchParams } from "next/navigation";
-import React from "react";
+import { Separator } from "@/components/ui/separator";
+import { fetchApi, fetchWithAuth } from "@/utils/api/server";
+import { createClient } from "@/utils/supabase/server";
+import { Filter, Search, SortAsc } from "lucide-react";
 import ApproveModal from "./approve-modal";
-import { columns } from "./columns";
+import { getOrderTableColumns } from "./columns";
+import CreateOrderButton from "./components/create-order-button";
+import CreateOrderModal from "./create-order-modal";
 import { DataTable } from "./data-table";
 import DenyModal from "./deny-modal";
 import InteractiveGameEditorModal from "./interactive-game-editor-modal";
-import { Separator } from "@/components/ui/separator";
 import SearchModal from "./search-modal";
+import OrdersDataTable from "./components/orders-data-table";
+import { Suspense } from "react";
+import LoadingSpinner from "@/components/ui/loading-spinner";
+import ProfileSettingsModal from "./profile-settings-modal";
+import {
+    SiInstagram,
+    SiTwitch,
+    SiX,
+    SiYoutube,
+} from "@icons-pack/react-simple-icons";
 
 type Props = {
     params: Promise<{
@@ -46,24 +38,56 @@ type Props = {
     }>;
 };
 
-const Page = ({ params }: Props) => {
-    const link = React.use(params).link;
-    const searchParams = useSearchParams();
-    const page = parseInt(searchParams.get("page") ?? "0");
-    const [orders, setOrders] = React.useState<PaginatedOrders>();
+async function OrdersDataTableWrapper({
+    link,
+    isUserAuthorized,
+}: {
+    link: string;
+    isUserAuthorized: boolean;
+}) {
+    let orders: Order[] = [];
+    try {
+        orders = await fetchApi<Order[]>(
+            `/v1/profiles/${link}/orders?cursor=${new Date().toISOString()}&limit=${10}`
+        );
+    } catch (error: any) {
+        console.log(error);
+    }
 
-    React.useEffect(() => {
-        (async () => {
-            try {
-                const orders = await fetchWithAuth<PaginatedOrders>(
-                    `/v1/users/by-link/${link}/orders?page=${page}&size=5`
-                );
-                setOrders(orders);
-            } catch (error) {
-                setOrders(undefined);
-            }
-        })();
-    }, [page]);
+    return (
+        <OrdersDataTable
+            isUserAuthorized={isUserAuthorized}
+            initialOrders={orders}
+        />
+    );
+}
+
+export default async function Page({ params }: Props) {
+    const supabase = await createClient();
+    const link = (await params).link;
+    // const searchParams = useSearchParams();
+    // const page = parseInt(searchParams.get("page") ?? "0");
+
+    let ownerProfile: Profile | undefined = undefined;
+
+    try {
+        ownerProfile = await fetchApi<Profile>(`/v1/profiles/${link}`);
+    } catch (error: any) {
+        console.log(error);
+        return (
+            <div className="flex flex-col space-y-2 items-center justify-center h-full text-center">
+                <p className="font-semibold text-lg">Profile not found.</p>
+                <p className="text-red-300">{error.message}</p>
+            </div>
+        );
+    }
+
+    const {
+        data: { user: authorizedUser },
+    } = await supabase.auth.getUser();
+
+    const isUserAuthorized =
+        ownerProfile !== null && authorizedUser?.id == ownerProfile?.id;
 
     return (
         <>
@@ -71,6 +95,8 @@ const Page = ({ params }: Props) => {
             <ApproveModal />
             <InteractiveGameEditorModal />
             <SearchModal />
+            <CreateOrderModal link={link} />
+            <ProfileSettingsModal />
             <div className="flex gap-10">
                 <Card className="w-80 h-fit">
                     <CardHeader>
@@ -82,7 +108,7 @@ const Page = ({ params }: Props) => {
                                 </AvatarFallback>
                             </Avatar>
                             <div className="flex flex-col gap-0.5">
-                                <CardTitle>{link}</CardTitle>
+                                <CardTitle>{ownerProfile?.username}</CardTitle>
                                 <CardDescription>Mega Streamer</CardDescription>
                             </div>
                             {/* <p className="text-md font-bold truncate">brDrLRVJLgdwTqXvPeezzkKqV</p> // 25 characters */}
@@ -104,16 +130,16 @@ const Page = ({ params }: Props) => {
                         <Separator className="my-4" />
                         <div className="flex items-center justify-around gap-2">
                             <Button variant="outline" size="icon">
-                                <Twitch />
+                                <SiTwitch />
                             </Button>
                             <Button variant="outline" size="icon">
-                                <Youtube />
+                                <SiYoutube />
                             </Button>
                             <Button variant="outline" size="icon">
-                                <Twitter />
+                                <SiX />
                             </Button>
                             <Button variant="outline" size="icon">
-                                <Instagram />
+                                <SiInstagram />
                             </Button>
                         </div>
                     </CardContent>
@@ -121,7 +147,12 @@ const Page = ({ params }: Props) => {
 
                 <div className="flex flex-1 flex-col gap-6">
                     <div className="flex items-center justify-between">
-                        <Label className="text-xl">Suggested recently</Label>
+                        <div className="flex items-center gap-4">
+                            <Label className="text-xl">
+                                Suggested recently
+                            </Label>
+                            {isUserAuthorized && <CreateOrderButton />}
+                        </div>
                         <div className="flex items-center gap-2">
                             <div className="relative min-w-96">
                                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -138,13 +169,21 @@ const Page = ({ params }: Props) => {
                             </Button>
                         </div>
                     </div>
-                    <div>
-                        <DataTable
-                            columns={columns}
-                            data={orders?.content ?? []}
+                    <Suspense
+                        fallback={
+                            <OrdersDataTable
+                                initialOrders={[]}
+                                isUserAuthorized={false}
+                                placeholder="Loading..."
+                            />
+                        }
+                    >
+                        <OrdersDataTableWrapper
+                            link={link}
+                            isUserAuthorized={isUserAuthorized}
                         />
-                    </div>
-                    <Pagination>
+                    </Suspense>
+                    {/* <Pagination>
                         <PaginationContent>
                             <PaginationItem>
                                 <PaginationPrevious
@@ -186,11 +225,9 @@ const Page = ({ params }: Props) => {
                                 />
                             </PaginationItem>
                         </PaginationContent>
-                    </Pagination>
+                    </Pagination> */}
                 </div>
             </div>
         </>
     );
-};
-
-export default Page;
+}

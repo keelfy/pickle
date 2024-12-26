@@ -1,29 +1,32 @@
-type UserDetails = {
+type Profile = {
     id: string;
-    createAt: Date;
+    createdAt: Date;
     username: string;
+    link: string;
 };
 
 type GameNote = {
-    id: number;
+    id: string;
     createdAt: Date;
-    gameName: string;
-    comment: string;
+    name: string;
     rate: number;
+    comment: string;
     status: number;
-    finishedAt: string;
+    completionStatus: number;
+    completionDate: Date;
 };
 
 type Order = {
-    id: number;
+    id: string;
     createdAt: Date;
-    serialNumber: number;
-    categoryType: string;
-    orderedBy: number;
+    updatedAt: Date;
+    updatedBy: Date;
+    receiverId: string;
+    categoryType: number;
+    orderedBy: string;
     ordererUsername: string;
     message: string;
-    receiver: string;
-    status: string;
+    status: number;
     amount: number;
-    paymentType: string;
+    paymentType: number;
 };

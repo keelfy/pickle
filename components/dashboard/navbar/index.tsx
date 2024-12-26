@@ -15,7 +15,7 @@ const Navbar = async ({ title }: NavbarProps) => {
         data: { user },
     } = await supabase.auth.getUser();
 
-    const userDetails = await fetchApi<UserDetails>(`/v1/users/${user?.id}`);
+    const userDetails = await fetchApi<Profile>(`/v1/users/${user?.id}`);
 
     return (
         <header className="sticky top-0 z-10 w-full bg-background/95 shadow backdrop-blur supports-[backdrop-filter]:bg-background/60 dark:shadow-secondary">

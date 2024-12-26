@@ -33,42 +33,17 @@ import { cn } from "@/utils/cn";
 import { Check, ChevronsUpDown } from "lucide-react";
 import React, { useEffect } from "react";
 import { useOrderModal } from "./order-modal-context";
-
-const categories = [
-    {
-        value: "game",
-        label: "Game",
-    },
-    {
-        value: "anime",
-        label: "Anime",
-    },
-    {
-        value: "movie",
-        label: "Movie",
-    },
-    {
-        value: "series",
-        label: "Series",
-    },
-    {
-        value: "video",
-        label: "Video",
-    },
-    {
-        value: "custom",
-        label: "Custom",
-    },
-];
+import { orderCategories } from "@/utils/api/constants";
+import OrderCategoryCommand from "./components/order-category-command";
 
 const ApproveModal = () => {
     const { currentModal, order, openModal, closeModal } = useOrderModal();
     const [open, setOpen] = React.useState(false);
     const [detailsOpen, setDetailsOpen] = React.useState(false);
-    const [value, setValue] = React.useState("");
+    const [value, setValue] = React.useState<number>(0);
 
     useEffect(() => {
-        setValue(order?.categoryType ?? "");
+        setValue(order?.categoryType ?? 0);
     }, [order?.id]);
 
     useEffect(() => {
@@ -90,10 +65,6 @@ const ApproveModal = () => {
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid w-full max-w-sm items-center gap-1.5">
-                    <Label htmlFor="subject">Content Name</Label>
-                    <Input defaultValue={order.message} />
-                </div>
-                <div className="grid w-full max-w-sm items-center gap-1.5">
                     <Label htmlFor="subject">Category</Label>
                     <Popover open={open} onOpenChange={setOpen}>
                         <PopoverTrigger asChild>
@@ -104,50 +75,32 @@ const ApproveModal = () => {
                                 className="w-[200px] justify-between"
                             >
                                 {value
-                                    ? categories.find(
-                                          (category) => category.value === value
+                                    ? orderCategories.find(
+                                          (category) => category.idx === value
                                       )?.label
                                     : "Select category..."}
                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                             </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-[200px] p-0">
-                            <Command>
-                                <CommandInput placeholder="Search category..." />
-                                <CommandList>
-                                    <CommandEmpty>
-                                        No category found.
-                                    </CommandEmpty>
-                                    <CommandGroup>
-                                        {categories.map((category) => (
-                                            <CommandItem
-                                                key={category.value}
-                                                value={category.value}
-                                                onSelect={(currentValue) => {
-                                                    setValue(
-                                                        currentValue === value
-                                                            ? ""
-                                                            : currentValue
-                                                    );
-                                                    setOpen(false);
-                                                }}
-                                            >
-                                                <Check
-                                                    className={cn(
-                                                        "mr-2 h-4 w-4",
-                                                        value === category.value
-                                                            ? "opacity-100"
-                                                            : "opacity-0"
-                                                    )}
-                                                />
-                                                {category.label}
-                                            </CommandItem>
-                                        ))}
-                                    </CommandGroup>
-                                </CommandList>
-                            </Command>
+                            <OrderCategoryCommand
+                                value={value}
+                                onSelect={(currentValue) => {
+                                    setValue(
+                                        currentValue === value
+                                            ? 0
+                                            : currentValue
+                                    );
+                                    setOpen(false);
+                                }}
+                                getLabel={(category) => category.label}
+                            />
                         </PopoverContent>
                     </Popover>
+                </div>
+                <div className="grid w-full max-w-sm items-center gap-1.5">
+                    <Label htmlFor="subject">Name</Label>
+                    <Input defaultValue={order.message} />
                 </div>
 
                 <Collapsible

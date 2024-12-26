@@ -19,11 +19,13 @@ import {
 interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[];
     data: TData[];
+    placeholder?: React.ReactNode;
 }
 
 export function DataTable<TData, TValue>({
     columns,
     data,
+    placeholder = "No results.",
 }: DataTableProps<TData, TValue>) {
     const table = useReactTable({
         data,
@@ -74,7 +76,7 @@ export function DataTable<TData, TValue>({
                             colSpan={columns.length}
                             className="h-24 text-center"
                         >
-                            No results.
+                            {placeholder}
                         </TableCell>
                     </TableRow>
                 )}

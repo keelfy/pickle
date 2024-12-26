@@ -1,9 +1,11 @@
-export default async function Layout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="max-w-7xl flex flex-col gap-12 items-start">{children}</div>
-  );
+type Props = {
+    children: React.ReactNode;
+};
+
+export default async function Layout({ children }: Props) {
+    return (
+        <div className="h-screen w-full px-4 flex items-center">
+            {children}
+        </div>
+    );
 }

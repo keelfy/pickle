@@ -47,7 +47,7 @@ export function GameFeedbackCard({ note, ...props }: Props) {
                 <CardHeader>
                     <div className="flex flex-col gap-2">
                         <CardTitle className="text-2xl font-bold">
-                            {note.gameName}
+                            {note.name}
                         </CardTitle>
                         <div className="flex flex-row items-center justify-start gap-2">
                             <Badge
@@ -55,11 +55,11 @@ export function GameFeedbackCard({ note, ...props }: Props) {
                             >
                                 {statusColors[note.status].name}
                             </Badge>
-                            {note.finishedAt && (
+                            {note.completionDate && (
                                 <CardDescription>
                                     Finished:&nbsp;
                                     {new Date(
-                                        note.finishedAt
+                                        note.completionDate
                                     ).toLocaleDateString()}
                                 </CardDescription>
                             )}

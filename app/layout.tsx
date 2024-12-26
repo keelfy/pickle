@@ -1,6 +1,9 @@
 import { GeistSans } from "geist/font/sans";
 import { ThemeProvider } from "next-themes";
 import "./globals.css";
+import { Toaster } from "@/components/ui/toaster";
+import { Suspense } from "react";
+import LoadingSpinner from "@/components/ui/loading-spinner";
 
 const defaultUrl = process.env.VERCEL_URL
     ? `https://${process.env.VERCEL_URL}`
@@ -21,7 +24,8 @@ const RootLayout = ({ children }: { children: React.ReactNode }) => {
                     defaultTheme="system"
                     enableSystem
                 >
-                    {children}
+                    <Suspense>{children}</Suspense>
+                    <Toaster />
                 </ThemeProvider>
             </body>
         </html>

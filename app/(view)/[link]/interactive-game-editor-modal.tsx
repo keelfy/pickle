@@ -1,5 +1,6 @@
 "use client";
 
+import ApiTypeCommand from "@/components/ui/api-type-command";
 import { Button } from "@/components/ui/button";
 import {
     Collapsible,
@@ -31,6 +32,10 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+    gameNoteCompletionStatuses,
+    gameNoteStatuses,
+} from "@/utils/api/constants";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PopoverClose } from "@radix-ui/react-popover";
 import { ChevronsUpDown, Edit } from "lucide-react";
@@ -42,80 +47,55 @@ import EditablePoster from "./components/editable-poster";
 import EditableStatusButton from "./components/editable-status-button";
 import GameUrl from "./components/game-url";
 import RatingRow from "./components/rating-row";
-import StatusCommand from "./components/status-command";
 import { useOrderModal } from "./order-modal-context";
-
-const gameStatuses = [
-    {
-        value: "planned",
-        label: "Planned",
-    },
-    {
-        value: "in_progress",
-        label: "Playing",
-    },
-    {
-        value: "played",
-        label: "Played",
-    },
-    {
-        value: "skipped",
-        label: "Skipped",
-    },
-    {
-        value: "awaits_auction",
-        label: "Awaits auction",
-    },
-    {
-        value: "review",
-        label: "On review",
-    },
-];
-
-const completionStatuses = [
-    {
-        value: "completed",
-        label: "Finished",
-    },
-    {
-        value: "not_completed",
-        label: "Not Finished",
-    },
-    {
-        value: "endless",
-        label: "Endless",
-    },
-];
+import { fetchWithAuth } from "@/utils/api/client";
+import { useToast } from "@/hooks/use-toast";
+import LoadingSpinner from "@/components/ui/loading-spinner";
 
 const formSchema = z.object({
-    orderId: z.number().optional(),
-    gameStatus: z.string(),
-    releaseDate: z.date().optional(),
-    completionDate: z.date().optional(),
-    completionStatus: z.string(),
-    comment: z.string().optional(),
-    rate: z.number().max(10).min(1).optional(),
-    highlights: z.array(z.string()).optional(),
-    gameLink: z.string().optional(),
+    gameNote: z.object({
+        name: z.string(),
+        link: z.string().optional(),
+        releaseDate: z.date().optional(),
+        status: z.number(),
+        completionStatus: z.number(),
+        completionDate: z.date().optional(),
+        comment: z.string().optional(),
+        rate: z.number().max(10).min(1).optional(),
+        // highlights: z.array(z.string()).optional(),
+    }),
+    initialOrderId: z.string().optional(),
     posterFile: z.instanceof(File).optional(),
 });
 
 const InteractiveGameEditorModal = () => {
     const { currentModal, order, openModal, closeModal } = useOrderModal();
     const [detailsOpen, setDetailsOpen] = React.useState(false);
+    const [isLoading, startTransition] = React.useTransition();
+    const { toast } = useToast();
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            gameStatus: "review",
-            completionStatus: "not_completed",
+            gameNote: {
+                name: "",
+                status: 2, // planned
+                completionStatus: 1, // unfinished
+                comment: "",
+            },
         },
     });
 
-    useEffect(() => {
+    React.useEffect(() => {
         form.reset();
-        form.setValue("orderId", order?.id);
+        form.setValue("initialOrderId", order?.id);
     }, [order?.id]);
+
+    React.useEffect(() => {
+        if (order) {
+            form.setValue("gameNote.name", order.message);
+        }
+    }, [order?.message]);
 
     useEffect(() => {
         setDetailsOpen(false);
@@ -126,8 +106,28 @@ const InteractiveGameEditorModal = () => {
     }
 
     const onSubmit = (values: z.infer<typeof formSchema>) => {
-        console.log(values);
-        // openModal("deny", order);
+        startTransition(async () => {
+            try {
+                await fetchWithAuth(`/v1/game-notes`, {
+                    method: "POST",
+                    body: JSON.stringify(values),
+                });
+            } catch (error: any) {
+                console.error(error);
+                toast({
+                    title: "Failed to approve order",
+                    description:
+                        "Status code: " + error.status + ". Try again later.",
+                });
+                return;
+            }
+
+            toast({
+                title: "Order approved",
+                description: "The game was added to your list.",
+            });
+            closeModal();
+        });
     };
 
     return (
@@ -163,7 +163,7 @@ const InteractiveGameEditorModal = () => {
                                             <td>
                                                 <FormField
                                                     control={form.control}
-                                                    name="releaseDate"
+                                                    name="gameNote.releaseDate"
                                                     render={({ field }) => (
                                                         <FormItem>
                                                             <FormControl>
@@ -199,7 +199,7 @@ const InteractiveGameEditorModal = () => {
                                             <td className="w-1/2">
                                                 <FormField
                                                     control={form.control}
-                                                    name="gameLink"
+                                                    name="gameNote.link"
                                                     render={({ field }) => (
                                                         <FormItem>
                                                             <Popover>
@@ -257,7 +257,7 @@ const InteractiveGameEditorModal = () => {
                                             <td className="pt-4">
                                                 <FormField
                                                     control={form.control}
-                                                    name="gameStatus"
+                                                    name="gameNote.status"
                                                     render={({ field }) => (
                                                         <FormItem>
                                                             <Popover>
@@ -266,12 +266,12 @@ const InteractiveGameEditorModal = () => {
                                                                 >
                                                                     <FormControl>
                                                                         <EditableStatusButton
-                                                                            value={gameStatuses
+                                                                            value={gameNoteStatuses
                                                                                 .filter(
                                                                                     (
                                                                                         s
                                                                                     ) =>
-                                                                                        s.value ==
+                                                                                        s.idx ==
                                                                                         field.value
                                                                                 )
                                                                                 .map(
@@ -286,22 +286,22 @@ const InteractiveGameEditorModal = () => {
                                                                     </FormControl>
                                                                 </PopoverTrigger>
                                                                 <PopoverContent className="w-[200px] p-0">
-                                                                    <StatusCommand
-                                                                        statuses={
-                                                                            gameStatuses
+                                                                    <ApiTypeCommand
+                                                                        entries={
+                                                                            gameNoteStatuses
                                                                         }
                                                                         value={
                                                                             field.value
                                                                         }
-                                                                        onChange={(
-                                                                            value
+                                                                        onSelect={(
+                                                                            selectedValue
                                                                         ) => {
                                                                             form.setValue(
-                                                                                "gameStatus",
-                                                                                value
+                                                                                "gameNote.status",
+                                                                                selectedValue
                                                                             );
                                                                             form.setFocus(
-                                                                                "gameStatus"
+                                                                                "gameNote.status"
                                                                             );
                                                                         }}
                                                                         getLabel={(
@@ -330,7 +330,7 @@ const InteractiveGameEditorModal = () => {
                                             <td>
                                                 <FormField
                                                     control={form.control}
-                                                    name="completionStatus"
+                                                    name="gameNote.completionStatus"
                                                     render={({ field }) => (
                                                         <FormItem>
                                                             <Popover>
@@ -339,12 +339,12 @@ const InteractiveGameEditorModal = () => {
                                                                 >
                                                                     <FormControl>
                                                                         <EditableStatusButton
-                                                                            value={completionStatuses
+                                                                            value={gameNoteCompletionStatuses
                                                                                 .filter(
                                                                                     (
                                                                                         s
                                                                                     ) =>
-                                                                                        s.value ==
+                                                                                        s.idx ==
                                                                                         field.value
                                                                                 )
                                                                                 .map(
@@ -359,22 +359,22 @@ const InteractiveGameEditorModal = () => {
                                                                     </FormControl>
                                                                 </PopoverTrigger>
                                                                 <PopoverContent className="w-[200px] p-0">
-                                                                    <StatusCommand
-                                                                        statuses={
-                                                                            completionStatuses
+                                                                    <ApiTypeCommand
+                                                                        entries={
+                                                                            gameNoteCompletionStatuses
                                                                         }
                                                                         value={
                                                                             field.value
                                                                         }
-                                                                        onChange={(
-                                                                            value
+                                                                        onSelect={(
+                                                                            selectedValue
                                                                         ) => {
                                                                             form.setValue(
-                                                                                "completionStatus",
-                                                                                value
+                                                                                "gameNote.completionStatus",
+                                                                                selectedValue
                                                                             );
                                                                             form.setFocus(
-                                                                                "completionStatus"
+                                                                                "gameNote.completionStatus"
                                                                             );
                                                                         }}
                                                                         getLabel={(
@@ -403,7 +403,7 @@ const InteractiveGameEditorModal = () => {
                                             <td>
                                                 <FormField
                                                     control={form.control}
-                                                    name="completionDate"
+                                                    name="gameNote.completionDate"
                                                     render={({ field }) => (
                                                         <FormItem>
                                                             <DateTimePicker
@@ -442,7 +442,7 @@ const InteractiveGameEditorModal = () => {
                                 <div className="flex items-center mb-4">
                                     <FormField
                                         control={form.control}
-                                        name="rate"
+                                        name="gameNote.rate"
                                         render={({ field }) => (
                                             <FormItem>
                                                 <RatingRow {...field} />
@@ -450,8 +450,8 @@ const InteractiveGameEditorModal = () => {
                                         )}
                                     />
                                     <span className="ml-2 font-semibold text-lg">
-                                        {form.watch("rate") ? (
-                                            form.watch("rate")!!
+                                        {form.watch("gameNote.rate") ? (
+                                            form.watch("gameNote.rate")!!
                                         ) : (
                                             <>&mdash;</>
                                         )}
@@ -466,7 +466,7 @@ const InteractiveGameEditorModal = () => {
                                 </Label>
                                 <FormField
                                     control={form.control}
-                                    name="comment"
+                                    name="gameNote.comment"
                                     render={({ field }) => (
                                         <Textarea
                                             {...field}
@@ -536,7 +536,10 @@ const InteractiveGameEditorModal = () => {
                             >
                                 Back
                             </Button>
-                            <Button type="submit">Continue</Button>
+                            <Button type="submit" disabled={isLoading}>
+                                <span>Continue</span>
+                                {isLoading && <LoadingSpinner />}
+                            </Button>
                         </DialogFooter>
                     </form>
                 </Form>

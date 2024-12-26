@@ -8,6 +8,10 @@ const nextConfig = {
             { hostname: "mrdrnose.itch.io" },
         ],
     },
+    experimental: {
+        ppr: true,
+        dynamicIO: true,
+    }
 };
 
 module.exports = nextConfig;

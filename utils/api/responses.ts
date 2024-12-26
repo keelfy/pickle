@@ -8,3 +8,7 @@ type Paginated<T> = {
 
 type PaginatedOrders = Paginated<Order>;
 
+type LinkValidation = {
+    valid: boolean;
+    message: string;
+}

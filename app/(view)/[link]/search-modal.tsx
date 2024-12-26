@@ -1,3 +1,5 @@
+"use client";
+
 import {
     Dialog,
     DialogContent,
@@ -21,7 +23,7 @@ const SearchModal = () => {
             <DialogContent className="p-0 flex flex-col gap-0">
                 <DialogHeader className="p-0 h-12">
                     <DialogTitle>
-                        <div className="flex h-12 items-center justify-center gap-1 ml-4 mr-8">
+                        <div className="flex h-12 items-center gap-1 ml-4 mr-8">
                             <Search className="text-muted-foreground w-6 h-6" />
                             <Input
                                 id="search"

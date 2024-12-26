@@ -25,7 +25,7 @@ import { useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
 
 type Props = {
-    userDetails: UserDetails;
+    userDetails: Profile;
 };
 
 const UserNav = ({ userDetails }: Props) => {

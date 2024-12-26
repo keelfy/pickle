@@ -155,10 +155,13 @@ func (service *User) CreateProfileWebhook(ctx context.Context, req *types.Supaba
 	if err != nil {
 		return nil, errors.NewBadRequestError("Invalid user ID", err)
 	}
-
+	// Extract name from email before @
+	name := strings.Split(email, "@")[0]
+	if len(name) < 1 {
+		return nil, errors.NewBadRequestError("Invalid email format", nil)
+	}
 	// generate random username
-	name := petname.Generate(2, " ")
-	link := strings.ToLower(strings.ReplaceAll(name, " ", "-"))
+	link := strings.ToLower(petname.Generate(2, "-"))
 
 	// Set a limit for the number of attempts to generate a unique link
 	const maxAttempts = 10
@@ -173,8 +176,7 @@ func (service *User) CreateProfileWebhook(ctx context.Context, req *types.Supaba
 			link = uuid.New().String()
 			break
 		}
-		name = petname.Generate(2, " ")
-		link = strings.ToLower(strings.ReplaceAll(name, " ", "-"))
+		link = strings.ToLower(petname.Generate(2, "-"))
 		attempts++
 	}
 

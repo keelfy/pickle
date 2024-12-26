@@ -10,6 +10,11 @@ type PaginatedRes[T any] struct {
 	TotalElements int `json:"totalElements"`
 }
 
+type StatusRes struct {
+	API      string `json:"api"`
+	Database string `json:"database"`
+}
+
 type ProfileRes struct {
 	UserID    string    `json:"id"`
 	CreatedAt time.Time `json:"createdAt"`

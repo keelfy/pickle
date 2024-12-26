@@ -22,6 +22,7 @@ type Context struct {
 	}
 
 	Service struct {
+		Status   *services.Status
 		User     *services.User
 		Order    *services.Order
 		GameNote *services.GameNote
@@ -43,12 +44,13 @@ func NewContext(pgxpool *pgxpool.Pool) *Context {
 	ctx.S3Uploader.RawAvatar = uploader
 
 	// Services
+	ctx.Service.Status = services.NewStatusService(pgxpool)
 	ctx.Service.User = services.NewUserService(queries, ctx.S3Uploader.RawAvatar)
 	ctx.Service.Order = services.NewOrderService(pgxpool, queries, ctx.Service.User)
 	ctx.Service.GameNote = services.NewGameNoteService(queries, ctx.Service.Order, ctx.Service.User)
 
 	// Handler
-	ctx.Handler.Status = handlers.NewStatusHandler()
+	ctx.Handler.Status = handlers.NewStatusHandler(ctx.Service.Status)
 	ctx.Handler.User = handlers.NewUserHandler(ctx.Service.User)
 	ctx.Handler.Order = handlers.NewOrdersHandler(ctx.Service.Order, ctx.Service.User)
 	ctx.Handler.GameNote = handlers.NewGameNoteHandler(ctx.Service.User, ctx.Service.GameNote)

@@ -1,7 +1,10 @@
 package config
 
 import (
+	"log"
 	"os"
+	"strconv"
+	"time"
 )
 
 func GetPort() string {
@@ -18,4 +21,25 @@ func GetSupabaseKey() string {
 
 func GetJWTSecret() []byte {
 	return []byte(os.Getenv("JWT_SECRET"))
+}
+
+func GetDatabaseURL() string {
+	return os.Getenv("DATABASE_URL")
+}
+
+func GetContextTimeoutMs() time.Duration {
+	value, err := strconv.Atoi(os.Getenv("CONTEXT_TIMEOUT_MS"))
+	if err != nil {
+		log.Printf("Error parsing CONTEXT_TIMEOUT_MS: %v", err)
+		return 1000 * 60 * time.Millisecond
+	}
+	return time.Duration(value) * time.Millisecond
+}
+
+func GetRawAvatarBucketName() string {
+	return os.Getenv("AWS_S3_RAW_AVATAR_BUCKET_NAME")
+}
+
+func GetApiKey() string {
+	return os.Getenv("API_KEY")
 }

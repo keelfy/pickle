@@ -33,7 +33,7 @@ export default function ApiTypeComboboxFormControl({
     ),
 }: Props) {
     return (
-        <Popover>
+        <Popover modal>
             <PopoverTrigger asChild>
                 <FormControl>
                     <Button

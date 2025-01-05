@@ -10,27 +10,25 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { fetchApi, fetchWithAuth } from "@/utils/api/server";
+import { fetchApi } from "@/utils/api/server";
 import { createClient } from "@/utils/supabase/server";
-import { Filter, Search, SortAsc } from "lucide-react";
-import ApproveModal from "./approve-modal";
-import { getOrderTableColumns } from "./columns";
-import CreateOrderButton from "./components/create-order-button";
-import CreateOrderModal from "./create-order-modal";
-import { DataTable } from "./data-table";
-import DenyModal from "./deny-modal";
-import InteractiveGameEditorModal from "./interactive-game-editor-modal";
-import SearchModal from "./search-modal";
-import OrdersDataTable from "./components/orders-data-table";
-import { Suspense } from "react";
-import LoadingSpinner from "@/components/ui/loading-spinner";
-import ProfileSettingsModal from "./profile-settings-modal";
 import {
     SiInstagram,
     SiTwitch,
     SiX,
     SiYoutube,
 } from "@icons-pack/react-simple-icons";
+import { Filter, Search, SortAsc } from "lucide-react";
+import { Suspense } from "react";
+import ApproveModal from "./approve-modal";
+import CreateOrderButton from "./components/create-order-button";
+import OrdersDataTable from "./components/orders-data-table";
+import CreateOrderModal from "./create-order-modal";
+import DenyModal from "./deny-modal";
+import InteractiveGameEditorModal from "./interactive-game-editor-modal";
+import ProfileSettingsModal from "./profile-settings-modal";
+import SearchModal from "./search-modal";
+import { getProfileByLink } from "@/hooks/api-endpoints-server";
 
 type Props = {
     params: Promise<{
@@ -71,14 +69,16 @@ export default async function Page({ params }: Props) {
     let ownerProfile: Profile | undefined = undefined;
 
     try {
-        ownerProfile = await fetchApi<Profile>(`/v1/profiles/${link}`);
+        ownerProfile = await getProfileByLink(link);
     } catch (error: any) {
-        console.log(error);
         return (
-            <div className="flex flex-col space-y-2 items-center justify-center h-full text-center">
-                <p className="font-semibold text-lg">Profile not found.</p>
-                <p className="text-red-300">{error.message}</p>
-            </div>
+            <>
+                <ProfileSettingsModal />
+                <div className="flex flex-col space-y-2 items-center justify-center h-full text-center">
+                    <p className="font-semibold text-lg">Profile not found.</p>
+                    <p className="text-red-300">{error.message}</p>
+                </div>
+            </>
         );
     }
 
@@ -96,7 +96,6 @@ export default async function Page({ params }: Props) {
             <InteractiveGameEditorModal />
             <SearchModal />
             <CreateOrderModal link={link} />
-            <ProfileSettingsModal />
             <div className="flex gap-10">
                 <Card className="w-80 h-fit">
                     <CardHeader>

@@ -1,10 +1,8 @@
 "use client";
 
 import { Button, ButtonProps } from "@/components/ui/button";
-import { cn } from "@/utils/cn";
-import { Search } from "lucide-react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ModalName } from "./order-modal-context";
+import { useModalStore } from "@/providers/modal";
+import { ModalName } from "@/stores/modal";
 
 type Props = ButtonProps & {
     modalName: ModalName;
@@ -16,18 +14,10 @@ export default function OpenModalButton({
     children,
     ...props
 }: Props) {
-    const pathname = usePathname();
-    const searchParams = useSearchParams();
-    const router = useRouter();
-
-    const addSearchParam = () => {
-        const params = new URLSearchParams(searchParams);
-        params.set("modal", modalName);
-        router.push(pathname + "?" + params.toString());
-    };
+    const { openModal } = useModalStore((state) => state);
 
     return (
-        <Button onClick={addSearchParam} {...props}>
+        <Button onClick={() => openModal(modalName)} {...props}>
             {children}
         </Button>
     );

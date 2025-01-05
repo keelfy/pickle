@@ -19,6 +19,7 @@ import {
 import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import LoadingSpinner from "@/components/ui/loading-spinner";
 import {
     Popover,
     PopoverContent,
@@ -32,13 +33,17 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useToast } from "@/hooks/use-toast";
+import { useModalStore } from "@/providers/modal";
+import { useOrderStore } from "@/providers/order";
+import { fetchWithAuth } from "@/utils/api/client";
 import {
     gameNoteCompletionStatuses,
     gameNoteStatuses,
 } from "@/utils/api/constants";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PopoverClose } from "@radix-ui/react-popover";
-import { ChevronsUpDown, Edit } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronsUpDown, Edit } from "lucide-react";
 import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -47,10 +52,6 @@ import EditablePoster from "./components/editable-poster";
 import EditableStatusButton from "./components/editable-status-button";
 import GameUrl from "./components/game-url";
 import RatingRow from "./components/rating-row";
-import { useOrderModal } from "./order-modal-context";
-import { fetchWithAuth } from "@/utils/api/client";
-import { useToast } from "@/hooks/use-toast";
-import LoadingSpinner from "@/components/ui/loading-spinner";
 
 const formSchema = z.object({
     gameNote: z.object({
@@ -69,7 +70,11 @@ const formSchema = z.object({
 });
 
 const InteractiveGameEditorModal = () => {
-    const { currentModal, order, openModal, closeModal } = useOrderModal();
+    const { currentModal, openModal, closeModal } = useModalStore(
+        (state) => state
+    );
+    const { order } = useOrderStore((state) => state);
+
     const [detailsOpen, setDetailsOpen] = React.useState(false);
     const [isLoading, startTransition] = React.useTransition();
     const { toast } = useToast();
@@ -87,15 +92,17 @@ const InteractiveGameEditorModal = () => {
     });
 
     React.useEffect(() => {
-        form.reset();
-        form.setValue("initialOrderId", order?.id);
-    }, [order?.id]);
-
-    React.useEffect(() => {
         if (order) {
-            form.setValue("gameNote.name", order.message);
+            form.reset({
+                gameNote: {
+                    name: order.message,
+                },
+                initialOrderId: order.id,
+            });
+        } else {
+            form.reset();
         }
-    }, [order?.message]);
+    }, [order?.id, order?.message]);
 
     useEffect(() => {
         setDetailsOpen(false);
@@ -505,7 +512,7 @@ const InteractiveGameEditorModal = () => {
                                         Requesters (1)
                                     </Label>
                                     <CollapsibleTrigger asChild>
-                                        <Button variant="ghost" size="sm">
+                                        <Button variant="ghost" size="sm" type="button">
                                             <ChevronsUpDown className="h-4 w-4" />
                                             <span className="sr-only">
                                                 Toggle
@@ -532,13 +539,19 @@ const InteractiveGameEditorModal = () => {
                         <DialogFooter className="mt-4">
                             <Button
                                 variant="secondary"
-                                onClick={() => openModal("approve", order)}
+                                type="button"
+                                onClick={() => openModal("approve")}
                             >
+                                <ArrowLeft />
                                 Back
                             </Button>
                             <Button type="submit" disabled={isLoading}>
-                                <span>Continue</span>
-                                {isLoading && <LoadingSpinner />}
+                                {isLoading ? (
+                                    <LoadingSpinner />
+                                ) : (
+                                    <ArrowRight />
+                                )}
+                                Continue
                             </Button>
                         </DialogFooter>
                     </form>

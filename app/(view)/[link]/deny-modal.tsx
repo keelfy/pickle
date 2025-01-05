@@ -10,15 +10,18 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { fetchApi } from "@/utils/api/client";
-import { useOrderModal } from "./order-modal-context";
-import { useToast } from "@/hooks/use-toast";
-import React from "react";
 import LoadingSpinner from "@/components/ui/loading-spinner";
+import { useToast } from "@/hooks/use-toast";
+import { useModalStore } from "@/providers/modal";
+import { useOrderStore } from "@/providers/order";
+import { fetchApi } from "@/utils/api/client";
 import { Check, X } from "lucide-react";
+import React from "react";
 
 const DenyModal = () => {
-    const { currentModal, order, closeModal } = useOrderModal();
+    const { currentModal, closeModal } = useModalStore((state) => state);
+    const { order, setOrder } = useOrderStore((state) => state);
+
     const { toast } = useToast();
     const [isLoading, startTransition] = React.useTransition();
 
@@ -37,6 +40,7 @@ const DenyModal = () => {
                         body: JSON.stringify({ status: 2 }),
                     }
                 );
+                setOrder(undefined);
                 closeModal();
                 toast({
                     title: `Order rejected successfully`,

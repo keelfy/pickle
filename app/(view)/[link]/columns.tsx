@@ -3,10 +3,11 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { useModalStore } from "@/providers/modal";
+import { useOrderStore } from "@/providers/order";
 import { orderCategories, orderStatuses } from "@/utils/api/constants";
 import { ColumnDef } from "@tanstack/react-table";
 import { Check, X } from "lucide-react";
-import { useOrderModal } from "./order-modal-context";
 
 const orderColumns: ColumnDef<Order>[] = [
     {
@@ -71,7 +72,8 @@ const orderAuthorizedColumns: ColumnDef<Order>[] = [
         header: () => <Label>Actions</Label>,
         cell: ({ row }) => {
             const order = row.original;
-            const { openModal } = useOrderModal();
+            const { openModal } = useModalStore((state) => state);
+            const { setOrder } = useOrderStore((state) => state);
 
             if (order.status !== 0) {
                 return null;
@@ -83,7 +85,10 @@ const orderAuthorizedColumns: ColumnDef<Order>[] = [
                         size="icon"
                         variant="ghost"
                         className="text-red-500"
-                        onClick={() => openModal("deny", order)}
+                        onClick={() => {
+                            openModal("deny");
+                            setOrder(order);
+                        }}
                     >
                         <X />
                     </Button>
@@ -91,7 +96,10 @@ const orderAuthorizedColumns: ColumnDef<Order>[] = [
                         size="icon"
                         variant="ghost"
                         className="text-green-500"
-                        onClick={() => openModal("approve", order)}
+                        onClick={() => {
+                            openModal("approve");
+                            setOrder(order);
+                        }}
                     >
                         <Check />
                     </Button>

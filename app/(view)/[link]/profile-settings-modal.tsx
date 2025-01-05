@@ -12,7 +12,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import { Separator } from "@/components/ui/separator";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { toast } from "@/hooks/use-toast";
+import { useModalStore } from "@/providers/modal";
+import { useProfileStore } from "@/providers/profile-store";
 import { fetchApi } from "@/utils/api/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -27,13 +35,6 @@ import {
 import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { useOrderModal } from "./order-modal-context";
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from "@/components/ui/tooltip";
 
 type SettingsTab = "general" | "security" | "notifications" | "connections";
 
@@ -53,7 +54,7 @@ function TabContent({ tab }: { tab: SettingsTab }) {
 }
 
 function GeneralTab() {
-    const [profile, setProfile] = React.useState<Profile | null>(null);
+    const { profile, updateProfile } = useProfileStore((state) => state);
     const [isLoading, startTransition] = React.useTransition();
     const [linkValidation, setLinkValidation] =
         React.useState<LinkValidation>();
@@ -70,21 +71,6 @@ function GeneralTab() {
             link: "",
         },
     });
-
-    // Retrieve profile settings
-    React.useEffect(() => {
-        (async () => {
-            try {
-                const res = await fetchApi<Profile>("/v1/profiles/me", true);
-                setProfile(res);
-            } catch (error: any) {
-                toast({
-                    title: "Failed to fetch profile",
-                    description: error.message,
-                });
-            }
-        })();
-    }, []);
 
     // Validate a link with debounce of 200 ms
     React.useEffect(() => {
@@ -129,7 +115,7 @@ function GeneralTab() {
                     method: "PATCH",
                     body: JSON.stringify(data),
                 });
-                setProfile(res);
+                updateProfile(res);
             } catch (error: any) {
                 toast({
                     title: "Failed to update settings",
@@ -181,7 +167,9 @@ function GeneralTab() {
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
                                                     <div className="flex items-center relative -left-8">
-                                                        {!form.getFieldState("link").invalid ? (
+                                                        {!form.getFieldState(
+                                                            "link"
+                                                        ).invalid ? (
                                                             <Check
                                                                 size={16}
                                                                 className="text-green-500"
@@ -195,7 +183,8 @@ function GeneralTab() {
                                                     </div>
                                                 </TooltipTrigger>
                                                 <TooltipContent>
-                                                    {linkValidation?.message ?? "Link is valid"}
+                                                    {linkValidation?.message ??
+                                                        "Link is valid"}
                                                 </TooltipContent>
                                             </Tooltip>
                                         </TooltipProvider>
@@ -241,7 +230,7 @@ function NotificationsTab() {
 }
 
 export default function ProfileSettingsModal() {
-    const { currentModal, closeModal } = useOrderModal();
+    const { currentModal, closeModal } = useModalStore((state) => state);
     const [tab, setTab] = React.useState<SettingsTab>("general");
 
     if (currentModal !== "profile-settings") {

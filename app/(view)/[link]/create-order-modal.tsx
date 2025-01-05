@@ -9,20 +9,34 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { Form, FormField, FormItem } from "@/components/ui/form";
+import {
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import { useToast } from "@/hooks/use-toast";
+import { useModalStore } from "@/providers/modal";
 import { fetchWithAuth } from "@/utils/api/client";
 import { orderCategories, paymentTypes } from "@/utils/api/constants";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Check, Dice5, X } from "lucide-react";
+import { Check, ChevronsUpDown, Dice5, X } from "lucide-react";
 import { useEffect, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import ApiTypePopoverCommandFormItem from "../../../components/ui/api-type-popover-command";
-import { useOrderModal } from "./order-modal-context";
+import ApiTypeComboboxFormControl from "../../../components/ui/api-type-combobox-form-control";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
+import ApiTypeCommand from "@/components/ui/api-type-command";
+import { PopoverClose } from "@radix-ui/react-popover";
 
 // request.CreateOrderReq
 const formSchema = z.object({
@@ -39,7 +53,7 @@ type Props = {
 };
 
 const CreateOrderModal = ({ link }: Props) => {
-    const { currentModal, closeModal } = useOrderModal();
+    const { currentModal, closeModal } = useModalStore((state) => state);
     const { toast } = useToast();
     const [isLoading, startTransition] = useTransition();
 
@@ -124,82 +138,92 @@ const CreateOrderModal = ({ link }: Props) => {
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)}>
                         <div className="space-y-6">
-                            <div className="grid w-full max-w-sm items-center gap-1.5">
-                                <Label>Receiver of the Order</Label>
-                                <FormField
-                                    control={form.control}
-                                    name="receiverLink"
-                                    render={({ field }) => (
-                                        <FormItem>
+                            <FormField
+                                control={form.control}
+                                name="receiverLink"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>
+                                            Receiver of the Order
+                                        </FormLabel>
+                                        <FormControl>
                                             <Input
                                                 placeholder="Link"
                                                 {...field}
                                                 readOnly
                                             />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-                            <div className="grid w-full max-w-sm items-center gap-1.5">
-                                <Label>Orderer</Label>
-                                <FormField
-                                    control={form.control}
-                                    name="ordererUsername"
-                                    render={({ field }) => (
-                                        <FormItem>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="ordererUsername"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Orderer</FormLabel>
+                                        <FormControl>
                                             <Input
                                                 placeholder="Username"
                                                 {...field}
                                             />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-                            <div className="grid w-full max-w-sm items-center gap-1.5">
-                                <Label>Payment Type</Label>
-                                <FormField
-                                    control={form.control}
-                                    name="paymentType"
-                                    render={({ field }) => (
-                                        <ApiTypePopoverCommandFormItem
-                                            entries={paymentTypes}
-                                            value={field.value}
-                                            onChange={(selectedValue) => {
-                                                form.setValue(
-                                                    "paymentType",
-                                                    selectedValue
-                                                );
-                                                form.setFocus("paymentType");
-                                            }}
-                                            placeholder="Select payment type..."
-                                            nothingFound="No payment types found"
-                                        />
-                                    )}
-                                />
-                            </div>
-                            <div className="grid w-full max-w-sm items-center gap-1.5">
-                                <Label>Amount</Label>
-                                <FormField
-                                    control={form.control}
-                                    name="amount"
-                                    render={({ field }) => (
-                                        <FormItem>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="paymentType"
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-col gap-1">
+                                        <FormLabel>Payment Type</FormLabel>
+                                        <FormControl>
+                                            <ApiTypeComboboxFormControl
+                                                entries={paymentTypes}
+                                                value={field.value}
+                                                onChange={(selectedValue) => {
+                                                    form.setValue(
+                                                        "paymentType",
+                                                        selectedValue
+                                                    );
+                                                    form.setFocus(
+                                                        "paymentType"
+                                                    );
+                                                }}
+                                                placeholder="Select payment type..."
+                                                nothingFound="No payment types found"
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="amount"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Amount</FormLabel>
+                                        <FormControl>
                                             <Input
                                                 placeholder="Amount"
                                                 type="number"
                                                 {...field}
                                             />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-                            <div className="grid w-full max-w-sm items-center gap-1.5">
-                                <Label>Category</Label>
-                                <FormField
-                                    control={form.control}
-                                    name="categoryType"
-                                    render={({ field }) => (
-                                        <ApiTypePopoverCommandFormItem
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="categoryType"
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-col gap-1">
+                                        <FormLabel>Category</FormLabel>
+                                        <ApiTypeComboboxFormControl
                                             entries={orderCategories}
                                             value={field.value}
                                             onChange={(selectedValue) => {
@@ -212,24 +236,26 @@ const CreateOrderModal = ({ link }: Props) => {
                                             placeholder="Select category..."
                                             nothingFound="No categories found"
                                         />
-                                    )}
-                                />
-                            </div>
-                            <div className="grid w-full max-w-sm items-center gap-1.5">
-                                <Label>Message</Label>
-                                <FormField
-                                    control={form.control}
-                                    name="message"
-                                    render={({ field }) => (
-                                        <FormItem>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="message"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Message</FormLabel>
+                                        <FormControl>
                                             <Input
                                                 placeholder="Message"
                                                 {...field}
                                             />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
                             <DialogFooter className="mt-4">
                                 <Button
                                     variant="ghost"

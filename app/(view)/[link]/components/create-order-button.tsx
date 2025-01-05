@@ -1,18 +1,14 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { useModalStore } from "@/providers/modal";
 import { Plus } from "lucide-react";
-import { useOrderModal } from "../order-modal-context";
 
 export default function CreateOrderButton() {
-    const { openModal } = useOrderModal();
+    const { openModal } = useModalStore((state) => state);
 
     return (
-        <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => openModal("create", null)}
-        >
+        <Button variant="ghost" size="icon" onClick={() => openModal("create")}>
             <Plus />
         </Button>
     );

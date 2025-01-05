@@ -1,13 +1,5 @@
 import { ThemeSwitcher } from "@/components/theme-switcher";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
     NavigationMenu,
     NavigationMenuItem,
@@ -16,77 +8,21 @@ import {
     navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 import { Separator } from "@/components/ui/separator";
-import { fetchApi } from "@/utils/api/server";
+import OrderStoreProvider from "@/providers/order";
 import { cn } from "@/utils/cn";
-import { createClient } from "@/utils/supabase/server";
-import { LogIn, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import OpenModalButton from "./[link]/open-modal-button";
-import OpenModalDropdownMenuItem from "./[link]/open-modal-dropdown-menu-item";
-import { OrderModalProvider } from "./[link]/order-modal-context";
-import DropdownMenuSignOutItem from "./sign-out-button";
+import ProfileSettingsModal from "./[link]/profile-settings-modal";
 import LoggedOutProfileNavSection from "./logged-out-nav-menu-button";
-
-async function ProfileNavSection() {
-    const supabase = await createClient();
-
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
-
-    let profile: Profile | undefined = undefined;
-
-    try {
-        profile = user
-            ? await fetchApi<Profile>(`/v1/users/${user?.id}`)
-            : undefined;
-    } catch (error: any) {
-        console.log(error);
-    }
-
-    if (!user || !profile) {
-        return <LoggedOutProfileNavSection />;
-    }
-
-    return (
-        <DropdownMenu>
-            <DropdownMenuTrigger
-                className={cn(
-                    navigationMenuTriggerStyle(),
-                    "text-foreground p-2 flex items-center gap-2"
-                )}
-            >
-                <Avatar className="w-8 h-8">
-                    <AvatarImage src="https://github.com/shadcn.png" />
-                    <AvatarFallback>
-                        {profile?.username?.substring(0, 1)}
-                    </AvatarFallback>
-                </Avatar>
-                <span>{profile?.username}</span>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-44">
-                <Link href={`/${profile?.link}`}>
-                    <DropdownMenuItem className="cursor-pointer">
-                        My page
-                    </DropdownMenuItem>
-                </Link>
-                <OpenModalDropdownMenuItem
-                    modalName="profile-settings"
-                    className="cursor-pointer"
-                >
-                    Settings
-                </OpenModalDropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuSignOutItem />
-            </DropdownMenuContent>
-        </DropdownMenu>
-    );
-}
+import ProfileDropdownMenu from "./profile-dropdown-menu";
 
 function RootLayout({ children }: { children: React.ReactNode }) {
     return (
         <main className="min-h-screen bg-background">
+            <ProfileSettingsModal />
+
             <div className="flex-1 h-full w-full flex flex-col gap-20">
                 <nav className="container mx-auto flex items-start justify-center pt-10 gap-10">
                     <div className="flex items-center gap-10">
@@ -182,7 +118,7 @@ function RootLayout({ children }: { children: React.ReactNode }) {
                                             <LoggedOutProfileNavSection />
                                         }
                                     >
-                                        <ProfileNavSection />
+                                        <ProfileDropdownMenu />
                                     </Suspense>
                                 </NavigationMenuList>
                             </NavigationMenu>
@@ -190,12 +126,11 @@ function RootLayout({ children }: { children: React.ReactNode }) {
                     </div>
                 </nav>
 
-                <OrderModalProvider>
-                    {/* <div className="flex flex-col gap-20 max-w-5xl p-5"> */}
+                <OrderStoreProvider>
                     <div className="container mx-auto">
                         <Suspense>{children}</Suspense>
                     </div>
-                </OrderModalProvider>
+                </OrderStoreProvider>
 
                 <footer className="w-full flex items-center justify-center border-t mx-auto text-center text-xs gap-8 py-16">
                     <p>

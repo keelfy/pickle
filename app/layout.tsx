@@ -1,9 +1,12 @@
+import { Toaster } from "@/components/ui/toaster";
+import { getMyProfile } from "@/hooks/api-endpoints-server";
+import getUser from "@/hooks/getUser";
+import ModalStoreProvider from "@/providers/modal";
+import ProfileStoreProvider from "@/providers/profile-store";
 import { GeistSans } from "geist/font/sans";
 import { ThemeProvider } from "next-themes";
-import "./globals.css";
-import { Toaster } from "@/components/ui/toaster";
 import { Suspense } from "react";
-import LoadingSpinner from "@/components/ui/loading-spinner";
+import "./globals.css";
 
 const defaultUrl = process.env.VERCEL_URL
     ? `https://${process.env.VERCEL_URL}`
@@ -15,7 +18,31 @@ export const metadata = {
     description: "The pickle prototype",
 };
 
-const RootLayout = ({ children }: { children: React.ReactNode }) => {
+type Props = {
+    children: React.ReactNode;
+};
+
+async function getAuth() {
+    try {
+        const user = await getUser();
+        const profile = await getMyProfile();
+        return { user, profile };
+    } catch (error: any) {
+        return { user: undefined, profile: undefined };
+    }
+}
+
+async function AuthorizedProvider({ children }: { children: React.ReactNode }) {
+    const { user, profile } = await getAuth();
+
+    return (
+        <ProfileStoreProvider profile={profile} user={user}>
+            <Suspense>{children}</Suspense>
+        </ProfileStoreProvider>
+    );
+}
+
+export default async function RootLayout({ children }: Props) {
     return (
         <html lang="en" suppressHydrationWarning>
             <body className={GeistSans.className}>
@@ -24,12 +51,14 @@ const RootLayout = ({ children }: { children: React.ReactNode }) => {
                     defaultTheme="system"
                     enableSystem
                 >
-                    <Suspense>{children}</Suspense>
+                    <ModalStoreProvider>
+                        <Suspense>
+                            <AuthorizedProvider>{children}</AuthorizedProvider>
+                        </Suspense>
+                    </ModalStoreProvider>
                     <Toaster />
                 </ThemeProvider>
             </body>
         </html>
     );
-};
-
-export default RootLayout;
+}

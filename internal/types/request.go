@@ -6,6 +6,19 @@ import (
 	"github.com/google/uuid"
 )
 
+type CursorSort struct {
+	Cursor    interface{}
+	Limit     int
+	Column    string
+	Direction string
+}
+
+type Pagination struct {
+	From int
+	Size int
+	Page int
+}
+
 type SupabaseWebhookPayload struct {
 	Type      string                  `json:"type"`
 	Table     string                  `json:"table"`
@@ -27,7 +40,7 @@ type GameNoteReq struct {
 	Comment          *string    `json:"comment"`
 	Status           int16      `json:"status"`
 	CompletionStatus int16      `json:"completionStatus"`
-	CompletionDate   time.Time  `json:"completionDate"`
+	CompletionDate   *time.Time `json:"completionDate"`
 }
 
 type CreateGameNoteReq struct {
@@ -40,7 +53,7 @@ type CreateOrderReq struct {
 	PaymentType     int16   `json:"paymentType"`
 	Amount          float32 `json:"amount"`
 	OrdererUsername string  `json:"ordererUsername"`
-	Category        int16   `json:"categoryType"`
+	Category        int16   `json:"category"`
 	Message         string  `json:"message"`
 }
 

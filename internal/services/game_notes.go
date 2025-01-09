@@ -2,35 +2,51 @@ package services
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
+	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/google/uuid"
 	db "github.com/pickle.pw/monolith/db/sqlc"
 	"github.com/pickle.pw/monolith/internal/errors"
+	"github.com/pickle.pw/monolith/internal/storage"
 	"github.com/pickle.pw/monolith/internal/types"
-	"github.com/pickle.pw/monolith/internal/utils"
+	"golang.org/x/sync/errgroup"
 )
 
 type GameNote struct {
-	queries      *db.Queries
-	orderService *Order
-	userService  *User
+	sqlDb          *storage.SQLDatabase
+	esClient       *elasticsearch.TypedClient
+	orderService   *Order
+	userService    *Profile
+	ordererService *Orderer
+	contentService *Content
 }
 
-func NewGameNoteService(queries *db.Queries, orderService *Order, userService *User) *GameNote {
+func NewGameNoteService(
+	sqlDb *storage.SQLDatabase, es *elasticsearch.TypedClient,
+	orderService *Order, userService *Profile, ordererService *Orderer, contentService *Content) *GameNote {
 	return &GameNote{
-		queries:      queries,
-		orderService: orderService,
-		userService:  userService,
+		sqlDb:          sqlDb,
+		esClient:       es,
+		orderService:   orderService,
+		userService:    userService,
+		ordererService: ordererService,
+		contentService: contentService,
 	}
 }
 
+func (service *GameNote) GetById(ctx context.Context, id uuid.UUID) (*db.GameNote, error) {
+	gameNote, err := service.sqlDb.Queries.FindGameNoteById(ctx, id)
+	if err != nil {
+		return nil, errors.NewNotFoundError("Game note not found", err)
+	}
+	return gameNote, nil
+}
+
 // Fetches game notes by receiver ID or returns CustomError if error occurred
-func (service *GameNote) GetByReceiverId(ctx context.Context, receiverId uuid.UUID, sort *utils.CursorSort) ([]*db.GameNote, error) {
-	gameNotes, err := service.queries.FindPaginatedGameNotesByUserId(ctx, db.FindPaginatedGameNotesByUserIdParams{
-		UserID: receiverId,
-		// UpdatedAt: lastUpdatedAt,
-		// Limit: int32(limit),
-	})
+func (service *GameNote) GetByReceiverId(ctx context.Context, userID uuid.UUID, sort *types.CursorSort) ([]*db.GameNote, error) {
+	gameNotes, err := service.findPaginatedGameNotesByUserId(ctx, userID, sort)
 	if err != nil {
 		return nil, errors.NewInternalServerError("Error occurred during game notes fetching", err)
 	}
@@ -38,19 +54,74 @@ func (service *GameNote) GetByReceiverId(ctx context.Context, receiverId uuid.UU
 	return gameNotes, nil
 }
 
+const findPaginatedGameNotesByUserIdQuery = `SELECT * FROM "game_notes" WHERE "user_id" = $1 AND "%s" %s $2 ORDER BY "%s" %s LIMIT $3`
+
+// Author: Egor Kuzmin (keelfy)
+// Queries game notes by receiver id with cursor pagination and dynamic sorting
+func (service *GameNote) findPaginatedGameNotesByUserId(ctx context.Context, userID uuid.UUID, sort *types.CursorSort) ([]*db.GameNote, error) {
+	comparisonOperator := "<"
+	if strings.ToUpper(sort.Direction) == "DESC" {
+		comparisonOperator = ">"
+	}
+
+	query := fmt.Sprintf(findPaginatedGameNotesByUserIdQuery, sort.Column, comparisonOperator, strings.ToLower(sort.Column), strings.ToUpper(sort.Direction))
+	rows, err := service.sqlDb.Conn.Query(ctx, query, userID, sort.Cursor, sort.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []*db.GameNote
+	for rows.Next() {
+		var i db.GameNote
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.CreatedBy,
+			&i.UpdatedAt,
+			&i.UpdatedBy,
+			&i.UserID,
+			&i.GameID,
+			&i.Name,
+			&i.Link,
+			&i.ReleaseDate,
+			&i.Rate,
+			&i.Comment,
+			&i.Ordered,
+			&i.Status,
+			&i.CompletionStatus,
+			&i.CompletionDate,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, &i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 // Creates game note and initial order (or approves existing) using user
 // Validated inputs is expected
 func (service *GameNote) CreateGameNote(ctx context.Context, req *types.CreateGameNoteReq, userId uuid.UUID) (*db.GameNote, error) {
 	initialOrder, err := service.orderService.GetOrderById(ctx, req.InitialOrderId)
-	order, err := service.orderService.ApproveOrder(ctx, initialOrder, userId)
+	if err != nil {
+		return nil, err
+	}
 
+	initialOrderer, err := service.ordererService.GetOrdererById(ctx, initialOrder.OrdererID)
+	if err != nil {
+		return nil, err
+	}
+
+	order, err := service.orderService.ApproveOrder(ctx, initialOrder, userId)
 	if err != nil {
 		return nil, err
 	}
 
 	// Insert new game note into database
 	// TODO: Data validation before insertion, e.g. min-max rating or release date not after today
-	gameNote, err := service.queries.InsertGameNote(ctx, db.InsertGameNoteParams{
+	gameNote, err := service.sqlDb.Queries.InsertGameNote(ctx, db.InsertGameNoteParams{
 		CreatedBy:        userId,
 		UpdatedBy:        userId,
 		UserID:           order.ReceiverID,
@@ -69,8 +140,25 @@ func (service *GameNote) CreateGameNote(ctx context.Context, req *types.CreateGa
 		return nil, errors.NewInternalServerError("Error occurred during game note creation", err)
 	}
 
-	err = service.createGameNoteOrder(ctx, userId, initialOrder.ID, gameNote.ID)
-	if err != nil {
+	// Create game note - order relation
+
+	var g errgroup.Group
+
+	g.Go(func() error {
+		return service.createGameNoteOrder(ctx, userId, initialOrder.ID, gameNote.ID)
+	})
+
+	// Index documents in Elasticsearch
+
+	g.Go(func() error {
+		return service.IndexGameNote(ctx, gameNote, initialOrderer)
+	})
+
+	g.Go(func() error {
+		return service.contentService.IndexContent(ctx, gameNote.ID, gameNote.Name, gameNote.UserID, types.Category_Game)
+	})
+
+	if err := g.Wait(); err != nil {
 		return nil, err
 	}
 
@@ -102,7 +190,7 @@ func (service *GameNote) ValidateCreateGameNote(req *types.CreateGameNoteReq, us
 // Creates GameNote - Order relation
 func (service *GameNote) createGameNoteOrder(ctx context.Context, userId, orderId, gameNoteId uuid.UUID) error {
 	// Connect initial approved order and game note together
-	_, err := service.queries.InsertGameNoteOrder(ctx, db.InsertGameNoteOrderParams{
+	_, err := service.sqlDb.Queries.InsertGameNoteOrder(ctx, db.InsertGameNoteOrderParams{
 		OrderID:    orderId,
 		GameNoteID: gameNoteId,
 		CreatedBy:  userId,
@@ -112,5 +200,21 @@ func (service *GameNote) createGameNoteOrder(ctx context.Context, userId, orderI
 		return errors.NewInternalServerError("Error occurred during game note order creation", err)
 	}
 
+	return nil
+}
+
+func (service *GameNote) IndexGameNote(ctx context.Context, gameNote *db.GameNote, initialOrderer *db.Orderer) error {
+	document := &types.EsGameNote{
+		ID:          gameNote.ID,
+		Name:        gameNote.Name,
+		UserID:      gameNote.UserID,
+		OrdererName: initialOrderer.Username,
+		RequestDate: gameNote.CreatedAt,
+		Status:      gameNote.Status,
+	}
+	_, err := service.esClient.Index("game_notes").Document(document).Do(ctx)
+	if err != nil {
+		return errors.NewInternalServerError("Error occurred during game note indexing", err)
+	}
 	return nil
 }

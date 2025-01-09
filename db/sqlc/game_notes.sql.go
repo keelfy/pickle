@@ -26,6 +26,37 @@ func (q *Queries) CountGameNotesByUserId(ctx context.Context, userID uuid.UUID) 
 	return total, err
 }
 
+const findGameNoteById = `-- name: FindGameNoteById :one
+SELECT id, created_at, created_by, updated_at, updated_by, user_id, game_id, name, link, release_date, rate, comment, ordered, status, completion_status, completion_date
+FROM "game_notes"
+WHERE "id" = $1
+`
+
+// Author: Egor Kuzmin (keelfy)
+func (q *Queries) FindGameNoteById(ctx context.Context, id uuid.UUID) (*GameNote, error) {
+	row := q.db.QueryRow(ctx, findGameNoteById, id)
+	var i GameNote
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.CreatedBy,
+		&i.UpdatedAt,
+		&i.UpdatedBy,
+		&i.UserID,
+		&i.GameID,
+		&i.Name,
+		&i.Link,
+		&i.ReleaseDate,
+		&i.Rate,
+		&i.Comment,
+		&i.Ordered,
+		&i.Status,
+		&i.CompletionStatus,
+		&i.CompletionDate,
+	)
+	return &i, err
+}
+
 const findPaginatedGameNotesByUserId = `-- name: FindPaginatedGameNotesByUserId :many
 SELECT id, created_at, created_by, updated_at, updated_by, user_id, game_id, name, link, release_date, rate, comment, ordered, status, completion_status, completion_date 
 FROM "game_notes" 
@@ -125,7 +156,7 @@ type InsertGameNoteParams struct {
 	Ordered          bool       `json:"ordered"`
 	Status           int16      `json:"status"`
 	CompletionStatus int16      `json:"completion_status"`
-	CompletionDate   time.Time  `json:"completion_date"`
+	CompletionDate   *time.Time `json:"completion_date"`
 }
 
 // Author: Egor Kuzmin (keelfy)

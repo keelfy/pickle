@@ -20,6 +20,16 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     restart: always
+  
+  elastic:
+    image: elasticsearch:8.17.0
+    container_name: pickle-elastic
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+    restart: always
 
 volumes:
   redis-data:

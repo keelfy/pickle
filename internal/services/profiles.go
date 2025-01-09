@@ -9,30 +9,32 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/pickle.pw/monolith/config"
 	db "github.com/pickle.pw/monolith/db/sqlc"
 	"github.com/pickle.pw/monolith/internal/errors"
 	"github.com/pickle.pw/monolith/internal/storage"
 	"github.com/pickle.pw/monolith/internal/types"
 )
 
-type User struct {
-	queries           *db.Queries
-	rawAvatarUploader *storage.S3Uploader
+type Profile struct {
+	sqlDb    *storage.SQLDatabase
+	s3Client *s3.Client
 }
 
-func NewUserService(queries *db.Queries, rawAvatarUploader *storage.S3Uploader) *User {
-	return &User{
-		queries:           queries,
-		rawAvatarUploader: rawAvatarUploader,
+func NewProfileService(sqlDb *storage.SQLDatabase, s3Client *s3.Client) *Profile {
+	return &Profile{
+		sqlDb:    sqlDb,
+		s3Client: s3Client,
 	}
 }
 
 // Return not null models.User or CustomError
-func (service *User) GetProfileById(ctx context.Context, userId uuid.UUID) (*db.Profile, error) {
-	user, err := service.queries.FindProfileById(ctx, userId)
+func (service *Profile) GetProfileById(ctx context.Context, userId uuid.UUID) (*db.Profile, error) {
+	user, err := service.sqlDb.Queries.FindProfileById(ctx, userId)
 	if err == pgx.ErrNoRows {
 		return nil, errors.NewNotFoundError("Profile not found", err)
 	} else if err != nil {
@@ -43,8 +45,8 @@ func (service *User) GetProfileById(ctx context.Context, userId uuid.UUID) (*db.
 }
 
 // Return not null models.User or CustomError
-func (service *User) GetProfileByLink(ctx context.Context, userLink string) (*db.Profile, error) {
-	user, err := service.queries.FindProfileByLink(ctx, strings.ToLower(userLink))
+func (service *Profile) GetProfileByLink(ctx context.Context, userLink string) (*db.Profile, error) {
+	user, err := service.sqlDb.Queries.FindProfileByLink(ctx, strings.ToLower(userLink))
 	if err == pgx.ErrNoRows {
 		return nil, errors.NewNotFoundError("Profile not found", err)
 	} else if err != nil {
@@ -69,7 +71,7 @@ var restrictedLinks = []string{
 	"dashboard",
 }
 
-func (service *User) ValidateLink(ctx context.Context, link string) error {
+func (service *Profile) ValidateLink(ctx context.Context, link string) error {
 	if len(link) < 1 {
 		return errors.NewBadRequestError("Required at least 3 symbols", nil)
 	} else if len(link) < 3 {
@@ -92,7 +94,7 @@ func (service *User) ValidateLink(ctx context.Context, link string) error {
 	}
 
 	// validate link uniqueness
-	_, err := service.queries.FindProfileByLink(ctx, link)
+	_, err := service.sqlDb.Queries.FindProfileByLink(ctx, link)
 	if err != nil && err != pgx.ErrNoRows {
 		return errors.NewInternalServerError("Error occurred looking for a profile by link", err)
 	} else if err == nil {
@@ -102,31 +104,35 @@ func (service *User) ValidateLink(ctx context.Context, link string) error {
 	return nil
 }
 
-func (service *User) UpdateProfile(ctx context.Context, userId uuid.UUID, req *types.UpdateProfileReq) (*db.Profile, error) {
+func (service *Profile) UpdateProfile(ctx context.Context, userId uuid.UUID, req *types.UpdateProfileReq) (*db.Profile, error) {
 	profile, err := service.GetProfileById(ctx, userId)
 	if err != nil {
 		return nil, err
 	}
 
-	// validate username
-	if len(req.Username) < 1 {
-		return nil, errors.NewBadRequestError("Username is required", nil)
-	} else if len(req.Username) < 3 {
-		return nil, errors.NewBadRequestError("Username is too short", nil)
-	} else if len(req.Username) > 100 {
-		return nil, errors.NewBadRequestError("Username is too long", nil)
+	if profile.Username != req.Username {
+		// validate username
+		if len(req.Username) < 1 {
+			return nil, errors.NewBadRequestError("Username is required", nil)
+		} else if len(req.Username) < 3 {
+			return nil, errors.NewBadRequestError("Username is too short", nil)
+		} else if len(req.Username) > 100 {
+			return nil, errors.NewBadRequestError("Username is too long", nil)
+		}
 	}
 
-	err = service.ValidateLink(ctx, req.Link)
-	if err != nil {
-		return nil, err
+	if profile.Link != req.Link {
+		err = service.ValidateLink(ctx, req.Link)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// lower the link
 	req.Link = strings.ToLower(req.Link)
 
 	// update profile
-	updatedProfile, err := service.queries.UpdateProfileByUserId(ctx, db.UpdateProfileByUserIdParams{
+	updatedProfile, err := service.sqlDb.Queries.UpdateProfileByUserId(ctx, db.UpdateProfileByUserIdParams{
 		UserID:   profile.UserID,
 		Username: req.Username,
 		Link:     strings.ToLower(req.Link),
@@ -140,7 +146,7 @@ func (service *User) UpdateProfile(ctx context.Context, userId uuid.UUID, req *t
 	return updatedProfile, nil
 }
 
-func (service *User) CreateProfileWebhook(ctx context.Context, req *types.SupabaseWebhookPayload) (*db.Profile, error) {
+func (service *Profile) CreateProfileWebhook(ctx context.Context, req *types.SupabaseWebhookPayload) (*db.Profile, error) {
 	email := (*req.Record)["email"].(string)
 	if len(email) < 1 {
 		return nil, errors.NewBadRequestError("Email is required", nil)
@@ -180,7 +186,7 @@ func (service *User) CreateProfileWebhook(ctx context.Context, req *types.Supaba
 		attempts++
 	}
 
-	createdProfile, err := service.queries.InsertProfile(ctx, db.InsertProfileParams{
+	createdProfile, err := service.sqlDb.Queries.InsertProfile(ctx, db.InsertProfileParams{
 		UserID:   userId,
 		Username: name,
 		Link:     link,
@@ -194,7 +200,7 @@ func (service *User) CreateProfileWebhook(ctx context.Context, req *types.Supaba
 }
 
 // Saves the avatar of the user with the given id to S3
-func (service *User) UploadAvatar(ctx context.Context, userId uuid.UUID, file multipart.File, fileHeader *multipart.FileHeader) (string, error) {
+func (service *Profile) UploadAvatar(ctx context.Context, userId uuid.UUID, file multipart.File, fileHeader *multipart.FileHeader) (string, error) {
 	if err := validateFile(file, fileHeader); err != nil {
 		return "", errors.NewBadRequestError("Invalid file", err)
 	}
@@ -211,7 +217,7 @@ func (service *User) UploadAvatar(ctx context.Context, userId uuid.UUID, file mu
 	fileName := fmt.Sprintf("%s.%s", userId, "png")
 
 	// Upload the file to S3
-	url, err := service.rawAvatarUploader.UploadFileToS3(ctx, file, fileName)
+	url, err := storage.UploadFileToS3(ctx, config.GetRawAvatarBucketName(), fileName, file, service.s3Client)
 	if err != nil {
 		return "", errors.NewInternalServerError("Error occurred uploading file", err)
 	}

@@ -32,6 +32,12 @@ INSERT INTO "game_notes" (
 RETURNING *;
 
 -- Author: Egor Kuzmin (keelfy)
+-- name: FindGameNoteById :one
+SELECT *
+FROM "game_notes"
+WHERE "id" = $1;
+
+-- Author: Egor Kuzmin (keelfy)
 -- name: FindPaginatedGameNotesByUserId :many
 SELECT * 
 FROM "game_notes" 

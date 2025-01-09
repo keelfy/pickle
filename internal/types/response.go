@@ -1,18 +1,30 @@
 package types
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type PaginatedRes[T any] struct {
-	Content       []T `json:"content"`
-	Page          int `json:"page"`
-	Size          int `json:"size"`
-	TotalPages    int `json:"totalPages"`
-	TotalElements int `json:"totalElements"`
+	Content       []T   `json:"content"`
+	Page          int   `json:"page"`
+	Size          int   `json:"size"`
+	TotalPages    int64 `json:"totalPages"`
+	TotalElements int64 `json:"totalElements"`
+}
+
+type SearchHitRes[T any] struct {
+	Source T       `json:"source"`
+	Score  float64 `json:"score"`
 }
 
 type StatusRes struct {
-	API      string `json:"api"`
-	Database string `json:"database"`
+	API            string `json:"api"`
+	Database       string `json:"database"`
+	Storage        string `json:"storage"`
+	Search         string `json:"search"`
+	Authentication string `json:"authentication"`
 }
 
 type ProfileRes struct {
@@ -22,19 +34,35 @@ type ProfileRes struct {
 	Link      string    `json:"link"`
 }
 
+type ContentRes struct {
+	ID       uuid.UUID `json:"id"`
+	Name     string    `json:"name"`
+	UserID   uuid.UUID `json:"userId"`
+	Category int16     `json:"category"`
+}
+
+type ContentSearchRes = PaginatedRes[SearchHitRes[ContentRes]]
+
 type GameNoteRes struct {
-	ID               string    `json:"id"`
-	CreatedAt        time.Time `json:"createdAt"`
-	UserID           string    `json:"userId"`
-	Name             string    `json:"name"`
-	Link             string    `json:"link"`
-	ReleaseDate      time.Time `json:"releaseDate"`
-	Rate             int16     `json:"rate"`
-	Comment          string    `json:"comment"`
-	Ordered          bool      `json:"ordered"`
-	Status           int16     `json:"status"`
-	CompletionStatus int16     `json:"completionStatus"`
-	CompletionDate   time.Time `json:"completionDate"`
+	ID               string     `json:"id"`
+	CreatedAt        time.Time  `json:"createdAt"`
+	UserID           string     `json:"userId"`
+	Name             string     `json:"name"`
+	Link             *string    `json:"link,omitempty"`
+	ReleaseDate      *time.Time `json:"releaseDate,omitempty"`
+	Rate             *int16     `json:"rate,omitempty"`
+	Comment          *string    `json:"comment,omitempty"`
+	Ordered          bool       `json:"ordered"`
+	Status           int16      `json:"status"`
+	CompletionStatus int16      `json:"completionStatus"`
+	CompletionDate   *time.Time `json:"completionDate"`
+}
+
+type OrdererRes struct {
+	ID        uuid.UUID  `json:"id"`
+	UserID    *uuid.UUID `json:"userId,omitempty"`
+	Username  string     `json:"name"`
+	Anonymous bool       `json:"anonymous"`
 }
 
 type OrderRes struct {
@@ -45,9 +73,9 @@ type OrderRes struct {
 	ReceiverID      string    `json:"receiverId"` // User ID
 	PaymentType     int16     `json:"paymentType"`
 	Amount          float32   `json:"amount"`
-	OrderedBy       string    `json:"orderedBy"` // User ID
+	Orderer         uuid.UUID `json:"orderer,omitempty"`
 	OrdererUsername string    `json:"ordererUsername"`
-	Category        int16     `json:"categoryType"` // Category
+	Category        int16     `json:"category"` // Category
 	Message         string    `json:"message"`
 	Status          int16     `json:"status"`
 }

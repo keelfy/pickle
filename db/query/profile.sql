@@ -21,8 +21,10 @@ SELECT * FROM "profiles" WHERE "link" = $1;
 
 -- Author: Egor Kuzmin (keelfy)
 -- name: UpdateProfileByUserId :one
-UPDATE "profiles" SET
-    "username" = $2,
-    "link" = $3
+UPDATE "profiles" 
+SET "updated_at" = now(),
+    "updated_by" = $2,
+    "username" = $3,
+    "link" = $4
 WHERE "user_id" = $1
 RETURNING *;

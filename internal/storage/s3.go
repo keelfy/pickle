@@ -4,33 +4,32 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"mime/multipart"
 	"os"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
-type S3Uploader struct {
-	client     *s3.Client
-	bucketName string
-}
+func InitS3Client() (*s3.Client, error) {
+	log.Printf("%v S3 Uploader %v\n", strings.Repeat("~", 12), strings.Repeat("~", 12))
 
-func NewS3Uploader(bucketName string) (*S3Uploader, error) {
 	cfg, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to load AWS SDK config: %v", err)
 	}
 
 	client := s3.NewFromConfig(cfg)
-	return &S3Uploader{
-		client:     client,
-		bucketName: bucketName,
-	}, nil
+	log.Println("S3 client created")
+
+	log.Println(strings.Repeat("~", 37))
+	return client, nil
 }
 
-func (u *S3Uploader) UploadFileToS3(ctx context.Context, file multipart.File, fileName string) (string, error) {
+func UploadFileToS3(ctx context.Context, bucketName, fileName string, file multipart.File, s3Client *s3.Client) (string, error) {
 	// Read file content into a temporary file
 	tempFile, err := os.CreateTemp("", "upload-")
 	if err != nil {
@@ -50,8 +49,8 @@ func (u *S3Uploader) UploadFileToS3(ctx context.Context, file multipart.File, fi
 	}
 
 	// Upload the file to S3
-	_, err = u.client.PutObject(ctx, &s3.PutObjectInput{
-		Bucket: aws.String(u.bucketName),
+	_, err = s3Client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket: aws.String(bucketName),
 		Key:    aws.String(fileName),
 		Body:   tempFile,
 	})
@@ -60,6 +59,6 @@ func (u *S3Uploader) UploadFileToS3(ctx context.Context, file multipart.File, fi
 	}
 
 	// Return the public URL of the uploaded file
-	publicURL := fmt.Sprintf("https://%s.s3.amazonaws.com/%s", u.bucketName, fileName)
+	publicURL := fmt.Sprintf("https://%s.s3.amazonaws.com/%s", bucketName, fileName)
 	return publicURL, nil
 }

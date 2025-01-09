@@ -19,34 +19,52 @@ type Querier interface {
 	// Counts orders by receiver id
 	CountOrdersByReceiverId(ctx context.Context, receiverID uuid.UUID) (int64, error)
 	// Author: Egor Kuzmin (keelfy)
+	FindElasticsearchMigrationByName(ctx context.Context, name string) (*EsMigrationLog, error)
+	// Author: Egor Kuzmin (keelfy)
+	FindGameNoteById(ctx context.Context, id uuid.UUID) (*GameNote, error)
+	// Author: Egor Kuzmin (keelfy)
 	// Queries last orders by receiver id
 	FindLastOrdersByReceiverId(ctx context.Context, arg FindLastOrdersByReceiverIdParams) ([]*Order, error)
 	// Author: Egor Kuzmin (keelfy)
+	FindMigrationByName(ctx context.Context, name string) (*MigrationLog, error)
+	// Author: Egor Kuzmin (keelfy)
 	// Queries order by id
 	FindOrderById(ctx context.Context, id uuid.UUID) (*Order, error)
+	// Author: Egor Kuzmin (keelfy)
+	FindOrdererById(ctx context.Context, id uuid.UUID) (*Orderer, error)
+	// Author: Egor Kuzmin (keelfy)
+	FindOrdererByUserId(ctx context.Context, userID *uuid.UUID) (*Orderer, error)
 	// Author: Egor Kuzmin (keelfy)
 	// Queries orders by receiver id
 	FindOrdersByReceiverId(ctx context.Context, receiverID uuid.UUID) ([]*Order, error)
 	// Author: Egor Kuzmin (keelfy)
 	FindPaginatedGameNotesByUserId(ctx context.Context, arg FindPaginatedGameNotesByUserIdParams) ([]*GameNote, error)
 	// Author: Egor Kuzmin (keelfy)
-	FindPaginatedOrdersByGameNoteId(ctx context.Context, arg FindPaginatedOrdersByGameNoteIdParams) ([]*GameNoteOrder, error)
+	FindPaginatedOrdersByGameNoteId(ctx context.Context, arg FindPaginatedOrdersByGameNoteIdParams) ([]*Order, error)
 	// Author: Egor Kuzmin (keelfy)
 	FindProfileById(ctx context.Context, userID uuid.UUID) (*Profile, error)
 	// Author: Egor Kuzmin (keelfy)
 	FindProfileByLink(ctx context.Context, link string) (*Profile, error)
 	// Author: Egor Kuzmin (keelfy)
+	InsertElasticsearchMigration(ctx context.Context, name string) error
+	// Author: Egor Kuzmin (keelfy)
 	InsertGameNote(ctx context.Context, arg InsertGameNoteParams) (*GameNote, error)
 	// Author: Egor Kuzmin (keelfy)
 	InsertGameNoteOrder(ctx context.Context, arg InsertGameNoteOrderParams) (*GameNoteOrder, error)
 	// Author: Egor Kuzmin (keelfy)
+	InsertMigration(ctx context.Context, name string) error
+	// Author: Egor Kuzmin (keelfy)
 	// Inserts a new order
 	InsertOrder(ctx context.Context, arg InsertOrderParams) (*Order, error)
+	// Author: Egor Kuzmin (keelfy)
+	InsertOrderer(ctx context.Context, arg InsertOrdererParams) (*Orderer, error)
 	// Author: Egor Kuzmin (keelfy)
 	InsertProfile(ctx context.Context, arg InsertProfileParams) (*Profile, error)
 	// Author: Egor Kuzmin (keelfy)
 	// Updates order, updated_at and updated_by
 	UpdateOrderById(ctx context.Context, arg UpdateOrderByIdParams) (*Order, error)
+	// Author: Egor Kuzmin (keelfy)
+	UpdateOrdererByUserId(ctx context.Context, arg UpdateOrdererByUserIdParams) (*Orderer, error)
 	// Author: Egor Kuzmin (keelfy)
 	UpdateProfileByUserId(ctx context.Context, arg UpdateProfileByUserIdParams) (*Profile, error)
 }

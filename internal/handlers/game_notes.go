@@ -2,26 +2,29 @@ package handlers
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 
 	"github.com/google/uuid"
 	"github.com/jinzhu/copier"
+	db "github.com/pickle.pw/monolith/db/sqlc"
 	"github.com/pickle.pw/monolith/internal/middleware"
 	"github.com/pickle.pw/monolith/internal/services"
 	"github.com/pickle.pw/monolith/internal/types"
 	"github.com/pickle.pw/monolith/internal/utils"
+	"golang.org/x/sync/errgroup"
 )
 
 type GameNote struct {
-	userService     *services.User
+	userService     *services.Profile
 	gameNoteService *services.GameNote
+	orderService    *services.Order
 }
 
-func NewGameNoteHandler(userService *services.User, service *services.GameNote) *GameNote {
+func NewGameNoteHandler(userService *services.Profile, service *services.GameNote, orderService *services.Order) *GameNote {
 	return &GameNote{
 		userService:     userService,
 		gameNoteService: service,
+		orderService:    orderService,
 	}
 }
 
@@ -47,19 +50,12 @@ func (h *GameNote) CreateGameNote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Response headers
-	w.Header().Set(utils.HeaderContentType, utils.ApplicationJsonType)
-	w.WriteHeader(http.StatusOK)
-
-	// Response body
 	response := &types.GameNoteRes{}
 	copier.Copy(response, gameNote)
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		log.Printf("Error data marshalling: %v", err)
-	}
+	utils.WriteHttpJsonResponse(w, response)
 }
 
-func (handler *GameNote) GetByReceiverLink(w http.ResponseWriter, r *http.Request) {
+func (handler *GameNote) GetSortedByReceiverLink(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	link, err := utils.ReadPathVariable("link", r)
 	if err != nil {
@@ -85,12 +81,75 @@ func (handler *GameNote) GetByReceiverLink(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	w.Header().Set(utils.HeaderContentType, utils.ApplicationJsonType)
-	w.WriteHeader(http.StatusOK)
-
 	response := &[]types.GameNoteRes{}
 	copier.Copy(response, gameNotes)
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		log.Printf("Error data marshalling: %v", err)
+	utils.WriteHttpJsonResponse(w, response)
+}
+
+func (handler *GameNote) GetGameNoteById(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	id, err := utils.ReadPathUUIDVariable("id", r)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
 	}
+
+	gameNote, err := handler.gameNoteService.GetById(ctx, id)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
+	response := &types.GameNoteRes{}
+	copier.Copy(response, gameNote)
+	utils.WriteHttpJsonResponse(w, response)
+}
+
+func (handler *GameNote) GetOrdersById(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	id, err := utils.ReadPathUUIDVariable("id", r)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
+	pagination, err := utils.GetPagination(r)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
+	var (
+		group         errgroup.Group
+		orders        []*db.Order
+		totalElements int64
+	)
+
+	group.Go(func() error {
+		orders, err = handler.orderService.GetPaginatedByGameNoteId(ctx, id, pagination)
+		return err
+	})
+
+	group.Go(func() error {
+		totalElements, err = handler.orderService.CountGameNotesById(ctx, id)
+		return err
+	})
+
+	if err := group.Wait(); err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
+	orderResponses := []types.OrderRes{}
+	copier.Copy(&orderResponses, orders)
+
+	response := &types.PaginatedRes[types.OrderRes]{
+		Content:       orderResponses,
+		Size:          pagination.Size,
+		Page:          pagination.Page,
+		TotalPages:    totalElements / int64(pagination.Size),
+		TotalElements: totalElements,
+	}
+
+	utils.WriteHttpJsonResponse(w, response)
 }

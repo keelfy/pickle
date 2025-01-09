@@ -25,49 +25,6 @@ func (q *Queries) CountOrdersByGameNoteId(ctx context.Context, gameNoteID uuid.U
 	return total, err
 }
 
-const findPaginatedOrdersByGameNoteId = `-- name: FindPaginatedOrdersByGameNoteId :many
-SELECT game_note_id, order_id, created_at, created_by, updated_at, updated_by
-FROM "game_note_orders"
-WHERE "game_note_id" = $1
-ORDER BY "created_at" DESC
-LIMIT $2
-OFFSET $3
-`
-
-type FindPaginatedOrdersByGameNoteIdParams struct {
-	GameNoteID uuid.UUID `json:"game_note_id"`
-	Limit      int32     `json:"limit"`
-	Offset     int32     `json:"offset"`
-}
-
-// Author: Egor Kuzmin (keelfy)
-func (q *Queries) FindPaginatedOrdersByGameNoteId(ctx context.Context, arg FindPaginatedOrdersByGameNoteIdParams) ([]*GameNoteOrder, error) {
-	rows, err := q.db.Query(ctx, findPaginatedOrdersByGameNoteId, arg.GameNoteID, arg.Limit, arg.Offset)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []*GameNoteOrder
-	for rows.Next() {
-		var i GameNoteOrder
-		if err := rows.Scan(
-			&i.GameNoteID,
-			&i.OrderID,
-			&i.CreatedAt,
-			&i.CreatedBy,
-			&i.UpdatedAt,
-			&i.UpdatedBy,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, &i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const insertGameNoteOrder = `-- name: InsertGameNoteOrder :one
 INSERT INTO "game_note_orders" (
     "game_note_id",

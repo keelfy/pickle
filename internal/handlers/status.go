@@ -41,6 +41,12 @@ func (handler *Status) Health(w http.ResponseWriter, r *http.Request) {
 		statusCode = http.StatusInternalServerError
 	}
 
+	err = handler.statusService.GetElasticsearchStatus(ctx)
+	if err != nil {
+		response.Search = "ERROR"
+		statusCode = http.StatusInternalServerError
+	}
+
 	w.Header().Set(utils.HeaderContentType, utils.ApplicationJsonType)
 	w.WriteHeader(statusCode)
 

@@ -10,6 +10,12 @@ import (
 	"github.com/google/uuid"
 )
 
+type EsMigrationLog struct {
+	ID        int32     `json:"id"`
+	Name      string    `json:"name"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 type GameNote struct {
 	ID               uuid.UUID  `json:"id"`
 	CreatedAt        time.Time  `json:"created_at"`
@@ -26,7 +32,7 @@ type GameNote struct {
 	Ordered          bool       `json:"ordered"`
 	Status           int16      `json:"status"`
 	CompletionStatus int16      `json:"completion_status"`
-	CompletionDate   time.Time  `json:"completion_date"`
+	CompletionDate   *time.Time `json:"completion_date"`
 }
 
 type GameNoteOrder struct {
@@ -38,26 +44,44 @@ type GameNoteOrder struct {
 	UpdatedBy  uuid.UUID `json:"updated_by"`
 }
 
+type MigrationLog struct {
+	ID        int32     `json:"id"`
+	Name      string    `json:"name"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 type Order struct {
-	ID              uuid.UUID  `json:"id"`
-	CreatedAt       time.Time  `json:"created_at"`
-	CreatedBy       uuid.UUID  `json:"created_by"`
-	UpdatedAt       time.Time  `json:"updated_at"`
-	UpdatedBy       uuid.UUID  `json:"updated_by"`
-	ReceiverID      uuid.UUID  `json:"receiver_id"`
-	PaymentType     int16      `json:"payment_type"`
-	Amount          float32    `json:"amount"`
-	Status          int16      `json:"status"`
-	OrderedBy       *uuid.UUID `json:"ordered_by"`
-	OrdererUsername *string    `json:"orderer_username"`
-	Category        int16      `json:"category"`
-	Message         string     `json:"message"`
+	ID              uuid.UUID `json:"id"`
+	CreatedAt       time.Time `json:"created_at"`
+	CreatedBy       uuid.UUID `json:"created_by"`
+	UpdatedAt       time.Time `json:"updated_at"`
+	UpdatedBy       uuid.UUID `json:"updated_by"`
+	ReceiverID      uuid.UUID `json:"receiver_id"`
+	PaymentType     int16     `json:"payment_type"`
+	Amount          float32   `json:"amount"`
+	Status          int16     `json:"status"`
+	OrdererID       uuid.UUID `json:"orderer_id"`
+	OrdererUsername string    `json:"orderer_username"`
+	Category        int16     `json:"category"`
+	Message         string    `json:"message"`
+}
+
+type Orderer struct {
+	ID        uuid.UUID  `json:"id"`
+	CreatedAt time.Time  `json:"created_at"`
+	CreatedBy *uuid.UUID `json:"created_by"`
+	UpdatedAt time.Time  `json:"updated_at"`
+	UpdatedBy *uuid.UUID `json:"updated_by"`
+	UserID    *uuid.UUID `json:"user_id"`
+	Username  string     `json:"username"`
+	Anonymous bool       `json:"anonymous"`
 }
 
 type Profile struct {
-	UserID    uuid.UUID `json:"user_id"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	Username  string    `json:"username"`
-	Link      string    `json:"link"`
+	UserID    uuid.UUID  `json:"user_id"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
+	UpdatedBy *uuid.UUID `json:"updated_by"`
+	Username  string     `json:"username"`
+	Link      string     `json:"link"`
 }

@@ -18,12 +18,3 @@ RETURNING *;
 SELECT COUNT(*) AS "total"
 FROM "game_note_orders"
 WHERE "game_note_id" = $1;
-
--- Author: Egor Kuzmin (keelfy)
--- name: FindPaginatedOrdersByGameNoteId :many
-SELECT *
-FROM "game_note_orders"
-WHERE "game_note_id" = $1
-ORDER BY "created_at" DESC
-LIMIT $2
-OFFSET $3;

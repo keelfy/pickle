@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -25,6 +26,10 @@ func GetJWTSecret() []byte {
 
 func GetDatabaseURL() string {
 	return os.Getenv("DATABASE_URL")
+}
+
+func GetElasticsearchUrls() []string {
+	return strings.Split(os.Getenv("ELASTICSEARCH_URLS"), ";")
 }
 
 func GetContextTimeoutMs() time.Duration {

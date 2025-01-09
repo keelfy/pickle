@@ -12,7 +12,7 @@ import (
 )
 
 const findProfileById = `-- name: FindProfileById :one
-SELECT user_id, created_at, updated_at, username, link FROM "profiles" WHERE "user_id" = $1
+SELECT user_id, created_at, updated_at, updated_by, username, link FROM "profiles" WHERE "user_id" = $1
 `
 
 // Author: Egor Kuzmin (keelfy)
@@ -23,6 +23,7 @@ func (q *Queries) FindProfileById(ctx context.Context, userID uuid.UUID) (*Profi
 		&i.UserID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.UpdatedBy,
 		&i.Username,
 		&i.Link,
 	)
@@ -30,7 +31,7 @@ func (q *Queries) FindProfileById(ctx context.Context, userID uuid.UUID) (*Profi
 }
 
 const findProfileByLink = `-- name: FindProfileByLink :one
-SELECT user_id, created_at, updated_at, username, link FROM "profiles" WHERE "link" = $1
+SELECT user_id, created_at, updated_at, updated_by, username, link FROM "profiles" WHERE "link" = $1
 `
 
 // Author: Egor Kuzmin (keelfy)
@@ -41,6 +42,7 @@ func (q *Queries) FindProfileByLink(ctx context.Context, link string) (*Profile,
 		&i.UserID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.UpdatedBy,
 		&i.Username,
 		&i.Link,
 	)
@@ -57,7 +59,7 @@ INSERT INTO "profiles" (
     $2,
     $3
 )
-RETURNING user_id, created_at, updated_at, username, link
+RETURNING user_id, created_at, updated_at, updated_by, username, link
 `
 
 type InsertProfileParams struct {
@@ -74,6 +76,7 @@ func (q *Queries) InsertProfile(ctx context.Context, arg InsertProfileParams) (*
 		&i.UserID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.UpdatedBy,
 		&i.Username,
 		&i.Link,
 	)
@@ -81,27 +84,36 @@ func (q *Queries) InsertProfile(ctx context.Context, arg InsertProfileParams) (*
 }
 
 const updateProfileByUserId = `-- name: UpdateProfileByUserId :one
-UPDATE "profiles" SET
-    "username" = $2,
-    "link" = $3
+UPDATE "profiles" 
+SET "updated_at" = now(),
+    "updated_by" = $2,
+    "username" = $3,
+    "link" = $4
 WHERE "user_id" = $1
-RETURNING user_id, created_at, updated_at, username, link
+RETURNING user_id, created_at, updated_at, updated_by, username, link
 `
 
 type UpdateProfileByUserIdParams struct {
-	UserID   uuid.UUID `json:"user_id"`
-	Username string    `json:"username"`
-	Link     string    `json:"link"`
+	UserID    uuid.UUID  `json:"user_id"`
+	UpdatedBy *uuid.UUID `json:"updated_by"`
+	Username  string     `json:"username"`
+	Link      string     `json:"link"`
 }
 
 // Author: Egor Kuzmin (keelfy)
 func (q *Queries) UpdateProfileByUserId(ctx context.Context, arg UpdateProfileByUserIdParams) (*Profile, error) {
-	row := q.db.QueryRow(ctx, updateProfileByUserId, arg.UserID, arg.Username, arg.Link)
+	row := q.db.QueryRow(ctx, updateProfileByUserId,
+		arg.UserID,
+		arg.UpdatedBy,
+		arg.Username,
+		arg.Link,
+	)
 	var i Profile
 	err := row.Scan(
 		&i.UserID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.UpdatedBy,
 		&i.Username,
 		&i.Link,
 	)

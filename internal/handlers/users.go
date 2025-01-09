@@ -13,10 +13,10 @@ import (
 )
 
 type User struct {
-	userService *services.User
+	userService *services.Profile
 }
 
-func NewUserHandler(userService *services.User) *User {
+func NewUserHandler(userService *services.Profile) *User {
 	return &User{
 		userService: userService,
 	}
@@ -83,14 +83,9 @@ func (handler *User) GetMyProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Add(utils.HeaderContentType, utils.ApplicationJsonType)
-	w.WriteHeader(http.StatusOK)
-
 	response := &types.ProfileRes{}
 	copier.Copy(response, user)
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		log.Printf("Error encoding response: %v", err)
-	}
+	utils.WriteHttpJsonResponse(w, response)
 }
 
 // Updates the profile of the user who is currently logged in
@@ -108,14 +103,9 @@ func (handler *User) UpdateSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Add(utils.HeaderContentType, utils.ApplicationJsonType)
-	w.WriteHeader(http.StatusOK)
-
 	response := &types.ProfileRes{}
 	copier.Copy(response, profile)
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		log.Printf("Error encoding response: %v", err)
-	}
+	utils.WriteHttpJsonResponse(w, response)
 }
 
 func (handler *User) ValidateProfileLink(w http.ResponseWriter, r *http.Request) {
@@ -139,12 +129,7 @@ func (handler *User) ValidateProfileLink(w http.ResponseWriter, r *http.Request)
 		response.Message = err.Error()
 	}
 
-	w.Header().Add(utils.HeaderContentType, utils.ApplicationJsonType)
-	w.WriteHeader(http.StatusOK)
-
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		log.Printf("Error encoding response: %v", err)
-	}
+	utils.WriteHttpJsonResponse(w, response)
 }
 
 // Uploads the avatar of the user who is currently logged in from the request

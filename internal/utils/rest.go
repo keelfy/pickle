@@ -2,7 +2,9 @@ package utils
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -10,25 +12,27 @@ import (
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
 	"github.com/pickle.pw/monolith/internal/errors"
+	"github.com/pickle.pw/monolith/internal/types"
 )
-
-type CursorSort struct {
-	Cursor    interface{}
-	Limit     int
-	Column    string
-	Direction string
-}
 
 const HeaderContentType = "Content-Type"
 const ApplicationJsonType = "application/json"
 
-func GetPagination(r *http.Request) (from, to, page, size int) {
+func GetRequiredQueryParam(r *http.Request, key string) (string, error) {
+	value := r.URL.Query().Get(key)
+	if value == "" {
+		return "", errors.NewBadRequestError(fmt.Sprintf("Query parameter %v is required", key), nil)
+	}
+	return value, nil
+}
+
+func GetPagination(r *http.Request) (*types.Pagination, error) {
 	page, err := strconv.Atoi(r.URL.Query().Get("page"))
 	if err != nil {
 		page = 0
 	}
 
-	size, err = strconv.Atoi(r.URL.Query().Get("size"))
+	size, err := strconv.Atoi(r.URL.Query().Get("size"))
 	if err != nil {
 		size = 20
 	}
@@ -39,11 +43,16 @@ func GetPagination(r *http.Request) (from, to, page, size int) {
 		size = 1
 	}
 
-	from = page * size
-	return from, from + size - 1, page, size
+	pagination := &types.Pagination{
+		Size: size,
+		Page: page,
+		From: page * size,
+	}
+
+	return pagination, nil
 }
 
-func GetSortedPagination(r *http.Request) (*CursorSort, error) {
+func GetSortedPagination(r *http.Request) (*types.CursorSort, error) {
 	limit, err := strconv.Atoi(r.URL.Query().Get("limit"))
 	if err != nil {
 		limit = 20
@@ -70,7 +79,7 @@ func GetSortedPagination(r *http.Request) (*CursorSort, error) {
 		direction = "asc"
 	}
 
-	sort := &CursorSort{
+	sort := &types.CursorSort{
 		Cursor:    cursor,
 		Limit:     limit,
 		Column:    column,
@@ -152,10 +161,27 @@ func ReadPathUUIDVariable(name string, r *http.Request) (uuid.UUID, error) {
 		return uuid.Nil, errors.NewBadRequestError(fmt.Sprintf("Path variable %v is required", name), nil)
 	}
 
+	uid, err := ParseUUIDFromString(value)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	return uid, nil
+}
+
+func ParseUUIDFromString(value string) (uuid.UUID, error) {
 	uid, err := uuid.Parse(value)
 	if err != nil || uid == uuid.Nil {
-		return uuid.Nil, errors.NewBadRequestError(fmt.Sprintf("Path variable %v is not a valid UUID", name), err)
+		return uuid.Nil, errors.NewBadRequestError("Value is not a valid UUID", err)
 	}
 
 	return uid, nil
+}
+
+func WriteHttpJsonResponse[T any](w http.ResponseWriter, res T) {
+	w.Header().Set(HeaderContentType, ApplicationJsonType)
+	w.WriteHeader(http.StatusOK)
+
+	if err := json.NewEncoder(w).Encode(res); err != nil {
+		log.Printf("Error data marshalling: %v", err)
+	}
 }

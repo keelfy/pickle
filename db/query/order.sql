@@ -8,7 +8,7 @@ INSERT INTO "orders" (
     "payment_type",
     "amount",
     "status",
-    "ordered_by",
+    "orderer_id",
     "orderer_username",
     "category",
     "message"
@@ -56,8 +56,19 @@ LIMIT $2;
 -- Updates order, updated_at and updated_by
 -- name: UpdateOrderById :one
 UPDATE "orders"
-SET "updated_at" = $2,
-    "updated_by" = $3,
-    "status" = $4
+SET "updated_at" = now(),
+    "updated_by" = $2,
+    "status" = $3
 WHERE "id" = $1
 RETURNING *;
+
+-- Author: Egor Kuzmin (keelfy)
+-- name: FindPaginatedOrdersByGameNoteId :many
+SELECT "orders".*
+FROM "orders"
+    INNER JOIN "game_note_orders" ON 
+        "game_note_orders"."order_id" = "orders"."id"
+        AND "game_note_orders"."game_note_id" = $1
+ORDER BY "game_note_orders"."created_at" DESC
+LIMIT $2
+OFFSET $3;

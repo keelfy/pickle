@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -15,10 +14,10 @@ import (
 
 type Order struct {
 	orderService *services.Order
-	userService  *services.User
+	userService  *services.Profile
 }
 
-func NewOrdersHandler(orderService *services.Order, userService *services.User) *Order {
+func NewOrdersHandler(orderService *services.Order, userService *services.Profile) *Order {
 	return &Order{
 		orderService: orderService,
 		userService:  userService,
@@ -55,15 +54,9 @@ func (handler *Order) GetSortedOrdersByLink(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	w.Header().Set(utils.HeaderContentType, utils.ApplicationJsonType)
-	w.WriteHeader(http.StatusOK)
-
 	response := &[]types.OrderRes{}
 	copier.Copy(response, orders)
-
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		log.Printf("Error occurred during data marshalling: %v", err)
-	}
+	utils.WriteHttpJsonResponse(w, response)
 }
 
 func (handler *Order) CreateOrder(w http.ResponseWriter, r *http.Request) {
@@ -82,16 +75,9 @@ func (handler *Order) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Response metadata
-	w.Header().Set(utils.HeaderContentType, utils.ApplicationJsonType)
-	w.WriteHeader(http.StatusCreated)
-
-	// Response body
 	orderResponse := &types.OrderRes{}
 	copier.Copy(orderResponse, createdOrder)
-	if err := json.NewEncoder(w).Encode(orderResponse); err != nil {
-		log.Printf("Error occurred during data marshalling: %v", err)
-	}
+	utils.WriteHttpJsonResponse(w, orderResponse)
 }
 
 func (handler *Order) UpdateOrderById(w http.ResponseWriter, r *http.Request) {
@@ -116,14 +102,7 @@ func (handler *Order) UpdateOrderById(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Response metadata
-	w.Header().Set(utils.HeaderContentType, utils.ApplicationJsonType)
-	w.WriteHeader(http.StatusOK)
-
-	// Response body
 	orderResponse := &types.OrderRes{}
 	copier.Copy(orderResponse, updatedOrder)
-	if err := json.NewEncoder(w).Encode(orderResponse); err != nil {
-		log.Printf("Error occurred during data marshalling: %v", err)
-	}
+	utils.WriteHttpJsonResponse(w, orderResponse)
 }

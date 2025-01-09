@@ -15,7 +15,13 @@ import LoggedOutProfileNavSection from "./logged-out-nav-menu-button";
 import DropdownMenuSignOutItem from "./sign-out-button";
 
 export default async function ProfileDropdownMenu() {
-    const profile = await getMyProfile();
+    let profile = undefined;
+
+    try {
+        profile = await getMyProfile();
+    } catch (error) {
+        profile = undefined;
+    }
 
     if (!profile) {
         return <LoggedOutProfileNavSection />;

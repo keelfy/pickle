@@ -1,3 +1,8 @@
+type SearchHit<T> = {
+    source: T;
+    score: number;
+}
+
 type Paginated<T> = {
     content: T[];
     page: number;
@@ -12,3 +17,5 @@ type LinkValidation = {
     valid: boolean;
     message: string;
 }
+
+type ContentSearchHits = Paginated<SearchHit<Content>>;

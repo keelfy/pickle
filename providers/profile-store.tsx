@@ -4,7 +4,6 @@ import React from "react";
 import { useStore } from "zustand";
 
 import createProfileStore, { ProfileStore } from "@/stores/profile-store";
-import { User } from "@supabase/supabase-js";
 
 export type ProfileStoreApi = ReturnType<typeof createProfileStore>;
 
@@ -14,7 +13,6 @@ export const ProfileStoreContext = React.createContext<
 
 export type ProfileStoreProviderProps = React.PropsWithChildren<{
     profile: Profile | undefined;
-    user: User | undefined;
 }>;
 
 export default function ProfileStoreProvider({

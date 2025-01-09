@@ -47,10 +47,13 @@ const formSchema = z
         }),
         repeatPassword: z.string(),
     })
-    .refine((data) => !data.registration || data.password === data.repeatPassword, {
-        message: "Passwords don't match",
-        path: ["repeatPassword"],
-    });
+    .refine(
+        (data) => !data.registration || data.password === data.repeatPassword,
+        {
+            message: "Passwords don't match",
+            path: ["repeatPassword"],
+        }
+    );
 
 const AuthForm = ({ message, registration, className }: Props) => {
     const searchParams = useSearchParams();
@@ -69,7 +72,7 @@ const AuthForm = ({ message, registration, className }: Props) => {
 
     React.useEffect(() => {
         form.setValue("registration", registration);
-    }, [registration])
+    }, [registration]);
 
     const getGoTo = () => {
         return searchParams.has("goto")

@@ -1,7 +1,7 @@
 "use client";
 
 import ApiTypeCommand from "@/components/ui/api-type-command";
-import { ApiType, orderCategories } from "@/utils/api/constants";
+import { ApiType, contentCategories } from "@/utils/api/constants";
 
 type Props = {
     value: number;
@@ -12,7 +12,7 @@ type Props = {
 const OrderCategoryCommand = (props: Props) => {
     return (
         <ApiTypeCommand
-            entries={orderCategories}
+            entries={contentCategories}
             placeholder="Search category..."
             nothingFound="No category found."
             {...props}

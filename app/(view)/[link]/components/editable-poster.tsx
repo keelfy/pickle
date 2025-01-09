@@ -1,12 +1,14 @@
+"use client";
+
 import { Upload } from "lucide-react";
 import React from "react";
 import EditablePosterPreview from "./editable-poster-preview";
 
 type Props = {
-    onChange: (file: File | undefined) => void;
+    onChange?: (file: File | undefined) => void;
 };
 
-const EditablePoster = ({ onChange }: Props) => {
+const EditablePoster = ({ onChange = () => {} }: Props) => {
     const [preview, setPreview] = React.useState<string>();
 
     const handleFileChange = (files: FileList | null) => {

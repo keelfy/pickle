@@ -4,11 +4,12 @@ import { devtools } from "zustand/middleware";
 export type ModalName =
     | "approve"
     | "deny"
-    | "interactive-game-editor"
+    | "game-note-editor"
     | "approve-confirmation"
     | "search"
     | "create"
-    | "profile-settings";
+    | "profile-settings"
+    | "game-note";
 
 type Action = {
     openModal: (modalName: ModalName) => void;

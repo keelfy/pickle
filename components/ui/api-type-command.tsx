@@ -8,7 +8,7 @@ import {
     CommandItem,
     CommandList,
 } from "@/components/ui/command";
-import { ApiType, orderCategories } from "@/utils/api/constants";
+import { ApiType, contentCategories } from "@/utils/api/constants";
 import { cn } from "@/utils/cn";
 import { Check } from "lucide-react";
 

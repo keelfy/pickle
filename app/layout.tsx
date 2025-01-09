@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { getMyProfile } from "@/hooks/api-endpoints-server";
 import getUser from "@/hooks/getUser";
 import ModalStoreProvider from "@/providers/modal";
-import ProfileStoreProvider from "@/providers/profile-store";
+import AuthStoreProvider from "@/providers/auth-store";
 import { GeistSans } from "geist/font/sans";
 import { ThemeProvider } from "next-themes";
 import { Suspense } from "react";
@@ -36,9 +36,9 @@ async function AuthorizedProvider({ children }: { children: React.ReactNode }) {
     const { user, profile } = await getAuth();
 
     return (
-        <ProfileStoreProvider profile={profile} user={user}>
+        <AuthStoreProvider profile={profile} user={user}>
             <Suspense>{children}</Suspense>
-        </ProfileStoreProvider>
+        </AuthStoreProvider>
     );
 }
 

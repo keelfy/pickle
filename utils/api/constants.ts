@@ -3,7 +3,7 @@ export type ApiType = {
     label: string;
 }
 
-export const orderCategories: ApiType[] = [
+export const contentCategories: ApiType[] = [
     { idx: 0, label: "Custom" },
     { idx: 1, label: "Game" },
     { idx: 2, label: "Anime" },

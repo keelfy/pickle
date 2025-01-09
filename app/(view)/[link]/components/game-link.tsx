@@ -7,9 +7,9 @@ type Props = {
 };
 
 const GameLink = ({ url, className }: Props) => (
-    <Link href={url ?? "#"} target="_blank">
+    <a href={url ?? "#"} target="_blank">
         <GameUrl url={url} />
-    </Link>
+    </a>
 );
 
 export default GameLink;

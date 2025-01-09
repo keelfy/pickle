@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useModalStore } from "@/providers/modal";
 import { useOrderStore } from "@/providers/order";
-import { orderCategories, orderStatuses } from "@/utils/api/constants";
+import { contentCategories, orderStatuses } from "@/utils/api/constants";
 import { ColumnDef } from "@tanstack/react-table";
 import { Check, X } from "lucide-react";
 
@@ -15,12 +15,12 @@ const orderColumns: ColumnDef<Order>[] = [
         header: () => <Label>User</Label>,
     },
     {
-        accessorKey: "categoryType",
+        accessorKey: "category",
         header: () => <Label>Category</Label>,
         cell: ({ row }) => {
-            const categoryType = row.getValue("categoryType") as number;
-            const label = orderCategories.find(
-                (category) => category.idx === categoryType
+            const category = row.getValue("category") as number;
+            const label = contentCategories.find(
+                (cat) => cat.idx === category
             )?.label;
             return <div>{label}</div>;
         },
@@ -75,16 +75,13 @@ const orderAuthorizedColumns: ColumnDef<Order>[] = [
             const { openModal } = useModalStore((state) => state);
             const { setOrder } = useOrderStore((state) => state);
 
-            if (order.status !== 0) {
-                return null;
-            }
-
             return (
                 <div className="flex items-center text-center">
                     <Button
                         size="icon"
                         variant="ghost"
                         className="text-red-500"
+                        disabled={order.status !== 0}
                         onClick={() => {
                             openModal("deny");
                             setOrder(order);
@@ -96,6 +93,7 @@ const orderAuthorizedColumns: ColumnDef<Order>[] = [
                         size="icon"
                         variant="ghost"
                         className="text-green-500"
+                        disabled={order.status !== 0}
                         onClick={() => {
                             openModal("approve");
                             setOrder(order);

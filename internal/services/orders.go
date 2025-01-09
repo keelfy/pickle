@@ -82,9 +82,9 @@ func (service *Order) findSortedOrdersByReceiverId(ctx context.Context, receiver
 			&i.Amount,
 			&i.Status,
 			&i.OrdererID,
+			&i.OrdererUsername,
 			&i.Category,
 			&i.Message,
-			&i.OrdererUsername, // TODO: Move this scan arg to position after OrdererID after migration
 		); err != nil {
 			return nil, err
 		}

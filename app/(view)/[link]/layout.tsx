@@ -170,6 +170,7 @@ async function LayoutBody({
             <GameNoteEditorDialog />
             <ProfileSearchDialog />
             <CreateOrderDialog link={link} />
+            <ProfileSettingsDialog />
         </ProfileStoreProvider>
     );
 }
@@ -333,8 +334,6 @@ function RootLayout({ children, params }: React.PropsWithChildren<Props>) {
                     </p>
                 </footer>
             </div>
-
-            <ProfileSettingsDialog />
         </main>
     );
 }

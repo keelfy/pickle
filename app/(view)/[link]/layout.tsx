@@ -47,9 +47,9 @@ import DenyOrderDialog from "../../../components/view/dialog/deny-order/deny-ord
 import ProfileSearchDialog from "../../../components/view/dialog/profile-search/profile-search-dialog";
 import ProfileSettingsDialog from "../../../components/view/dialog/profile-settings/profile-settings-dialog";
 import ProfileDropdownMenu from "../profile-dropdown-menu";
+import CurrentDate from "./current-date";
 import MenuItemUnderline from "./menu-item-underline";
 import OpenModalButton from "./open-modal-button";
-import CurrentDate from "./current-date";
 
 async function LayoutBody({
     children,
@@ -80,11 +80,6 @@ async function LayoutBody({
 
     return (
         <ProfileStoreProvider profile={ownerProfile}>
-            <DenyOrderDialog />
-            <ApproveOrderDialog />
-            <GameNoteEditorDialog />
-            <ProfileSearchDialog />
-            <CreateOrderDialog link={link} />
             <div className="flex gap-10">
                 <div className="min-w-80 w-min h-fit hidden md:block space-y-4">
                     <div className="space-y-4">
@@ -169,6 +164,12 @@ async function LayoutBody({
                     <Suspense>{children}</Suspense>
                 </div>
             </div>
+
+            <DenyOrderDialog />
+            <ApproveOrderDialog />
+            <GameNoteEditorDialog />
+            <ProfileSearchDialog />
+            <CreateOrderDialog link={link} />
         </ProfileStoreProvider>
     );
 }
@@ -309,8 +310,6 @@ type Props = {
 function RootLayout({ children, params }: React.PropsWithChildren<Props>) {
     return (
         <main className="min-h-screen bg-background">
-            <ProfileSettingsDialog />
-
             <div className="container max-w-7xl flex flex-col gap-20">
                 <nav className="mt-10">
                     <NavMenu params={params} />
@@ -334,6 +333,8 @@ function RootLayout({ children, params }: React.PropsWithChildren<Props>) {
                     </p>
                 </footer>
             </div>
+
+            <ProfileSettingsDialog />
         </main>
     );
 }

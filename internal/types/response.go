@@ -28,10 +28,11 @@ type StatusRes struct {
 }
 
 type ProfileRes struct {
-	UserID    string    `json:"id"`
-	CreatedAt time.Time `json:"createdAt"`
-	Username  string    `json:"username"`
-	Link      string    `json:"link"`
+	UserID      string    `json:"id"`
+	CreatedAt   time.Time `json:"createdAt"`
+	Username    string    `json:"username"`
+	Link        string    `json:"link"`
+	Description *string   `json:"description,omitempty"`
 }
 
 type ContentRes struct {

@@ -30,8 +30,9 @@ func InitializePickle(ctx context.Context) (*api.Pickle, func(), error) {
 		cleanup()
 		return nil, nil, err
 	}
-	profile := services.NewProfileService(sqlDatabase, client)
-	user := handlers.NewUserHandler(profile)
+	image := services.NewImageService()
+	profile := services.NewProfileService(sqlDatabase, client, image)
+	user := handlers.NewUserHandler(profile, image)
 	typedClient, err := storage.InitElasticsearchClient()
 	if err != nil {
 		cleanup()

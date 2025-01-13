@@ -26,6 +26,14 @@ func GetRequiredQueryParam(r *http.Request, key string) (string, error) {
 	return value, nil
 }
 
+func GetQueryParam(r *http.Request, key, defaultValue string) string {
+	value := r.URL.Query().Get(key)
+	if value == "" {
+		return defaultValue
+	}
+	return value
+}
+
 func GetPagination(r *http.Request) (*types.Pagination, error) {
 	page, err := strconv.Atoi(r.URL.Query().Get("page"))
 	if err != nil {

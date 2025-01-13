@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 
@@ -13,12 +12,14 @@ import (
 )
 
 type User struct {
-	userService *services.Profile
+	userService  *services.Profile
+	imageService *services.Image
 }
 
-func NewUserHandler(userService *services.Profile) *User {
+func NewUserHandler(userService *services.Profile, imageService *services.Image) *User {
 	return &User{
-		userService: userService,
+		userService:  userService,
+		imageService: imageService,
 	}
 }
 
@@ -132,6 +133,48 @@ func (handler *User) ValidateProfileLink(w http.ResponseWriter, r *http.Request)
 	utils.WriteHttpJsonResponse(w, response)
 }
 
+func (handler *User) GetProfileAvatarUrl(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	userId, err := utils.ReadPathUUIDVariable("id", r)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
+	size := utils.GetQueryParam(r, "size", "md")
+
+	avatarUrl, err := handler.userService.GetAvatarUrlById(ctx, userId, size)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
+	utils.WriteHttpJsonResponse(w, struct {
+		URL *string `json:"url"`
+	}{
+		URL: avatarUrl,
+	})
+}
+
+func (handler *User) GetMyProfileAvatarUrl(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userId := utils.UserIdFromContext(ctx)
+	size := utils.GetQueryParam(r, "size", "md")
+
+	avatarUrl, err := handler.userService.GetAvatarUrlById(ctx, userId, size)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
+	utils.WriteHttpJsonResponse(w, struct {
+		URL *string `json:"url"`
+	}{
+		URL: avatarUrl,
+	})
+}
+
 // Uploads the avatar of the user who is currently logged in from the request
 func (handler *User) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -159,14 +202,11 @@ func (handler *User) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Respond with the uploaded file URL
-	w.Header().Set(utils.HeaderContentType, utils.ApplicationJsonType)
-	w.WriteHeader(http.StatusOK)
-
-	_, err = w.Write([]byte(fmt.Sprintf(`{"url": "%s"}`, url)))
-	if err != nil {
-		log.Printf("Error writing response: %v", err)
-	}
+	utils.WriteHttpJsonResponse(w, struct {
+		PreviewURL string `json:"previewUrl"`
+	}{
+		PreviewURL: url,
+	})
 }
 
 func (handler *User) CreateProfileWebhook(w http.ResponseWriter, r *http.Request) {

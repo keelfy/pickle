@@ -78,10 +78,13 @@ type Orderer struct {
 }
 
 type Profile struct {
-	UserID    uuid.UUID  `json:"user_id"`
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
-	UpdatedBy *uuid.UUID `json:"updated_by"`
-	Username  string     `json:"username"`
-	Link      string     `json:"link"`
+	UserID           uuid.UUID  `json:"user_id"`
+	CreatedAt        time.Time  `json:"created_at"`
+	UpdatedAt        time.Time  `json:"updated_at"`
+	UpdatedBy        *uuid.UUID `json:"updated_by"`
+	Username         string     `json:"username"`
+	Link             string     `json:"link"`
+	Description      *string    `json:"description"`
+	AvatarUrl        *string    `json:"avatar_url"`
+	AvatarPreviewKey *string    `json:"avatar_preview_key"`
 }

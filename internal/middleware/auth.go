@@ -16,8 +16,7 @@ func Authenticator(ja *jwtauth.JWTAuth) func(http.Handler) http.Handler {
 		hfn := func(w http.ResponseWriter, r *http.Request) {
 			token, _, err := jwtauth.FromContext(r.Context())
 			if err != nil {
-				log.Printf("Error occurred during token extraction: %v", err)
-				http.Error(w, "Error occurred during token extraction", http.StatusInternalServerError)
+				http.Error(w, err.Error(), http.StatusUnauthorized)
 				return
 			}
 
@@ -30,8 +29,8 @@ func Authenticator(ja *jwtauth.JWTAuth) func(http.Handler) http.Handler {
 			userId := token.Subject()
 			uid, err := uuid.Parse(userId)
 			if err != nil {
-				log.Printf("Error occurred during user ID parsing: %v", err)
-				http.Error(w, "Error occurred during user ID parsing", http.StatusInternalServerError)
+				log.Printf("Failed to parse user ID: %v", err)
+				http.Error(w, "Failed to parse user ID", http.StatusInternalServerError)
 				return
 			}
 

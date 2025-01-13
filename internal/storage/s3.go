@@ -58,7 +58,26 @@ func UploadFileToS3(ctx context.Context, bucketName, fileName string, file multi
 		return "", fmt.Errorf("failed to upload file to S3: %w", err)
 	}
 
-	// Return the public URL of the uploaded file
-	publicURL := fmt.Sprintf("https://%s.s3.amazonaws.com/%s", bucketName, fileName)
-	return publicURL, nil
+	return fileName, nil
+}
+
+func MoveS3File(ctx context.Context, oldBucketName, newBucketName, oldKey, newKey string, s3Client *s3.Client) error {
+	_, err := s3Client.CopyObject(ctx, &s3.CopyObjectInput{
+		Bucket:     aws.String(newBucketName),
+		CopySource: aws.String(fmt.Sprintf("%s/%s", oldBucketName, oldKey)),
+		Key:        aws.String(newKey),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to copy object: %w", err)
+	}
+
+	_, err = s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: aws.String(oldBucketName),
+		Key:    aws.String(oldKey),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to delete object: %w", err)
+	}
+
+	return nil
 }

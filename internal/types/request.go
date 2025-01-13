@@ -28,8 +28,9 @@ type SupabaseWebhookPayload struct {
 }
 
 type UpdateProfileReq struct {
-	Username string `json:"username"`
-	Link     string `json:"link"`
+	Username    string `json:"username"`
+	Link        string `json:"link"`
+	Description string `json:"description"`
 }
 
 type GameNoteReq struct {

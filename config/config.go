@@ -49,10 +49,26 @@ func GetContextTimeoutMs() time.Duration {
 	return time.Duration(value) * time.Millisecond
 }
 
-func GetRawAvatarBucketName() string {
-	return os.Getenv("AWS_S3_RAW_AVATAR_BUCKET_NAME")
+func GetAvatarBucketName() string {
+	return os.Getenv("AWS_S3_AVATAR_BUCKET_NAME")
+}
+
+func GetPreviewAvatarBucketName() string {
+	return os.Getenv("AWS_S3_PREVIEW_AVATAR_BUCKET_NAME")
 }
 
 func GetApiKey() string {
 	return os.Getenv("API_KEY")
+}
+
+func GetImgProxyUrl() string {
+	return os.Getenv("IMGPROXY_URL")
+}
+
+func GetImgProxyKey() string {
+	return os.Getenv("IMGPROXY_KEY")
+}
+
+func GetImgProxySalt() string {
+	return os.Getenv("IMGPROXY_SALT")
 }

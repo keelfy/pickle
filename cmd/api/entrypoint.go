@@ -115,6 +115,7 @@ func (p *Pickle) registerV1ProtectedRoutes(r chi.Router) {
 		r.Get("/", p.profileHandler.GetMyProfile)
 		r.Patch("/", p.profileHandler.UpdateSettings)
 		r.Post("/avatar", p.profileHandler.UploadAvatar)
+		r.Get("/avatar", p.profileHandler.GetMyProfileAvatarUrl)
 	})
 
 	r.Route("/game-notes", func(r chi.Router) {
@@ -151,7 +152,8 @@ func (p *Pickle) registerV1PublicRoutes(r chi.Router) {
 
 	r.Get("/content", p.contentService.SearchContent)
 
-	r.Route("/users", func(r chi.Router) {
-		r.Get("/{id}", p.profileHandler.GetProfileById)
+	r.Route("/users/{id}", func(r chi.Router) {
+		r.Get("/", p.profileHandler.GetProfileById)
+		r.Get("/avatar", p.profileHandler.GetProfileAvatarUrl)
 	})
 }

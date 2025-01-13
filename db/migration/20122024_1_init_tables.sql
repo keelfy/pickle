@@ -19,9 +19,13 @@ CREATE TABLE IF NOT EXISTS "profiles" (
     "user_id" uuid NOT NULL,
     "created_at" timestamptz NOT NULL DEFAULT now(),
     "updated_at" timestamptz NOT NULL DEFAULT now(),
-    "updated_by" uuid, -- nullable because webhook creates profile
+    -- nullable because webhook creates profile
+    "updated_by" uuid,
     "username" text NOT NULL,
     "link" text NOT NULL,
+    "description" text NOT NULL DEFAULT '',
+    "avatar_url" text,
+    "avatar_preview_key" text,
     PRIMARY KEY ("user_id"),
     FOREIGN KEY ("updated_by") REFERENCES "profiles"("user_id")
 );

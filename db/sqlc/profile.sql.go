@@ -12,7 +12,9 @@ import (
 )
 
 const findProfileById = `-- name: FindProfileById :one
-SELECT user_id, created_at, updated_at, updated_by, username, link FROM "profiles" WHERE "user_id" = $1
+SELECT user_id, created_at, updated_at, updated_by, username, link, description, avatar_url, avatar_preview_key
+FROM "profiles"
+WHERE "user_id" = $1
 `
 
 // Author: Egor Kuzmin (keelfy)
@@ -26,12 +28,17 @@ func (q *Queries) FindProfileById(ctx context.Context, userID uuid.UUID) (*Profi
 		&i.UpdatedBy,
 		&i.Username,
 		&i.Link,
+		&i.Description,
+		&i.AvatarUrl,
+		&i.AvatarPreviewKey,
 	)
 	return &i, err
 }
 
 const findProfileByLink = `-- name: FindProfileByLink :one
-SELECT user_id, created_at, updated_at, updated_by, username, link FROM "profiles" WHERE "link" = $1
+SELECT user_id, created_at, updated_at, updated_by, username, link, description, avatar_url, avatar_preview_key
+FROM "profiles"
+WHERE "link" = $1
 `
 
 // Author: Egor Kuzmin (keelfy)
@@ -45,32 +52,45 @@ func (q *Queries) FindProfileByLink(ctx context.Context, link string) (*Profile,
 		&i.UpdatedBy,
 		&i.Username,
 		&i.Link,
+		&i.Description,
+		&i.AvatarUrl,
+		&i.AvatarPreviewKey,
 	)
 	return &i, err
 }
 
 const insertProfile = `-- name: InsertProfile :one
 INSERT INTO "profiles" (
-    "user_id", 
-    "username", 
-    "link"
-) VALUES (
-    $1,
-    $2,
-    $3
-)
-RETURNING user_id, created_at, updated_at, updated_by, username, link
+        "user_id",
+        "username",
+        "link",
+        "description",
+        "avatar_url",
+        "avatar_preview_key"
+    )
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING user_id, created_at, updated_at, updated_by, username, link, description, avatar_url, avatar_preview_key
 `
 
 type InsertProfileParams struct {
-	UserID   uuid.UUID `json:"user_id"`
-	Username string    `json:"username"`
-	Link     string    `json:"link"`
+	UserID           uuid.UUID `json:"user_id"`
+	Username         string    `json:"username"`
+	Link             string    `json:"link"`
+	Description      *string   `json:"description"`
+	AvatarUrl        *string   `json:"avatar_url"`
+	AvatarPreviewKey *string   `json:"avatar_preview_key"`
 }
 
 // Author: Egor Kuzmin (keelfy)
 func (q *Queries) InsertProfile(ctx context.Context, arg InsertProfileParams) (*Profile, error) {
-	row := q.db.QueryRow(ctx, insertProfile, arg.UserID, arg.Username, arg.Link)
+	row := q.db.QueryRow(ctx, insertProfile,
+		arg.UserID,
+		arg.Username,
+		arg.Link,
+		arg.Description,
+		arg.AvatarUrl,
+		arg.AvatarPreviewKey,
+	)
 	var i Profile
 	err := row.Scan(
 		&i.UserID,
@@ -79,25 +99,34 @@ func (q *Queries) InsertProfile(ctx context.Context, arg InsertProfileParams) (*
 		&i.UpdatedBy,
 		&i.Username,
 		&i.Link,
+		&i.Description,
+		&i.AvatarUrl,
+		&i.AvatarPreviewKey,
 	)
 	return &i, err
 }
 
 const updateProfileByUserId = `-- name: UpdateProfileByUserId :one
-UPDATE "profiles" 
+UPDATE "profiles"
 SET "updated_at" = now(),
     "updated_by" = $2,
     "username" = $3,
-    "link" = $4
+    "link" = $4,
+    "description" = $5,
+    "avatar_url" = $6,
+    "avatar_preview_key" = $7
 WHERE "user_id" = $1
-RETURNING user_id, created_at, updated_at, updated_by, username, link
+RETURNING user_id, created_at, updated_at, updated_by, username, link, description, avatar_url, avatar_preview_key
 `
 
 type UpdateProfileByUserIdParams struct {
-	UserID    uuid.UUID  `json:"user_id"`
-	UpdatedBy *uuid.UUID `json:"updated_by"`
-	Username  string     `json:"username"`
-	Link      string     `json:"link"`
+	UserID           uuid.UUID  `json:"user_id"`
+	UpdatedBy        *uuid.UUID `json:"updated_by"`
+	Username         string     `json:"username"`
+	Link             string     `json:"link"`
+	Description      *string    `json:"description"`
+	AvatarUrl        *string    `json:"avatar_url"`
+	AvatarPreviewKey *string    `json:"avatar_preview_key"`
 }
 
 // Author: Egor Kuzmin (keelfy)
@@ -107,6 +136,9 @@ func (q *Queries) UpdateProfileByUserId(ctx context.Context, arg UpdateProfileBy
 		arg.UpdatedBy,
 		arg.Username,
 		arg.Link,
+		arg.Description,
+		arg.AvatarUrl,
+		arg.AvatarPreviewKey,
 	)
 	var i Profile
 	err := row.Scan(
@@ -116,6 +148,29 @@ func (q *Queries) UpdateProfileByUserId(ctx context.Context, arg UpdateProfileBy
 		&i.UpdatedBy,
 		&i.Username,
 		&i.Link,
+		&i.Description,
+		&i.AvatarUrl,
+		&i.AvatarPreviewKey,
 	)
 	return &i, err
+}
+
+const updateProfilePreviewAvatarByUserId = `-- name: UpdateProfilePreviewAvatarByUserId :exec
+UPDATE "profiles"
+SET "updated_at" = now(),
+    "updated_by" = $2,
+    "avatar_preview_key" = $3
+WHERE "user_id" = $1
+`
+
+type UpdateProfilePreviewAvatarByUserIdParams struct {
+	UserID           uuid.UUID  `json:"user_id"`
+	UpdatedBy        *uuid.UUID `json:"updated_by"`
+	AvatarPreviewKey *string    `json:"avatar_preview_key"`
+}
+
+// Author: Egor Kuzmin (keelfy)
+func (q *Queries) UpdateProfilePreviewAvatarByUserId(ctx context.Context, arg UpdateProfilePreviewAvatarByUserIdParams) error {
+	_, err := q.db.Exec(ctx, updateProfilePreviewAvatarByUserId, arg.UserID, arg.UpdatedBy, arg.AvatarPreviewKey)
+	return err
 }

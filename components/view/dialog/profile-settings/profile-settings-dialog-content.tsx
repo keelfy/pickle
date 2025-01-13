@@ -70,7 +70,7 @@ export default function ProfileSettingsDialogContent() {
             <Separator />
             <div className="flex space-x-6 p-6">
                 <div className="flex flex-col space-y-2">
-                    {/* <TabButton
+                    <TabButton
                         forTab="general"
                         icon={<Settings />}
                         label="General"
@@ -89,9 +89,9 @@ export default function ProfileSettingsDialogContent() {
                         forTab="notifications"
                         icon={<MessageCircle />}
                         label="Notifications"
-                    /> */}
+                    />
                 </div>
-                {/* <TabContent tab={tab} /> */}
+                <TabContent tab={tab} />
             </div>
         </>
     );

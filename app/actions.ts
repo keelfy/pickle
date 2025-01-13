@@ -58,7 +58,7 @@ export const signInWithProviderAction = async (provider: Provider, goto: string 
     const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-            redirectTo: origin + `/auth/callback${goto && goto.length > 0 ? `?redirect_to=${encodeURIComponent(goto)}` : ""}`,
+            redirectTo: origin + `/auth/callback${goto && goto.length > 0 ? `?redirect_to=${goto}` : ""}`,
         }
     });
 

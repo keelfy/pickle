@@ -19,7 +19,7 @@ export default function ProfileSettingsDialog() {
         [currentModal]
     );
 
-    if (isOpen) {
+    if (!isOpen) {
         return null;
     }
 

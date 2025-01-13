@@ -15,7 +15,7 @@ export default function ProfileSearchDialog() {
         [currentModal, profile?.id]
     );
 
-    if (isOpen) {
+    if (!isOpen) {
         return null;
     }
 

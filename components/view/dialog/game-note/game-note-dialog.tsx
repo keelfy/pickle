@@ -26,7 +26,7 @@ export default function GameNoteDialog() {
         [currentModal, shortNote?.id, category]
     );
 
-    if (isOpen) {
+    if (!isOpen) {
         return null;
     }
 

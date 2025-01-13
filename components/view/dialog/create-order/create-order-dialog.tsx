@@ -28,7 +28,7 @@ const CreateOrderDialog = (props: Props) => {
         [currentModal]
     );
 
-    if (isOpen) {
+    if (!isOpen) {
         return null;
     }
 

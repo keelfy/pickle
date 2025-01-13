@@ -23,7 +23,7 @@ export default function DenyOrderDialog() {
         [currentModal, order?.id]
     );
 
-    if (isOpen) {
+    if (!isOpen) {
         return null;
     }
 

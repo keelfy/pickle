@@ -23,7 +23,7 @@ export default function ApproveOrderDialog() {
         [currentModal, order?.id]
     );
 
-    if (isOpen) {
+    if (!isOpen) {
         return null;
     }
 

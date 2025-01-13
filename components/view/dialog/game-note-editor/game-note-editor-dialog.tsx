@@ -21,7 +21,7 @@ export default function GameNoteEditorDialog() {
         [currentModal, order?.id]
     );
 
-    if (isOpen) {
+    if (!isOpen) {
         return null;
     }
 

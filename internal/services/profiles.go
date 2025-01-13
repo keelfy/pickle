@@ -206,7 +206,7 @@ func (service *Profile) CreateProfileWebhook(ctx context.Context, req *types.Sup
 		avatarUrl *string
 	)
 
-	if rawMetadata, ok := (*req.Record)["raw_user_meta_data"]; !ok {
+	if rawMetadata, ok := (*req.Record)["raw_user_meta_data"]; ok {
 		metadata := rawMetadata.(map[string]interface{})
 
 		if rawName, ok := metadata["name"]; ok {

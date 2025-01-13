@@ -4,7 +4,7 @@
         "builder": "NIXPACKS"
     },
     "deploy": {
-        "startCommand": "node index.js",
+        "startCommand": "./bin/linux_amd64/main",
         "healthcheckPath": "/v1/health"
     }
 }

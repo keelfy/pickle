@@ -201,7 +201,24 @@ func (service *Profile) CreateProfileWebhook(ctx context.Context, req *types.Sup
 		return nil, errors.NewBadRequestError("Invalid user ID", err)
 	}
 
-	name := (*req.Record)["raw_user_meta_data"].(map[string]interface{})["name"].(string)
+	var (
+		name      string
+		avatarUrl *string
+	)
+
+	if rawMetadata, ok := (*req.Record)["raw_user_meta_data"]; !ok {
+		metadata := rawMetadata.(map[string]interface{})
+
+		if rawName, ok := metadata["name"]; ok {
+			name = rawName.(string)
+		}
+
+		if rawAvatarUrl, ok := metadata["avatar_url"]; ok {
+			url := rawAvatarUrl.(string)
+			avatarUrl = &url
+		}
+	}
+
 	if len(name) < 1 {
 		// Extract name from email before @
 		name = strings.Split(email, "@")[0]
@@ -209,8 +226,6 @@ func (service *Profile) CreateProfileWebhook(ctx context.Context, req *types.Sup
 			return nil, errors.NewBadRequestError("Invalid email format", nil)
 		}
 	}
-
-	avatarUrl := (*req.Record)["raw_user_meta_data"].(map[string]interface{})["avatar_url"].(*string)
 
 	// generate random username
 	link := strings.ToLower(petname.Generate(2, "-"))

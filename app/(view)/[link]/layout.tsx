@@ -1,13 +1,12 @@
-import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuRadioGroup,
+    DropdownMenuRadioItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import {
     NavigationMenu,
@@ -18,7 +17,10 @@ import {
 } from "@/components/ui/navigation-menu";
 import { Separator } from "@/components/ui/separator";
 import GameNoteEditorDialog from "@/components/view/dialog/game-note-editor/game-note-editor-dialog";
-import { getProfileByLink } from "@/hooks/api-endpoints-server";
+import {
+    getProfileAvatar,
+    getProfileByLink,
+} from "@/hooks/api-endpoints-server";
 import OrderStoreProvider from "@/providers/order";
 import ProfileStoreProvider from "@/providers/profile-store";
 import { cn } from "@/utils/cn";
@@ -28,7 +30,15 @@ import {
     SiX,
     SiYoutube,
 } from "@icons-pack/react-simple-icons";
-import { Search } from "lucide-react";
+import {
+    Bell,
+    Clapperboard,
+    EarthIcon,
+    Gamepad,
+    Menu,
+    Search,
+} from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import React, { Suspense } from "react";
 import ApproveOrderDialog from "../../../components/view/dialog/approve-order/approve-order-dialog";
@@ -39,6 +49,7 @@ import ProfileSettingsDialog from "../../../components/view/dialog/profile-setti
 import ProfileDropdownMenu from "../profile-dropdown-menu";
 import MenuItemUnderline from "./menu-item-underline";
 import OpenModalButton from "./open-modal-button";
+import CurrentDate from "./current-date";
 
 async function LayoutBody({
     children,
@@ -58,6 +69,15 @@ async function LayoutBody({
         );
     }
 
+    let avatarUrl: string | undefined;
+    try {
+        avatarUrl = await getProfileAvatar(ownerProfile, "lg").then(
+            (res) => res?.url ?? undefined
+        );
+    } catch (error) {
+        console.error("Unable to retrieve profile avatar", error);
+    }
+
     return (
         <ProfileStoreProvider profile={ownerProfile}>
             <DenyOrderDialog />
@@ -66,52 +86,84 @@ async function LayoutBody({
             <ProfileSearchDialog />
             <CreateOrderDialog link={link} />
             <div className="flex gap-10">
-                <Card className="min-w-96 w-min h-fit hidden md:block">
-                    <CardHeader>
-                        <div className="flex items-center gap-4">
-                            <Avatar className="h-14 w-14">
-                                <AvatarImage src="https://github.com/shadcn.png" />
+                <div className="min-w-80 w-min h-fit hidden md:block space-y-4">
+                    <div className="space-y-4">
+                        <div className="text-3xl font-bold px-6">
+                            {ownerProfile?.username}
+                        </div>
+                        <div className="flex items-center justify-between px-4">
+                            <Avatar className="h-32 w-32">
+                                <AvatarImage src={avatarUrl} asChild>
+                                    {avatarUrl && (
+                                        <Image
+                                            src={avatarUrl}
+                                            alt="Avatar"
+                                            width={128}
+                                            height={128}
+                                            unoptimized
+                                        />
+                                    )}
+                                </AvatarImage>
                                 <AvatarFallback>
                                     {link.substring(0, 1)}
                                 </AvatarFallback>
                             </Avatar>
-                            <div className="flex flex-col gap-0.5">
-                                <CardTitle>{ownerProfile?.username}</CardTitle>
-                                <CardDescription>Mega Streamer</CardDescription>
-                            </div>
-                            {/* <p className="text-md font-bold truncate">brDrLRVJLgdwTqXvPeezzkKqV</p> // 25 characters */}
-                            {/* <p className="text-xl font-bold truncate w-48">LuxGp2F4CkyAJ17XRg2hprF6tTuEVhcHKWVtCx2U6cwcU158YxgCTEtyJcJT</p> // 64 characters */}
+                            <table className="w-[40%]">
+                                <tbody>
+                                    <tr>
+                                        <td>
+                                            <Gamepad size="2.5rem" />
+                                        </td>
+                                        <td>
+                                            <div className="flex flex-col gap-0.5 items-center">
+                                                <div className="text-sm text-muted-foreground">
+                                                    played
+                                                </div>
+                                                <div className="text-2xl font-semibold">
+                                                    38
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <Clapperboard size="2.5rem" />
+                                        </td>
+                                        <td>
+                                            <div className="flex flex-col gap-0.5 items-center">
+                                                <div className="text-sm text-muted-foreground">
+                                                    watched
+                                                </div>
+                                                <div className="text-2xl font-semibold">
+                                                    3
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-sm text-muted-foreground">
-                            Lorem ipsum dolor sit amet, consectetur adipiscing
-                            elit, sed do eiusmod tempor incididunt ut labore et
-                            dolore magna aliqua. Ut enim ad minim veniam, quis
-                            nostrud exercitation ullamco laboris nisi ut aliquip
-                            ex ea commodo consequat. Duis aute irure dolor in
-                            reprehenderit in voluptate velit esse cillum dolore
-                            eu fugiat nulla pariatur. Excepteur sint occaecat
-                            cupidatat non proident, sunt in culpa qui officia
-                            deserunt mollit anim id est laborum.
+                    </div>
+                    {(ownerProfile?.description ?? "").length > 0 && (
+                        <div className="rounded-xl bg-muted p-6 text-sm text-muted-foreground">
+                            {ownerProfile?.description}
                         </div>
-                        <Separator className="my-4" />
-                        <div className="flex items-center justify-around gap-2">
-                            <Button variant="outline" size="icon">
-                                <SiTwitch />
-                            </Button>
-                            <Button variant="outline" size="icon">
-                                <SiYoutube />
-                            </Button>
-                            <Button variant="outline" size="icon">
-                                <SiX />
-                            </Button>
-                            <Button variant="outline" size="icon">
-                                <SiInstagram />
-                            </Button>
-                        </div>
-                    </CardContent>
-                </Card>
+                    )}
+                    <div className="flex items-center justify-around gap-2">
+                        <Button variant="outline" size="icon">
+                            <SiTwitch />
+                        </Button>
+                        <Button variant="outline" size="icon">
+                            <SiYoutube />
+                        </Button>
+                        <Button variant="outline" size="icon">
+                            <SiX />
+                        </Button>
+                        <Button variant="outline" size="icon">
+                            <SiInstagram />
+                        </Button>
+                    </div>
+                </div>
 
                 <div className="flex-0 w-full">
                     <Suspense>{children}</Suspense>
@@ -124,9 +176,12 @@ async function LayoutBody({
 async function NavMenu({ params }: Props) {
     const { link } = await params;
     return (
-        <div className="flex items-center border border-foreground/10 rounded-lg p-2 px-3">
+        <div className="flex items-center justify-between">
             <NavigationMenu>
                 <NavigationMenuList>
+                    <Button variant="ghost" size="icon">
+                        <Menu />
+                    </Button>
                     <NavigationMenuItem>
                         <MenuItemUnderline link={`/${link}`}>
                             <Link href={`/${link}`} legacyBehavior passHref>
@@ -201,14 +256,46 @@ async function NavMenu({ params }: Props) {
                     >
                         <Search />
                     </OpenModalButton>
-                    <div className="px-3">
-                        <Separator orientation="vertical" className="h-8" />
-                    </div>
-                    <Suspense fallback={<LoadingSpinner />}>
-                        <ProfileDropdownMenu />
-                    </Suspense>
                 </NavigationMenuList>
             </NavigationMenu>
+            <div className="flex items-center gap-10">
+                <div className="flex items-center gap-4">
+                    <CurrentDate />
+                    <Separator orientation="vertical" className="h-8" />
+                    <div className="flex items-center gap-2">
+                        <Button variant="secondary" size="icon">
+                            <Bell />
+                        </Button>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="px-2">
+                                    <div className="flex items-center gap-1">
+                                        <EarthIcon />
+                                        EN
+                                    </div>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-content">
+                                <DropdownMenuRadioGroup value="en">
+                                    <DropdownMenuRadioItem value="en">
+                                        English
+                                    </DropdownMenuRadioItem>
+                                    <DropdownMenuRadioItem value="ru" disabled>
+                                        Русский
+                                    </DropdownMenuRadioItem>
+                                    <DropdownMenuRadioItem value="es" disabled>
+                                        Español
+                                    </DropdownMenuRadioItem>
+                                </DropdownMenuRadioGroup>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                </div>
+
+                <Suspense fallback={<LoadingSpinner />}>
+                    <ProfileDropdownMenu />
+                </Suspense>
+            </div>
         </div>
     );
 }
@@ -224,35 +311,27 @@ function RootLayout({ children, params }: React.PropsWithChildren<Props>) {
         <main className="min-h-screen bg-background">
             <ProfileSettingsDialog />
 
-            <div className="flex-1 h-full w-full flex flex-col gap-20">
-                <nav className="container mx-auto flex items-start justify-center pt-10 gap-10">
-                    <div className="hidden items-center gap-10 md:flex">
-                        {/* <Button variant="default" className="font-bold">
-                            Suggest Something
-                        </Button> */}
-                        <NavMenu params={params} />
-                    </div>
+            <div className="container max-w-7xl flex flex-col gap-20">
+                <nav className="mt-10">
+                    <NavMenu params={params} />
                 </nav>
 
                 <OrderStoreProvider>
-                    <div className="container mx-auto">
-                        <LayoutBody params={params}>{children}</LayoutBody>
-                    </div>
+                    <LayoutBody params={params}>{children}</LayoutBody>
                 </OrderStoreProvider>
 
-                <footer className="w-full flex items-center justify-center border-t mx-auto text-center text-xs gap-8 py-16">
+                <footer className="flex items-center justify-center border-t text-center text-xs py-6">
                     <p>
                         Powered&nbsp;by&nbsp;
-                        <a
+                        <Link
                             href="https://pickle.pw/"
                             target="_blank"
                             className="font-bold hover:underline"
                             rel="noreferrer"
                         >
                             pickle
-                        </a>
+                        </Link>
                     </p>
-                    <ThemeSwitcher />
                 </footer>
             </div>
         </main>

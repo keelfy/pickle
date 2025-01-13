@@ -44,11 +44,7 @@ export const updateSession = async (request: NextRequest) => {
 
         // protected routes
         if (["/dashboard"].includes(pathname) && user.error) {
-            return NextResponse.redirect(new URL("/sign-in", origin));
-        }
-
-        if (hostname?.startsWith("dash.") && !user.error) {
-            return NextResponse.rewrite(new URL(`/p${pathname}`, origin));
+            return NextResponse.redirect(new URL(`/sign-in?goto=${encodeURIComponent(pathname)}`, origin));
         }
 
         return response;

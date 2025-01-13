@@ -3,7 +3,18 @@ type Profile = {
     createdAt: Date;
     username: string;
     link: string;
+    description: string | undefined;
 };
+
+type ProfileAvatar = {
+    url: string | null;
+    width: number;
+    height: number;
+}
+
+type ProfileAvatarPreview = {
+    previewUrl: string;
+}
 
 type Content = {
     id: string;

@@ -6,6 +6,7 @@ const nextConfig = {
             { hostname: "cdn2.steamgriddb.com" },
             { hostname: "store.steampowered.com" },
             { hostname: "mrdrnose.itch.io" },
+            { hostname: "imgproxy-staging.up.railway.app" },
         ],
     },
     experimental: {

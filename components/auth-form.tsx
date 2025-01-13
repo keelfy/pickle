@@ -42,8 +42,8 @@ const formSchema = z
     .object({
         registration: z.boolean(),
         email: z.string().email({ message: "Invalid email address" }),
-        password: z.string().min(8, {
-            message: "Password must be at least 8 characters",
+        password: z.string().min(6, {
+            message: "Password must be at least 6 characters",
         }),
         repeatPassword: z.string(),
     })
@@ -232,7 +232,14 @@ const AuthForm = ({ message, registration, className }: Props) => {
                                 : "Don't have an account?"}
                             &nbsp;
                             <Link
-                                href={registration ? "/sign-in" : "/sign-up"}
+                                href={{
+                                    pathname: registration
+                                        ? "/sign-in"
+                                        : "/sign-up",
+                                    query: {
+                                        goto: getGoTo(),
+                                    },
+                                }}
                                 className="underline"
                             >
                                 {registration ? "Sign in" : "Sign up"}

@@ -15,6 +15,7 @@ export const AuthStoreContext = React.createContext<
 export type AuthStoreProviderProps = React.PropsWithChildren<{
     profile: Profile | undefined;
     user: User | undefined;
+    avatarUrl: string | undefined;
 }>;
 
 export default function AuthStoreProvider({

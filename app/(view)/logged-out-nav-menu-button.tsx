@@ -13,7 +13,12 @@ export default function LoggedOutProfileNavSection() {
     const pathname = usePathname();
 
     return (
-        <Link href={`/sign-in?goto=${encodeURI(pathname)}`}>
+        <Link
+            href={{
+                pathname: "/sign-in",
+                query: { goto: encodeURIComponent(pathname) },
+            }}
+        >
             <Button
                 className={cn(
                     navigationMenuTriggerStyle(),

@@ -1,60 +1,118 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,
     DropdownMenuContent,
+    DropdownMenuGroup,
     DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuPortal,
+    DropdownMenuRadioItem,
     DropdownMenuSeparator,
+    DropdownMenuSub,
+    DropdownMenuSubContent,
+    DropdownMenuSubTrigger,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { navigationMenuTriggerStyle } from "@/components/ui/navigation-menu";
-import { getMyProfile } from "@/hooks/api-endpoints-server";
-import { cn } from "@/utils/cn";
+import { getMyAvatar, getMyProfile } from "@/hooks/api-endpoints-server";
+import getUser from "@/hooks/getUser";
+import { Laptop, MessageCircle, Moon, Settings, Sun, User } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import OpenModalDropdownMenuItem from "./[link]/open-modal-dropdown-menu-item";
 import LoggedOutProfileNavSection from "./logged-out-nav-menu-button";
 import DropdownMenuSignOutItem from "./sign-out-button";
+import ProfileDropdownThemeRadioGroup from "./profile-dropdown-theme-radio-group";
 
 export default async function ProfileDropdownMenu() {
-    let profile = undefined;
+    const user = await getUser();
+    let profile = undefined,
+        avatarUrl = undefined;
 
     try {
         profile = await getMyProfile();
-    } catch (error) {
-        profile = undefined;
-    }
+    } catch (error: any) {}
 
-    if (!profile) {
+    try {
+        avatarUrl = await getMyAvatar("md").then(
+            (res) => res?.url ?? undefined
+        );
+    } catch (error: any) {}
+
+    if (!user) {
         return <LoggedOutProfileNavSection />;
     }
 
     return (
         <DropdownMenu>
             <DropdownMenuTrigger
-                className={cn(
-                    navigationMenuTriggerStyle(),
-                    "text-foreground p-2 flex items-center gap-2"
-                )}
+                className="hover:opacity-80 transition-opacity cursor-pointer"
+                asChild
             >
-                <Avatar className="w-8 h-8">
-                    <AvatarImage src="https://github.com/shadcn.png" />
+                <Avatar className="w-14 h-14">
+                    <AvatarImage src={avatarUrl} asChild>
+                        {avatarUrl && (
+                            <Image
+                                src={avatarUrl}
+                                alt="Avatar"
+                                width={64}
+                                height={64}
+                                unoptimized
+                            />
+                        )}
+                    </AvatarImage>
                     <AvatarFallback>
-                        {profile?.username?.substring(0, 1)}
+                        {profile?.username?.substring(0, 1) ??
+                            user?.email?.substring(0, 1) ??
+                            "U"}
                     </AvatarFallback>
                 </Avatar>
-                <span>{profile?.username}</span>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-44">
-                <Link href={`/${profile?.link}`}>
-                    <DropdownMenuItem className="cursor-pointer">
-                        My page
+            <DropdownMenuContent align="end">
+                <DropdownMenuLabel className="flex flex-col gap-4">
+                    <div className="flex items-center justify-between gap-6">
+                        <div className="flex flex-col gap-0.5">
+                            <div className="text-md">{profile?.username}</div>
+                            <div className="text-muted-foreground text-xs">
+                                {user?.email}
+                            </div>
+                        </div>
+                        <Badge>
+                            <User size={16} />
+                        </Badge>
+                    </div>
+                    <Link href={`/${profile?.link}`}>
+                        <Button className="w-full" variant="secondary">
+                            My profile
+                        </Button>
+                    </Link>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+                    <DropdownMenuSub>
+                        <DropdownMenuSubTrigger>
+                            <Moon />
+                            Dark mode
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuPortal>
+                            <DropdownMenuSubContent>
+                                <ProfileDropdownThemeRadioGroup />
+                            </DropdownMenuSubContent>
+                        </DropdownMenuPortal>
+                    </DropdownMenuSub>
+                    <OpenModalDropdownMenuItem
+                        modalName="profile-settings"
+                        className="cursor-pointer"
+                    >
+                        <Settings />
+                        Settings
+                    </OpenModalDropdownMenuItem>
+                    <DropdownMenuItem disabled>
+                        <MessageCircle />
+                        Support
                     </DropdownMenuItem>
-                </Link>
-                <OpenModalDropdownMenuItem
-                    modalName="profile-settings"
-                    className="cursor-pointer"
-                >
-                    Settings
-                </OpenModalDropdownMenuItem>
+                </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuSignOutItem />
             </DropdownMenuContent>

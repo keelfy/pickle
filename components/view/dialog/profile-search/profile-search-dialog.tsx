@@ -15,6 +15,10 @@ export default function ProfileSearchDialog() {
         [currentModal, profile?.id]
     );
 
+    if (isOpen) {
+        return null;
+    }
+
     return (
         <CommandDialog
             open={isOpen}

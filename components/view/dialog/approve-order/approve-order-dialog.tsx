@@ -23,6 +23,10 @@ export default function ApproveOrderDialog() {
         [currentModal, order?.id]
     );
 
+    if (isOpen) {
+        return null;
+    }
+
     return (
         <Dialog open={currentModal === "approve"} onOpenChange={closeModal}>
             <DialogContent className="overflow-y-scroll max-h-screen">

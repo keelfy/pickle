@@ -19,6 +19,10 @@ export default function ProfileSettingsDialog() {
         [currentModal]
     );
 
+    if (isOpen) {
+        return null;
+    }
+
     return (
         <Dialog open={isOpen} onOpenChange={closeModal}>
             <DialogContent className="overflow-y-scroll max-h-screen max-w-2xl p-0 flex flex-col gap-0">

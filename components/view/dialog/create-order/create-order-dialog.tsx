@@ -28,6 +28,10 @@ const CreateOrderDialog = (props: Props) => {
         [currentModal]
     );
 
+    if (isOpen) {
+        return null;
+    }
+
     return (
         <Dialog open={isOpen} onOpenChange={closeModal}>
             <DialogContent className="overflow-y-scroll max-h-screen">

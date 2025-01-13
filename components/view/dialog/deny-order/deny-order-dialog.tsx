@@ -23,6 +23,10 @@ export default function DenyOrderDialog() {
         [currentModal, order?.id]
     );
 
+    if (isOpen) {
+        return null;
+    }
+
     return (
         <AlertDialog open={isOpen} onOpenChange={closeModal}>
             <AlertDialogContent>

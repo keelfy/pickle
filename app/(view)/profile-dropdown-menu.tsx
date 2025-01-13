@@ -48,7 +48,7 @@ export default async function ProfileDropdownMenu() {
 
     return (
         <DropdownMenuDialogWrapper>
-            <DropdownMenu>
+            <DropdownMenu modal={false}>
                 <DropdownMenuTrigger
                     className="hover:opacity-80 transition-opacity cursor-pointer"
                     asChild

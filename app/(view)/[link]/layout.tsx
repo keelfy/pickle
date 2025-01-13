@@ -45,7 +45,6 @@ import ApproveOrderDialog from "../../../components/view/dialog/approve-order/ap
 import CreateOrderDialog from "../../../components/view/dialog/create-order/create-order-dialog";
 import DenyOrderDialog from "../../../components/view/dialog/deny-order/deny-order-dialog";
 import ProfileSearchDialog from "../../../components/view/dialog/profile-search/profile-search-dialog";
-import ProfileSettingsDialog from "../../../components/view/dialog/profile-settings/profile-settings-dialog";
 import ProfileDropdownMenu from "../profile-dropdown-menu";
 import CurrentDate from "./current-date";
 import MenuItemUnderline from "./menu-item-underline";
@@ -170,7 +169,6 @@ async function LayoutBody({
             <GameNoteEditorDialog />
             <ProfileSearchDialog />
             <CreateOrderDialog link={link} />
-            <ProfileSettingsDialog />
         </ProfileStoreProvider>
     );
 }

@@ -38,7 +38,7 @@ const EditablePoster = ({ onChange = () => {} }: Props) => {
     }
 
     return (
-        <label className="flex flex-col items-center justify-center min-w-[173px] min-h-[208px] border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-5 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600">
+        <label className="flex flex-col items-center justify-center min-w-[150px] min-h-[225px] border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-5 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600">
             <div className="flex flex-col items-center justify-center pt-5 pb-6">
                 <Upload className="w-8 h-8 mb-4" />
                 <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">

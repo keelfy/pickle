@@ -42,31 +42,30 @@ export default function Page({ params }: Props) {
     return (
         <NoteStoreProvider>
             <GameNoteDialog />
-            <div className="max-w-3xl">
-                <div className="flex flex-col space-y-6 justify-center md:justify-start md:items-start">
-                    <div className="flex items-center justify-between w-full">
-                        <Label className="text-xl">Games</Label>
-                        <div className="flex items-center gap-2">
-                            <div className="relative min-w-96">
-                                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    placeholder="What are you looking for?"
-                                    className="pl-8"
-                                />
-                            </div>
-                            <Button variant="ghost" size="icon">
-                                <SortAsc />
-                            </Button>
-                            <Button variant="ghost" size="icon">
-                                <Filter />
-                            </Button>
+            <div className="flex flex-col gap-8 justify-center md:justify-start md:items-start w-full">
+                <div className="flex items-center gap-4 justify-between w-full">
+                    <Label className="text-xl">Games</Label>
+                    <div className="flex items-center gap-2">
+                        <div className="relative min-w-96">
+                            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="What are you looking for?"
+                                className="pl-8"
+                            />
                         </div>
+                        <Button variant="ghost" size="icon">
+                            <SortAsc />
+                        </Button>
+                        <Button variant="ghost" size="icon">
+                            <Filter />
+                        </Button>
                     </div>
-                    <div className="grid grid-flow-row w-full gap-4 justify-between md:grid-cols-[repeat(auto-fit,230px)]">
-                        {notes.map((note) => (
-                            <GameNoteCard key={note.id} note={note} />
-                        ))}
-                    </div>
+                </div>
+                {/* <div className="grid grid-flow-row w-full gap-4 justify-between md:grid-cols-[repeat(auto-fit,230px)]"> */}
+                <div className="flex flex-col gap-8 w-full">
+                    {notes.map((note) => (
+                        <GameNoteCard key={note.id} note={note} />
+                    ))}
                 </div>
             </div>
         </NoteStoreProvider>

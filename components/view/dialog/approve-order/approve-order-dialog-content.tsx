@@ -142,7 +142,7 @@ export default function ApproveOrderDialogContent() {
         startContentSearchTransition(async () => {
             try {
                 const response = await fetchApi<ContentSearchHits>(
-                    `/v1/content?query=${debouncedContentQuery}&profileId=${profile?.id}&page=${contentSearchPage}&size=1`
+                    `/v1/content?query=${debouncedContentQuery}&profileId=${profile?.id}&page=${contentSearchPage}&size=5`
                 );
 
                 if (contentSearchResults?.content) {

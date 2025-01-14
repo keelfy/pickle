@@ -138,7 +138,7 @@ async function LayoutBody({
                             </table>
                         </div>
                     </div>
-                    <div className="rounded-xl bg-muted p-6 text-sm text-muted-foreground">
+                    <div className="rounded-xl bg-primary-foreground p-6 text-sm text-muted-foreground">
                         {(ownerProfile?.description ?? "").length > 0 ? (
                             ownerProfile?.description
                         ) : (
@@ -318,9 +318,11 @@ function RootLayout({ children, params }: React.PropsWithChildren<Props>) {
                     <NavMenu params={params} />
                 </nav>
 
-                <OrderStoreProvider>
-                    <LayoutBody params={params}>{children}</LayoutBody>
-                </OrderStoreProvider>
+                <Suspense>
+                    <OrderStoreProvider>
+                        <LayoutBody params={params}>{children}</LayoutBody>
+                    </OrderStoreProvider>
+                </Suspense>
 
                 <footer className="flex items-center justify-center border-t text-center text-xs py-6">
                     <p>

@@ -26,12 +26,15 @@ export default function DenyOrderDialogContent() {
     const onConfirm = () =>
         startTransition(async () => {
             try {
+                const req: Partial<Order> = {
+                    status: "rejected",
+                };
                 const rejectedOrder = await fetchApi<Order>(
                     `/v1/orders/${order!.id}`,
                     true,
                     {
                         method: "PATCH",
-                        body: JSON.stringify({ status: 2 }),
+                        body: JSON.stringify(req),
                     }
                 );
                 setOrder(undefined);
@@ -69,7 +72,7 @@ export default function DenyOrderDialogContent() {
                     be notified and money will not be refunded.
                 </AlertDialogDescription>
             </AlertDialogHeader>
-            
+
             <AlertDialogFooter>
                 <AlertDialogCancel onClick={closeModal} disabled={isLoading}>
                     <X />

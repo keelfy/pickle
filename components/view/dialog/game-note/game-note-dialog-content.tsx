@@ -9,14 +9,11 @@ import {
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import LoadingSpinner from "@/components/ui/loading-spinner";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/providers/auth-store";
 import { useNoteStore } from "@/providers/note-store";
 import { fetchApi } from "@/utils/api/client";
-import {
-    gameNoteStatusLabels
-} from "@/utils/api/constants";
+import { gameNoteStatusLabels } from "@/utils/api/constants";
 import { ChevronsUpDown, ImageOff } from "lucide-react";
 import React from "react";
 import GameUrl from "../../../../app/(view)/[link]/components/game-url";
@@ -87,7 +84,7 @@ export default function GameNoteDialogContent() {
 
             <div className="space-y-6">
                 <div className="flex items-start space-x-4">
-                    <div className="flex flex-col items-center justify-center min-w-[173px] min-h-[208px] border-2 rounded-lg bg-gray-5 dark:bg-gray-800">
+                    <div className="flex flex-col items-center justify-center min-w-[150px] min-h-[225px] border-2 rounded-lg bg-gray-5 dark:bg-gray-800">
                         <div className="flex flex-col items-center justify-center pt-5 pb-6">
                             <ImageOff />
                         </div>
@@ -153,28 +150,28 @@ export default function GameNoteDialogContent() {
                     </table>
                 </div>
 
-                {gameNote?.rate && (
-                    <div className="space-y-2">
-                        <Label className="text-md font-semibold">Rate</Label>
-                        <div className="flex items-center mb-4">
-                            <RatingRow value={gameNote?.rate ?? 0} />
-                            <span className="ml-2 font-semibold text-lg">
-                                {gameNote.rate}/10
-                            </span>
-                        </div>
+                <div className="space-y-2">
+                    <Label className="text-md font-semibold">Rate</Label>
+                    <div className="flex items-center mb-4">
+                        <RatingRow value={gameNote?.rate ?? 0} />
+                        <span className="ml-2 font-semibold text-lg">
+                            {gameNote?.rate ? gameNote.rate + "/10" : "N/A"}
+                        </span>
                     </div>
-                )}
+                </div>
 
-                {gameNote?.comment && gameNote.comment.length > 0 && (
-                    <div className="space-y-2">
-                        <Label className="text-md font-semibold">Comment</Label>
-                        <Textarea
-                            placeholder="Type your comment here."
-                            defaultValue={gameNote.comment}
-                            readOnly
-                        />
+                <div className="space-y-2">
+                    <Label className="text-md font-semibold">Comment</Label>
+                    <div className="p-4 bg-primary-foreground rounded-lg text-sm">
+                        {gameNote?.comment && gameNote.comment.length > 0 ? (
+                            gameNote.comment
+                        ) : (
+                            <span className="text-muted-foreground">
+                                keelfy hasn't left a comment yet.
+                            </span>
+                        )}
                     </div>
-                )}
+                </div>
 
                 <Collapsible
                     open={detailsOpen}

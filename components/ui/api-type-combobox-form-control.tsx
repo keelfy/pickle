@@ -10,28 +10,28 @@ import { ApiType } from "@/utils/api/constants";
 import { PopoverClose } from "@radix-ui/react-popover";
 import { ChevronsUpDown } from "lucide-react";
 
-type Props = {
-    entries: ApiType[];
-    value: number;
-    onChange: (value: number) => void;
+type Props<T extends string> = {
+    entries: ApiType<T>[];
+    value: T;
+    onChange: (value: T) => void;
     placeholder?: string;
     nothingFound?: string;
-    getSelectedLabel?: (value: number) => string;
-    getEntryLabel?: (entry: ApiType) => any;
+    getSelectedLabel?: (value: T) => string;
+    getEntryLabel?: (entry: ApiType<T>) => any;
 };
 
-export default function ApiTypeComboboxFormControl({
+export default function ApiTypeComboboxFormControl<T extends string>({
     entries,
     value,
     onChange,
     placeholder = "",
     nothingFound,
     getSelectedLabel = (value) =>
-        entries.find((entry) => entry.idx === value)?.label || placeholder,
+        entries.find((entry) => entry.value === value)?.label || placeholder,
     getEntryLabel = (entry) => (
         <PopoverClose className="w-full text-start">{entry.label}</PopoverClose>
     ),
-}: Props) {
+}: Props<T>) {
     return (
         <Popover>
             <PopoverTrigger asChild>

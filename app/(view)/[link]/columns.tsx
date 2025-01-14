@@ -5,7 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useModalStore } from "@/providers/modal";
 import { useOrderStore } from "@/providers/order";
-import { contentCategories, orderStatuses } from "@/utils/api/constants";
+import {
+    contentCategoryLabels,
+    orderStatusLabels,
+} from "@/utils/api/constants";
 import { ColumnDef } from "@tanstack/react-table";
 import { Check, X } from "lucide-react";
 
@@ -18,9 +21,9 @@ const orderColumns: ColumnDef<Order>[] = [
         accessorKey: "category",
         header: () => <Label>Category</Label>,
         cell: ({ row }) => {
-            const category = row.getValue("category") as number;
-            const label = contentCategories.find(
-                (cat) => cat.idx === category
+            const category = row.getValue("category") as ContentCategory;
+            const label = contentCategoryLabels.find(
+                (cat) => cat.value === category
             )?.label;
             return <div>{label}</div>;
         },
@@ -36,16 +39,16 @@ const orderColumns: ColumnDef<Order>[] = [
         accessorKey: "status",
         header: () => <Label>Status</Label>,
         cell: ({ row }) => {
-            const status = row.getValue("status") as number;
-            const label = orderStatuses.find(
-                (statusItem) => statusItem.idx === status
+            const status = row.getValue("status") as OrderStatus;
+            const label = orderStatusLabels.find(
+                (statusItem) => statusItem.value === status
             )?.label;
             return (
                 <Badge
                     variant={
-                        status == 2
+                        status == "rejected"
                             ? "destructive"
-                            : status == 1
+                            : status == "approved"
                               ? "default"
                               : "outline"
                     }
@@ -81,7 +84,7 @@ const orderAuthorizedColumns: ColumnDef<Order>[] = [
                         size="icon"
                         variant="ghost"
                         className="text-red-500"
-                        disabled={order.status !== 0}
+                        disabled={order.status !== "pending"}
                         onClick={() => {
                             openModal("deny");
                             setOrder(order);
@@ -93,7 +96,7 @@ const orderAuthorizedColumns: ColumnDef<Order>[] = [
                         size="icon"
                         variant="ghost"
                         className="text-green-500"
-                        disabled={order.status !== 0}
+                        disabled={order.status !== "pending"}
                         onClick={() => {
                             openModal("approve");
                             setOrder(order);

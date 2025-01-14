@@ -17,7 +17,7 @@ import {
     DialogDescription,
     DialogFooter,
     DialogHeader,
-    DialogTitle
+    DialogTitle,
 } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -41,8 +41,7 @@ import { useModalStore } from "@/providers/modal";
 import { useOrderStore } from "@/providers/order";
 import { fetchWithAuth } from "@/utils/api/client";
 import {
-    gameNoteCompletionStatuses,
-    gameNoteStatuses,
+    gameNoteStatusLabels
 } from "@/utils/api/constants";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PopoverClose } from "@radix-ui/react-popover";
@@ -56,9 +55,8 @@ const formSchema = z.object({
         name: z.string(),
         link: z.string().optional(),
         releaseDate: z.date().optional(),
-        status: z.number(),
-        completionStatus: z.number(),
-        completionDate: z.date().optional(),
+        status: z.custom<GameNoteStatus>(),
+        lastPlayedAt: z.date().optional(),
         comment: z.string().optional(),
         rate: z.number().max(10).min(1).optional(),
         // highlights: z.array(z.string()).optional(),
@@ -82,8 +80,7 @@ export default function GameNoteEditorDialogContent() {
         defaultValues: {
             gameNote: {
                 name: "",
-                status: 2, // planned
-                completionStatus: 1, // unfinished
+                status: "planned", // planned
                 comment: "",
             },
         },
@@ -94,8 +91,7 @@ export default function GameNoteEditorDialogContent() {
             form.reset({
                 gameNote: {
                     name: order.message,
-                    status: 2, // planned
-                    completionStatus: 1, // unfinished
+                    status: "planned",
                     comment: "",
                 },
                 initialOrderId: order.id,
@@ -266,12 +262,12 @@ export default function GameNoteEditorDialogContent() {
                                                             >
                                                                 <FormControl>
                                                                     <EditableStatusButton
-                                                                        value={gameNoteStatuses
+                                                                        value={gameNoteStatusLabels
                                                                             .filter(
                                                                                 (
                                                                                     s
                                                                                 ) =>
-                                                                                    s.idx ==
+                                                                                    s.value ==
                                                                                     field.value
                                                                             )
                                                                             .map(
@@ -288,7 +284,7 @@ export default function GameNoteEditorDialogContent() {
                                                             <PopoverContent className="w-[200px] p-0">
                                                                 <ApiTypeCommand
                                                                     entries={
-                                                                        gameNoteStatuses
+                                                                        gameNoteStatusLabels
                                                                     }
                                                                     value={
                                                                         field.value
@@ -324,86 +320,13 @@ export default function GameNoteEditorDialogContent() {
                                     <tr>
                                         <td>
                                             <Label className="text-sm">
-                                                Completion Status
+                                                Last Played
                                             </Label>
                                         </td>
                                         <td>
                                             <FormField
                                                 control={form.control}
-                                                name="gameNote.completionStatus"
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <Popover>
-                                                            <PopoverTrigger
-                                                                asChild
-                                                            >
-                                                                <FormControl>
-                                                                    <EditableStatusButton
-                                                                        value={gameNoteCompletionStatuses
-                                                                            .filter(
-                                                                                (
-                                                                                    s
-                                                                                ) =>
-                                                                                    s.idx ==
-                                                                                    field.value
-                                                                            )
-                                                                            .map(
-                                                                                (
-                                                                                    s
-                                                                                ) =>
-                                                                                    s.label
-                                                                            )
-                                                                            .join()}
-                                                                        role="combobox"
-                                                                    />
-                                                                </FormControl>
-                                                            </PopoverTrigger>
-                                                            <PopoverContent className="w-[200px] p-0">
-                                                                <ApiTypeCommand
-                                                                    entries={
-                                                                        gameNoteCompletionStatuses
-                                                                    }
-                                                                    value={
-                                                                        field.value
-                                                                    }
-                                                                    onSelect={(
-                                                                        selectedValue
-                                                                    ) => {
-                                                                        form.setValue(
-                                                                            "gameNote.completionStatus",
-                                                                            selectedValue
-                                                                        );
-                                                                        form.setFocus(
-                                                                            "gameNote.completionStatus"
-                                                                        );
-                                                                    }}
-                                                                    getLabel={(
-                                                                        status
-                                                                    ) => (
-                                                                        <PopoverClose className="w-full text-start">
-                                                                            {
-                                                                                status.label
-                                                                            }
-                                                                        </PopoverClose>
-                                                                    )}
-                                                                />
-                                                            </PopoverContent>
-                                                        </Popover>
-                                                    </FormItem>
-                                                )}
-                                            />
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <Label className="text-sm">
-                                                Completion Date
-                                            </Label>
-                                        </td>
-                                        <td>
-                                            <FormField
-                                                control={form.control}
-                                                name="gameNote.completionDate"
+                                                name="gameNote.lastPlayedAt"
                                                 render={({ field }) => (
                                                     <FormItem>
                                                         <DateTimePicker

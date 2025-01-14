@@ -1,19 +1,14 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import {
     CommandEmpty,
     CommandGroup,
     CommandInput,
-    CommandItem,
-    CommandList,
+    CommandList
 } from "@/components/ui/command";
 import { toast } from "@/hooks/use-toast";
-import { useModalStore } from "@/providers/modal";
 import { useProfileStore } from "@/providers/profile-store";
 import { fetchApi } from "@/utils/api/client";
-import { contentCategories } from "@/utils/api/constants";
-import Link from "next/link";
 import React from "react";
 import ContentSearchItem from "./content-search-item";
 

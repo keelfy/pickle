@@ -138,11 +138,15 @@ async function LayoutBody({
                             </table>
                         </div>
                     </div>
-                    {(ownerProfile?.description ?? "").length > 0 && (
-                        <div className="rounded-xl bg-muted p-6 text-sm text-muted-foreground">
-                            {ownerProfile?.description}
-                        </div>
-                    )}
+                    <div className="rounded-xl bg-muted p-6 text-sm text-muted-foreground">
+                        {(ownerProfile?.description ?? "").length > 0 ? (
+                            ownerProfile?.description
+                        ) : (
+                            <div className="italic">
+                                No description provided yet.
+                            </div>
+                        )}
+                    </div>
                     <div className="flex items-center justify-around gap-2">
                         <Button variant="outline" size="icon">
                             <SiTwitch />

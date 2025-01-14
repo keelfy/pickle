@@ -48,27 +48,18 @@ import { useModalStore } from "@/providers/modal";
 import { useOrderStore } from "@/providers/order";
 import { useProfileStore } from "@/providers/profile-store";
 import { fetchApi } from "@/utils/api/client";
-import { contentCategories } from "@/utils/api/constants";
+import { contentCategoryLabels } from "@/utils/api/constants";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PopoverClose } from "@radix-ui/react-popover";
-import { Check, ChevronsUpDown, CircleOff, X } from "lucide-react";
+import { Check, ChevronsUpDown, CircleAlert, CircleOff, X } from "lucide-react";
 import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 const formSchema = z.object({
-    category: z.number({
-        required_error: "Please select a category",
-        invalid_type_error: "Invalid category",
-    }),
+    category: z.custom<ContentCategory>(),
     message: z.string(),
-    content: z
-        .object({
-            id: z.string(),
-            name: z.string(),
-            category: z.string(),
-        })
-        .optional(),
+    contentId: z.string().optional(),
 });
 
 export default function ApproveOrderDialogContent() {
@@ -86,6 +77,9 @@ export default function ApproveOrderDialogContent() {
     const [isContentSearchLoading, startContentSearchTransition] =
         React.useTransition();
 
+    const [isOrderApproving, startOrderApprovingTransition] =
+        React.useTransition();
+
     const [debouncedContentQuery, setDebouncedContentQuery] =
         React.useState<string>("");
 
@@ -94,7 +88,7 @@ export default function ApproveOrderDialogContent() {
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            category: order?.category ?? 0,
+            category: order?.category ?? "custom",
             message: order?.message ?? "",
         },
     });
@@ -178,7 +172,7 @@ export default function ApproveOrderDialogContent() {
     const onReset = () => {
         if (order) {
             form.reset({
-                category: order.category ?? 0,
+                category: order.category ?? "custom",
                 message: order.message ?? "",
             });
         } else {
@@ -192,12 +186,39 @@ export default function ApproveOrderDialogContent() {
             return;
         }
 
-        setOrder({
-            ...order,
-            category: values.category,
-            message: values.message,
-        });
-        openModal("game-note-editor");
+        if (values.contentId) {
+            switch (values.category) {
+                case "games":
+                    startOrderApprovingTransition(async () => {
+                        await fetchApi(
+                            `/v1/game-notes/${values.contentId}/orders/${order.id}`,
+                            true,
+                            {
+                                method: "POST",
+                            }
+                        )
+                            .then(() => {
+                                setOrder(undefined);
+                                closeModal();
+                            })
+                            .catch((error: any) => {
+                                toast({
+                                    title: "Failed to approve the order",
+                                    description:
+                                        error.message ?? "An error occurred",
+                                });
+                            });
+                    });
+                    return;
+            }
+        } else {
+            setOrder({
+                ...order,
+                category: values.category,
+                message: values.message,
+            });
+            openModal("game-note-editor");
+        }
     };
 
     const onCancel = () => {
@@ -231,7 +252,7 @@ export default function ApproveOrderDialogContent() {
                                         if (value) {
                                             form.setValue(
                                                 "category",
-                                                Number(value)
+                                                value as ContentCategory
                                             );
                                             form.setFocus("category");
                                         }
@@ -245,11 +266,11 @@ export default function ApproveOrderDialogContent() {
                                     </FormControl>
                                     <SelectContent>
                                         <SelectGroup>
-                                            {contentCategories.map(
+                                            {contentCategoryLabels.map(
                                                 (category) => (
                                                     <SelectItem
-                                                        key={category.idx}
-                                                        value={category.idx.toString()}
+                                                        key={category.value}
+                                                        value={category.value}
                                                     >
                                                         {category.label}
                                                     </SelectItem>
@@ -262,165 +283,223 @@ export default function ApproveOrderDialogContent() {
                             </FormItem>
                         )}
                     />
-                    <FormField
-                        control={form.control}
-                        name="message"
-                        render={({ field }) => (
-                            <FormItem className="flex flex-col gap-2">
-                                <FormLabel>Message</FormLabel>
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <FormControl>
-                                            <Button
-                                                variant="outline"
-                                                role="combobox"
-                                                className={cn(
-                                                    "w-full justify-between",
-                                                    !field.value &&
-                                                        "text-muted-foreground"
-                                                )}
-                                            >
-                                                {field.value ??
-                                                    "Select a content"}
-                                                <ChevronsUpDown className="opacity-50" />
-                                            </Button>
-                                        </FormControl>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="p-0">
-                                        <Command shouldFilter={false}>
-                                            <CommandInput
-                                                placeholder="Type to search a content"
-                                                onValueChange={setContentQuery}
-                                                value={contentQuery}
-                                            />
-                                            <CommandList>
-                                                <CommandGroup heading="Original message">
-                                                    <PopoverClose className="w-full">
-                                                        <CommandItem
-                                                            value={
-                                                                order?.message
-                                                            }
-                                                            onSelect={() => {
-                                                                form.setValue(
-                                                                    "message",
-                                                                    order?.message ??
-                                                                        ""
-                                                                );
-                                                                form.setFocus(
-                                                                    "message"
-                                                                );
-                                                            }}
-                                                        >
-                                                            {order?.message}
-                                                        </CommandItem>
-                                                    </PopoverClose>
-                                                </CommandGroup>
-                                                <CommandGroup
-                                                    heading={
-                                                        <>
-                                                            Search results for
-                                                            profile&nbsp;
-                                                            <span className="font-bold">
-                                                                {
-                                                                    profile?.username
-                                                                }
-                                                            </span>
-                                                        </>
-                                                    }
+
+                    <div className="space-y-2">
+                        <FormField
+                            control={form.control}
+                            name="message"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-col gap-2">
+                                    <FormLabel>Title</FormLabel>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <FormControl>
+                                                <Button
+                                                    variant="outline"
+                                                    role="combobox"
+                                                    className={cn(
+                                                        "w-full justify-between",
+                                                        !field.value &&
+                                                            "text-muted-foreground"
+                                                    )}
                                                 >
-                                                    {contentSearchResults?.content.map(
-                                                        ({ source }) => (
-                                                            <PopoverClose
-                                                                className="w-full"
-                                                                key={source.id}
+                                                    {field.value ??
+                                                        "Select a content"}
+                                                    <ChevronsUpDown className="opacity-50" />
+                                                </Button>
+                                            </FormControl>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="p-0">
+                                            <Command shouldFilter={false}>
+                                                <CommandInput
+                                                    placeholder="Type to search a content"
+                                                    onValueChange={
+                                                        setContentQuery
+                                                    }
+                                                    value={contentQuery}
+                                                />
+                                                <CommandList>
+                                                    <CommandGroup heading="Add a new title">
+                                                        <PopoverClose className="w-full">
+                                                            <CommandItem
+                                                                value={
+                                                                    order?.message
+                                                                }
+                                                                onSelect={() => {
+                                                                    form.setValue(
+                                                                        "message",
+                                                                        order?.message ??
+                                                                            ""
+                                                                    );
+                                                                    form.setFocus(
+                                                                        "message"
+                                                                    );
+                                                                    form.setValue(
+                                                                        "contentId",
+                                                                        undefined
+                                                                    );
+                                                                }}
                                                             >
+                                                                {order?.message}
+                                                            </CommandItem>
+                                                        </PopoverClose>
+                                                        {contentQuery.length >
+                                                            0 && (
+                                                            <PopoverClose className="w-full">
                                                                 <CommandItem
                                                                     value={
-                                                                        source.name
+                                                                        contentQuery
                                                                     }
                                                                     onSelect={() => {
                                                                         form.setValue(
                                                                             "message",
-                                                                            source.name
-                                                                        );
-                                                                        form.setValue(
-                                                                            "category",
-                                                                            source.category
+                                                                            contentQuery ??
+                                                                                ""
                                                                         );
                                                                         form.setFocus(
                                                                             "message"
                                                                         );
+                                                                        form.setValue(
+                                                                            "contentId",
+                                                                            undefined
+                                                                        );
                                                                     }}
-                                                                    className="flex items-center justify-between gap-2"
                                                                 >
                                                                     {
-                                                                        source.name
+                                                                        contentQuery
                                                                     }
-                                                                    <Badge>
-                                                                        {
-                                                                            contentCategories.find(
-                                                                                (
-                                                                                    category
-                                                                                ) =>
-                                                                                    category.idx ===
-                                                                                    source.category
-                                                                            )
-                                                                                ?.label
-                                                                        }
-                                                                    </Badge>
                                                                 </CommandItem>
                                                             </PopoverClose>
-                                                        )
-                                                    )}
-                                                    {!contentSearchResults && (
-                                                        <CommandItem
-                                                            className="italic"
-                                                            disabled
-                                                        >
-                                                            ...type anything to
-                                                            search
-                                                        </CommandItem>
-                                                    )}
-                                                    {contentSearchResults?.content &&
-                                                        contentSearchResults
-                                                            .content.length ===
-                                                            0 && (
+                                                        )}
+                                                    </CommandGroup>
+                                                    <CommandGroup
+                                                        heading={
+                                                            <>
+                                                                Search results
+                                                                for
+                                                                profile&nbsp;
+                                                                <span className="font-bold">
+                                                                    {
+                                                                        profile?.username
+                                                                    }
+                                                                </span>
+                                                            </>
+                                                        }
+                                                    >
+                                                        {contentSearchResults?.content.map(
+                                                            ({ source }) => (
+                                                                <PopoverClose
+                                                                    className="w-full"
+                                                                    key={
+                                                                        source.id
+                                                                    }
+                                                                >
+                                                                    <CommandItem
+                                                                        value={
+                                                                            source.name
+                                                                        }
+                                                                        onSelect={() => {
+                                                                            form.setValue(
+                                                                                "message",
+                                                                                source.name
+                                                                            );
+                                                                            form.setValue(
+                                                                                "category",
+                                                                                source.category
+                                                                            );
+                                                                            form.setValue(
+                                                                                "contentId",
+                                                                                source.id
+                                                                            );
+                                                                            form.setFocus(
+                                                                                "message"
+                                                                            );
+                                                                        }}
+                                                                        className="flex items-center justify-between gap-2"
+                                                                    >
+                                                                        {
+                                                                            source.name
+                                                                        }
+                                                                        <Badge>
+                                                                            {
+                                                                                contentCategoryLabels.find(
+                                                                                    (
+                                                                                        category
+                                                                                    ) =>
+                                                                                        category.value ===
+                                                                                        source.category
+                                                                                )
+                                                                                    ?.label
+                                                                            }
+                                                                        </Badge>
+                                                                    </CommandItem>
+                                                                </PopoverClose>
+                                                            )
+                                                        )}
+                                                        {!contentSearchResults && (
                                                             <CommandItem
                                                                 className="italic"
                                                                 disabled
                                                             >
-                                                                ...no results
-                                                                found
+                                                                ...type anything
+                                                                to search
                                                             </CommandItem>
                                                         )}
-                                                    {contentSearchResults?.content &&
-                                                        contentSearchResults
-                                                            .content.length >
-                                                            0 &&
-                                                        contentSearchResults.totalPages -
-                                                            1 >
-                                                            contentSearchResults.page && (
-                                                            <CommandItem
-                                                                onSelect={() => {
-                                                                    setContentSearchPage(
-                                                                        contentSearchPage +
-                                                                            1
-                                                                    );
-                                                                }}
-                                                            >
-                                                                -- Show more
-                                                                results --
-                                                            </CommandItem>
-                                                        )}
-                                                </CommandGroup>
-                                            </CommandList>
-                                        </Command>
-                                    </PopoverContent>
-                                </Popover>
-                                <FormMessage />
-                            </FormItem>
+                                                        {contentSearchResults?.content &&
+                                                            contentSearchResults
+                                                                .content
+                                                                .length ===
+                                                                0 && (
+                                                                <CommandItem
+                                                                    className="italic"
+                                                                    disabled
+                                                                >
+                                                                    ...no
+                                                                    results
+                                                                    found
+                                                                </CommandItem>
+                                                            )}
+                                                        {contentSearchResults?.content &&
+                                                            contentSearchResults
+                                                                .content
+                                                                .length > 0 &&
+                                                            contentSearchResults.totalPages -
+                                                                1 >
+                                                                contentSearchResults.page && (
+                                                                <CommandItem
+                                                                    onSelect={() => {
+                                                                        setContentSearchPage(
+                                                                            contentSearchPage +
+                                                                                1
+                                                                        );
+                                                                    }}
+                                                                >
+                                                                    -- Show more
+                                                                    results --
+                                                                </CommandItem>
+                                                            )}
+                                                    </CommandGroup>
+                                                </CommandList>
+                                            </Command>
+                                        </PopoverContent>
+                                    </Popover>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        {!form.watch("contentId") && (
+                            <div className="flex items-center gap-2 px-2">
+                                <CircleAlert
+                                    size={16}
+                                    className="text-yellow-500"
+                                />
+                                <span className="text-sm">
+                                    A new title will be added to your profile.
+                                </span>
+                            </div>
                         )}
-                    />
+                    </div>
 
                     <Collapsible
                         open={detailsOpen}

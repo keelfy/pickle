@@ -4,15 +4,15 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { useModalStore } from "@/providers/modal";
 import { useNoteStore } from "@/providers/note-store";
-import { gameNoteStatuses } from "@/utils/api/constants";
+import { gameNoteStatusLabels } from "@/utils/api/constants";
 import { ImageOff } from "lucide-react";
 
 export default function GameNoteCard({ note }: { note: GameNote }) {
     const { openModal } = useModalStore((state) => state);
     const { setShortNote } = useNoteStore((state) => state);
 
-    const matchingStatuses = gameNoteStatuses.filter(
-        (s) => s.idx === note.status
+    const matchingStatuses = gameNoteStatusLabels.filter(
+        (s) => s.value === note.status
     );
 
     const openGameNote = () => {

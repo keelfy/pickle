@@ -8,27 +8,27 @@ import {
     CommandItem,
     CommandList,
 } from "@/components/ui/command";
-import { ApiType, contentCategories } from "@/utils/api/constants";
+import { ApiType } from "@/utils/api/constants";
 import { cn } from "@/utils/cn";
 import { Check } from "lucide-react";
 
-export type ApiTypeCommandProps = {
-    entries: ApiType[];
-    value: number;
-    onSelect: (value: number) => void;
-    getLabel: (category: ApiType) => any;
+export type ApiTypeCommandProps<T extends string> = {
+    entries: ApiType<T>[];
+    value: T;
+    onSelect: (value: T) => void;
+    getLabel: (category: ApiType<T>) => any;
     placeholder?: string;
     nothingFound?: string;
 };
 
-const ApiTypeCommand = ({
+export default function ApiTypeCommand<T extends string>({
     entries,
     value,
     onSelect,
     getLabel,
     placeholder,
     nothingFound = "Nothing found",
-}: ApiTypeCommandProps) => {
+}: ApiTypeCommandProps<T>) {
     return (
         <Command>
             <CommandInput placeholder={placeholder} />
@@ -37,16 +37,14 @@ const ApiTypeCommand = ({
                 <CommandGroup>
                     {entries.map((entry) => (
                         <CommandItem
-                            key={entry.idx}
-                            value={entry.idx.toString()}
-                            onSelect={(selected) =>
-                                onSelect(parseInt(selected))
-                            }
+                            key={entry.value}
+                            value={entry.value}
+                            onSelect={(selected) => onSelect(selected as T)}
                         >
                             <Check
                                 className={cn(
                                     "mr-2 h-4 w-4",
-                                    value === entry.idx
+                                    value === entry.value
                                         ? "opacity-100"
                                         : "opacity-0"
                                 )}
@@ -58,6 +56,4 @@ const ApiTypeCommand = ({
             </CommandList>
         </Command>
     );
-};
-
-export default ApiTypeCommand;
+}

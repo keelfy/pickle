@@ -12,8 +12,8 @@ export default function RatingRow({ value }: Props) {
                 <StarIcon
                     key={i}
                     className={cn(
-                        "w-6 h-6 cursor-pointer",
-                        value && i < value ? "fill-current text-yellow-400" : "",
+                        "w-6 h-6",
+                        value && i < value ? "fill-current text-yellow-400" : ""
                     )}
                 />
             ))}

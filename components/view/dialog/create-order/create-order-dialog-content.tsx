@@ -20,7 +20,7 @@ import LoadingSpinner from "@/components/ui/loading-spinner";
 import { useToast } from "@/hooks/use-toast";
 import { useModalStore } from "@/providers/modal";
 import { fetchApi } from "@/utils/api/client";
-import { contentCategories, paymentTypes } from "@/utils/api/constants";
+import { contentCategoryLabels } from "@/utils/api/constants";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Check, Dice5, X } from "lucide-react";
 import { useEffect, useTransition } from "react";
@@ -34,7 +34,7 @@ const formSchema = z.object({
     paymentType: z.number(),
     amount: z.number(),
     ordererUsername: z.string(),
-    categoryType: z.number(),
+    category: z.custom<ContentCategory>(),
     message: z.string(),
 });
 
@@ -54,7 +54,7 @@ export default function CreateOrderDialogContent({ link }: Props) {
             paymentType: 0,
             amount: 0,
             ordererUsername: "",
-            categoryType: 0,
+            category: "custom",
             message: "",
         },
     });
@@ -88,17 +88,12 @@ export default function CreateOrderDialogContent({ link }: Props) {
         startTransition(async () => {
             await Promise.all([
                 form.setValue("amount", Math.floor(Math.random() * 10000)),
+                form.setValue("paymentType", Math.floor(Math.random() * 5)),
                 form.setValue(
-                    "paymentType",
-                    paymentTypes[
-                        Math.floor(Math.random() * paymentTypes.length)
-                    ].idx
-                ),
-                form.setValue(
-                    "categoryType",
-                    contentCategories[
-                        Math.floor(Math.random() * contentCategories.length)
-                    ].idx
+                    "category",
+                    contentCategoryLabels[
+                        Math.floor(Math.random() * contentCategoryLabels.length)
+                    ].value
                 ),
                 fetch("https://randomuser.me/api/")
                     .then((res) => res.json())
@@ -158,7 +153,7 @@ export default function CreateOrderDialogContent({ link }: Props) {
                             </FormItem>
                         )}
                     />
-                    <FormField
+                    {/* <FormField
                         control={form.control}
                         name="paymentType"
                         render={({ field }) => (
@@ -182,7 +177,7 @@ export default function CreateOrderDialogContent({ link }: Props) {
                                 <FormMessage />
                             </FormItem>
                         )}
-                    />
+                    /> */}
                     <FormField
                         control={form.control}
                         name="amount"
@@ -202,19 +197,19 @@ export default function CreateOrderDialogContent({ link }: Props) {
                     />
                     <FormField
                         control={form.control}
-                        name="categoryType"
+                        name="category"
                         render={({ field }) => (
                             <FormItem className="flex flex-col gap-1">
                                 <FormLabel>Category</FormLabel>
                                 <ApiTypeComboboxFormControl
-                                    entries={contentCategories}
+                                    entries={contentCategoryLabels}
                                     value={field.value}
                                     onChange={(selectedValue) => {
                                         form.setValue(
-                                            "categoryType",
+                                            "category",
                                             selectedValue
                                         );
-                                        form.setFocus("categoryType");
+                                        form.setFocus("category");
                                     }}
                                     placeholder="Select category..."
                                     nothingFound="No categories found"

@@ -1,18 +1,18 @@
 "use client";
 
 import ApiTypeCommand from "@/components/ui/api-type-command";
-import { ApiType, contentCategories } from "@/utils/api/constants";
+import { ApiType, contentCategoryLabels } from "@/utils/api/constants";
 
 type Props = {
-    value: number;
-    onSelect: (value: number) => void;
-    getLabel: (category: ApiType) => any;
+    value: ContentCategory;
+    onSelect: (value: ContentCategory) => void;
+    getLabel: (category: ApiType<ContentCategory>) => any;
 };
 
 const OrderCategoryCommand = (props: Props) => {
     return (
         <ApiTypeCommand
-            entries={contentCategories}
+            entries={contentCategoryLabels}
             placeholder="Search category..."
             nothingFound="No category found."
             {...props}

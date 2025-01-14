@@ -3,7 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { CommandItem } from "@/components/ui/command";
 import { useModalStore } from "@/providers/modal";
-import { contentCategories } from "@/utils/api/constants";
+import { contentCategoryLabels } from "@/utils/api/constants";
 import Link from "next/link";
 
 type Props = {
@@ -21,8 +21,8 @@ export default function ContentSearchItem({ source, link }: Props) {
                     <div className="text-md">{source.name}</div>
                     <Badge>
                         {
-                            contentCategories.find(
-                                (cat) => cat.idx === source.category
+                            contentCategoryLabels.find(
+                                (cat) => cat.value === source.category
                             )?.label
                         }
                     </Badge>

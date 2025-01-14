@@ -1,46 +1,28 @@
-export type ApiType = {
-    idx: number;
+export type ApiType<T extends string> = {
+    value: T;
     label: string;
 }
 
-export const contentCategories: ApiType[] = [
-    { idx: 0, label: "Custom" },
-    { idx: 1, label: "Game" },
-    { idx: 2, label: "Anime" },
-    { idx: 3, label: "Movie" },
-    { idx: 4, label: "Series" },
-    { idx: 5, label: "Video" },
+export const contentCategoryLabels: ApiType<ContentCategory>[] = [
+    { value: "custom", label: "Custom" },
+    { value: "games", label: "Game" },
+    { value: "anime", label: "Anime" },
+    { value: "movies", label: "Movie" },
+    { value: "series", label: "Series" },
+    { value: "video", label: "Video" },
 ];
 
-export const orderStatuses: ApiType[] = [
-    { idx: 0, label: "Pending" },
-    { idx: 1, label: "Approved" },
-    { idx: 2, label: "Rejected" },
+export const orderStatusLabels: ApiType<OrderStatus>[] = [
+    { value: "pending", label: "Pending" },
+    { value: "approved", label: "Approved" },
+    { value: "rejected", label: "Rejected" },
 ]
 
-export const paymentTypes: ApiType[] = [
-    { idx: 0, label: "None" },
-    { idx: 1, label: "Pickle" },
-    { idx: 2, label: "Twitch Points" },
-    { idx: 3, label: "Donation Alerts" },
-    { idx: 4, label: "DonatePay" },
-    { idx: 5, label: "StreamElements" },
-    { idx: 6, label: "StreamLabs" },
-]
-
-export const gameNoteStatuses: ApiType[] = [
-    { idx: 0, label: "Playing" },
-    { idx: 1, label: "Played" },
-    { idx: 2, label: "Planned" },
-    { idx: 3, label: "Abandoned" },
-    { idx: 4, label: "On Hold" },
-    { idx: 5, label: "Completed" },
-    { idx: 6, label: "Skipped" },
-    { idx: 7, label: "Banned" },
-]
-
-export const gameNoteCompletionStatuses: ApiType[] = [
-    { idx: 0, label: "Finished" },
-    { idx: 1, label: "Unfinished" },
-    { idx: 2, label: "Endless" },
+export const gameNoteStatusLabels: ApiType<GameNoteStatus>[] = [
+    { value: "playing", label: "Playing" },
+    { value: "paused", label: "Paused" },
+    { value: "dropped", label: "Dropped" },
+    { value: "finished", label: "Finished" },
+    { value: "skipped", label: "Skipped" },
+    { value: "planned", label: "Planned" },
 ]

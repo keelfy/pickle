@@ -16,12 +16,16 @@ type ProfileAvatarPreview = {
     previewUrl: string;
 }
 
+type ContentCategory = 'games' | 'movies' | 'video' | 'anime' | 'series' | 'custom';
+
 type Content = {
     id: string;
     name: string;
     userId: string;
-    category: number;
+    category: ContentCategory;
 }
+
+type GameNoteStatus = 'planned' | 'playing' | 'paused' | 'dropped' | 'finished' | 'skipped';
 
 type GameNote = {
     id: string;
@@ -31,9 +35,8 @@ type GameNote = {
     link?: string;
     rate?: number;
     comment?: string;
-    status: number;
-    completionStatus: number;
-    completionDate?: Date;
+    status: GameNoteStatus;
+    lastPlayedAt?: Date;
 };
 
 type Orderer = {
@@ -43,17 +46,21 @@ type Orderer = {
     anonymous: boolean;
 }
 
+type OrderStatus = 'pending' | 'approved' | 'rejected';
+
 type Order = {
     id: string;
     createdAt: Date;
     updatedAt: Date;
     updatedBy: Date;
     receiverId: string;
-    category: number;
+    category: ContentCategory;
     ordererId: string;
     ordererUsername: string;
     message: string;
-    status: number;
+    status: OrderStatus;
     amount: number;
     paymentType: number;
+    updatedCategory: ContentCategory;
+    updatedMessage: string;
 };

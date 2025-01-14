@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	db "github.com/pickle.pw/monolith/db/sqlc"
 )
 
 type PaginatedRes[T any] struct {
@@ -36,27 +37,26 @@ type ProfileRes struct {
 }
 
 type ContentRes struct {
-	ID       uuid.UUID `json:"id"`
-	Name     string    `json:"name"`
-	UserID   uuid.UUID `json:"userId"`
-	Category int16     `json:"category"`
+	ID       uuid.UUID          `json:"id"`
+	Name     string             `json:"name"`
+	UserID   uuid.UUID          `json:"userId"`
+	Category db.ContentCategory `json:"category"`
 }
 
 type ContentSearchRes = PaginatedRes[SearchHitRes[ContentRes]]
 
 type GameNoteRes struct {
-	ID               string     `json:"id"`
-	CreatedAt        time.Time  `json:"createdAt"`
-	UserID           string     `json:"userId"`
-	Name             string     `json:"name"`
-	Link             *string    `json:"link,omitempty"`
-	ReleaseDate      *time.Time `json:"releaseDate,omitempty"`
-	Rate             *int16     `json:"rate,omitempty"`
-	Comment          *string    `json:"comment,omitempty"`
-	Ordered          bool       `json:"ordered"`
-	Status           int16      `json:"status"`
-	CompletionStatus int16      `json:"completionStatus"`
-	CompletionDate   *time.Time `json:"completionDate"`
+	ID           string            `json:"id"`
+	CreatedAt    time.Time         `json:"createdAt"`
+	UserID       string            `json:"userId"`
+	Name         string            `json:"name"`
+	Link         *string           `json:"link,omitempty"`
+	ReleaseDate  *time.Time        `json:"releaseDate,omitempty"`
+	Rate         *int16            `json:"rate,omitempty"`
+	Comment      *string           `json:"comment,omitempty"`
+	Ordered      bool              `json:"ordered"`
+	Status       db.GameNoteStatus `json:"status"`
+	LastPlayedAt *time.Time        `json:"lastPlayedAt,omitempty"`
 }
 
 type OrdererRes struct {
@@ -67,18 +67,20 @@ type OrdererRes struct {
 }
 
 type OrderRes struct {
-	ID              string    `json:"id"`
-	CreatedAt       time.Time `json:"createdAt"`
-	UpdatedAt       time.Time `json:"updatedAt"`
-	UpdatedBy       string    `json:"updatedBy"`  // User ID
-	ReceiverID      string    `json:"receiverId"` // User ID
-	PaymentType     int16     `json:"paymentType"`
-	Amount          float32   `json:"amount"`
-	Orderer         uuid.UUID `json:"orderer,omitempty"`
-	OrdererUsername string    `json:"ordererUsername"`
-	Category        int16     `json:"category"` // Category
-	Message         string    `json:"message"`
-	Status          int16     `json:"status"`
+	ID              string             `json:"id"`
+	CreatedAt       time.Time          `json:"createdAt"`
+	UpdatedAt       time.Time          `json:"updatedAt"`
+	UpdatedBy       string             `json:"updatedBy"`  // User ID
+	ReceiverID      string             `json:"receiverId"` // User ID
+	PaymentType     int16              `json:"paymentType"`
+	Amount          float32            `json:"amount"`
+	Orderer         uuid.UUID          `json:"orderer,omitempty"`
+	OrdererUsername string             `json:"ordererUsername"`
+	Status          db.OrderStatus     `json:"status"`
+	Category        db.ContentCategory `json:"category"` // Category
+	Message         string             `json:"message"`
+	UpdatedCategory db.ContentCategory `json:"updatedCategory"`
+	UpdatedMessage  string             `json:"updatedMessage"`
 }
 
 type LinkValidationRes struct {

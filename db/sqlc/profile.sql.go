@@ -76,7 +76,7 @@ type InsertProfileParams struct {
 	UserID           uuid.UUID `json:"user_id"`
 	Username         string    `json:"username"`
 	Link             string    `json:"link"`
-	Description      *string   `json:"description"`
+	Description      string    `json:"description"`
 	AvatarUrl        *string   `json:"avatar_url"`
 	AvatarPreviewKey *string   `json:"avatar_preview_key"`
 }
@@ -124,7 +124,7 @@ type UpdateProfileByUserIdParams struct {
 	UpdatedBy        *uuid.UUID `json:"updated_by"`
 	Username         string     `json:"username"`
 	Link             string     `json:"link"`
-	Description      *string    `json:"description"`
+	Description      string     `json:"description"`
 	AvatarUrl        *string    `json:"avatar_url"`
 	AvatarPreviewKey *string    `json:"avatar_preview_key"`
 }

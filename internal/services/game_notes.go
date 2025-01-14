@@ -15,24 +15,26 @@ import (
 )
 
 type GameNote struct {
-	sqlDb          *storage.SQLDatabase
-	esClient       *elasticsearch.TypedClient
-	orderService   *Order
-	userService    *Profile
-	ordererService *Orderer
-	contentService *Content
+	sqlDb                *storage.SQLDatabase
+	esClient             *elasticsearch.TypedClient
+	orderService         *Order
+	userService          *Profile
+	ordererService       *Orderer
+	contentService       *Content
+	gameNoteOrderService *GameNoteOrder
 }
 
 func NewGameNoteService(
 	sqlDb *storage.SQLDatabase, es *elasticsearch.TypedClient,
-	orderService *Order, userService *Profile, ordererService *Orderer, contentService *Content) *GameNote {
+	orderService *Order, userService *Profile, ordererService *Orderer, contentService *Content, gameNoteOrderService *GameNoteOrder) *GameNote {
 	return &GameNote{
-		sqlDb:          sqlDb,
-		esClient:       es,
-		orderService:   orderService,
-		userService:    userService,
-		ordererService: ordererService,
-		contentService: contentService,
+		sqlDb:                sqlDb,
+		esClient:             es,
+		orderService:         orderService,
+		userService:          userService,
+		ordererService:       ordererService,
+		contentService:       contentService,
+		gameNoteOrderService: gameNoteOrderService,
 	}
 }
 
@@ -88,8 +90,7 @@ func (service *GameNote) findPaginatedGameNotesByUserId(ctx context.Context, use
 			&i.Comment,
 			&i.Ordered,
 			&i.Status,
-			&i.CompletionStatus,
-			&i.CompletionDate,
+			&i.LastPlayedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -114,7 +115,7 @@ func (service *GameNote) CreateGameNote(ctx context.Context, req *types.CreateGa
 		return nil, err
 	}
 
-	order, err := service.orderService.ApproveOrder(ctx, initialOrder, userId)
+	order, err := service.orderService.UpdateOrderStatus(ctx, initialOrder, db.OrderStatusApproved, userId)
 	if err != nil {
 		return nil, err
 	}
@@ -122,19 +123,18 @@ func (service *GameNote) CreateGameNote(ctx context.Context, req *types.CreateGa
 	// Insert new game note into database
 	// TODO: Data validation before insertion, e.g. min-max rating or release date not after today
 	gameNote, err := service.sqlDb.Queries.InsertGameNote(ctx, db.InsertGameNoteParams{
-		CreatedBy:        userId,
-		UpdatedBy:        userId,
-		UserID:           order.ReceiverID,
-		GameID:           nil, // TODO: Implement games
-		Name:             req.GameNote.Name,
-		Link:             req.GameNote.Link,
-		ReleaseDate:      req.GameNote.ReleaseDate,
-		Rate:             req.GameNote.Rate,
-		Comment:          req.GameNote.Comment,
-		Ordered:          true,
-		Status:           req.GameNote.Status,
-		CompletionStatus: req.GameNote.CompletionStatus,
-		CompletionDate:   req.GameNote.CompletionDate,
+		CreatedBy:    userId,
+		UpdatedBy:    userId,
+		UserID:       order.ReceiverID,
+		GameID:       nil, // TODO: Implement games
+		Name:         req.GameNote.Name,
+		Link:         req.GameNote.Link,
+		ReleaseDate:  req.GameNote.ReleaseDate,
+		Rate:         req.GameNote.Rate,
+		Comment:      req.GameNote.Comment,
+		Ordered:      true,
+		Status:       req.GameNote.Status,
+		LastPlayedAt: req.GameNote.LastPlayedAt,
 	})
 	if err != nil {
 		return nil, errors.NewInternalServerError("Error occurred during game note creation", err)
@@ -145,7 +145,7 @@ func (service *GameNote) CreateGameNote(ctx context.Context, req *types.CreateGa
 	var g errgroup.Group
 
 	g.Go(func() error {
-		return service.createGameNoteOrder(ctx, userId, initialOrder.ID, gameNote.ID)
+		return service.gameNoteOrderService.CreateGameNoteOrder(ctx, userId, initialOrder.ID, gameNote.ID)
 	})
 
 	// Index documents in Elasticsearch
@@ -155,7 +155,7 @@ func (service *GameNote) CreateGameNote(ctx context.Context, req *types.CreateGa
 	})
 
 	g.Go(func() error {
-		return service.contentService.IndexContent(ctx, gameNote.ID, gameNote.Name, gameNote.UserID, types.Category_Game)
+		return service.contentService.IndexContent(ctx, gameNote.ID, gameNote.Name, gameNote.UserID, db.ContentCategoryGames)
 	})
 
 	if err := g.Wait(); err != nil {
@@ -182,22 +182,6 @@ func (service *GameNote) ValidateCreateGameNote(req *types.CreateGameNoteReq, us
 		if len(req.GameNote.Name) == 0 {
 			return errors.NewBadRequestError("Name of the game is required", nil)
 		}
-	}
-
-	return nil
-}
-
-// Creates GameNote - Order relation
-func (service *GameNote) createGameNoteOrder(ctx context.Context, userId, orderId, gameNoteId uuid.UUID) error {
-	// Connect initial approved order and game note together
-	_, err := service.sqlDb.Queries.InsertGameNoteOrder(ctx, db.InsertGameNoteOrderParams{
-		OrderID:    orderId,
-		GameNoteID: gameNoteId,
-		CreatedBy:  userId,
-		UpdatedBy:  userId,
-	})
-	if err != nil {
-		return errors.NewInternalServerError("Error occurred during game note order creation", err)
 	}
 
 	return nil

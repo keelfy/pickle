@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	db "github.com/pickle.pw/monolith/db/sqlc"
 )
 
 type CursorSort struct {
@@ -34,14 +35,13 @@ type UpdateProfileReq struct {
 }
 
 type GameNoteReq struct {
-	Name             string     `json:"name"`
-	Link             *string    `json:"link"`
-	ReleaseDate      *time.Time `json:"releaseDate"`
-	Rate             *int16     `json:"rate"`
-	Comment          *string    `json:"comment"`
-	Status           int16      `json:"status"`
-	CompletionStatus int16      `json:"completionStatus"`
-	CompletionDate   *time.Time `json:"completionDate"`
+	Name         string            `json:"name"`
+	Link         *string           `json:"link"`
+	ReleaseDate  *time.Time        `json:"releaseDate"`
+	Rate         *int16            `json:"rate"`
+	Comment      *string           `json:"comment"`
+	Status       db.GameNoteStatus `json:"status"`
+	LastPlayedAt *time.Time        `json:"lastPlayedAt"`
 }
 
 type CreateGameNoteReq struct {
@@ -50,16 +50,21 @@ type CreateGameNoteReq struct {
 }
 
 type CreateOrderReq struct {
-	ReceiverLink    string  `json:"receiverLink"`
-	PaymentType     int16   `json:"paymentType"`
-	Amount          float32 `json:"amount"`
-	OrdererUsername string  `json:"ordererUsername"`
-	Category        int16   `json:"category"`
-	Message         string  `json:"message"`
+	ReceiverLink    string             `json:"receiverLink"`
+	PaymentType     int16              `json:"paymentType"`
+	Amount          float32            `json:"amount"`
+	OrdererUsername string             `json:"ordererUsername"`
+	Category        db.ContentCategory `json:"category"`
+	Message         string             `json:"message"`
+}
+
+type ApproveOrderReq struct {
+	Category db.NullContentCategory `json:"category"`
+	Message  string                 `json:"message"`
 }
 
 type UpdateOrderReq struct {
-	Status int16 `json:"status"`
+	Status db.OrderStatus `json:"status"`
 }
 
 type DenyOrderReq struct {

@@ -122,6 +122,8 @@ func (p *Pickle) registerV1ProtectedRoutes(r chi.Router) {
 		r.Post("/", p.gameNoteHandler.CreateGameNote)
 	})
 
+	r.Post("/game-notes/{gameNoteId}/orders/{orderId}", p.orderHandler.ApproveOrderById)
+
 	r.Route("/orders", func(r chi.Router) {
 		r.Post("/", p.orderHandler.CreateOrder)
 		r.Patch("/{id}", p.orderHandler.UpdateOrderById)

@@ -5,10 +5,147 @@
 package db
 
 import (
+	"database/sql/driver"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 )
+
+type ContentCategory string
+
+const (
+	ContentCategoryGames  ContentCategory = "games"
+	ContentCategoryMovies ContentCategory = "movies"
+	ContentCategoryVideo  ContentCategory = "video"
+	ContentCategoryAnime  ContentCategory = "anime"
+	ContentCategorySeries ContentCategory = "series"
+	ContentCategoryCustom ContentCategory = "custom"
+)
+
+func (e *ContentCategory) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ContentCategory(s)
+	case string:
+		*e = ContentCategory(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ContentCategory: %T", src)
+	}
+	return nil
+}
+
+type NullContentCategory struct {
+	ContentCategory ContentCategory `json:"content_category"`
+	Valid           bool            `json:"valid"` // Valid is true if ContentCategory is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullContentCategory) Scan(value interface{}) error {
+	if value == nil {
+		ns.ContentCategory, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ContentCategory.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullContentCategory) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ContentCategory), nil
+}
+
+type GameNoteStatus string
+
+const (
+	GameNoteStatusPlanned  GameNoteStatus = "planned"
+	GameNoteStatusPlaying  GameNoteStatus = "playing"
+	GameNoteStatusPaused   GameNoteStatus = "paused"
+	GameNoteStatusDropped  GameNoteStatus = "dropped"
+	GameNoteStatusFinished GameNoteStatus = "finished"
+	GameNoteStatusSkipped  GameNoteStatus = "skipped"
+)
+
+func (e *GameNoteStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = GameNoteStatus(s)
+	case string:
+		*e = GameNoteStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for GameNoteStatus: %T", src)
+	}
+	return nil
+}
+
+type NullGameNoteStatus struct {
+	GameNoteStatus GameNoteStatus `json:"game_note_status"`
+	Valid          bool           `json:"valid"` // Valid is true if GameNoteStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullGameNoteStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.GameNoteStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.GameNoteStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullGameNoteStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.GameNoteStatus), nil
+}
+
+type OrderStatus string
+
+const (
+	OrderStatusPending  OrderStatus = "pending"
+	OrderStatusApproved OrderStatus = "approved"
+	OrderStatusRejected OrderStatus = "rejected"
+)
+
+func (e *OrderStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = OrderStatus(s)
+	case string:
+		*e = OrderStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for OrderStatus: %T", src)
+	}
+	return nil
+}
+
+type NullOrderStatus struct {
+	OrderStatus OrderStatus `json:"order_status"`
+	Valid       bool        `json:"valid"` // Valid is true if OrderStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullOrderStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.OrderStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.OrderStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullOrderStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.OrderStatus), nil
+}
 
 type EsMigrationLog struct {
 	ID        int32     `json:"id"`
@@ -17,22 +154,21 @@ type EsMigrationLog struct {
 }
 
 type GameNote struct {
-	ID               uuid.UUID  `json:"id"`
-	CreatedAt        time.Time  `json:"created_at"`
-	CreatedBy        uuid.UUID  `json:"created_by"`
-	UpdatedAt        time.Time  `json:"updated_at"`
-	UpdatedBy        uuid.UUID  `json:"updated_by"`
-	UserID           uuid.UUID  `json:"user_id"`
-	GameID           *uuid.UUID `json:"game_id"`
-	Name             string     `json:"name"`
-	Link             *string    `json:"link"`
-	ReleaseDate      *time.Time `json:"release_date"`
-	Rate             *int16     `json:"rate"`
-	Comment          *string    `json:"comment"`
-	Ordered          bool       `json:"ordered"`
-	Status           int16      `json:"status"`
-	CompletionStatus int16      `json:"completion_status"`
-	CompletionDate   *time.Time `json:"completion_date"`
+	ID           uuid.UUID      `json:"id"`
+	CreatedAt    time.Time      `json:"created_at"`
+	CreatedBy    uuid.UUID      `json:"created_by"`
+	UpdatedAt    time.Time      `json:"updated_at"`
+	UpdatedBy    uuid.UUID      `json:"updated_by"`
+	UserID       uuid.UUID      `json:"user_id"`
+	GameID       *uuid.UUID     `json:"game_id"`
+	Name         string         `json:"name"`
+	Link         *string        `json:"link"`
+	ReleaseDate  *time.Time     `json:"release_date"`
+	Rate         *int16         `json:"rate"`
+	Comment      *string        `json:"comment"`
+	Ordered      bool           `json:"ordered"`
+	Status       GameNoteStatus `json:"status"`
+	LastPlayedAt *time.Time     `json:"last_played_at"`
 }
 
 type GameNoteOrder struct {
@@ -51,19 +187,21 @@ type MigrationLog struct {
 }
 
 type Order struct {
-	ID              uuid.UUID `json:"id"`
-	CreatedAt       time.Time `json:"created_at"`
-	CreatedBy       uuid.UUID `json:"created_by"`
-	UpdatedAt       time.Time `json:"updated_at"`
-	UpdatedBy       uuid.UUID `json:"updated_by"`
-	ReceiverID      uuid.UUID `json:"receiver_id"`
-	PaymentType     int16     `json:"payment_type"`
-	Amount          float32   `json:"amount"`
-	Status          int16     `json:"status"`
-	OrdererID       uuid.UUID `json:"orderer_id"`
-	OrdererUsername string    `json:"orderer_username"`
-	Category        int16     `json:"category"`
-	Message         string    `json:"message"`
+	ID              uuid.UUID           `json:"id"`
+	CreatedAt       time.Time           `json:"created_at"`
+	CreatedBy       uuid.UUID           `json:"created_by"`
+	UpdatedAt       time.Time           `json:"updated_at"`
+	UpdatedBy       uuid.UUID           `json:"updated_by"`
+	ReceiverID      uuid.UUID           `json:"receiver_id"`
+	PaymentType     int16               `json:"payment_type"`
+	Amount          float32             `json:"amount"`
+	Status          OrderStatus         `json:"status"`
+	OrdererID       uuid.UUID           `json:"orderer_id"`
+	OrdererUsername string              `json:"orderer_username"`
+	Message         string              `json:"message"`
+	Category        ContentCategory     `json:"category"`
+	UpdatedMessage  *string             `json:"updated_message"`
+	UpdatedCategory NullContentCategory `json:"updated_category"`
 }
 
 type Orderer struct {
@@ -84,7 +222,7 @@ type Profile struct {
 	UpdatedBy        *uuid.UUID `json:"updated_by"`
 	Username         string     `json:"username"`
 	Link             string     `json:"link"`
-	Description      *string    `json:"description"`
+	Description      string     `json:"description"`
 	AvatarUrl        *string    `json:"avatar_url"`
 	AvatarPreviewKey *string    `json:"avatar_preview_key"`
 }

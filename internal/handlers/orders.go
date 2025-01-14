@@ -106,3 +106,33 @@ func (handler *Order) UpdateOrderById(w http.ResponseWriter, r *http.Request) {
 	copier.Copy(orderResponse, updatedOrder)
 	utils.WriteHttpJsonResponse(w, orderResponse)
 }
+
+func (handler *Order) ApproveOrderById(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	gameNoteId, err := utils.ReadPathUUIDVariable("gameNoteId", r)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
+	// Extracting path variables
+	orderId, err := utils.ReadPathUUIDVariable("orderId", r)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
+	// Extract JWT token from the request
+	userId := ctx.Value(middleware.UserIDKey).(uuid.UUID)
+
+	approvedOrder, err := handler.orderService.ApproveOrderById(ctx, orderId, gameNoteId, userId)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
+	orderResponse := &types.OrderRes{}
+	copier.Copy(orderResponse, approvedOrder)
+	utils.WriteHttpJsonResponse(w, orderResponse)
+}

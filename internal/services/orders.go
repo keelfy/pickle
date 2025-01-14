@@ -14,16 +14,18 @@ import (
 )
 
 type Order struct {
-	sqlDb          *storage.SQLDatabase
-	userService    *Profile
-	ordererService *Orderer
+	sqlDb                *storage.SQLDatabase
+	userService          *Profile
+	ordererService       *Orderer
+	gameNoteOrderService *GameNoteOrder
 }
 
-func NewOrderService(sqlDb *storage.SQLDatabase, userService *Profile, ordererService *Orderer) *Order {
+func NewOrderService(sqlDb *storage.SQLDatabase, userService *Profile, ordererService *Orderer, gameNoteOrderService *GameNoteOrder) *Order {
 	return &Order{
-		sqlDb:          sqlDb,
-		userService:    userService,
-		ordererService: ordererService,
+		sqlDb:                sqlDb,
+		userService:          userService,
+		ordererService:       ordererService,
+		gameNoteOrderService: gameNoteOrderService,
 	}
 }
 
@@ -46,7 +48,7 @@ func (service *Order) GetSortedByReceiverId(ctx context.Context, receiverId uuid
 }
 
 const findOrdersByReceiverIdQuery = `
-	SELECT *
+	SELECT id, created_at, payment_type, amount, status, orderer_username, message, category, updated_message, updated_category
 	FROM "orders"
 	WHERE "receiver_id" = $1 
 		AND "%s" %s $2 
@@ -74,17 +76,14 @@ func (service *Order) findSortedOrdersByReceiverId(ctx context.Context, receiver
 		if err := rows.Scan(
 			&i.ID,
 			&i.CreatedAt,
-			&i.CreatedBy,
-			&i.UpdatedAt,
-			&i.UpdatedBy,
-			&i.ReceiverID,
 			&i.PaymentType,
 			&i.Amount,
 			&i.Status,
-			&i.OrdererID,
 			&i.OrdererUsername,
-			&i.Category,
 			&i.Message,
+			&i.Category,
+			&i.UpdatedMessage,
+			&i.UpdatedCategory,
 		); err != nil {
 			return nil, err
 		}
@@ -119,7 +118,7 @@ func (service *Order) ApproveOrderByIdAndReceiverId(ctx context.Context, orderId
 	initialOrder, err = service.sqlDb.Queries.UpdateOrderById(ctx, db.UpdateOrderByIdParams{
 		ID:        initialOrder.ID,
 		UpdatedBy: initiatorUserId,
-		Status:    types.OrderStatus_Approved,
+		Status:    db.OrderStatusApproved,
 	})
 	if err != nil {
 		return nil, errors.NewInternalServerError("Error occurred during order approval", err)
@@ -130,11 +129,11 @@ func (service *Order) ApproveOrderByIdAndReceiverId(ctx context.Context, orderId
 
 // Validates that receivers of the order by ID equals provided and approves the order if so
 // Returns CustomError as error
-func (service *Order) ApproveOrder(ctx context.Context, order *db.Order, initiatorUserID uuid.UUID) (*db.Order, error) {
+func (service *Order) UpdateOrderStatus(ctx context.Context, order *db.Order, status db.OrderStatus, initiatorUserID uuid.UUID) (*db.Order, error) {
 	// Approve the order
 	approvedOrder, err := service.sqlDb.Queries.UpdateOrderById(ctx, db.UpdateOrderByIdParams{
 		ID:        order.ID,
-		Status:    types.OrderStatus_Approved,
+		Status:    status,
 		UpdatedBy: initiatorUserID,
 	})
 
@@ -173,7 +172,7 @@ func (service *Order) CreateOrder(ctx context.Context, userId uuid.UUID, req *ty
 		OrdererUsername: orderer.Username,
 		Category:        req.Category,
 		Message:         req.Message,
-		Status:          types.OrderStatus_Reviewing,
+		Status:          db.OrderStatusPending,
 	})
 	if err != nil {
 		return nil, errors.NewInternalServerError("Error occurred during order creation", err)
@@ -192,7 +191,7 @@ func (service *Order) UpdateOrderById(ctx context.Context, orderId uuid.UUID, re
 		return nil, errors.NewForbiddenError("User is not allowed to update the order", nil)
 	}
 
-	if req.Status != 2 {
+	if req.Status == db.OrderStatusRejected {
 		return nil, errors.NewBadRequestError("Only status 2 (rejected) is allowed to be set", nil)
 	}
 
@@ -208,6 +207,37 @@ func (service *Order) UpdateOrderById(ctx context.Context, orderId uuid.UUID, re
 	}
 
 	return updatedOrder, nil
+}
+
+func (service *Order) ApproveOrderById(ctx context.Context, orderId, gameNoteId, userId uuid.UUID) (*db.Order, error) {
+	order, err := service.GetOrderById(ctx, orderId)
+	if err != nil {
+		return nil, err
+	}
+
+	if order.ReceiverID != userId {
+		return nil, errors.NewForbiddenError("User is not allowed to approve the order", nil)
+	}
+
+	// TODO: validate the req body
+
+	// Approve the order
+	approvedOrder, err := service.sqlDb.Queries.UpdateOrderById(ctx, db.UpdateOrderByIdParams{
+		ID:        order.ID,
+		UpdatedBy: userId,
+		Status:    db.OrderStatusApproved,
+	})
+	if err != nil {
+		return nil, errors.NewInternalServerError("Error occurred during order approval", err)
+	}
+
+	// Connect initial approved order and game note together
+	err = service.gameNoteOrderService.CreateGameNoteOrder(ctx, userId, order.ID, gameNoteId)
+	if err != nil {
+		return nil, err
+	}
+
+	return approvedOrder, nil
 }
 
 func (service *Order) GetPaginatedByGameNoteId(ctx context.Context, id uuid.UUID, pagination *types.Pagination) ([]*db.Order, error) {

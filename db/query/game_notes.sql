@@ -12,8 +12,7 @@ INSERT INTO "game_notes" (
     "comment",
     "ordered",
     "status",
-    "completion_status",
-    "completion_date"
+    "last_played_at"
 ) VALUES (
     $1,
     $2,
@@ -26,8 +25,7 @@ INSERT INTO "game_notes" (
     $9,
     $10,
     $11,
-    $12,
-    $13
+    $12
 )
 RETURNING *;
 

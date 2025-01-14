@@ -58,7 +58,9 @@ LIMIT $2;
 UPDATE "orders"
 SET "updated_at" = now(),
     "updated_by" = $2,
-    "status" = $3
+    "status" = $3,
+    "updated_message" = $4,
+    "updated_category" = $5
 WHERE "id" = $1
 RETURNING *;
 

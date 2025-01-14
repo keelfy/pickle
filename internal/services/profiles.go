@@ -163,7 +163,7 @@ func (service *Profile) UpdateProfile(ctx context.Context, userId uuid.UUID, req
 
 	description := profile.Description
 	if len(req.Description) < 500 {
-		description = &req.Description
+		description = req.Description
 	}
 
 	// update profile
@@ -248,10 +248,12 @@ func (service *Profile) CreateProfileWebhook(ctx context.Context, req *types.Sup
 	}
 
 	createdProfile, err := service.sqlDb.Queries.InsertProfile(ctx, db.InsertProfileParams{
-		UserID:    userId,
-		Username:  name,
-		Link:      link,
-		AvatarUrl: avatarUrl,
+		UserID:           userId,
+		Username:         name,
+		Description:      "",
+		Link:             link,
+		AvatarUrl:        avatarUrl,
+		AvatarPreviewKey: nil,
 	})
 	if err != nil {
 		return nil, errors.NewInternalServerError("Error occurred creating a profile", err)

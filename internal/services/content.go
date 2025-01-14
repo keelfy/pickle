@@ -7,6 +7,7 @@ import (
 	"github.com/elastic/go-elasticsearch/v8/typedapi/core/search"
 	esTypes "github.com/elastic/go-elasticsearch/v8/typedapi/types"
 	"github.com/google/uuid"
+	db "github.com/pickle.pw/monolith/db/sqlc"
 	"github.com/pickle.pw/monolith/internal/errors"
 	"github.com/pickle.pw/monolith/internal/types"
 )
@@ -21,12 +22,12 @@ func NewContentService(esClient *elasticsearch.TypedClient) *Content {
 	}
 }
 
-func (service *Content) IndexContent(ctx context.Context, id uuid.UUID, name string, userId uuid.UUID, category int16) error {
+func (service *Content) IndexContent(ctx context.Context, id uuid.UUID, name string, userId uuid.UUID, category db.ContentCategory) error {
 	document := &types.EsContent{
 		ID:       id,
 		Name:     name,
 		UserID:   userId,
-		Category: types.Category_Game,
+		Category: category,
 	}
 	_, err := service.esClient.Index("content").Document(document).Do(ctx)
 	if err != nil {

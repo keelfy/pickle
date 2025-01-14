@@ -11,4 +11,5 @@ var ProviderSet = wire.NewSet(
 	NewContentService,
 	NewGameNoteService,
 	NewImageService,
+	NewGameNoteOrderService,
 )

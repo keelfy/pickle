@@ -11,3 +11,7 @@ DROP TABLE IF EXISTS "game_notes";
 DROP TABLE IF EXISTS "orders";
 DROP TABLE IF EXISTS "orderers";
 DROP TABLE IF EXISTS "profiles";
+
+DROP TYPE IF EXISTS "content_category";
+DROP TYPE IF EXISTS "order_status";
+DROP TYPE IF EXISTS "game_note_status";

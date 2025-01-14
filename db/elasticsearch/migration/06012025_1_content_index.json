@@ -39,7 +39,7 @@
           "search_analyzer": "standard"
         },
         "category": {
-          "type": "byte"
+          "type": "text"
         },
         "user_id": {
           "type": "text"

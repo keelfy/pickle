@@ -25,7 +25,7 @@ func (q *Queries) CountOrdersByReceiverId(ctx context.Context, receiverID uuid.U
 }
 
 const findLastOrdersByReceiverId = `-- name: FindLastOrdersByReceiverId :many
-SELECT id, created_at, created_by, updated_at, updated_by, receiver_id, payment_type, amount, status, orderer_id, orderer_username, category, message
+SELECT id, created_at, created_by, updated_at, updated_by, receiver_id, payment_type, amount, status, orderer_id, orderer_username, message, category, updated_message, updated_category
 FROM "orders"
 WHERE "receiver_id" = $1
 ORDER BY "created_at" DESC
@@ -60,8 +60,10 @@ func (q *Queries) FindLastOrdersByReceiverId(ctx context.Context, arg FindLastOr
 			&i.Status,
 			&i.OrdererID,
 			&i.OrdererUsername,
-			&i.Category,
 			&i.Message,
+			&i.Category,
+			&i.UpdatedMessage,
+			&i.UpdatedCategory,
 		); err != nil {
 			return nil, err
 		}
@@ -74,7 +76,7 @@ func (q *Queries) FindLastOrdersByReceiverId(ctx context.Context, arg FindLastOr
 }
 
 const findOrderById = `-- name: FindOrderById :one
-SELECT id, created_at, created_by, updated_at, updated_by, receiver_id, payment_type, amount, status, orderer_id, orderer_username, category, message FROM "orders" WHERE "id" = $1
+SELECT id, created_at, created_by, updated_at, updated_by, receiver_id, payment_type, amount, status, orderer_id, orderer_username, message, category, updated_message, updated_category FROM "orders" WHERE "id" = $1
 `
 
 // Author: Egor Kuzmin (keelfy)
@@ -94,14 +96,16 @@ func (q *Queries) FindOrderById(ctx context.Context, id uuid.UUID) (*Order, erro
 		&i.Status,
 		&i.OrdererID,
 		&i.OrdererUsername,
-		&i.Category,
 		&i.Message,
+		&i.Category,
+		&i.UpdatedMessage,
+		&i.UpdatedCategory,
 	)
 	return &i, err
 }
 
 const findOrdersByReceiverId = `-- name: FindOrdersByReceiverId :many
-SELECT id, created_at, created_by, updated_at, updated_by, receiver_id, payment_type, amount, status, orderer_id, orderer_username, category, message
+SELECT id, created_at, created_by, updated_at, updated_by, receiver_id, payment_type, amount, status, orderer_id, orderer_username, message, category, updated_message, updated_category
 FROM "orders"
 WHERE "receiver_id" = $1
 `
@@ -129,8 +133,10 @@ func (q *Queries) FindOrdersByReceiverId(ctx context.Context, receiverID uuid.UU
 			&i.Status,
 			&i.OrdererID,
 			&i.OrdererUsername,
-			&i.Category,
 			&i.Message,
+			&i.Category,
+			&i.UpdatedMessage,
+			&i.UpdatedCategory,
 		); err != nil {
 			return nil, err
 		}
@@ -143,7 +149,7 @@ func (q *Queries) FindOrdersByReceiverId(ctx context.Context, receiverID uuid.UU
 }
 
 const findPaginatedOrdersByGameNoteId = `-- name: FindPaginatedOrdersByGameNoteId :many
-SELECT orders.id, orders.created_at, orders.created_by, orders.updated_at, orders.updated_by, orders.receiver_id, orders.payment_type, orders.amount, orders.status, orders.orderer_id, orders.orderer_username, orders.category, orders.message
+SELECT orders.id, orders.created_at, orders.created_by, orders.updated_at, orders.updated_by, orders.receiver_id, orders.payment_type, orders.amount, orders.status, orders.orderer_id, orders.orderer_username, orders.message, orders.category, orders.updated_message, orders.updated_category
 FROM "orders"
     INNER JOIN "game_note_orders" ON 
         "game_note_orders"."order_id" = "orders"."id"
@@ -181,8 +187,10 @@ func (q *Queries) FindPaginatedOrdersByGameNoteId(ctx context.Context, arg FindP
 			&i.Status,
 			&i.OrdererID,
 			&i.OrdererUsername,
-			&i.Category,
 			&i.Message,
+			&i.Category,
+			&i.UpdatedMessage,
+			&i.UpdatedCategory,
 		); err != nil {
 			return nil, err
 		}
@@ -218,20 +226,20 @@ INSERT INTO "orders" (
     $9,
     $10
 )
-RETURNING id, created_at, created_by, updated_at, updated_by, receiver_id, payment_type, amount, status, orderer_id, orderer_username, category, message
+RETURNING id, created_at, created_by, updated_at, updated_by, receiver_id, payment_type, amount, status, orderer_id, orderer_username, message, category, updated_message, updated_category
 `
 
 type InsertOrderParams struct {
-	CreatedBy       uuid.UUID `json:"created_by"`
-	UpdatedBy       uuid.UUID `json:"updated_by"`
-	ReceiverID      uuid.UUID `json:"receiver_id"`
-	PaymentType     int16     `json:"payment_type"`
-	Amount          float32   `json:"amount"`
-	Status          int16     `json:"status"`
-	OrdererID       uuid.UUID `json:"orderer_id"`
-	OrdererUsername string    `json:"orderer_username"`
-	Category        int16     `json:"category"`
-	Message         string    `json:"message"`
+	CreatedBy       uuid.UUID       `json:"created_by"`
+	UpdatedBy       uuid.UUID       `json:"updated_by"`
+	ReceiverID      uuid.UUID       `json:"receiver_id"`
+	PaymentType     int16           `json:"payment_type"`
+	Amount          float32         `json:"amount"`
+	Status          OrderStatus     `json:"status"`
+	OrdererID       uuid.UUID       `json:"orderer_id"`
+	OrdererUsername string          `json:"orderer_username"`
+	Category        ContentCategory `json:"category"`
+	Message         string          `json:"message"`
 }
 
 // Author: Egor Kuzmin (keelfy)
@@ -262,8 +270,10 @@ func (q *Queries) InsertOrder(ctx context.Context, arg InsertOrderParams) (*Orde
 		&i.Status,
 		&i.OrdererID,
 		&i.OrdererUsername,
-		&i.Category,
 		&i.Message,
+		&i.Category,
+		&i.UpdatedMessage,
+		&i.UpdatedCategory,
 	)
 	return &i, err
 }
@@ -272,21 +282,31 @@ const updateOrderById = `-- name: UpdateOrderById :one
 UPDATE "orders"
 SET "updated_at" = now(),
     "updated_by" = $2,
-    "status" = $3
+    "status" = $3,
+    "updated_message" = $4,
+    "updated_category" = $5
 WHERE "id" = $1
-RETURNING id, created_at, created_by, updated_at, updated_by, receiver_id, payment_type, amount, status, orderer_id, orderer_username, category, message
+RETURNING id, created_at, created_by, updated_at, updated_by, receiver_id, payment_type, amount, status, orderer_id, orderer_username, message, category, updated_message, updated_category
 `
 
 type UpdateOrderByIdParams struct {
-	ID        uuid.UUID `json:"id"`
-	UpdatedBy uuid.UUID `json:"updated_by"`
-	Status    int16     `json:"status"`
+	ID              uuid.UUID           `json:"id"`
+	UpdatedBy       uuid.UUID           `json:"updated_by"`
+	Status          OrderStatus         `json:"status"`
+	UpdatedMessage  *string             `json:"updated_message"`
+	UpdatedCategory NullContentCategory `json:"updated_category"`
 }
 
 // Author: Egor Kuzmin (keelfy)
 // Updates order, updated_at and updated_by
 func (q *Queries) UpdateOrderById(ctx context.Context, arg UpdateOrderByIdParams) (*Order, error) {
-	row := q.db.QueryRow(ctx, updateOrderById, arg.ID, arg.UpdatedBy, arg.Status)
+	row := q.db.QueryRow(ctx, updateOrderById,
+		arg.ID,
+		arg.UpdatedBy,
+		arg.Status,
+		arg.UpdatedMessage,
+		arg.UpdatedCategory,
+	)
 	var i Order
 	err := row.Scan(
 		&i.ID,
@@ -300,8 +320,10 @@ func (q *Queries) UpdateOrderById(ctx context.Context, arg UpdateOrderByIdParams
 		&i.Status,
 		&i.OrdererID,
 		&i.OrdererUsername,
-		&i.Category,
 		&i.Message,
+		&i.Category,
+		&i.UpdatedMessage,
+		&i.UpdatedCategory,
 	)
 	return &i, err
 }

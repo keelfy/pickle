@@ -191,8 +191,8 @@ func (service *Order) UpdateOrderById(ctx context.Context, orderId uuid.UUID, re
 		return nil, errors.NewForbiddenError("User is not allowed to update the order", nil)
 	}
 
-	if req.Status == db.OrderStatusRejected {
-		return nil, errors.NewBadRequestError("Only status 2 (rejected) is allowed to be set", nil)
+	if req.Status != db.OrderStatusRejected {
+		return nil, errors.NewBadRequestError("Only status 'rejected' is allowed to be set", nil)
 	}
 
 	updatedOrder, err := service.sqlDb.Queries.UpdateOrderById(ctx, db.UpdateOrderByIdParams{

@@ -8,36 +8,35 @@ import {
     DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuPortal,
-    DropdownMenuRadioItem,
     DropdownMenuSeparator,
     DropdownMenuSub,
     DropdownMenuSubContent,
     DropdownMenuSubTrigger,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import DropdownMenuDialogWrapper from "@/components/view/dialog/dropdown-menu-dialog-wrapper";
+import ProfileSettingsDialog from "@/components/view/dialog/profile-settings/profile-settings-dialog";
 import { getMyAvatar, getMyProfile } from "@/hooks/api-endpoints-server";
 import getUser from "@/hooks/getUser";
-import { Laptop, MessageCircle, Moon, Settings, Sun, User } from "lucide-react";
+import { MessageCircle, Moon, Settings, User } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import OpenModalDropdownMenuItem from "./[link]/open-modal-dropdown-menu-item";
 import LoggedOutProfileNavSection from "./logged-out-nav-menu-button";
-import DropdownMenuSignOutItem from "./sign-out-button";
 import ProfileDropdownThemeRadioGroup from "./profile-dropdown-theme-radio-group";
-import DropdownMenuDialogWrapper from "@/components/view/dialog/dropdown-menu-dialog-wrapper";
-import ProfileSettingsDialog from "@/components/view/dialog/profile-settings/profile-settings-dialog";
+import DropdownMenuSignOutItem from "./sign-out-button";
 
 export default async function ProfileDropdownMenu() {
     const user = await getUser();
-    const profile = await getMyProfile().catch(() => undefined);
-
-    const avatarUrl = await getMyAvatar("md")
-        .then((res) => res?.url)
-        .catch(() => undefined);
 
     if (!user) {
         return <LoggedOutProfileNavSection />;
     }
+
+    const profile = await getMyProfile().catch(() => undefined);
+    const avatarUrl = await getMyAvatar("md")
+        .then((res) => res?.url)
+        .catch(() => undefined);
 
     return (
         <DropdownMenuDialogWrapper>

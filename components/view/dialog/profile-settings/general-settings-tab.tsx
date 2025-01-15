@@ -88,7 +88,7 @@ export default function GeneralSettingsTab() {
 
     React.useEffect(() => {
         resetForm();
-    }, [profile]);
+    }, [profile?.id]);
 
     const onSubmit = async (data: z.infer<typeof formSchema>) =>
         startTransition(async () => {
@@ -98,6 +98,11 @@ export default function GeneralSettingsTab() {
                     body: JSON.stringify(data),
                 });
                 updateProfile(res);
+                form.reset({
+                    ...profile,
+                    description: profile?.description ?? "",
+                    avatarUrl: data.avatarUrl,
+                });
             } catch (error: any) {
                 toast({
                     title: "Failed to update settings",

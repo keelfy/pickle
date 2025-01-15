@@ -15,6 +15,8 @@ func InitElasticsearchClient() (*elasticsearch.TypedClient, error) {
 
 	es, err := elasticsearch.NewTypedClient(elasticsearch.Config{
 		Addresses: config.GetElasticsearchUrls(),
+		Username:  config.GetElasticsearchUsername(),
+		Password:  config.GetElasticsearchPassword(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("Error creating the client: %s", err)

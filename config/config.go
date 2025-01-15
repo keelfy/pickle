@@ -40,6 +40,14 @@ func GetElasticsearchUrls() []string {
 	return strings.Split(os.Getenv("ELASTICSEARCH_URLS"), ";")
 }
 
+func GetElasticsearchUsername() string {
+	return os.Getenv("ELASTICSEARCH_USERNAME")
+}
+
+func GetElasticsearchPassword() string {
+	return os.Getenv("ELASTICSEARCH_PASSWORD")
+}
+
 func GetContextTimeoutMs() time.Duration {
 	value, err := strconv.Atoi(os.Getenv("CONTEXT_TIMEOUT_MS"))
 	if err != nil {

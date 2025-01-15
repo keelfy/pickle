@@ -19,6 +19,7 @@ func InitializePickle(ctx context.Context) (*api.Pickle, func(), error) {
 		storage.InitSupabase,
 		storage.InitElasticsearchClient,
 		storage.InitS3Client,
+		storage.InitRedisClient,
 		services.ProviderSet,
 		handlers.ProviderSet,
 		api.NewPickle,

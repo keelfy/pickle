@@ -9,10 +9,12 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	petname "github.com/dustinkirkland/golang-petname"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/pickle.pw/monolith/config"
@@ -20,19 +22,24 @@ import (
 	"github.com/pickle.pw/monolith/internal/errors"
 	"github.com/pickle.pw/monolith/internal/storage"
 	"github.com/pickle.pw/monolith/internal/types"
+	"github.com/redis/go-redis/v9"
 )
 
 type Profile struct {
 	sqlDb        *storage.SQLDatabase
 	s3Client     *s3.Client
+	redisClient  *redis.Client
 	imageService *Image
+	isDebug      bool
 }
 
-func NewProfileService(sqlDb *storage.SQLDatabase, s3Client *s3.Client, imageService *Image) *Profile {
+func NewProfileService(sqlDb *storage.SQLDatabase, s3Client *s3.Client, redisClient *redis.Client, imageService *Image) *Profile {
 	return &Profile{
 		sqlDb:        sqlDb,
 		s3Client:     s3Client,
+		redisClient:  redisClient,
 		imageService: imageService,
+		isDebug:      config.IsDebug(),
 	}
 }
 
@@ -152,6 +159,17 @@ func (service *Profile) UpdateProfile(ctx context.Context, userId uuid.UUID, req
 			})
 			if err != nil {
 				log.Printf("Error occurred deleting preview avatar: %v", err)
+			}
+		}
+
+		for size := range avatarSizes {
+			cacheKey := fmt.Sprintf("avatar:%s:%s", userId, size)
+			err = service.redisClient.Del(ctx, cacheKey).Err()
+			if err != nil {
+				log.Printf("Error occurred deleting avatar URL from cache: %v", err)
+			} else if service.isDebug {
+				reqId := middleware.GetReqID(ctx)
+				log.Printf("[%s] Cache of avatar URL for userId = %s with size = %s cleared.", reqId, userId, size)
 			}
 		}
 
@@ -307,7 +325,8 @@ func (service *Profile) UploadAvatar(ctx context.Context, userId uuid.UUID, file
 		return "", errors.NewInternalServerError("Error occurred updating profile", err)
 	}
 
-	imageUrl, err := service.imageService.GetResizedImageUrlFromS3(bucketName, previewAvatarUrl, 100, 100)
+	size := avatarSizes["lg"]
+	imageUrl, err := service.imageService.GetResizedImageUrlFromS3(bucketName, previewAvatarUrl, size, size, profile.UpdatedAt)
 	if err != nil {
 		return "", errors.NewInternalServerError("Error occurred getting profile avatar URL", err)
 	}
@@ -391,6 +410,22 @@ func validateFile(file multipart.File, fileHeader *multipart.FileHeader) error {
 var avatarSizes = map[string]int{"sm": 32, "md": 64, "lg": 128}
 
 func (service *Profile) GetAvatarUrlById(ctx context.Context, userId uuid.UUID, size string) (*string, error) {
+	if _, ok := avatarSizes[size]; !ok {
+		return nil, errors.NewBadRequestError("Invalid size", nil)
+	}
+
+	cacheKey := fmt.Sprintf("avatar:%s:%s", userId, size)
+	cachedUrl, err := service.redisClient.Get(ctx, cacheKey).Result()
+	if err == nil {
+		if service.isDebug {
+			reqId := middleware.GetReqID(ctx)
+			log.Printf("[%s] Cache found of avatar URL for userId = %s with size = %s", reqId, userId, size)
+		}
+		return &cachedUrl, nil
+	} else if err != redis.Nil {
+		return nil, errors.NewInternalServerError("Error occurred getting avatar URL from cache", err)
+	}
+
 	profile, err := service.GetProfileById(ctx, userId)
 	if err != nil {
 		return nil, err
@@ -400,15 +435,21 @@ func (service *Profile) GetAvatarUrlById(ctx context.Context, userId uuid.UUID, 
 		return nil, nil
 	}
 
-	if _, ok := avatarSizes[size]; !ok {
-		return nil, errors.NewBadRequestError("Invalid size", nil)
-	}
-
 	dimensions := avatarSizes[size]
 
-	url, err := service.imageService.GetResizedImageUrl(*profile.AvatarUrl, dimensions, dimensions)
+	url, err := service.imageService.GetResizedImageUrl(*profile.AvatarUrl, dimensions, dimensions, profile.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
+
+	err = service.redisClient.Set(ctx, cacheKey, url, time.Hour*24*30).Err()
+	if service.isDebug {
+		reqId := middleware.GetReqID(ctx)
+		log.Printf("[%s] Avatar URL '%s' for userId = %s with size = %s added to cache", reqId, url, userId, size)
+	}
+	if err != nil {
+		log.Printf("Error occurred setting avatar URL to cache: %v", err)
+	}
+
 	return &url, nil
 }

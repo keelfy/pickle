@@ -30,8 +30,13 @@ func InitializePickle(ctx context.Context) (*api.Pickle, func(), error) {
 		cleanup()
 		return nil, nil, err
 	}
+	redisClient, err := storage.InitRedisClient(ctx)
+	if err != nil {
+		cleanup()
+		return nil, nil, err
+	}
 	image := services.NewImageService()
-	profile := services.NewProfileService(sqlDatabase, client, image)
+	profile := services.NewProfileService(sqlDatabase, client, redisClient, image)
 	user := handlers.NewUserHandler(profile, image)
 	typedClient, err := storage.InitElasticsearchClient()
 	if err != nil {

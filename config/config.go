@@ -12,6 +12,10 @@ func GetPort() string {
 	return os.Getenv("PORT")
 }
 
+func IsDebug() bool {
+	return os.Getenv("DEBUG") == "true"
+}
+
 func GetSupabaseUrl() string {
 	return os.Getenv("SUPABASE_URL")
 }
@@ -28,16 +32,12 @@ func GetDatabaseURL() string {
 	return os.Getenv("DATABASE_URL")
 }
 
+func GetRedisURL() string {
+	return os.Getenv("REDIS_URL")
+}
+
 func GetElasticsearchUrls() []string {
 	return strings.Split(os.Getenv("ELASTICSEARCH_URLS"), ";")
-}
-
-func GetElasticsearchUsername() string {
-	return os.Getenv("ELASTICSEARCH_USERNAME")
-}
-
-func GetElasticsearchPassword() string {
-	return os.Getenv("ELASTICSEARCH_PASSWORD")
 }
 
 func GetContextTimeoutMs() time.Duration {

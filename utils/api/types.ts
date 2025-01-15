@@ -7,7 +7,7 @@ type Profile = {
 };
 
 type ProfileAvatar = {
-    url: string | null;
+    url: string | undefined;
     width: number;
     height: number;
 }

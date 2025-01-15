@@ -32,7 +32,7 @@ export default async function ProfileDropdownMenu() {
 
     const profile = await getMyProfile().catch(() => undefined);
     
-    const avatarUrl = await getMyAvatar("md")
+    const avatarUrl: string | undefined = await getMyAvatar("md")
         .then((res) => res?.url)
         .catch(() => undefined);
 

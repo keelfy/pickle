@@ -325,7 +325,9 @@ function RootLayout({ children, params }: React.PropsWithChildren<Props>) {
         <main className="min-h-screen bg-background">
             <div className="container max-w-7xl flex flex-col gap-20">
                 <nav className="mt-10">
-                    <NavMenu params={params} />
+                    <Suspense>
+                        <NavMenu params={params} />
+                    </Suspense>
                 </nav>
 
                 <Suspense>

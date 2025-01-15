@@ -10,8 +10,8 @@ const nextConfig = {
         ],
     },
     experimental: {
-        ppr: true,
-        dynamicIO: true,
+        // ppr: true,
+        // dynamicIO: true,
         typedRoutes: true,
     },
 };

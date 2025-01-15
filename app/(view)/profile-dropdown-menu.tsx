@@ -38,7 +38,7 @@ export default async function ProfileDropdownMenu() {
     //     .then((res) => res?.url)
     //     .catch(() => undefined);
 
-    const profile = undefined,
+    let profile: Profile | undefined,
         avatarUrl = undefined;
 
     return (

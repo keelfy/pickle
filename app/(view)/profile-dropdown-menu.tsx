@@ -33,13 +33,10 @@ export default async function ProfileDropdownMenu() {
         return <LoggedOutProfileNavSection />;
     }
 
-    // const profile = await getMyProfile().catch(() => undefined);
-    // const avatarUrl = await getMyAvatar("md")
-    //     .then((res) => res?.url)
-    //     .catch(() => undefined);
-
-    let profile: Profile | undefined,
-        avatarUrl = undefined;
+    const profile = await getMyProfile().catch(() => undefined);
+    const avatarUrl = await getMyAvatar("md")
+        .then((res) => res?.url)
+        .catch(() => undefined);
 
     return (
         <DropdownMenuDialogWrapper>

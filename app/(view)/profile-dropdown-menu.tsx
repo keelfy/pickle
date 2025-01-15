@@ -29,10 +29,9 @@ import ProfileSettingsDialog from "@/components/view/dialog/profile-settings/pro
 
 export default async function ProfileDropdownMenu() {
     const user = await getUser();
-
     const profile = await getMyProfile().catch(() => undefined);
-    
-    const avatarUrl: string | undefined = await getMyAvatar("md")
+
+    const avatarUrl = await getMyAvatar("md")
         .then((res) => res?.url)
         .catch(() => undefined);
 

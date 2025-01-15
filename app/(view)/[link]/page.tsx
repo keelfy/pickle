@@ -19,11 +19,9 @@ export default async function Page({ params }: Props) {
     // const searchParams = useSearchParams();
     // const page = parseInt(searchParams.get("page") ?? "0");
 
-    let ownerProfile: Profile | undefined = undefined;
+    const ownerProfile = await getProfileByLink(link).catch(() => undefined);
 
-    try {
-        ownerProfile = await getProfileByLink(link);
-    } catch (error: any) {
+    if (!ownerProfile) {
         return null;
     }
 

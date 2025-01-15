@@ -50,31 +50,46 @@ import CurrentDate from "./current-date";
 import MenuItemUnderline from "./menu-item-underline";
 import OpenModalButton from "./open-modal-button";
 
+async function ProfileAvatar({ profile }: { profile: Profile | undefined }) {
+    const avatarUrl = await getProfileAvatar(profile, "lg")
+        .then((res) => res?.url ?? undefined)
+        .catch(() => undefined);
+
+    return (
+        <Avatar className="h-32 w-32">
+            <AvatarImage src={avatarUrl} asChild>
+                {avatarUrl && (
+                    <Image
+                        src={avatarUrl}
+                        alt="Avatar"
+                        width={128}
+                        height={128}
+                        unoptimized
+                    />
+                )}
+            </AvatarImage>
+            <AvatarFallback>{profile?.link.substring(0, 1)}</AvatarFallback>
+        </Avatar>
+    );
+}
+
 async function LayoutBody({
     children,
     params,
 }: React.PropsWithChildren<Props>) {
     const { link } = await params;
-    let ownerProfile: Profile | undefined = undefined;
 
-    try {
-        ownerProfile = await getProfileByLink(link);
-    } catch (error: any) {
+    const ownerProfile = await getProfileByLink(link).catch(
+        (error: any) => error.message
+    );
+
+    if (!ownerProfile || typeof ownerProfile === "string") {
         return (
             <div className="flex flex-col space-y-2 items-center justify-center h-full text-center">
                 <p className="font-semibold text-lg">Profile not found.</p>
-                <p className="text-red-300">{error.message}</p>
+                <p className="text-red-300">{ownerProfile}</p>
             </div>
         );
-    }
-
-    let avatarUrl: string | undefined;
-    try {
-        avatarUrl = await getProfileAvatar(ownerProfile, "lg").then(
-            (res) => res?.url ?? undefined
-        );
-    } catch (error) {
-        console.error("Unable to retrieve profile avatar", error);
     }
 
     return (
@@ -86,22 +101,17 @@ async function LayoutBody({
                             {ownerProfile?.username}
                         </div>
                         <div className="flex items-center justify-between px-4">
-                            <Avatar className="h-32 w-32">
-                                <AvatarImage src={avatarUrl} asChild>
-                                    {avatarUrl && (
-                                        <Image
-                                            src={avatarUrl}
-                                            alt="Avatar"
-                                            width={128}
-                                            height={128}
-                                            unoptimized
-                                        />
-                                    )}
-                                </AvatarImage>
-                                <AvatarFallback>
-                                    {link.substring(0, 1)}
-                                </AvatarFallback>
-                            </Avatar>
+                            <Suspense
+                                fallback={
+                                    <Avatar className="h-32 w-32">
+                                        <AvatarFallback>
+                                            {link.substring(0, 1)}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                }
+                            >
+                                <ProfileAvatar profile={ownerProfile} />
+                            </Suspense>
                             <table className="w-[40%]">
                                 <tbody>
                                     <tr>

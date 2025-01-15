@@ -29,18 +29,12 @@ import ProfileSettingsDialog from "@/components/view/dialog/profile-settings/pro
 
 export default async function ProfileDropdownMenu() {
     const user = await getUser();
-    let profile = undefined,
-        avatarUrl = undefined;
 
-    try {
-        profile = await getMyProfile();
-    } catch (error: any) {}
-
-    try {
-        avatarUrl = await getMyAvatar("md").then(
-            (res) => res?.url ?? undefined
-        );
-    } catch (error: any) {}
+    const profile = await getMyProfile().catch(() => undefined);
+    
+    const avatarUrl = await getMyAvatar("md")
+        .then((res) => res?.url)
+        .catch(() => undefined);
 
     if (!user) {
         return <LoggedOutProfileNavSection />;

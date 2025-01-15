@@ -39,10 +39,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useModalStore } from "@/providers/modal";
 import { useOrderStore } from "@/providers/order";
-import { fetchWithAuth } from "@/utils/api/client";
-import {
-    gameNoteStatusLabels
-} from "@/utils/api/constants";
+import { fetchApi } from "@/utils/api/client";
+import { gameNoteStatusLabels } from "@/utils/api/constants";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PopoverClose } from "@radix-ui/react-popover";
 import { ArrowLeft, ArrowRight, ChevronsUpDown, Edit } from "lucide-react";
@@ -108,7 +106,7 @@ export default function GameNoteEditorDialogContent() {
     const onSubmit = (values: z.infer<typeof formSchema>) => {
         startTransition(async () => {
             try {
-                await fetchWithAuth(`/v1/game-notes`, {
+                await fetchApi(`/v1/game-notes`, true, {
                     method: "POST",
                     body: JSON.stringify(values),
                 });

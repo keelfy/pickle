@@ -2,8 +2,6 @@ package services
 
 import (
 	"context"
-	"fmt"
-	"strings"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -13,15 +11,27 @@ import (
 	"github.com/pickle.pw/monolith/internal/types"
 )
 
-type Order struct {
-	sqlDb                *storage.SQLDatabase
-	userService          *Profile
-	ordererService       *Orderer
-	gameNoteOrderService *GameNoteOrder
+type OrderService interface {
+	GetOrderById(ctx context.Context, id uuid.UUID) (*db.Order, error)
+	GetSortedByReceiverId(ctx context.Context, receiverId uuid.UUID, sort *types.CursorSort) ([]*db.Order, error)
+	ApproveOrderByIdAndReceiverId(ctx context.Context, orderId, receiverId, initiatorUserId uuid.UUID) (*db.Order, error)
+	UpdateOrderStatus(ctx context.Context, order *db.Order, status db.OrderStatus, initiatorUserID uuid.UUID) (*db.Order, error)
+	CreateOrder(ctx context.Context, userId uuid.UUID, req *types.CreateOrderReq) (*db.Order, error)
+	UpdateOrderById(ctx context.Context, orderId uuid.UUID, req *types.UpdateOrderReq, userId uuid.UUID) (*db.Order, error)
+	ApproveOrderById(ctx context.Context, orderId, gameNoteId, userId uuid.UUID) (*db.Order, error)
+	GetPaginatedByGameNoteId(ctx context.Context, id uuid.UUID, pagination *types.Pagination) ([]*db.Order, error)
+	CountGameNotesById(ctx context.Context, id uuid.UUID) (int64, error)
 }
 
-func NewOrderService(sqlDb *storage.SQLDatabase, userService *Profile, ordererService *Orderer, gameNoteOrderService *GameNoteOrder) *Order {
-	return &Order{
+type orderService struct {
+	sqlDb                storage.SQLDatabase
+	userService          ProfileService
+	ordererService       OrdererService
+	gameNoteOrderService GameNoteOrderService
+}
+
+func NewOrderService(sqlDb storage.SQLDatabase, userService ProfileService, ordererService OrdererService, gameNoteOrderService GameNoteOrderService) OrderService {
+	return &orderService{
 		sqlDb:                sqlDb,
 		userService:          userService,
 		ordererService:       ordererService,
@@ -29,8 +39,8 @@ func NewOrderService(sqlDb *storage.SQLDatabase, userService *Profile, ordererSe
 	}
 }
 
-func (service *Order) GetOrderById(ctx context.Context, id uuid.UUID) (*db.Order, error) {
-	orders, err := service.sqlDb.Queries.FindOrderById(ctx, id)
+func (service *orderService) GetOrderById(ctx context.Context, id uuid.UUID) (*db.Order, error) {
+	orders, err := service.sqlDb.Queries().FindOrderById(ctx, id)
 	if err == pgx.ErrNoRows {
 		return nil, errors.NewBadRequestError("Order not found", err)
 	} else if err != nil {
@@ -39,67 +49,19 @@ func (service *Order) GetOrderById(ctx context.Context, id uuid.UUID) (*db.Order
 	return orders, nil
 }
 
-func (service *Order) GetSortedByReceiverId(ctx context.Context, receiverId uuid.UUID, sort *types.CursorSort) ([]*db.Order, error) {
-	orders, err := service.findSortedOrdersByReceiverId(ctx, receiverId, sort)
+func (service *orderService) GetSortedByReceiverId(ctx context.Context, receiverId uuid.UUID, sort *types.CursorSort) ([]*db.Order, error) {
+	orders, err := service.sqlDb.FindSortedOrdersByReceiverId(ctx, receiverId, sort)
 	if err != nil {
 		return nil, errors.NewInternalServerError("Error occurred during orders fetching", err)
 	}
 	return orders, nil
 }
 
-const findOrdersByReceiverIdQuery = `
-	SELECT id, created_at, payment_type, amount, status, orderer_username, message, category, updated_message, updated_category
-	FROM "orders"
-	WHERE "receiver_id" = $1 
-		AND "%s" %s $2 
-	ORDER BY "%s" %s 
-	LIMIT $3
-`
-
-// Author: Egor Kuzmin (keelfy)
-// Queries orders by receiver id with cursor pagination and dynamic sorting
-func (service *Order) findSortedOrdersByReceiverId(ctx context.Context, receiverID uuid.UUID, sort *types.CursorSort) ([]*db.Order, error) {
-	comparisonOperator := "<"
-	if strings.ToUpper(sort.Direction) == "DESC" {
-		comparisonOperator = ">"
-	}
-
-	query := fmt.Sprintf(findOrdersByReceiverIdQuery, sort.Column, comparisonOperator, strings.ToLower(sort.Column), strings.ToUpper(sort.Direction))
-	rows, err := service.sqlDb.Conn.Query(ctx, query, receiverID, sort.Cursor, sort.Limit)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []*db.Order
-	for rows.Next() {
-		var i db.Order
-		if err := rows.Scan(
-			&i.ID,
-			&i.CreatedAt,
-			&i.PaymentType,
-			&i.Amount,
-			&i.Status,
-			&i.OrdererUsername,
-			&i.Message,
-			&i.Category,
-			&i.UpdatedMessage,
-			&i.UpdatedCategory,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, &i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 // Validates that receivers of the order by ID equals provided and approves the order if so
 // Returns CustomError as error
-func (service *Order) ApproveOrderByIdAndReceiverId(ctx context.Context, orderId, receiverId, initiatorUserId uuid.UUID) (*db.Order, error) {
+func (service *orderService) ApproveOrderByIdAndReceiverId(ctx context.Context, orderId, receiverId, initiatorUserId uuid.UUID) (*db.Order, error) {
 	// Find initial order for this game note
-	initialOrder, err := service.sqlDb.Queries.FindOrderById(ctx, orderId)
+	initialOrder, err := service.sqlDb.Queries().FindOrderById(ctx, orderId)
 	if err != nil {
 		return nil, errors.NewInternalServerError("Error occurred during initial order search", err)
 	}
@@ -115,7 +77,7 @@ func (service *Order) ApproveOrderByIdAndReceiverId(ctx context.Context, orderId
 	}
 
 	// Approve the order
-	initialOrder, err = service.sqlDb.Queries.UpdateOrderById(ctx, db.UpdateOrderByIdParams{
+	initialOrder, err = service.sqlDb.Queries().UpdateOrderById(ctx, db.UpdateOrderByIdParams{
 		ID:        initialOrder.ID,
 		UpdatedBy: initiatorUserId,
 		Status:    db.OrderStatusApproved,
@@ -129,9 +91,9 @@ func (service *Order) ApproveOrderByIdAndReceiverId(ctx context.Context, orderId
 
 // Validates that receivers of the order by ID equals provided and approves the order if so
 // Returns CustomError as error
-func (service *Order) UpdateOrderStatus(ctx context.Context, order *db.Order, status db.OrderStatus, initiatorUserID uuid.UUID) (*db.Order, error) {
+func (service *orderService) UpdateOrderStatus(ctx context.Context, order *db.Order, status db.OrderStatus, initiatorUserID uuid.UUID) (*db.Order, error) {
 	// Approve the order
-	approvedOrder, err := service.sqlDb.Queries.UpdateOrderById(ctx, db.UpdateOrderByIdParams{
+	approvedOrder, err := service.sqlDb.Queries().UpdateOrderById(ctx, db.UpdateOrderByIdParams{
 		ID:        order.ID,
 		Status:    status,
 		UpdatedBy: initiatorUserID,
@@ -146,7 +108,7 @@ func (service *Order) UpdateOrderStatus(ctx context.Context, order *db.Order, st
 	return approvedOrder, nil
 }
 
-func (service *Order) CreateOrder(ctx context.Context, userId uuid.UUID, req *types.CreateOrderReq) (*db.Order, error) {
+func (service *orderService) CreateOrder(ctx context.Context, userId uuid.UUID, req *types.CreateOrderReq) (*db.Order, error) {
 	creator, err := service.userService.GetProfileById(ctx, userId)
 	if err != nil {
 		return nil, err
@@ -162,7 +124,7 @@ func (service *Order) CreateOrder(ctx context.Context, userId uuid.UUID, req *ty
 		return nil, err
 	}
 
-	createdOrder, err := service.sqlDb.Queries.InsertOrder(ctx, db.InsertOrderParams{
+	createdOrder, err := service.sqlDb.Queries().InsertOrder(ctx, db.InsertOrderParams{
 		CreatedBy:       creator.UserID,
 		UpdatedBy:       creator.UserID,
 		ReceiverID:      receiver.UserID,
@@ -181,7 +143,7 @@ func (service *Order) CreateOrder(ctx context.Context, userId uuid.UUID, req *ty
 	return createdOrder, nil
 }
 
-func (service *Order) UpdateOrderById(ctx context.Context, orderId uuid.UUID, req *types.UpdateOrderReq, userId uuid.UUID) (*db.Order, error) {
+func (service *orderService) UpdateOrderById(ctx context.Context, orderId uuid.UUID, req *types.UpdateOrderReq, userId uuid.UUID) (*db.Order, error) {
 	order, err := service.GetOrderById(ctx, orderId)
 	if err != nil {
 		return nil, err
@@ -195,7 +157,7 @@ func (service *Order) UpdateOrderById(ctx context.Context, orderId uuid.UUID, re
 		return nil, errors.NewBadRequestError("Only status 'rejected' is allowed to be set", nil)
 	}
 
-	updatedOrder, err := service.sqlDb.Queries.UpdateOrderById(ctx, db.UpdateOrderByIdParams{
+	updatedOrder, err := service.sqlDb.Queries().UpdateOrderById(ctx, db.UpdateOrderByIdParams{
 		ID:        order.ID,
 		UpdatedBy: userId,
 		Status:    req.Status,
@@ -209,7 +171,7 @@ func (service *Order) UpdateOrderById(ctx context.Context, orderId uuid.UUID, re
 	return updatedOrder, nil
 }
 
-func (service *Order) ApproveOrderById(ctx context.Context, orderId, gameNoteId, userId uuid.UUID) (*db.Order, error) {
+func (service *orderService) ApproveOrderById(ctx context.Context, orderId, gameNoteId, userId uuid.UUID) (*db.Order, error) {
 	order, err := service.GetOrderById(ctx, orderId)
 	if err != nil {
 		return nil, err
@@ -222,7 +184,7 @@ func (service *Order) ApproveOrderById(ctx context.Context, orderId, gameNoteId,
 	// TODO: validate the req body
 
 	// Approve the order
-	approvedOrder, err := service.sqlDb.Queries.UpdateOrderById(ctx, db.UpdateOrderByIdParams{
+	approvedOrder, err := service.sqlDb.Queries().UpdateOrderById(ctx, db.UpdateOrderByIdParams{
 		ID:        order.ID,
 		UpdatedBy: userId,
 		Status:    db.OrderStatusApproved,
@@ -240,8 +202,8 @@ func (service *Order) ApproveOrderById(ctx context.Context, orderId, gameNoteId,
 	return approvedOrder, nil
 }
 
-func (service *Order) GetPaginatedByGameNoteId(ctx context.Context, id uuid.UUID, pagination *types.Pagination) ([]*db.Order, error) {
-	orders, err := service.sqlDb.Queries.FindPaginatedOrdersByGameNoteId(ctx, db.FindPaginatedOrdersByGameNoteIdParams{
+func (service *orderService) GetPaginatedByGameNoteId(ctx context.Context, id uuid.UUID, pagination *types.Pagination) ([]*db.Order, error) {
+	orders, err := service.sqlDb.Queries().FindPaginatedOrdersByGameNoteId(ctx, db.FindPaginatedOrdersByGameNoteIdParams{
 		GameNoteID: id,
 		Limit:      int32(pagination.Size),
 		Offset:     int32(pagination.From),
@@ -252,8 +214,8 @@ func (service *Order) GetPaginatedByGameNoteId(ctx context.Context, id uuid.UUID
 	return orders, nil
 }
 
-func (service *Order) CountGameNotesById(ctx context.Context, id uuid.UUID) (int64, error) {
-	count, err := service.sqlDb.Queries.CountOrdersByGameNoteId(ctx, id)
+func (service *orderService) CountGameNotesById(ctx context.Context, id uuid.UUID) (int64, error) {
+	count, err := service.sqlDb.Queries().CountOrdersByGameNoteId(ctx, id)
 	if err != nil {
 		return 0, errors.NewInternalServerError("Error occurred during orders count", err)
 	}

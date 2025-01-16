@@ -14,21 +14,28 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-type GameNote struct {
-	userService     *services.Profile
-	gameNoteService *services.GameNote
-	orderService    *services.Order
+type GameNoteHandler interface {
+	CreateGameNote(w http.ResponseWriter, r *http.Request)
+	GetSortedByReceiverLink(w http.ResponseWriter, r *http.Request)
+	GetGameNoteById(w http.ResponseWriter, r *http.Request)
+	GetOrdersById(w http.ResponseWriter, r *http.Request)
 }
 
-func NewGameNoteHandler(userService *services.Profile, service *services.GameNote, orderService *services.Order) *GameNote {
-	return &GameNote{
+type gameNoteHandler struct {
+	userService     services.ProfileService
+	gameNoteService services.GameNoteService
+	orderService    services.OrderService
+}
+
+func NewGameNoteHandler(userService services.ProfileService, service services.GameNoteService, orderService services.OrderService) GameNoteHandler {
+	return &gameNoteHandler{
 		userService:     userService,
 		gameNoteService: service,
 		orderService:    orderService,
 	}
 }
 
-func (h *GameNote) CreateGameNote(w http.ResponseWriter, r *http.Request) {
+func (h *gameNoteHandler) CreateGameNote(w http.ResponseWriter, r *http.Request) {
 	// Unmarshal the request body
 	req := &types.CreateGameNoteReq{}
 	json.NewDecoder(r.Body).Decode(req)
@@ -52,10 +59,10 @@ func (h *GameNote) CreateGameNote(w http.ResponseWriter, r *http.Request) {
 
 	response := &types.GameNoteRes{}
 	copier.Copy(response, gameNote)
-	utils.WriteHttpJsonResponse(w, response)
+	utils.WriteHttpJsonResponse(ctx, w, response)
 }
 
-func (handler *GameNote) GetSortedByReceiverLink(w http.ResponseWriter, r *http.Request) {
+func (handler *gameNoteHandler) GetSortedByReceiverLink(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	link, err := utils.ReadPathVariable("link", r)
 	if err != nil {
@@ -83,10 +90,10 @@ func (handler *GameNote) GetSortedByReceiverLink(w http.ResponseWriter, r *http.
 
 	response := &[]types.GameNoteRes{}
 	copier.Copy(response, gameNotes)
-	utils.WriteHttpJsonResponse(w, response)
+	utils.WriteHttpJsonResponse(ctx, w, response)
 }
 
-func (handler *GameNote) GetGameNoteById(w http.ResponseWriter, r *http.Request) {
+func (handler *gameNoteHandler) GetGameNoteById(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	id, err := utils.ReadPathUUIDVariable("id", r)
 	if err != nil {
@@ -102,10 +109,10 @@ func (handler *GameNote) GetGameNoteById(w http.ResponseWriter, r *http.Request)
 
 	response := &types.GameNoteRes{}
 	copier.Copy(response, gameNote)
-	utils.WriteHttpJsonResponse(w, response)
+	utils.WriteHttpJsonResponse(ctx, w, response)
 }
 
-func (handler *GameNote) GetOrdersById(w http.ResponseWriter, r *http.Request) {
+func (handler *gameNoteHandler) GetOrdersById(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	id, err := utils.ReadPathUUIDVariable("id", r)
 	if err != nil {
@@ -151,5 +158,5 @@ func (handler *GameNote) GetOrdersById(w http.ResponseWriter, r *http.Request) {
 		TotalElements: totalElements,
 	}
 
-	utils.WriteHttpJsonResponse(w, response)
+	utils.WriteHttpJsonResponse(ctx, w, response)
 }

@@ -1,8 +1,10 @@
 package errors
 
 import (
-	"log"
+	"context"
 	"net/http"
+
+	"github.com/pickle.pw/monolith/internal/logger"
 )
 
 // CustomError represents an error with an associated HTTP status code.
@@ -24,19 +26,19 @@ func MapCustomErrorToHttpStatus(err error) int {
 	return http.StatusInternalServerError
 }
 
-func LogCustomError(err error) {
+func LogCustomError(ctx context.Context, err error) {
 	if customErr, ok := err.(*CustomError); ok {
-		log.Printf("%v: %v\n", customErr.Message, customErr.OriginalError)
+		logger.Errorf(ctx, "%v: %v", customErr.Message, customErr.OriginalError)
 	} else {
-		log.Printf("Error: %v\n", err)
+		logger.Errorf(ctx, "Error: %v", err)
 	}
 }
 
-func LogError(requestID string, err error) {
+func LogError(ctx context.Context, err error) {
 	if customErr, ok := err.(*CustomError); ok {
-		log.Printf("[%v] %v: %v\n", requestID, customErr.Message, customErr.OriginalError)
+		logger.Errorf(ctx, "%v: %v\n", customErr.Message, customErr.OriginalError)
 	} else {
-		log.Printf("[%v] Error: %v\n", requestID, err)
+		logger.Errorf(ctx, "Error: %v\n", err)
 	}
 }
 

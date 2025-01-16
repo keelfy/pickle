@@ -3,49 +3,53 @@ package services
 import (
 	"context"
 	"fmt"
-	"io"
-	"log"
 	"mime/multipart"
-	"net/http"
 	"path/filepath"
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 	petname "github.com/dustinkirkland/golang-petname"
-	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/pickle.pw/monolith/config"
 	db "github.com/pickle.pw/monolith/db/sqlc"
+	"github.com/pickle.pw/monolith/internal/config"
 	"github.com/pickle.pw/monolith/internal/errors"
+	"github.com/pickle.pw/monolith/internal/logger"
 	"github.com/pickle.pw/monolith/internal/storage"
 	"github.com/pickle.pw/monolith/internal/types"
-	"github.com/redis/go-redis/v9"
 )
 
-type Profile struct {
-	sqlDb        *storage.SQLDatabase
-	s3Client     *s3.Client
-	redisClient  *redis.Client
-	imageService *Image
+type ProfileService interface {
+	GetProfileById(ctx context.Context, userId uuid.UUID) (*db.Profile, error)
+	GetProfileByLink(ctx context.Context, userLink string) (*db.Profile, error)
+	ValidateLink(ctx context.Context, link string) error
+	UpdateProfile(ctx context.Context, userId uuid.UUID, req *types.UpdateProfileReq) (*db.Profile, error)
+	CreateProfileWebhook(ctx context.Context, req *types.SupabaseWebhookPayload) (*db.Profile, error)
+	UploadAvatarForPreviewById(ctx context.Context, userId uuid.UUID, file multipart.File, fileHeader *multipart.FileHeader) (string, error)
+	GetAvatarUrlById(ctx context.Context, userId uuid.UUID, size string) (*string, error)
+}
+
+type profileService struct {
+	sqlDb        storage.SQLDatabase
+	s3Client     storage.S3Client
+	cache        storage.CacheClient
+	imageService ImageService
 	isDebug      bool
 }
 
-func NewProfileService(sqlDb *storage.SQLDatabase, s3Client *s3.Client, redisClient *redis.Client, imageService *Image) *Profile {
-	return &Profile{
+func NewProfileService(sqlDb storage.SQLDatabase, s3Client storage.S3Client, cache storage.CacheClient, imageService ImageService) ProfileService {
+	return &profileService{
 		sqlDb:        sqlDb,
 		s3Client:     s3Client,
-		redisClient:  redisClient,
+		cache:        cache,
 		imageService: imageService,
 		isDebug:      config.IsDebug(),
 	}
 }
 
 // Return not null models.User or CustomError
-func (service *Profile) GetProfileById(ctx context.Context, userId uuid.UUID) (*db.Profile, error) {
-	user, err := service.sqlDb.Queries.FindProfileById(ctx, userId)
+func (service *profileService) GetProfileById(ctx context.Context, userId uuid.UUID) (*db.Profile, error) {
+	user, err := service.sqlDb.Queries().FindProfileById(ctx, userId)
 	if err == pgx.ErrNoRows {
 		return nil, errors.NewNotFoundError("Profile not found", err)
 	} else if err != nil {
@@ -56,8 +60,8 @@ func (service *Profile) GetProfileById(ctx context.Context, userId uuid.UUID) (*
 }
 
 // Return not null models.User or CustomError
-func (service *Profile) GetProfileByLink(ctx context.Context, userLink string) (*db.Profile, error) {
-	user, err := service.sqlDb.Queries.FindProfileByLink(ctx, strings.ToLower(userLink))
+func (service *profileService) GetProfileByLink(ctx context.Context, userLink string) (*db.Profile, error) {
+	user, err := service.sqlDb.Queries().FindProfileByLink(ctx, strings.ToLower(userLink))
 	if err == pgx.ErrNoRows {
 		return nil, errors.NewNotFoundError("Profile not found", err)
 	} else if err != nil {
@@ -82,7 +86,7 @@ var restrictedLinks = []string{
 	"dashboard",
 }
 
-func (service *Profile) ValidateLink(ctx context.Context, link string) error {
+func (service *profileService) ValidateLink(ctx context.Context, link string) error {
 	if len(link) < 1 {
 		return errors.NewBadRequestError("Required at least 3 symbols", nil)
 	} else if len(link) < 3 {
@@ -105,7 +109,7 @@ func (service *Profile) ValidateLink(ctx context.Context, link string) error {
 	}
 
 	// validate link uniqueness
-	_, err := service.sqlDb.Queries.FindProfileByLink(ctx, link)
+	_, err := service.sqlDb.Queries().FindProfileByLink(ctx, link)
 	if err != nil && err != pgx.ErrNoRows {
 		return errors.NewInternalServerError("Error occurred looking for a profile by link", err)
 	} else if err == nil {
@@ -115,7 +119,7 @@ func (service *Profile) ValidateLink(ctx context.Context, link string) error {
 	return nil
 }
 
-func (service *Profile) UpdateProfile(ctx context.Context, userId uuid.UUID, req *types.UpdateProfileReq) (*db.Profile, error) {
+func (service *profileService) UpdateProfile(ctx context.Context, userId uuid.UUID, req *types.UpdateProfileReq) (*db.Profile, error) {
 	profile, err := service.GetProfileById(ctx, userId)
 	if err != nil {
 		return nil, err
@@ -140,40 +144,37 @@ func (service *Profile) UpdateProfile(ctx context.Context, userId uuid.UUID, req
 	}
 
 	avatarUrl := profile.AvatarUrl
+	avatarUrlUpdatedAt := profile.AvatarUrlUpdatedAt
 
 	if profile.AvatarPreviewKey != nil {
-		newBucketName := config.GetAvatarBucketName()
+		bucketName := config.GetAvatarBucketName()
 		key := *profile.AvatarPreviewKey
+		previewKey := "preview/" + key
 
-		err := storage.MoveS3File(ctx, config.GetPreviewAvatarBucketName(), newBucketName, key, key, service.s3Client)
+		err := service.s3Client.MoveObject(ctx, bucketName, bucketName, previewKey, key)
 		if err != nil {
 			return nil, errors.NewInternalServerError("Error occurred getting preview avatar", err)
 		}
 
-		url := fmt.Sprintf("s3://%s/%s", newBucketName, key)
+		url := fmt.Sprintf("s3://%s/%s", bucketName, key)
 
 		if avatarUrl != nil && avatarUrl != &url {
-			_, err = service.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
-				Bucket: aws.String(newBucketName),
-				Key:    aws.String(*avatarUrl),
-			})
+			err = service.s3Client.DeleteObject(ctx, bucketName, *avatarUrl)
 			if err != nil {
-				log.Printf("Error occurred deleting preview avatar: %v", err)
+				logger.Errorf(ctx, "Error occurred deleting preview avatar: %v", err)
 			}
 		}
 
 		for size := range avatarSizes {
 			cacheKey := fmt.Sprintf("avatar:%s:%s", userId, size)
-			err = service.redisClient.Del(ctx, cacheKey).Err()
+			err = service.cache.DeleteKey(ctx, cacheKey)
 			if err != nil {
-				log.Printf("Error occurred deleting avatar URL from cache: %v", err)
-			} else if service.isDebug {
-				reqId := middleware.GetReqID(ctx)
-				log.Printf("[%s] Cache of avatar URL for userId = %s with size = %s cleared.", reqId, userId, size)
+				logger.Errorf(ctx, "Error occurred deleting avatar URL from cache: %v", err)
 			}
 		}
 
 		avatarUrl = &url
+		avatarUrlUpdatedAt = time.Now()
 	}
 
 	// lower the link
@@ -185,14 +186,15 @@ func (service *Profile) UpdateProfile(ctx context.Context, userId uuid.UUID, req
 	}
 
 	// update profile
-	updatedProfile, err := service.sqlDb.Queries.UpdateProfileByUserId(ctx, db.UpdateProfileByUserIdParams{
-		UserID:           profile.UserID,
-		UpdatedBy:        &profile.UserID,
-		Username:         req.Username,
-		Link:             strings.ToLower(req.Link),
-		Description:      description,
-		AvatarUrl:        avatarUrl,
-		AvatarPreviewKey: nil,
+	updatedProfile, err := service.sqlDb.Queries().UpdateProfileByUserId(ctx, db.UpdateProfileByUserIdParams{
+		UserID:             profile.UserID,
+		UpdatedBy:          &profile.UserID,
+		Username:           req.Username,
+		Link:               strings.ToLower(req.Link),
+		Description:        description,
+		AvatarUrl:          avatarUrl,
+		AvatarPreviewKey:   nil,
+		AvatarUrlUpdatedAt: avatarUrlUpdatedAt,
 	})
 	if err == pgx.ErrNoRows {
 		return nil, errors.NewNotFoundError("Profile not found", err)
@@ -203,7 +205,7 @@ func (service *Profile) UpdateProfile(ctx context.Context, userId uuid.UUID, req
 	return updatedProfile, nil
 }
 
-func (service *Profile) CreateProfileWebhook(ctx context.Context, req *types.SupabaseWebhookPayload) (*db.Profile, error) {
+func (service *profileService) CreateProfileWebhook(ctx context.Context, req *types.SupabaseWebhookPayload) (*db.Profile, error) {
 	email := (*req.Record)["email"].(string)
 	if len(email) < 1 {
 		return nil, errors.NewBadRequestError("Email is required", nil)
@@ -265,7 +267,7 @@ func (service *Profile) CreateProfileWebhook(ctx context.Context, req *types.Sup
 		attempts++
 	}
 
-	createdProfile, err := service.sqlDb.Queries.InsertProfile(ctx, db.InsertProfileParams{
+	createdProfile, err := service.sqlDb.Queries().InsertProfile(ctx, db.InsertProfileParams{
 		UserID:           userId,
 		Username:         name,
 		Description:      "",
@@ -282,9 +284,9 @@ func (service *Profile) CreateProfileWebhook(ctx context.Context, req *types.Sup
 }
 
 // Saves the avatar of the user with the given id to S3
-func (service *Profile) UploadAvatar(ctx context.Context, userId uuid.UUID, file multipart.File, fileHeader *multipart.FileHeader) (string, error) {
-	if err := validateFile(file, fileHeader); err != nil {
-		return "", errors.NewBadRequestError("Invalid file", err)
+func (service *profileService) UploadAvatarForPreviewById(ctx context.Context, userId uuid.UUID, file multipart.File, fileHeader *multipart.FileHeader) (string, error) {
+	if err := service.imageService.ValidateMultipartImage(file, fileHeader); err != nil {
+		return "", err
 	}
 
 	profile, err := service.GetProfileById(ctx, userId)
@@ -299,34 +301,30 @@ func (service *Profile) UploadAvatar(ctx context.Context, userId uuid.UUID, file
 	ext := filepath.Ext(fileHeader.Filename)
 	fileName := fmt.Sprintf("%s%s", userId, ext)
 
-	bucketName := config.GetPreviewAvatarBucketName()
+	bucketName := config.GetAvatarBucketName()
+	previewKey := "preview/" + fileName
 
 	// Upload the file to S3
-	previewAvatarUrl, err := storage.UploadFileToS3(ctx, bucketName, fileName, file, service.s3Client)
+	err = service.s3Client.UploadFileToS3(ctx, bucketName, previewKey, file)
 	if err != nil {
 		return "", errors.NewInternalServerError("Error occurred uploading file", err)
 	}
 
 	// update profile
-	err = service.sqlDb.Queries.UpdateProfilePreviewAvatarByUserId(ctx, db.UpdateProfilePreviewAvatarByUserIdParams{
+	profile, err = service.sqlDb.Queries().UpdateProfilePreviewAvatarByUserId(ctx, db.UpdateProfilePreviewAvatarByUserIdParams{
 		UserID:           profile.UserID,
 		UpdatedBy:        &profile.UserID,
-		AvatarPreviewKey: &previewAvatarUrl,
+		AvatarPreviewKey: &fileName,
 	})
 	if err != nil {
-		_, err1 := service.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
-			Bucket: aws.String(bucketName),
-			Key:    aws.String(fileName),
-		})
-		if err1 != nil {
-			return "", errors.NewInternalServerError("Error occurred deleting file", err1)
+		if err1 := service.s3Client.DeleteObject(ctx, bucketName, previewKey); err1 != nil {
+			logger.Errorf(ctx, "Error occurred deleting preview avatar: %v", err1)
 		}
-
 		return "", errors.NewInternalServerError("Error occurred updating profile", err)
 	}
 
 	size := avatarSizes["lg"]
-	imageUrl, err := service.imageService.GetResizedImageUrlFromS3(bucketName, previewAvatarUrl, size, size, profile.UpdatedAt)
+	imageUrl, err := service.imageService.GetResizedImageUrlFromS3(bucketName, previewKey, size, size, &profile.UpdatedAt)
 	if err != nil {
 		return "", errors.NewInternalServerError("Error occurred getting profile avatar URL", err)
 	}
@@ -334,96 +332,21 @@ func (service *Profile) UploadAvatar(ctx context.Context, userId uuid.UUID, file
 	return imageUrl, nil
 }
 
-var allowedExtensions = []string{
-	".png",
-	".jpg",
-	".jpeg",
-	".gif",
-	".bmp",
-	".webp",
-}
-var allowedMimeTypes = []string{
-	"image/jpeg",
-	"image/png",
-	"image/gif",
-	"image/webp",
-	"image/bmp",
-}
-
-func validateFile(file multipart.File, fileHeader *multipart.FileHeader) error {
-	if fileHeader.Size > 5*1024*1024 { // 5MB limit
-		return errors.NewBadRequestError("File size exceeds 5MB", nil)
-	}
-
-	// Check file extension
-	ext := filepath.Ext(fileHeader.Filename)
-
-	isAllowed := false
-	for _, allowedExt := range allowedExtensions {
-		if ext == allowedExt {
-			isAllowed = true
-			break
-		}
-	}
-
-	if !isAllowed {
-		return errors.NewBadRequestError("Invalid file extension: "+ext, nil)
-	}
-
-	// Check MIME type
-	buffer := make([]byte, 512)
-	if _, err := file.Read(buffer); err != nil {
-		return errors.NewBadRequestError("Failed to read file", err)
-	}
-
-	mimeType := http.DetectContentType(buffer)
-
-	isAllowedMimeType := false
-	for _, allowedMimeType := range allowedMimeTypes {
-		if mimeType == allowedMimeType {
-			isAllowedMimeType = true
-			break
-		}
-	}
-
-	if !isAllowedMimeType {
-		return errors.NewBadRequestError("Invalid MIME type: "+mimeType, nil)
-	}
-
-	fileExtension := ext[1:]
-	if mimeType == "image/jpeg" && fileExtension == "jpg" {
-		fileExtension = "jpeg"
-	}
-
-	if !strings.HasSuffix(mimeType, fileExtension) {
-		return errors.NewBadRequestError("MIME type "+mimeType+" does not match file extension "+ext[1:], nil)
-	}
-
-	// Reset file pointer to start (for further processing)
-	if _, err := file.Seek(0, io.SeekStart); err != nil {
-		return errors.NewBadRequestError("Failed to reset file pointer: %w", err)
-	}
-
-	return nil
-}
-
 var avatarSizes = map[string]int{"sm": 32, "md": 64, "lg": 128}
 
-func (service *Profile) GetAvatarUrlById(ctx context.Context, userId uuid.UUID, size string) (*string, error) {
+func (service *profileService) GetAvatarUrlById(ctx context.Context, userId uuid.UUID, size string) (*string, error) {
 	if _, ok := avatarSizes[size]; !ok {
 		return nil, errors.NewBadRequestError("Invalid size", nil)
 	}
 
 	cacheKey := fmt.Sprintf("avatar:%s:%s", userId, size)
-	cachedUrl, err := service.redisClient.Get(ctx, cacheKey).Result()
-	if err == nil {
-		if service.isDebug {
-			reqId := middleware.GetReqID(ctx)
-			log.Printf("[%s] Cache found of avatar URL for userId = %s with size = %s", reqId, userId, size)
-		}
-		return &cachedUrl, nil
-	} else if err != redis.Nil {
+	cachedUrl, err := service.cache.GetKey(ctx, cacheKey)
+	if err != nil {
 		return nil, errors.NewInternalServerError("Error occurred getting avatar URL from cache", err)
+	}
+
+	if cachedUrl != nil {
+		return cachedUrl, nil
 	}
 
 	profile, err := service.GetProfileById(ctx, userId)
@@ -437,18 +360,14 @@ func (service *Profile) GetAvatarUrlById(ctx context.Context, userId uuid.UUID, 
 
 	dimensions := avatarSizes[size]
 
-	url, err := service.imageService.GetResizedImageUrl(*profile.AvatarUrl, dimensions, dimensions, profile.UpdatedAt)
+	url, err := service.imageService.GetResizedImageUrl(*profile.AvatarUrl, dimensions, dimensions, &profile.AvatarUrlUpdatedAt)
 	if err != nil {
 		return nil, err
 	}
 
-	err = service.redisClient.Set(ctx, cacheKey, url, time.Hour*24*30).Err()
-	if service.isDebug {
-		reqId := middleware.GetReqID(ctx)
-		log.Printf("[%s] Avatar URL '%s' for userId = %s with size = %s added to cache", reqId, url, userId, size)
-	}
+	err = service.cache.SetKey(ctx, cacheKey, url, time.Hour*24*30)
 	if err != nil {
-		log.Printf("Error occurred setting avatar URL to cache: %v", err)
+		logger.Errorf(ctx, "Error occurred setting avatar URL to cache: %v", err)
 	}
 
 	return &url, nil

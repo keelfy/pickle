@@ -25,6 +25,7 @@ type StatusRes struct {
 	Database       string `json:"database"`
 	Storage        string `json:"storage"`
 	Search         string `json:"search"`
+	Cache          string `json:"cache"`
 	Authentication string `json:"authentication"`
 }
 

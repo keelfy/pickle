@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS "profiles" (
     "user_id" uuid NOT NULL,
     "created_at" timestamptz NOT NULL DEFAULT now(),
     "updated_at" timestamptz NOT NULL DEFAULT now(),
+    "avatar_url_updated_at" timestamptz NOT NULL DEFAULT now(),
     -- nullable because webhook creates profile
     "updated_by" uuid,
     "username" text NOT NULL,
@@ -65,6 +66,14 @@ CREATE TABLE IF NOT EXISTS "orders" (
     FOREIGN KEY ("updated_by") REFERENCES "profiles"("user_id"),
     FOREIGN KEY ("orderer_id") REFERENCES "orderers"("id")
 );
+CREATE TABLE IF NOT EXISTS "poster_previews" (
+    "id" uuid NOT NULL,
+    "created_at" timestamptz NOT NULL DEFAULT now(),
+    "created_by" uuid NOT NULL,
+    "object_key" text NOT NULL,
+    PRIMARY KEY ("id"),
+    FOREIGN KEY ("created_by") REFERENCES "profiles"("user_id")
+);
 CREATE TABLE IF NOT EXISTS "game_notes" (
     "id" uuid NOT NULL DEFAULT gen_random_uuid(),
     "created_at" timestamptz NOT NULL DEFAULT now(),
@@ -82,6 +91,8 @@ CREATE TABLE IF NOT EXISTS "game_notes" (
     "ordered" boolean NOT NULL,
     "status" game_note_status NOT NULL DEFAULT('planned'),
     "last_played_at" timestamptz,
+    "poster_url" text,
+    "poster_updated_at" timestamptz NOT NULL DEFAULT now(),
     PRIMARY KEY ("id"),
     FOREIGN KEY ("user_id") REFERENCES "profiles"("user_id"),
     FOREIGN KEY ("created_by") REFERENCES "profiles"("user_id"),

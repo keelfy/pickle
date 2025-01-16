@@ -8,17 +8,21 @@ import (
 	"github.com/pickle.pw/monolith/internal/utils"
 )
 
-type Content struct {
-	contentService *services.Content
+type ContentHandler interface {
+	SearchContent(w http.ResponseWriter, r *http.Request)
 }
 
-func NewContentHandler(contentService *services.Content) *Content {
-	return &Content{
+type contentHandler struct {
+	contentService services.ContentService
+}
+
+func NewContentHandler(contentService services.ContentService) ContentHandler {
+	return &contentHandler{
 		contentService: contentService,
 	}
 }
 
-func (h *Content) SearchContent(w http.ResponseWriter, r *http.Request) {
+func (h *contentHandler) SearchContent(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	query, err := utils.GetRequiredQueryParam(r, "query")
@@ -58,5 +62,5 @@ func (h *Content) SearchContent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.WriteHttpJsonResponse(w, res)
+	utils.WriteHttpJsonResponse(ctx, w, res)
 }

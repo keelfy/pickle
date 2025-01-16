@@ -8,7 +8,7 @@ package main
 
 import (
 	"context"
-	"github.com/pickle.pw/monolith/cmd/api"
+	"github.com/pickle.pw/monolith/internal/api"
 	"github.com/pickle.pw/monolith/internal/handlers"
 	"github.com/pickle.pw/monolith/internal/services"
 	"github.com/pickle.pw/monolith/internal/storage"
@@ -20,47 +20,49 @@ import (
 
 // Injectors from wire.go:
 
-func InitializePickle(ctx context.Context) (*api.Pickle, func(), error) {
+func InitializeAPI(ctx context.Context) (api.PickleAPI, func(), error) {
 	sqlDatabase, cleanup, err := storage.NewPGXPoolWithCleanup(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
-	client, err := storage.InitS3Client()
+	s3Client, err := storage.NewS3Client(ctx)
 	if err != nil {
 		cleanup()
 		return nil, nil, err
 	}
-	redisClient, err := storage.InitRedisClient(ctx)
+	cacheClient, err := storage.NewCacheClient(ctx)
 	if err != nil {
 		cleanup()
 		return nil, nil, err
 	}
-	image := services.NewImageService()
-	profile := services.NewProfileService(sqlDatabase, client, redisClient, image)
-	user := handlers.NewUserHandler(profile, image)
-	typedClient, err := storage.InitElasticsearchClient()
+	imageService := services.NewImageService()
+	profileService := services.NewProfileService(sqlDatabase, s3Client, cacheClient, imageService)
+	profileHandler := handlers.NewUserHandler(profileService, imageService)
+	elasticClient, err := storage.NewElasticClient()
 	if err != nil {
 		cleanup()
 		return nil, nil, err
 	}
-	supabaseClient, err := storage.InitSupabase()
+	supabaseClient, err := storage.NewSupabaseClient(ctx)
 	if err != nil {
 		cleanup()
 		return nil, nil, err
 	}
-	status := services.NewStatusService(sqlDatabase, typedClient, supabaseClient, client)
-	handlersStatus := handlers.NewStatusHandler(status)
-	orderer := services.NewOrdererService(sqlDatabase)
-	gameNoteOrder := services.NewGameNoteOrderService(sqlDatabase)
-	order := services.NewOrderService(sqlDatabase, profile, orderer, gameNoteOrder)
-	handlersOrder := handlers.NewOrdersHandler(order, profile)
-	content := services.NewContentService(typedClient)
-	gameNote := services.NewGameNoteService(sqlDatabase, typedClient, order, profile, orderer, content, gameNoteOrder)
-	handlersGameNote := handlers.NewGameNoteHandler(profile, gameNote, order)
-	migrations := services.NewMigrationsService(sqlDatabase, typedClient)
-	handlersContent := handlers.NewContentHandler(content)
-	pickle := api.NewPickle(user, handlersStatus, handlersOrder, handlersGameNote, migrations, handlersContent)
-	return pickle, func() {
+	statusService := services.NewStatusService(supabaseClient, s3Client)
+	statusHandler := handlers.NewStatusHandler(sqlDatabase, elasticClient, cacheClient, statusService)
+	ordererService := services.NewOrdererService(sqlDatabase)
+	gameNoteOrderService := services.NewGameNoteOrderService(sqlDatabase)
+	orderService := services.NewOrderService(sqlDatabase, profileService, ordererService, gameNoteOrderService)
+	orderHandler := handlers.NewOrdersHandler(orderService, profileService)
+	contentService := services.NewContentService(elasticClient)
+	posterService := services.NewPosterService(sqlDatabase, s3Client, cacheClient, imageService, profileService)
+	gameNoteService := services.NewGameNoteService(sqlDatabase, elasticClient, orderService, profileService, ordererService, contentService, gameNoteOrderService, posterService)
+	gameNoteHandler := handlers.NewGameNoteHandler(profileService, gameNoteService, orderService)
+	posterHandler := handlers.NewPosterHandler(posterService)
+	migrationService := services.NewMigrationService(sqlDatabase, elasticClient)
+	contentHandler := handlers.NewContentHandler(contentService)
+	pickleAPI := api.NewPickleAPI(profileHandler, statusHandler, orderHandler, gameNoteHandler, posterHandler, migrationService, contentHandler)
+	return pickleAPI, func() {
 		cleanup()
 	}, nil
 }

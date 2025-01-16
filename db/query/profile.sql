@@ -32,14 +32,16 @@ SET "updated_at" = now(),
     "link" = $4,
     "description" = $5,
     "avatar_url" = $6,
-    "avatar_preview_key" = $7
+    "avatar_preview_key" = $7,
+    "avatar_url_updated_at" = $8
 WHERE "user_id" = $1
 RETURNING *;
 
 -- Author: Egor Kuzmin (keelfy)
--- name: UpdateProfilePreviewAvatarByUserId :exec
+-- name: UpdateProfilePreviewAvatarByUserId :one
 UPDATE "profiles"
 SET "updated_at" = now(),
     "updated_by" = $2,
     "avatar_preview_key" = $3
-WHERE "user_id" = $1;
+WHERE "user_id" = $1
+RETURNING *;

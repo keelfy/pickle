@@ -4,14 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 	"time"
 
-	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
 	"github.com/pickle.pw/monolith/internal/errors"
+	"github.com/pickle.pw/monolith/internal/logger"
 	"github.com/pickle.pw/monolith/internal/types"
 )
 
@@ -129,8 +128,8 @@ func ParseCursor(r *http.Request, columnType string) (interface{}, error) {
 	}
 }
 
-func LogAndWriteError(err error, w http.ResponseWriter) {
-	errors.LogCustomError(err)
+func LogAndWriteError(ctx context.Context, err error, w http.ResponseWriter) {
+	errors.LogCustomError(ctx, err)
 	status := errors.MapCustomErrorToHttpStatus(err)
 	msg := err.Error()
 	if msg == "" {
@@ -140,8 +139,7 @@ func LogAndWriteError(err error, w http.ResponseWriter) {
 }
 
 func HttpError(ctx context.Context, err error, w http.ResponseWriter) {
-	reqId := chiMiddleware.GetReqID(ctx)
-	errors.LogError(reqId, err)
+	errors.LogError(ctx, err)
 	status := errors.MapCustomErrorToHttpStatus(err)
 	msg := err.Error()
 	if msg == "" {
@@ -185,11 +183,11 @@ func ParseUUIDFromString(value string) (uuid.UUID, error) {
 	return uid, nil
 }
 
-func WriteHttpJsonResponse[T any](w http.ResponseWriter, res T) {
+func WriteHttpJsonResponse[T any](ctx context.Context, w http.ResponseWriter, res T) {
 	w.Header().Set(HeaderContentType, ApplicationJsonType)
 	w.WriteHeader(http.StatusOK)
 
 	if err := json.NewEncoder(w).Encode(res); err != nil {
-		log.Printf("Error data marshalling: %v", err)
+		logger.Errorf(ctx, "Error data marshalling: %v", err)
 	}
 }

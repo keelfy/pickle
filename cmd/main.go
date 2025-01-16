@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"os/signal"
 	"syscall"
@@ -11,7 +10,8 @@ import (
 	// autoload .env file
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/ory/graceful"
-	"github.com/pickle.pw/monolith/config"
+	"github.com/pickle.pw/monolith/internal/config"
+	"github.com/pickle.pw/monolith/internal/logger"
 )
 
 func main() {
@@ -19,16 +19,18 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM)
 	defer stop()
 
+	logger.PrepareLogger()
+
 	// Initialize dependencies with Wire
-	pickle, cleanup, err := InitializePickle(ctx)
+	api, cleanup, err := InitializeAPI(ctx)
 	if err != nil {
-		log.Fatalf("Failed to initialize app: %v", err)
+		logger.Fatalf(ctx, "Failed to initialize app: %v", err)
 	}
 	defer cleanup() // Ensure resources are cleaned up
 
-	r, err := pickle.BuildAPI()
+	r, err := api.BuildAPI(ctx)
 	if err != nil {
-		log.Fatalf("Failed to build API: %v", err)
+		logger.Fatalf(ctx, "Failed to build API: %v", err)
 	}
 
 	port := config.GetPort()
@@ -38,9 +40,9 @@ func main() {
 		Handler: r,
 	})
 
-	log.Printf("Starting the server on port %v", port)
+	logger.Infof(ctx, "Starting the server on port %v", port)
 	if err := graceful.Graceful(server.ListenAndServe, server.Shutdown); err != nil {
-		log.Fatalln("Failed to gracefully shutdown")
+		logger.Fatal(ctx, "Failed to gracefully shutdown")
 	}
-	log.Println("Server was shutdown gracefully")
+	logger.Infof(ctx, "Server was shutdown gracefully")
 }

@@ -7,22 +7,22 @@ import (
 	"context"
 
 	"github.com/google/wire"
-	"github.com/pickle.pw/monolith/cmd/api"
+	"github.com/pickle.pw/monolith/internal/api"
 	"github.com/pickle.pw/monolith/internal/handlers"
 	"github.com/pickle.pw/monolith/internal/services"
 	"github.com/pickle.pw/monolith/internal/storage"
 )
 
-func InitializePickle(ctx context.Context) (*api.Pickle, func(), error) {
+func InitializeAPI(ctx context.Context) (api.PickleAPI, func(), error) {
 	wire.Build(
 		storage.NewPGXPoolWithCleanup,
-		storage.InitSupabase,
-		storage.InitElasticsearchClient,
-		storage.InitS3Client,
-		storage.InitRedisClient,
+		storage.NewSupabaseClient,
+		storage.NewElasticClient,
+		storage.NewS3Client,
+		storage.NewCacheClient,
 		services.ProviderSet,
 		handlers.ProviderSet,
-		api.NewPickle,
+		api.NewPickleAPI,
 	)
-	return &api.Pickle{}, nil, nil
+	return nil, nil, nil
 }

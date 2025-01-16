@@ -2,29 +2,42 @@ package handlers
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 
 	"github.com/jinzhu/copier"
+	"github.com/pickle.pw/monolith/internal/config"
+	"github.com/pickle.pw/monolith/internal/logger"
 	"github.com/pickle.pw/monolith/internal/services"
 	"github.com/pickle.pw/monolith/internal/types"
 	"github.com/pickle.pw/monolith/internal/utils"
 )
 
-type User struct {
-	userService  *services.Profile
-	imageService *services.Image
+type ProfileHandler interface {
+	GetProfileById(w http.ResponseWriter, r *http.Request)
+	GetProfileByLink(w http.ResponseWriter, r *http.Request)
+	GetMyProfile(w http.ResponseWriter, r *http.Request)
+	UpdateSettings(w http.ResponseWriter, r *http.Request)
+	ValidateProfileLink(w http.ResponseWriter, r *http.Request)
+	GetProfileAvatarUrl(w http.ResponseWriter, r *http.Request)
+	GetMyProfileAvatarUrl(w http.ResponseWriter, r *http.Request)
+	UploadAvatar(w http.ResponseWriter, r *http.Request)
+	CreateProfileWebhook(w http.ResponseWriter, r *http.Request)
 }
 
-func NewUserHandler(userService *services.Profile, imageService *services.Image) *User {
-	return &User{
+type profileHandler struct {
+	userService  services.ProfileService
+	imageService services.ImageService
+}
+
+func NewUserHandler(userService services.ProfileService, imageService services.ImageService) ProfileHandler {
+	return &profileHandler{
 		userService:  userService,
 		imageService: imageService,
 	}
 }
 
 // Returns the profile of the user with the given id
-func (h *User) GetProfileById(w http.ResponseWriter, r *http.Request) {
+func (h *profileHandler) GetProfileById(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	id, err := utils.ReadPathUUIDVariable("id", r)
 	if err != nil {
@@ -44,12 +57,12 @@ func (h *User) GetProfileById(w http.ResponseWriter, r *http.Request) {
 	response := &types.ProfileRes{}
 	copier.Copy(response, user)
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		log.Printf("Error encoding response: %v", err)
+		logger.Errorf(ctx, "Error encoding response: %v", err)
 	}
 }
 
 // Returns the profile of the user with the given id
-func (h *User) GetProfileByLink(w http.ResponseWriter, r *http.Request) {
+func (h *profileHandler) GetProfileByLink(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	link, err := utils.ReadPathVariable("link", r)
 	if err != nil {
@@ -69,12 +82,12 @@ func (h *User) GetProfileByLink(w http.ResponseWriter, r *http.Request) {
 	response := &types.ProfileRes{}
 	copier.Copy(response, user)
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		log.Printf("Error encoding response: %v", err)
+		logger.Errorf(ctx, "Error encoding response: %v", err)
 	}
 }
 
 // Returns the profile of the user who is currently logged in
-func (handler *User) GetMyProfile(w http.ResponseWriter, r *http.Request) {
+func (handler *profileHandler) GetMyProfile(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userId := utils.UserIdFromContext(ctx)
 
@@ -86,11 +99,11 @@ func (handler *User) GetMyProfile(w http.ResponseWriter, r *http.Request) {
 
 	response := &types.ProfileRes{}
 	copier.Copy(response, user)
-	utils.WriteHttpJsonResponse(w, response)
+	utils.WriteHttpJsonResponse(ctx, w, response)
 }
 
 // Updates the profile of the user who is currently logged in
-func (handler *User) UpdateSettings(w http.ResponseWriter, r *http.Request) {
+func (handler *profileHandler) UpdateSettings(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userId := utils.UserIdFromContext(ctx)
 
@@ -106,15 +119,15 @@ func (handler *User) UpdateSettings(w http.ResponseWriter, r *http.Request) {
 
 	response := &types.ProfileRes{}
 	copier.Copy(response, profile)
-	utils.WriteHttpJsonResponse(w, response)
+	utils.WriteHttpJsonResponse(ctx, w, response)
 }
 
-func (handler *User) ValidateProfileLink(w http.ResponseWriter, r *http.Request) {
+func (handler *profileHandler) ValidateProfileLink(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	link := r.URL.Query().Get("link")
 	if link == "" {
-		log.Printf("Link to validate is required: %v", nil)
+		logger.Errorf(ctx, "Link to validate is required: %v", nil)
 		http.Error(w, "Invalid link", http.StatusBadRequest)
 		return
 	}
@@ -130,10 +143,10 @@ func (handler *User) ValidateProfileLink(w http.ResponseWriter, r *http.Request)
 		response.Message = err.Error()
 	}
 
-	utils.WriteHttpJsonResponse(w, response)
+	utils.WriteHttpJsonResponse(ctx, w, response)
 }
 
-func (handler *User) GetProfileAvatarUrl(w http.ResponseWriter, r *http.Request) {
+func (handler *profileHandler) GetProfileAvatarUrl(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	userId, err := utils.ReadPathUUIDVariable("id", r)
@@ -150,14 +163,14 @@ func (handler *User) GetProfileAvatarUrl(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	utils.WriteHttpJsonResponse(w, struct {
+	utils.WriteHttpJsonResponse(ctx, w, struct {
 		URL *string `json:"url"`
 	}{
 		URL: avatarUrl,
 	})
 }
 
-func (handler *User) GetMyProfileAvatarUrl(w http.ResponseWriter, r *http.Request) {
+func (handler *profileHandler) GetMyProfileAvatarUrl(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userId := utils.UserIdFromContext(ctx)
 	size := utils.GetQueryParam(r, "size", "md")
@@ -168,7 +181,7 @@ func (handler *User) GetMyProfileAvatarUrl(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	utils.WriteHttpJsonResponse(w, struct {
+	utils.WriteHttpJsonResponse(ctx, w, struct {
 		URL *string `json:"url"`
 	}{
 		URL: avatarUrl,
@@ -176,12 +189,12 @@ func (handler *User) GetMyProfileAvatarUrl(w http.ResponseWriter, r *http.Reques
 }
 
 // Uploads the avatar of the user who is currently logged in from the request
-func (handler *User) UploadAvatar(w http.ResponseWriter, r *http.Request) {
+func (handler *profileHandler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userId := utils.UserIdFromContext(ctx)
 
 	// Parse the form to retrieve the uploaded file
-	err := r.ParseMultipartForm(10 << 20) // 10 MB max memory
+	err := r.ParseMultipartForm(config.GetMaxFileSizeBytes())
 	if err != nil {
 		http.Error(w, "Unable to parse form", http.StatusBadRequest)
 		return
@@ -196,20 +209,20 @@ func (handler *User) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 	defer file.Close()
 
 	// Upload the file to S3
-	url, err := handler.userService.UploadAvatar(r.Context(), userId, file, fileHeader)
+	url, err := handler.userService.UploadAvatarForPreviewById(ctx, userId, file, fileHeader)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
 	}
 
-	utils.WriteHttpJsonResponse(w, struct {
+	utils.WriteHttpJsonResponse(ctx, w, struct {
 		PreviewURL string `json:"previewUrl"`
 	}{
 		PreviewURL: url,
 	})
 }
 
-func (handler *User) CreateProfileWebhook(w http.ResponseWriter, r *http.Request) {
+func (handler *profileHandler) CreateProfileWebhook(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	// Read the body

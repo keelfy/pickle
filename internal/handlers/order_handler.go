@@ -12,19 +12,26 @@ import (
 	"github.com/pickle.pw/monolith/internal/utils"
 )
 
-type Order struct {
-	orderService *services.Order
-	userService  *services.Profile
+type OrderHandler interface {
+	GetSortedOrdersByLink(w http.ResponseWriter, r *http.Request)
+	CreateOrder(w http.ResponseWriter, r *http.Request)
+	UpdateOrderById(w http.ResponseWriter, r *http.Request)
+	ApproveOrderById(w http.ResponseWriter, r *http.Request)
 }
 
-func NewOrdersHandler(orderService *services.Order, userService *services.Profile) *Order {
-	return &Order{
+type orderHandler struct {
+	orderService services.OrderService
+	userService  services.ProfileService
+}
+
+func NewOrdersHandler(orderService services.OrderService, userService services.ProfileService) OrderHandler {
+	return &orderHandler{
 		orderService: orderService,
 		userService:  userService,
 	}
 }
 
-func (handler *Order) GetSortedOrdersByLink(w http.ResponseWriter, r *http.Request) {
+func (handler *orderHandler) GetSortedOrdersByLink(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	// Extracting path variables
@@ -56,10 +63,10 @@ func (handler *Order) GetSortedOrdersByLink(w http.ResponseWriter, r *http.Reque
 
 	response := &[]types.OrderRes{}
 	copier.Copy(response, orders)
-	utils.WriteHttpJsonResponse(w, response)
+	utils.WriteHttpJsonResponse(ctx, w, response)
 }
 
-func (handler *Order) CreateOrder(w http.ResponseWriter, r *http.Request) {
+func (handler *orderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	// Unmarshal request body
@@ -77,10 +84,10 @@ func (handler *Order) CreateOrder(w http.ResponseWriter, r *http.Request) {
 
 	orderResponse := &types.OrderRes{}
 	copier.Copy(orderResponse, createdOrder)
-	utils.WriteHttpJsonResponse(w, orderResponse)
+	utils.WriteHttpJsonResponse(ctx, w, orderResponse)
 }
 
-func (handler *Order) UpdateOrderById(w http.ResponseWriter, r *http.Request) {
+func (handler *orderHandler) UpdateOrderById(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	// Extracting path variables
@@ -104,10 +111,10 @@ func (handler *Order) UpdateOrderById(w http.ResponseWriter, r *http.Request) {
 
 	orderResponse := &types.OrderRes{}
 	copier.Copy(orderResponse, updatedOrder)
-	utils.WriteHttpJsonResponse(w, orderResponse)
+	utils.WriteHttpJsonResponse(ctx, w, orderResponse)
 }
 
-func (handler *Order) ApproveOrderById(w http.ResponseWriter, r *http.Request) {
+func (handler *orderHandler) ApproveOrderById(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	gameNoteId, err := utils.ReadPathUUIDVariable("gameNoteId", r)
@@ -134,5 +141,5 @@ func (handler *Order) ApproveOrderById(w http.ResponseWriter, r *http.Request) {
 
 	orderResponse := &types.OrderRes{}
 	copier.Copy(orderResponse, approvedOrder)
-	utils.WriteHttpJsonResponse(w, orderResponse)
+	utils.WriteHttpJsonResponse(ctx, w, orderResponse)
 }

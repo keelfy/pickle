@@ -154,21 +154,23 @@ type EsMigrationLog struct {
 }
 
 type GameNote struct {
-	ID           uuid.UUID      `json:"id"`
-	CreatedAt    time.Time      `json:"created_at"`
-	CreatedBy    uuid.UUID      `json:"created_by"`
-	UpdatedAt    time.Time      `json:"updated_at"`
-	UpdatedBy    uuid.UUID      `json:"updated_by"`
-	UserID       uuid.UUID      `json:"user_id"`
-	GameID       *uuid.UUID     `json:"game_id"`
-	Name         string         `json:"name"`
-	Link         *string        `json:"link"`
-	ReleaseDate  *time.Time     `json:"release_date"`
-	Rate         *int16         `json:"rate"`
-	Comment      *string        `json:"comment"`
-	Ordered      bool           `json:"ordered"`
-	Status       GameNoteStatus `json:"status"`
-	LastPlayedAt *time.Time     `json:"last_played_at"`
+	ID              uuid.UUID      `json:"id"`
+	CreatedAt       time.Time      `json:"created_at"`
+	CreatedBy       uuid.UUID      `json:"created_by"`
+	UpdatedAt       time.Time      `json:"updated_at"`
+	UpdatedBy       uuid.UUID      `json:"updated_by"`
+	UserID          uuid.UUID      `json:"user_id"`
+	GameID          *uuid.UUID     `json:"game_id"`
+	Name            string         `json:"name"`
+	Link            *string        `json:"link"`
+	ReleaseDate     *time.Time     `json:"release_date"`
+	Rate            *int16         `json:"rate"`
+	Comment         *string        `json:"comment"`
+	Ordered         bool           `json:"ordered"`
+	Status          GameNoteStatus `json:"status"`
+	LastPlayedAt    *time.Time     `json:"last_played_at"`
+	PosterUrl       *string        `json:"poster_url"`
+	PosterUpdatedAt time.Time      `json:"poster_updated_at"`
 }
 
 type GameNoteOrder struct {
@@ -215,14 +217,22 @@ type Orderer struct {
 	Anonymous bool       `json:"anonymous"`
 }
 
+type PosterPreview struct {
+	ID        uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	CreatedBy uuid.UUID `json:"created_by"`
+	ObjectKey string    `json:"object_key"`
+}
+
 type Profile struct {
-	UserID           uuid.UUID  `json:"user_id"`
-	CreatedAt        time.Time  `json:"created_at"`
-	UpdatedAt        time.Time  `json:"updated_at"`
-	UpdatedBy        *uuid.UUID `json:"updated_by"`
-	Username         string     `json:"username"`
-	Link             string     `json:"link"`
-	Description      string     `json:"description"`
-	AvatarUrl        *string    `json:"avatar_url"`
-	AvatarPreviewKey *string    `json:"avatar_preview_key"`
+	UserID             uuid.UUID  `json:"user_id"`
+	CreatedAt          time.Time  `json:"created_at"`
+	UpdatedAt          time.Time  `json:"updated_at"`
+	AvatarUrlUpdatedAt time.Time  `json:"avatar_url_updated_at"`
+	UpdatedBy          *uuid.UUID `json:"updated_by"`
+	Username           string     `json:"username"`
+	Link               string     `json:"link"`
+	Description        string     `json:"description"`
+	AvatarUrl          *string    `json:"avatar_url"`
+	AvatarPreviewKey   *string    `json:"avatar_preview_key"`
 }

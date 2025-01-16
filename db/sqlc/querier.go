@@ -41,6 +41,9 @@ type Querier interface {
 	FindPaginatedGameNotesByUserId(ctx context.Context, arg FindPaginatedGameNotesByUserIdParams) ([]*GameNote, error)
 	// Author: Egor Kuzmin (keelfy)
 	FindPaginatedOrdersByGameNoteId(ctx context.Context, arg FindPaginatedOrdersByGameNoteIdParams) ([]*Order, error)
+	FindPosterPreviewByCreatedAtAfterAndCreatedBy(ctx context.Context, arg FindPosterPreviewByCreatedAtAfterAndCreatedByParams) ([]*PosterPreview, error)
+	FindPosterPreviewByCreatedBy(ctx context.Context, createdBy uuid.UUID) ([]*PosterPreview, error)
+	FindPosterPreviewById(ctx context.Context, id uuid.UUID) (*PosterPreview, error)
 	// Author: Egor Kuzmin (keelfy)
 	FindProfileById(ctx context.Context, userID uuid.UUID) (*Profile, error)
 	// Author: Egor Kuzmin (keelfy)
@@ -58,6 +61,7 @@ type Querier interface {
 	InsertOrder(ctx context.Context, arg InsertOrderParams) (*Order, error)
 	// Author: Egor Kuzmin (keelfy)
 	InsertOrderer(ctx context.Context, arg InsertOrdererParams) (*Orderer, error)
+	InsertPosterPreview(ctx context.Context, arg InsertPosterPreviewParams) error
 	// Author: Egor Kuzmin (keelfy)
 	InsertProfile(ctx context.Context, arg InsertProfileParams) (*Profile, error)
 	// Author: Egor Kuzmin (keelfy)
@@ -68,7 +72,7 @@ type Querier interface {
 	// Author: Egor Kuzmin (keelfy)
 	UpdateProfileByUserId(ctx context.Context, arg UpdateProfileByUserIdParams) (*Profile, error)
 	// Author: Egor Kuzmin (keelfy)
-	UpdateProfilePreviewAvatarByUserId(ctx context.Context, arg UpdateProfilePreviewAvatarByUserIdParams) error
+	UpdateProfilePreviewAvatarByUserId(ctx context.Context, arg UpdateProfilePreviewAvatarByUserIdParams) (*Profile, error)
 }
 
 var _ Querier = (*Queries)(nil)

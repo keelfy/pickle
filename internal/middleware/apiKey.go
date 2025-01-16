@@ -3,7 +3,7 @@ package middleware
 import (
 	"net/http"
 
-	"github.com/pickle.pw/monolith/config"
+	"github.com/pickle.pw/monolith/internal/config"
 )
 
 func ApiKey() func(http.Handler) http.Handler {

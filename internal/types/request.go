@@ -44,9 +44,14 @@ type GameNoteReq struct {
 	LastPlayedAt *time.Time        `json:"lastPlayedAt"`
 }
 
+type PosterReq struct {
+	PreviewID *uuid.UUID `json:"previewId"`
+}
+
 type CreateGameNoteReq struct {
 	GameNote       *GameNoteReq `json:"gameNote"`
-	InitialOrderId uuid.UUID    `json:"initialOrderId"`
+	InitialOrderID uuid.UUID    `json:"initialOrderId"`
+	Poster         *PosterReq   `json:"poster"`
 }
 
 type CreateOrderReq struct {

@@ -36,8 +36,9 @@ func InitializeAPI(ctx context.Context) (api.PickleAPI, func(), error) {
 		return nil, nil, err
 	}
 	imageService := services.NewImageService()
-	profileService := services.NewProfileService(sqlDatabase, s3Client, cacheClient, imageService)
-	profileHandler := handlers.NewUserHandler(profileService, imageService)
+	avatarService := services.NewAvatarService(sqlDatabase, cacheClient, s3Client, imageService)
+	profileService := services.NewProfileService(sqlDatabase, s3Client, cacheClient, avatarService)
+	profileHandler := handlers.NewUserHandler(profileService, avatarService)
 	elasticClient, err := storage.NewElasticClient()
 	if err != nil {
 		cleanup()
@@ -56,8 +57,8 @@ func InitializeAPI(ctx context.Context) (api.PickleAPI, func(), error) {
 	orderHandler := handlers.NewOrdersHandler(orderService, profileService)
 	contentService := services.NewContentService(elasticClient)
 	posterService := services.NewPosterService(sqlDatabase, s3Client, cacheClient, imageService, profileService)
-	gameNoteService := services.NewGameNoteService(sqlDatabase, elasticClient, orderService, profileService, ordererService, contentService, gameNoteOrderService, posterService)
-	gameNoteHandler := handlers.NewGameNoteHandler(profileService, gameNoteService, orderService)
+	gameNoteService := services.NewGameNoteService(sqlDatabase, elasticClient, cacheClient, orderService, profileService, ordererService, contentService, gameNoteOrderService, posterService)
+	gameNoteHandler := handlers.NewGameNoteHandler(profileService, gameNoteService, orderService, posterService)
 	posterHandler := handlers.NewPosterHandler(posterService)
 	migrationService := services.NewMigrationService(sqlDatabase, elasticClient)
 	contentHandler := handlers.NewContentHandler(contentService)

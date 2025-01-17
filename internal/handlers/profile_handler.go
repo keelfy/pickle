@@ -25,14 +25,14 @@ type ProfileHandler interface {
 }
 
 type profileHandler struct {
-	userService  services.ProfileService
-	imageService services.ImageService
+	userService   services.ProfileService
+	avatarService services.AvatarService
 }
 
-func NewUserHandler(userService services.ProfileService, imageService services.ImageService) ProfileHandler {
+func NewUserHandler(userService services.ProfileService, avatarService services.AvatarService) ProfileHandler {
 	return &profileHandler{
-		userService:  userService,
-		imageService: imageService,
+		userService:   userService,
+		avatarService: avatarService,
 	}
 }
 
@@ -148,16 +148,20 @@ func (handler *profileHandler) ValidateProfileLink(w http.ResponseWriter, r *htt
 
 func (handler *profileHandler) GetProfileAvatarUrl(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-
+	size := utils.GetQueryParam(r, "size", "md")
 	userId, err := utils.ReadPathUUIDVariable("id", r)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
 	}
 
-	size := utils.GetQueryParam(r, "size", "md")
+	profile, err := handler.userService.GetProfileById(ctx, userId)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
 
-	avatarUrl, err := handler.userService.GetAvatarUrlById(ctx, userId, size)
+	avatarUrl, err := handler.avatarService.GetAvatarUrlById(ctx, profile, size)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
@@ -175,7 +179,13 @@ func (handler *profileHandler) GetMyProfileAvatarUrl(w http.ResponseWriter, r *h
 	userId := utils.UserIdFromContext(ctx)
 	size := utils.GetQueryParam(r, "size", "md")
 
-	avatarUrl, err := handler.userService.GetAvatarUrlById(ctx, userId, size)
+	profile, err := handler.userService.GetProfileById(ctx, userId)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
+	avatarUrl, err := handler.avatarService.GetAvatarUrlById(ctx, profile, size)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
@@ -192,9 +202,16 @@ func (handler *profileHandler) GetMyProfileAvatarUrl(w http.ResponseWriter, r *h
 func (handler *profileHandler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userId := utils.UserIdFromContext(ctx)
+	size := utils.GetQueryParam(r, "size", "lg")
+
+	profile, err := handler.userService.GetProfileById(ctx, userId)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
 
 	// Parse the form to retrieve the uploaded file
-	err := r.ParseMultipartForm(config.GetMaxFileSizeBytes())
+	err = r.ParseMultipartForm(config.GetMaxFileSizeBytes())
 	if err != nil {
 		http.Error(w, "Unable to parse form", http.StatusBadRequest)
 		return
@@ -209,7 +226,7 @@ func (handler *profileHandler) UploadAvatar(w http.ResponseWriter, r *http.Reque
 	defer file.Close()
 
 	// Upload the file to S3
-	url, err := handler.userService.UploadAvatarForPreviewById(ctx, userId, file, fileHeader)
+	url, err := handler.avatarService.UploadAvatarForPreviewById(ctx, profile, file, fileHeader, size)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return

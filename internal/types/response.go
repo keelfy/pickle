@@ -58,6 +58,7 @@ type GameNoteRes struct {
 	Ordered      bool              `json:"ordered"`
 	Status       db.GameNoteStatus `json:"status"`
 	LastPlayedAt *time.Time        `json:"lastPlayedAt,omitempty"`
+	PosterURL    *string           `json:"posterUrl,omitempty"`
 }
 
 type OrdererRes struct {

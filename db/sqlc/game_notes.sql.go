@@ -27,7 +27,7 @@ func (q *Queries) CountGameNotesByUserId(ctx context.Context, userID uuid.UUID) 
 }
 
 const findGameNoteById = `-- name: FindGameNoteById :one
-SELECT id, created_at, created_by, updated_at, updated_by, user_id, game_id, name, link, release_date, rate, comment, ordered, status, last_played_at, poster_url, poster_updated_at
+SELECT id, created_at, created_by, updated_at, updated_by, user_id, game_id, name, link, release_date, rate, comment, ordered, status, last_played_at, poster_key, poster_updated_at
 FROM "game_notes"
 WHERE "id" = $1
 `
@@ -52,14 +52,14 @@ func (q *Queries) FindGameNoteById(ctx context.Context, id uuid.UUID) (*GameNote
 		&i.Ordered,
 		&i.Status,
 		&i.LastPlayedAt,
-		&i.PosterUrl,
+		&i.PosterKey,
 		&i.PosterUpdatedAt,
 	)
 	return &i, err
 }
 
 const findPaginatedGameNotesByUserId = `-- name: FindPaginatedGameNotesByUserId :many
-SELECT id, created_at, created_by, updated_at, updated_by, user_id, game_id, name, link, release_date, rate, comment, ordered, status, last_played_at, poster_url, poster_updated_at 
+SELECT id, created_at, created_by, updated_at, updated_by, user_id, game_id, name, link, release_date, rate, comment, ordered, status, last_played_at, poster_key, poster_updated_at 
 FROM "game_notes" 
 WHERE "user_id" = $1
     AND "updated_at" < $2
@@ -99,7 +99,7 @@ func (q *Queries) FindPaginatedGameNotesByUserId(ctx context.Context, arg FindPa
 			&i.Ordered,
 			&i.Status,
 			&i.LastPlayedAt,
-			&i.PosterUrl,
+			&i.PosterKey,
 			&i.PosterUpdatedAt,
 		); err != nil {
 			return nil, err
@@ -126,7 +126,7 @@ INSERT INTO "game_notes" (
     "ordered",
     "status",
     "last_played_at",
-    "poster_url"
+    "poster_key"
 ) VALUES (
     $1,
     $2,
@@ -142,7 +142,7 @@ INSERT INTO "game_notes" (
     $12,
     $13
 )
-RETURNING id, created_at, created_by, updated_at, updated_by, user_id, game_id, name, link, release_date, rate, comment, ordered, status, last_played_at, poster_url, poster_updated_at
+RETURNING id, created_at, created_by, updated_at, updated_by, user_id, game_id, name, link, release_date, rate, comment, ordered, status, last_played_at, poster_key, poster_updated_at
 `
 
 type InsertGameNoteParams struct {
@@ -158,7 +158,7 @@ type InsertGameNoteParams struct {
 	Ordered      bool           `json:"ordered"`
 	Status       GameNoteStatus `json:"status"`
 	LastPlayedAt *time.Time     `json:"last_played_at"`
-	PosterUrl    *string        `json:"poster_url"`
+	PosterKey    *string        `json:"poster_key"`
 }
 
 // Author: Egor Kuzmin (keelfy)
@@ -176,7 +176,7 @@ func (q *Queries) InsertGameNote(ctx context.Context, arg InsertGameNoteParams) 
 		arg.Ordered,
 		arg.Status,
 		arg.LastPlayedAt,
-		arg.PosterUrl,
+		arg.PosterKey,
 	)
 	var i GameNote
 	err := row.Scan(
@@ -195,7 +195,7 @@ func (q *Queries) InsertGameNote(ctx context.Context, arg InsertGameNoteParams) 
 		&i.Ordered,
 		&i.Status,
 		&i.LastPlayedAt,
-		&i.PosterUrl,
+		&i.PosterKey,
 		&i.PosterUpdatedAt,
 	)
 	return &i, err

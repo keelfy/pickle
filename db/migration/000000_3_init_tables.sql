@@ -91,7 +91,7 @@ CREATE TABLE IF NOT EXISTS "game_notes" (
     "ordered" boolean NOT NULL,
     "status" game_note_status NOT NULL DEFAULT('planned'),
     "last_played_at" timestamptz,
-    "poster_url" text,
+    "poster_key" text,
     "poster_updated_at" timestamptz NOT NULL DEFAULT now(),
     PRIMARY KEY ("id"),
     FOREIGN KEY ("user_id") REFERENCES "profiles"("user_id"),

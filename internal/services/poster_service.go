@@ -24,6 +24,7 @@ type PosterService interface {
 	EmbedPosterForPreview(ctx context.Context, userId uuid.UUID, size, embeddedUrl string) (uuid.UUID, string, error)
 	GetLatestPosterPreviewByUserId(ctx context.Context, userId uuid.UUID) ([]*db.PosterPreview, error)
 	ConfirmS3PosterPreviewByID(ctx context.Context, id uuid.UUID, prefix string) (*string, error)
+	GetPosterImageURL(ctx context.Context, prefix, size, imageKey string, cbTime time.Time) (string, error)
 }
 
 type posterService struct {
@@ -48,9 +49,9 @@ func NewPosterService(
 }
 
 var posterSizes = map[string][]int{
-	"sm": {150, 255},
-	"md": {300, 450},
-	"lg": {600, 900},
+	"sm": {100, 150},
+	"md": {150, 225},
+	"lg": {300, 450},
 }
 
 func (s *posterService) GetPosterPreviewByID(ctx context.Context, id uuid.UUID) (*db.PosterPreview, error) {
@@ -92,7 +93,7 @@ func (s *posterService) uploadPosterForPreview(ctx context.Context, userId uuid.
 	err = s.sqlDB.Queries().InsertPosterPreview(ctx, db.InsertPosterPreviewParams{
 		ID:        posterPreviewId,
 		CreatedBy: userId,
-		ObjectKey: previewKey,
+		ObjectKey: objectKey,
 	})
 	if err != nil {
 		if err1 := s.s3.DeleteObject(ctx, bucketName, previewKey); err1 != nil {
@@ -190,15 +191,33 @@ func (s *posterService) ConfirmS3PosterPreviewByID(ctx context.Context, id uuid.
 		return nil, errors.NewInternalServerError("Error occurred getting preview avatar", err)
 	}
 
-	url := fmt.Sprintf("s3://%s/%s", bucketName, finalKey)
+	return &posterPreview.ObjectKey, nil
+}
 
-	// for sizeName := range posterSizes {
-	// 	cacheKey := fmt.Sprintf("%s:poster:%s:%s", prefix, contentId, sizeName)
-	// 	err = s.cache.DeleteKey(ctx, cacheKey)
-	// 	if err != nil {
-	// 		logger.Errorf(ctx, "Error occurred deleting avatar URL from cache: %v", err)
-	// 	}
-	// }
+func (service *posterService) GetPosterImageURL(ctx context.Context, prefix, size, imageKey string, cbTime time.Time) (string, error) {
+	if _, ok := posterSizes[size]; !ok {
+		return "", errors.NewBadRequestError("Invalid poster size", nil)
+	}
 
-	return &url, nil
+	cacheKey := fmt.Sprintf("poster:%s:%s:%s", prefix, imageKey, size)
+	cachedUrl, err := service.cache.GetKey(ctx, cacheKey)
+	if err != nil {
+		logger.Errorf(ctx, "Error occurred getting poster image URL from cache: %v", err)
+	} else if cachedUrl != nil {
+		return *cachedUrl, nil
+	}
+
+	bucket := config.GetContentPosterBucketName()
+	dims := posterSizes[size]
+	key := fmt.Sprintf("%s/%s", prefix, imageKey)
+	imageUrl, err := service.imageService.GetResizedImageUrlFromS3(bucket, key, dims[0], dims[1], &cbTime)
+	if err != nil {
+		return "", err
+	}
+
+	expiration := config.GetPosterPreviewStoreTime()
+	if err := service.cache.SetKey(ctx, cacheKey, imageUrl, expiration); err != nil {
+		return "", err
+	}
+	return imageUrl, nil
 }

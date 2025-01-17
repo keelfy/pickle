@@ -19,19 +19,22 @@ type GameNoteHandler interface {
 	GetSortedByReceiverLink(w http.ResponseWriter, r *http.Request)
 	GetGameNoteById(w http.ResponseWriter, r *http.Request)
 	GetOrdersById(w http.ResponseWriter, r *http.Request)
+	GetPosterImageURL(w http.ResponseWriter, r *http.Request)
 }
 
 type gameNoteHandler struct {
 	userService     services.ProfileService
 	gameNoteService services.GameNoteService
 	orderService    services.OrderService
+	posterService   services.PosterService
 }
 
-func NewGameNoteHandler(userService services.ProfileService, service services.GameNoteService, orderService services.OrderService) GameNoteHandler {
+func NewGameNoteHandler(userService services.ProfileService, service services.GameNoteService, orderService services.OrderService, posterService services.PosterService) GameNoteHandler {
 	return &gameNoteHandler{
 		userService:     userService,
 		gameNoteService: service,
 		orderService:    orderService,
+		posterService:   posterService,
 	}
 }
 
@@ -159,4 +162,37 @@ func (handler *gameNoteHandler) GetOrdersById(w http.ResponseWriter, r *http.Req
 	}
 
 	utils.WriteHttpJsonResponse(ctx, w, response)
+}
+
+func (handler *gameNoteHandler) GetPosterImageURL(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	size := utils.GetQueryParam(r, "size", "md")
+	noteId, err := utils.ReadPathUUIDVariable("id", r)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
+	note, err := handler.gameNoteService.GetById(ctx, noteId)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
+	var url *string
+
+	if note.PosterKey != nil && len(*note.PosterKey) > 0 {
+		imageUrl, err := handler.posterService.GetPosterImageURL(ctx, "game-note", size, *note.PosterKey, note.PosterUpdatedAt)
+		if err != nil {
+			utils.HttpError(ctx, err, w)
+			return
+		}
+		url = &imageUrl
+	}
+
+	utils.WriteHttpJsonResponse(ctx, w, struct {
+		URL *string `json:"url"`
+	}{
+		URL: url,
+	})
 }

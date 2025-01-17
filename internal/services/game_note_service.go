@@ -2,10 +2,12 @@ package services
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/google/uuid"
 	db "github.com/pickle.pw/monolith/db/sqlc"
 	"github.com/pickle.pw/monolith/internal/errors"
+	"github.com/pickle.pw/monolith/internal/logger"
 	"github.com/pickle.pw/monolith/internal/storage"
 	"github.com/pickle.pw/monolith/internal/types"
 	"golang.org/x/sync/errgroup"
@@ -22,6 +24,7 @@ type GameNoteService interface {
 type gameNoteService struct {
 	sqlDb                storage.SQLDatabase
 	elastic              storage.ElasticClient
+	cache                storage.CacheClient
 	orderService         OrderService
 	userService          ProfileService
 	ordererService       OrdererService
@@ -31,13 +34,14 @@ type gameNoteService struct {
 }
 
 func NewGameNoteService(
-	sqlDb storage.SQLDatabase, elastic storage.ElasticClient,
+	sqlDb storage.SQLDatabase, elastic storage.ElasticClient, cache storage.CacheClient,
 	orderService OrderService, userService ProfileService, ordererService OrdererService,
 	contentService ContentService, gameNoteOrderService GameNoteOrderService, posterService PosterService,
 ) GameNoteService {
 	return &gameNoteService{
 		sqlDb:                sqlDb,
 		elastic:              elastic,
+		cache:                cache,
 		orderService:         orderService,
 		userService:          userService,
 		ordererService:       ordererService,
@@ -83,11 +87,11 @@ func (service *gameNoteService) CreateGameNote(ctx context.Context, req *types.C
 		return nil, err
 	}
 
-	var posterURL *string
+	var posterKey *string
 
 	if req.Poster != nil && req.Poster.PreviewID != nil {
 		posterPreviewId := *req.Poster.PreviewID
-		posterURL, err = service.posterService.ConfirmS3PosterPreviewByID(ctx, posterPreviewId, "game-note")
+		posterKey, err = service.posterService.ConfirmS3PosterPreviewByID(ctx, posterPreviewId, "game-note")
 		if err != nil {
 			return nil, err
 		}
@@ -108,10 +112,20 @@ func (service *gameNoteService) CreateGameNote(ctx context.Context, req *types.C
 		Ordered:      true,
 		Status:       req.GameNote.Status,
 		LastPlayedAt: req.GameNote.LastPlayedAt,
-		PosterUrl:    posterURL,
+		PosterKey:    posterKey,
 	})
 	if err != nil {
 		return nil, errors.NewInternalServerError("Error occurred during game note creation", err)
+	}
+
+	// clear poster URL cache
+
+	for sizeName := range posterSizes {
+		cacheKey := fmt.Sprintf("poster:game-note:%s:%s", gameNote.ID, sizeName)
+		err = service.cache.DeleteKey(ctx, cacheKey)
+		if err != nil {
+			logger.Errorf(ctx, "Error occurred deleting avatar URL from cache: %v", err)
+		}
 	}
 
 	// Create game note - order relation

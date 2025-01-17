@@ -161,6 +161,7 @@ func (api *pickleAPI) registerV1PublicRoutes(r chi.Router) {
 	r.Route("/game-notes/{id}", func(r chi.Router) {
 		r.Get("/", api.gameNoteHandler.GetGameNoteById)
 		r.Get("/orders", api.gameNoteHandler.GetOrdersById)
+		r.Get("/posters", api.gameNoteHandler.GetPosterImageURL)
 	})
 
 	r.Get("/content", api.contentService.SearchContent)

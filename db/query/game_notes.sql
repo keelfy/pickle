@@ -13,7 +13,7 @@ INSERT INTO "game_notes" (
     "ordered",
     "status",
     "last_played_at",
-    "poster_url"
+    "poster_key"
 ) VALUES (
     $1,
     $2,

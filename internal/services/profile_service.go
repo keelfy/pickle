@@ -2,9 +2,6 @@ package services
 
 import (
 	"context"
-	"fmt"
-	"mime/multipart"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -12,9 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	db "github.com/pickle.pw/monolith/db/sqlc"
-	"github.com/pickle.pw/monolith/internal/config"
 	"github.com/pickle.pw/monolith/internal/errors"
-	"github.com/pickle.pw/monolith/internal/logger"
 	"github.com/pickle.pw/monolith/internal/storage"
 	"github.com/pickle.pw/monolith/internal/types"
 )
@@ -25,25 +20,21 @@ type ProfileService interface {
 	ValidateLink(ctx context.Context, link string) error
 	UpdateProfile(ctx context.Context, userId uuid.UUID, req *types.UpdateProfileReq) (*db.Profile, error)
 	CreateProfileWebhook(ctx context.Context, req *types.SupabaseWebhookPayload) (*db.Profile, error)
-	UploadAvatarForPreviewById(ctx context.Context, userId uuid.UUID, file multipart.File, fileHeader *multipart.FileHeader) (string, error)
-	GetAvatarUrlById(ctx context.Context, userId uuid.UUID, size string) (*string, error)
 }
 
 type profileService struct {
-	sqlDb        storage.SQLDatabase
-	s3Client     storage.S3Client
-	cache        storage.CacheClient
-	imageService ImageService
-	isDebug      bool
+	sqlDb         storage.SQLDatabase
+	s3Client      storage.S3Client
+	cache         storage.CacheClient
+	avatarService AvatarService
 }
 
-func NewProfileService(sqlDb storage.SQLDatabase, s3Client storage.S3Client, cache storage.CacheClient, imageService ImageService) ProfileService {
+func NewProfileService(sqlDb storage.SQLDatabase, s3Client storage.S3Client, cache storage.CacheClient, avatarService AvatarService) ProfileService {
 	return &profileService{
-		sqlDb:        sqlDb,
-		s3Client:     s3Client,
-		cache:        cache,
-		imageService: imageService,
-		isDebug:      config.IsDebug(),
+		sqlDb:         sqlDb,
+		s3Client:      s3Client,
+		cache:         cache,
+		avatarService: avatarService,
 	}
 }
 
@@ -147,30 +138,9 @@ func (service *profileService) UpdateProfile(ctx context.Context, userId uuid.UU
 	avatarUrlUpdatedAt := profile.AvatarUrlUpdatedAt
 
 	if profile.AvatarPreviewKey != nil {
-		bucketName := config.GetAvatarBucketName()
-		key := *profile.AvatarPreviewKey
-		previewKey := "preview/" + key
-
-		err := service.s3Client.MoveObject(ctx, bucketName, bucketName, previewKey, key)
+		url, err := service.avatarService.ConfirmProfileAvatar(ctx, profile)
 		if err != nil {
-			return nil, errors.NewInternalServerError("Error occurred getting preview avatar", err)
-		}
-
-		url := fmt.Sprintf("s3://%s/%s", bucketName, key)
-
-		if avatarUrl != nil && avatarUrl != &url {
-			err = service.s3Client.DeleteObject(ctx, bucketName, *avatarUrl)
-			if err != nil {
-				logger.Errorf(ctx, "Error occurred deleting preview avatar: %v", err)
-			}
-		}
-
-		for size := range avatarSizes {
-			cacheKey := fmt.Sprintf("avatar:%s:%s", userId, size)
-			err = service.cache.DeleteKey(ctx, cacheKey)
-			if err != nil {
-				logger.Errorf(ctx, "Error occurred deleting avatar URL from cache: %v", err)
-			}
+			return nil, err
 		}
 
 		avatarUrl = &url
@@ -281,94 +251,4 @@ func (service *profileService) CreateProfileWebhook(ctx context.Context, req *ty
 
 	return createdProfile, nil
 
-}
-
-// Saves the avatar of the user with the given id to S3
-func (service *profileService) UploadAvatarForPreviewById(ctx context.Context, userId uuid.UUID, file multipart.File, fileHeader *multipart.FileHeader) (string, error) {
-	if err := service.imageService.ValidateMultipartImage(file, fileHeader); err != nil {
-		return "", err
-	}
-
-	profile, err := service.GetProfileById(ctx, userId)
-	if err != nil {
-		return "", err
-	}
-
-	if profile == nil {
-		return "", errors.NewBadRequestError("Profile not found", nil)
-	}
-
-	ext := filepath.Ext(fileHeader.Filename)
-	fileName := fmt.Sprintf("%s%s", userId, ext)
-
-	bucketName := config.GetAvatarBucketName()
-	previewKey := "preview/" + fileName
-
-	// Upload the file to S3
-	err = service.s3Client.UploadFileToS3(ctx, bucketName, previewKey, file)
-	if err != nil {
-		return "", errors.NewInternalServerError("Error occurred uploading file", err)
-	}
-
-	// update profile
-	profile, err = service.sqlDb.Queries().UpdateProfilePreviewAvatarByUserId(ctx, db.UpdateProfilePreviewAvatarByUserIdParams{
-		UserID:           profile.UserID,
-		UpdatedBy:        &profile.UserID,
-		AvatarPreviewKey: &fileName,
-	})
-	if err != nil {
-		if err1 := service.s3Client.DeleteObject(ctx, bucketName, previewKey); err1 != nil {
-			logger.Errorf(ctx, "Error occurred deleting preview avatar: %v", err1)
-		}
-		return "", errors.NewInternalServerError("Error occurred updating profile", err)
-	}
-
-	size := avatarSizes["lg"]
-	imageUrl, err := service.imageService.GetResizedImageUrlFromS3(bucketName, previewKey, size, size, &profile.UpdatedAt)
-	if err != nil {
-		return "", errors.NewInternalServerError("Error occurred getting profile avatar URL", err)
-	}
-
-	return imageUrl, nil
-}
-
-var avatarSizes = map[string]int{"sm": 32, "md": 64, "lg": 128}
-
-func (service *profileService) GetAvatarUrlById(ctx context.Context, userId uuid.UUID, size string) (*string, error) {
-	if _, ok := avatarSizes[size]; !ok {
-		return nil, errors.NewBadRequestError("Invalid size", nil)
-	}
-
-	cacheKey := fmt.Sprintf("avatar:%s:%s", userId, size)
-	cachedUrl, err := service.cache.GetKey(ctx, cacheKey)
-	if err != nil {
-		return nil, errors.NewInternalServerError("Error occurred getting avatar URL from cache", err)
-	}
-
-	if cachedUrl != nil {
-		return cachedUrl, nil
-	}
-
-	profile, err := service.GetProfileById(ctx, userId)
-	if err != nil {
-		return nil, err
-	}
-
-	if profile.AvatarUrl == nil {
-		return nil, nil
-	}
-
-	dimensions := avatarSizes[size]
-
-	url, err := service.imageService.GetResizedImageUrl(*profile.AvatarUrl, dimensions, dimensions, &profile.AvatarUrlUpdatedAt)
-	if err != nil {
-		return nil, err
-	}
-
-	err = service.cache.SetKey(ctx, cacheKey, url, time.Hour*24*30)
-	if err != nil {
-		logger.Errorf(ctx, "Error occurred setting avatar URL to cache: %v", err)
-	}
-
-	return &url, nil
 }

@@ -169,7 +169,7 @@ type GameNote struct {
 	Ordered         bool           `json:"ordered"`
 	Status          GameNoteStatus `json:"status"`
 	LastPlayedAt    *time.Time     `json:"last_played_at"`
-	PosterUrl       *string        `json:"poster_url"`
+	PosterKey       *string        `json:"poster_key"`
 	PosterUpdatedAt time.Time      `json:"poster_updated_at"`
 }
 

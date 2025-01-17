@@ -19,7 +19,14 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
+import {
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import LoadingSpinner from "@/components/ui/loading-spinner";
@@ -60,7 +67,11 @@ const formSchema = z.object({
         // highlights: z.array(z.string()).optional(),
     }),
     initialOrderId: z.string().optional(),
-    posterFile: z.instanceof(File).optional(),
+    poster: z
+        .object({
+            previewId: z.string().optional(),
+        })
+        .optional(),
 });
 
 export default function GameNoteEditorDialogContent() {
@@ -142,9 +153,11 @@ export default function GameNoteEditorDialogContent() {
                     <div className="space-y-6">
                         <div className="flex items-start space-x-4">
                             <EditablePoster
-                                onChange={(value) =>
-                                    form.setValue("posterFile", value)
-                                }
+                                value={form.watch("poster.previewId")}
+                                onChange={(value) => {
+                                    form.setValue("poster.previewId", value);
+                                    form.setFocus("poster.previewId");
+                                }}
                             />
                             <table className="w-full">
                                 <tbody>
@@ -356,29 +369,22 @@ export default function GameNoteEditorDialogContent() {
                             </table>
                         </div>
 
-                        <div className="space-y-2">
-                            <Label className="text-md font-semibold">
-                                Rate
-                            </Label>
-                            <div className="flex items-center mb-4">
-                                <FormField
-                                    control={form.control}
-                                    name="gameNote.rate"
-                                    render={({ field }) => (
-                                        <FormItem>
+                        <div className="mb-4">
+                            <FormField
+                                control={form.control}
+                                name="gameNote.rate"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-md font-semibold">
+                                            Rate
+                                        </FormLabel>
+                                        <FormControl>
                                             <RatingRowInput {...field} />
-                                        </FormItem>
-                                    )}
-                                />
-                                <span className="ml-2 font-semibold text-lg">
-                                    {form.watch("gameNote.rate") ? (
-                                        form.watch("gameNote.rate")!!
-                                    ) : (
-                                        <>&mdash;</>
-                                    )}
-                                    /10
-                                </span>
-                            </div>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
                         </div>
 
                         <div className="space-y-2">

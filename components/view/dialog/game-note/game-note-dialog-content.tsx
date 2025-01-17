@@ -1,5 +1,6 @@
 "use client";
 
+import GameNoteStatusBadge from "@/app/(view)/[link]/games/GameNoteStatusBadge";
 import { Button } from "@/components/ui/button";
 import {
     Collapsible,
@@ -12,16 +13,27 @@ import LoadingSpinner from "@/components/ui/loading-spinner";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/providers/auth-store";
 import { useNoteStore } from "@/providers/note-store";
+import { useProfileStore } from "@/providers/profile-store";
 import { fetchApi } from "@/utils/api/client";
-import { gameNoteStatusLabels } from "@/utils/api/constants";
 import { ChevronsUpDown, ImageOff } from "lucide-react";
+import Image from "next/image";
 import React from "react";
 import GameUrl from "../../../../app/(view)/[link]/components/game-url";
 import RatingRow from "../../../../app/(view)/[link]/components/rating-row";
+import {
+    Pagination,
+    PaginationContent,
+    PaginationEllipsis,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
+} from "@/components/ui/pagination";
 
 export default function GameNoteDialogContent() {
     const [gameNote, setGameNote] = React.useState<GameNote>();
     const { shortNote } = useNoteStore((state) => state);
+    const { profile } = useProfileStore((state) => state);
     const { user } = useAuthStore((state) => state);
 
     const [orders, setOrders] = React.useState<Paginated<Order>>();
@@ -30,6 +42,23 @@ export default function GameNoteDialogContent() {
     const [isLoading, startTransition] = React.useTransition();
     const [areOrdersLoading, startOrdersTransition] = React.useTransition();
     const { toast } = useToast();
+
+    const [posterUrl, setPosterUrl] = React.useState<string>();
+
+    React.useEffect(() => {
+        (async () => {
+            try {
+                const res = await fetchApi<any>(
+                    `/v1/game-notes/${shortNote!.id}/posters?size=md`,
+                    true
+                );
+                setPosterUrl(res.url);
+            } catch (error: any) {
+                console.error(error);
+                setPosterUrl(undefined);
+            }
+        })();
+    }, []);
 
     React.useEffect(() => {
         setDetailsOpen(false);
@@ -75,102 +104,131 @@ export default function GameNoteDialogContent() {
 
     return (
         <>
-            <DialogHeader>
-                <DialogTitle>
-                    {shortNote?.name}
-                    {isLoading && <LoadingSpinner />}
-                </DialogTitle>
-            </DialogHeader>
+            <div className="hidden">
+                <DialogHeader>
+                    <DialogTitle>
+                        {shortNote?.name}
+                        {isLoading && <LoadingSpinner />}
+                    </DialogTitle>
+                </DialogHeader>
+            </div>
 
-            <div className="space-y-6">
-                <div className="flex items-start space-x-4">
-                    <div className="flex flex-col items-center justify-center min-w-[150px] min-h-[225px] border-2 rounded-lg bg-gray-5 dark:bg-gray-800">
-                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                            <ImageOff />
-                        </div>
-                    </div>
-                    <table className="w-full">
-                        <tbody>
-                            {gameNote?.releaseDate && (
-                                <tr>
-                                    <td className="w-1/2">
-                                        <Label className="text-sm">
-                                            Release Date
-                                        </Label>
-                                    </td>
-                                    <td>
-                                        <div className="text-sm w-1/2 p-1">
-                                            {new Date(
-                                                gameNote?.releaseDate
-                                            ).toLocaleDateString()}
-                                        </div>
-                                    </td>
-                                </tr>
-                            )}
-                            {gameNote?.link && (
-                                <tr>
-                                    <td className="w-1/2">
-                                        <Label className="text-sm">Link</Label>
-                                    </td>
-                                    <td className="w-1/2">
-                                        <GameUrl url={gameNote.link} />
-                                    </td>
-                                </tr>
-                            )}
-                            <tr className="pt-4">
-                                <td className="w-1/2">
-                                    <Label className="text-sm">Status</Label>
-                                </td>
-                                <td className="w-1/2 text-sm p-1">
-                                    {gameNoteStatusLabels
-                                        .filter(
-                                            (s) => s.value == gameNote?.status
-                                        )
-                                        .map((s) => s.label)
-                                        .join()}
-                                </td>
-                            </tr>
-                            {gameNote?.lastPlayedAt && (
-                                <tr>
-                                    <td className="w-1/2">
-                                        <Label className="text-sm">
-                                            Last Played
-                                        </Label>
-                                    </td>
-                                    <td>
-                                        <div className="text-sm w-1/2 p-1">
-                                            {new Date(
-                                                gameNote?.lastPlayedAt
-                                            ).toLocaleDateString()}
-                                        </div>
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-
-                <div className="space-y-2">
-                    <Label className="text-md font-semibold">Rate</Label>
-                    <div className="flex items-center mb-4">
-                        <RatingRow value={gameNote?.rate ?? 0} />
-                        <span className="ml-2 font-semibold text-lg">
-                            {gameNote?.rate ? gameNote.rate + "/10" : "N/A"}
-                        </span>
-                    </div>
-                </div>
-
-                <div className="space-y-2">
-                    <Label className="text-md font-semibold">Comment</Label>
-                    <div className="p-4 bg-primary-foreground rounded-lg text-sm">
-                        {gameNote?.comment && gameNote.comment.length > 0 ? (
-                            gameNote.comment
+            <div className="grid gap-4">
+                <div className="flex items-start gap-4">
+                    <div className="max-w-[150px] max-h-[225px] min-w-max min-h-max w-[150%] h-[225px]">
+                        {posterUrl ? (
+                            <Image
+                                src={posterUrl}
+                                alt="Poster"
+                                width={150}
+                                height={225}
+                                className="rounded-lg"
+                            />
                         ) : (
-                            <span className="text-muted-foreground">
-                                keelfy hasn't left a comment yet.
-                            </span>
+                            <label className="flex flex-col items-center justify-center bg-gray-500 dark:bg-gray-800 w-full h-full rounded-lg">
+                                <ImageOff />
+                            </label>
                         )}
                     </div>
+                    <div className="flex-1 flex flex-col gap-3 w-full justify-between">
+                        <div>
+                            <span className="font-bold text-lg">
+                                {gameNote?.name}
+                            </span>
+                            <span className="text-sm text-muted-foreground">
+                                &nbsp;&nbsp;
+                                {gameNote?.releaseDate &&
+                                    ` ${new Date(
+                                        gameNote.releaseDate
+                                    ).getFullYear()}`}
+                            </span>
+                        </div>
+                        <table className="w-full">
+                            <tbody>
+                                <tr>
+                                    <td className="text-sm w-1/2 font-semibold">
+                                        Release date
+                                    </td>
+                                    <td>
+                                        <div className="text-sm w-1/2 p-1 whitespace-nowrap">
+                                            {gameNote?.releaseDate
+                                                ? new Date(
+                                                      gameNote?.releaseDate
+                                                  ).toLocaleDateString(
+                                                      undefined,
+                                                      {
+                                                          year: "numeric",
+                                                          month: "short",
+                                                          day: "numeric",
+                                                      }
+                                                  )
+                                                : "N/A"}
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td className="text-sm w-1/2 font-semibold">
+                                        Link
+                                    </td>
+                                    <td className="w-1/2 text-sm p-1">
+                                        {gameNote?.link ? (
+                                            <GameUrl url={gameNote.link} />
+                                        ) : (
+                                            "N/A"
+                                        )}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td className="text-sm w-1/2 pt-3 font-semibold">
+                                        Status
+                                    </td>
+                                    <td className="w-1/2 text-sm p-1 pt-3">
+                                        <GameNoteStatusBadge
+                                            status={gameNote?.status}
+                                        />
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td className="text-sm w-1/2 font-semibold">
+                                        Last Played
+                                    </td>
+                                    <td>
+                                        <div className="text-sm w-1/2 p-1 whitespace-nowrap">
+                                            {gameNote?.lastPlayedAt
+                                                ? new Date(
+                                                      gameNote?.lastPlayedAt
+                                                  ).toLocaleDateString(
+                                                      undefined,
+                                                      {
+                                                          year: "numeric",
+                                                          month: "short",
+                                                          day: "numeric",
+                                                      }
+                                                  )
+                                                : "N/A"}
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div className="grid gap-2">
+                    <Label className="text-md font-semibold">
+                        {profile?.username}`s review
+                    </Label>
+                    <RatingRow value={gameNote?.rate ?? 0} />
+                </div>
+
+                <div className="p-4 bg-primary-foreground rounded-lg text-sm">
+                    {gameNote?.comment && gameNote.comment.length > 0 ? (
+                        gameNote.comment
+                    ) : (
+                        <span className="text-muted-foreground">
+                            keelfy hasn't left a comment yet.
+                        </span>
+                    )}
                 </div>
 
                 <Collapsible
@@ -180,7 +238,7 @@ export default function GameNoteDialogContent() {
                 >
                     <div className="flex items-center space-x-4">
                         <Label className="text-md font-semibold">
-                            Requesters
+                            Suggesters
                         </Label>
                         <CollapsibleTrigger asChild>
                             <Button variant="ghost" size="sm">
@@ -190,7 +248,7 @@ export default function GameNoteDialogContent() {
                         </CollapsibleTrigger>
                         {areOrdersLoading && <LoadingSpinner />}
                     </div>
-                    <CollapsibleContent className="flex flex-col gap-2">
+                    <CollapsibleContent className="flex flex-col gap-2 pl-2">
                         {orders?.content.map((order) => (
                             <div
                                 key={order.id}
@@ -212,6 +270,16 @@ export default function GameNoteDialogContent() {
                                 )}
                             </div>
                         ))}
+                        <Pagination>
+                            <PaginationContent>
+                                <PaginationItem>
+                                    <PaginationPrevious href="#" />
+                                </PaginationItem>
+                                <PaginationItem>
+                                    <PaginationNext href="#" />
+                                </PaginationItem>
+                            </PaginationContent>
+                        </Pagination>
                     </CollapsibleContent>
                 </Collapsible>
             </div>

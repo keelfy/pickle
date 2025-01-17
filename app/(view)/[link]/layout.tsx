@@ -322,9 +322,9 @@ type Props = {
 
 function RootLayout({ children, params }: React.PropsWithChildren<Props>) {
     return (
-        <main className="min-h-screen bg-background">
-            <div className="container max-w-7xl flex flex-col gap-20">
-                <nav className="mt-10">
+        <main className="min-h-screen bg-background grid gap-10">
+            <div className="container max-w-7xl flex flex-col gap-10">
+                <nav className="mt-2">
                     <Suspense>
                         <NavMenu params={params} />
                     </Suspense>
@@ -335,21 +335,20 @@ function RootLayout({ children, params }: React.PropsWithChildren<Props>) {
                         <LayoutBody params={params}>{children}</LayoutBody>
                     </OrderStoreProvider>
                 </Suspense>
-
-                <footer className="flex items-center justify-center border-t text-center text-xs py-6">
-                    <p>
-                        Powered&nbsp;by&nbsp;
-                        <Link
-                            href="https://pickle.pw/"
-                            target="_blank"
-                            className="font-bold hover:underline"
-                            rel="noreferrer"
-                        >
-                            pickle
-                        </Link>
-                    </p>
-                </footer>
             </div>
+            <footer className="flex items-center justify-center border-t text-center text-xs py-6">
+                <p>
+                    Powered&nbsp;by&nbsp;
+                    <Link
+                        href="https://pickle.pw/"
+                        target="_blank"
+                        className="font-bold hover:underline"
+                        rel="noreferrer"
+                    >
+                        pickle
+                    </Link>
+                </p>
+            </footer>
         </main>
     );
 }

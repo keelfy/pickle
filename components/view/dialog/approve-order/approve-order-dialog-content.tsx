@@ -303,8 +303,10 @@ export default function ApproveOrderDialogContent() {
                                                             "text-muted-foreground"
                                                     )}
                                                 >
-                                                    {field.value ??
-                                                        "Select a content"}
+                                                    {field.value.length > 50
+                                                        ? `${field.value.slice(0, 50)}...`
+                                                        : field.value ||
+                                                          "Select a content"}
                                                     <ChevronsUpDown className="opacity-50" />
                                                 </Button>
                                             </FormControl>
@@ -339,6 +341,7 @@ export default function ApproveOrderDialogContent() {
                                                                         undefined
                                                                     );
                                                                 }}
+                                                                className="text-start"
                                                             >
                                                                 {order?.message}
                                                             </CommandItem>
@@ -364,6 +367,7 @@ export default function ApproveOrderDialogContent() {
                                                                             undefined
                                                                         );
                                                                     }}
+                                                                    className="text-start"
                                                                 >
                                                                     {
                                                                         contentQuery

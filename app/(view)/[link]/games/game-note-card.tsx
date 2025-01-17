@@ -7,6 +7,7 @@ import { useAuthStore } from "@/providers/auth-store";
 import { useModalStore } from "@/providers/modal";
 import { useNoteStore } from "@/providers/note-store";
 import { useProfileStore } from "@/providers/profile-store";
+import { fetchApi } from "@/utils/api/client";
 import { gameNoteStatusLabels } from "@/utils/api/constants";
 import {
     CheckCheck,
@@ -14,15 +15,35 @@ import {
     ImageOff,
     Loader,
     Pause,
-    TextIcon
+    TextIcon,
 } from "lucide-react";
+import Image from "next/image";
 import React from "react";
+import GameNoteStatusBadge from "./GameNoteStatusBadge";
 
 export default function GameNoteCard({ note }: { note: GameNote }) {
     const { profile } = useProfileStore((state) => state);
     const { user } = useAuthStore((state) => state);
     const { openModal } = useModalStore((state) => state);
     const { setShortNote } = useNoteStore((state) => state);
+    const [posterUrl, setPosterUrl] = React.useState<string>();
+
+    React.useEffect(() => {
+        if (note) {
+            (async () => {
+                try {
+                    const res = await fetchApi<any>(
+                        `/v1/game-notes/${note.id}/posters?size=sm`,
+                        true
+                    );
+                    setPosterUrl(res.url);
+                } catch (error: any) {
+                    console.error(error);
+                    setPosterUrl(undefined);
+                }
+            })();
+        }
+    }, []);
 
     const openGameNote = () => {
         setShortNote(note, 1);
@@ -45,50 +66,24 @@ export default function GameNoteCard({ note }: { note: GameNote }) {
         return "text-red-500";
     }, [note.rate]);
 
-    const statusLabel = React.useMemo(() => {
-        return gameNoteStatusLabels.find(
-            (status) => status.value === note.status
-        );
-    }, [note.status]);
-
-    const statusBadgeVariant = React.useMemo(():
-        | "default"
-        | "secondary"
-        | "destructive"
-        | "outline" => {
-        if (note.status === "dropped" || note.status === "skipped") {
-            return "destructive";
-        } else if (note.status === "finished" || note.status === "playing") {
-            return "default";
-        } else if (note.status === "paused" || note.status === "planned") {
-            return "secondary";
-        }
-        return "outline";
-    }, [note.status]);
-
-    const StatusIcon = ({ classname }: { classname?: string }) => {
-        if (note.status === "dropped") {
-            return <ImageOff className={classname} />;
-        } else if (note.status === "finished") {
-            return <CheckCheck className={classname} />;
-        } else if (note.status === "playing") {
-            return <Loader className={classname} />;
-        } else if (note.status === "paused") {
-            return <Pause className={classname} />;
-        } else if (note.status === "planned") {
-            return <FastForward className={classname} />;
-        }
-        return null;
-    };
-
     return (
         <div className="flex flex-col gap-4 shadow rounded-lg p-4 border text-start">
-            <div className="flex justify-between gap-4 w-full">
+            <div className="flex justify-between gap-4">
                 <div className="flex gap-4">
-                    <div className="flex flex-col items-center justify-center min-w-[100px] min-h-[150px] border-2 rounded-md bg-gray-5 dark:bg-gray-800">
-                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                            <ImageOff />
-                        </div>
+                    <div className="w-[100px] h-[150px]">
+                        {posterUrl ? (
+                            <Image
+                                src={posterUrl}
+                                alt="Poster"
+                                width={100}
+                                height={150}
+                                className="rounded-md"
+                            />
+                        ) : (
+                            <label className="flex flex-col items-center justify-center bg-gray-500 dark:bg-gray-800 w-full h-full rounded-md">
+                                <ImageOff />
+                            </label>
+                        )}
                     </div>
                     <div className="flex-1 flex flex-col gap-1 w-full justify-between">
                         <div className="space-y-1">
@@ -96,9 +91,9 @@ export default function GameNoteCard({ note }: { note: GameNote }) {
                                 <span className="font-bold text-md">
                                     {note.name}
                                 </span>
-                                &nbsp;&nbsp;
                                 {note.releaseDate && (
                                     <span className="text-muted-foreground text-sm">
+                                        &nbsp;&nbsp;
                                         {new Date(
                                             note.releaseDate
                                         ).getFullYear()}
@@ -146,13 +141,7 @@ export default function GameNoteCard({ note }: { note: GameNote }) {
                 </div>
                 <div className="h-min flex gap-4">
                     <div className="px-2 py-4">
-                        <Badge
-                            variant={statusBadgeVariant}
-                            className="w-min h-min flex items-center gap-1"
-                        >
-                            <StatusIcon classname="w-4 h-4" />
-                            {statusLabel?.label ?? "Unknown"}
-                        </Badge>
+                        <GameNoteStatusBadge status={note.status} />
                     </div>
                     <div className="inline-flex flex-col items-center justify-center px-8 py-6 bg-secondary rounded-lg">
                         <div className={cn("text-3xl font-bold", ratingColor)}>

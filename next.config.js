@@ -12,7 +12,7 @@ const nextConfig = {
     experimental: {
         // ppr: true,
         // dynamicIO: true,
-        typedRoutes: true,
+        // typedRoutes: true,
     },
 };
 

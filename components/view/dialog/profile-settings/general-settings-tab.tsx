@@ -230,7 +230,7 @@ export default function GeneralSettingsTab() {
                                         }
                                     />
                                     <div className="text-xs">
-                                        JPEG, PNG, GIF, SVG, WEBP, BMP
+                                        JPEG, PNG, GIF, SVG, WEBP or BMP
                                     </div>
                                 </div>
                             </FormItem>

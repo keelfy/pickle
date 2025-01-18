@@ -59,6 +59,14 @@ func GetPagination(r *http.Request) (*types.Pagination, error) {
 	return pagination, nil
 }
 
+func CalculateTotalPages(totalElements int64, size int) int64 {
+	totalPages := totalElements / int64(size)
+	if totalElements%int64(size) > 0 {
+		totalPages++
+	}
+	return totalPages
+}
+
 func GetSortedPagination(r *http.Request) (*types.CursorSort, error) {
 	limit, err := strconv.Atoi(r.URL.Query().Get("limit"))
 	if err != nil {

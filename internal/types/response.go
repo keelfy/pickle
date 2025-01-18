@@ -77,7 +77,7 @@ type OrderRes struct {
 	PaymentType     int16              `json:"paymentType"`
 	Amount          float32            `json:"amount"`
 	Orderer         uuid.UUID          `json:"orderer,omitempty"`
-	OrdererUsername string             `json:"ordererUsername"`
+	OrdererUsername string             `json:"ordererUsername,omitempty"`
 	Status          db.OrderStatus     `json:"status"`
 	Category        db.ContentCategory `json:"category"` // Category
 	Message         string             `json:"message"`

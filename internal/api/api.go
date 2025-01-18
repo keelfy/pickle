@@ -137,7 +137,11 @@ func (api *pickleAPI) registerV1ProtectedRoutes(r chi.Router) {
 
 	r.Route("/orders", func(r chi.Router) {
 		r.Post("/", api.orderHandler.CreateOrder)
-		r.Patch("/{id}", api.orderHandler.UpdateOrderById)
+
+		r.Route("/{id}", func(r chi.Router) {
+			r.Get("/", api.orderHandler.GetOrderByID)
+			r.Patch("/", api.orderHandler.UpdateOrderById)
+		})
 	})
 }
 

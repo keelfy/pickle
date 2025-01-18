@@ -13,6 +13,7 @@ import (
 )
 
 type OrderHandler interface {
+	GetOrderByID(w http.ResponseWriter, r *http.Request)
 	GetSortedOrdersByLink(w http.ResponseWriter, r *http.Request)
 	CreateOrder(w http.ResponseWriter, r *http.Request)
 	UpdateOrderById(w http.ResponseWriter, r *http.Request)
@@ -29,6 +30,27 @@ func NewOrdersHandler(orderService services.OrderService, userService services.P
 		orderService: orderService,
 		userService:  userService,
 	}
+}
+
+func (handler *orderHandler) GetOrderByID(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// Extracting path variables
+	orderId, err := utils.ReadPathUUIDVariable("id", r)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
+	order, err := handler.orderService.GetOrderById(ctx, orderId)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
+	response := &types.OrderRes{}
+	copier.Copy(response, order)
+	utils.WriteHttpJsonResponse(ctx, w, response)
 }
 
 func (handler *orderHandler) GetSortedOrdersByLink(w http.ResponseWriter, r *http.Request) {

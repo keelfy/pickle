@@ -157,7 +157,7 @@ func (handler *gameNoteHandler) GetOrdersById(w http.ResponseWriter, r *http.Req
 		Content:       orderResponses,
 		Size:          pagination.Size,
 		Page:          pagination.Page,
-		TotalPages:    totalElements / int64(pagination.Size),
+		TotalPages:    utils.CalculateTotalPages(totalElements, pagination.Size),
 		TotalElements: totalElements,
 	}
 

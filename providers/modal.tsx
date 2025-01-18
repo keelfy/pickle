@@ -19,7 +19,6 @@ export type ModalStoreProviderProps = {
 
 export default function ModalStoreProvider({
     children,
-    ...props
 }: ModalStoreProviderProps) {
     const [modalQuery] = useQueryState(
         "modal",

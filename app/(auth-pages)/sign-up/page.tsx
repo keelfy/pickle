@@ -1,11 +1,5 @@
-import { signUpAction } from "@/app/actions";
-import { AuthFormMessage, Message } from "@/components/auth-form-message";
-import { SubmitButton } from "@/components/submit-button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import Link from "next/link";
-import { SmtpMessage } from "../smtp-message";
 import AuthForm from "@/components/auth-form";
+import { Message } from "@/components/auth-form-message";
 
 type Props = {
     searchParams: Promise<Message>;

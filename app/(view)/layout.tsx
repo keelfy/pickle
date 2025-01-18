@@ -1,7 +1,7 @@
 import { getMyAvatar, getMyProfile } from "@/hooks/api-endpoints-server";
 import getUser from "@/hooks/getUser";
 import AuthStoreProvider from "@/providers/auth-store";
-import React from "react";
+import React, { Suspense } from "react";
 
 async function getAuth() {
     let user, profile, avatarUrl;
@@ -27,7 +27,7 @@ async function AuthorizedProvider({ children }: { children: React.ReactNode }) {
 
     return (
         <AuthStoreProvider profile={profile} user={user} avatarUrl={avatarUrl}>
-            {children}
+            <Suspense>{children}</Suspense>
         </AuthStoreProvider>
     );
 }

@@ -6,6 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { LayoutGrid, MessageCircle, Settings, Shield } from "lucide-react";
 import React from "react";
 import GeneralSettingsTab from "./general-settings-tab";
+import { useModalStore } from "@/providers/modal";
 
 type SettingsTab = "general" | "security" | "notifications" | "connections";
 
@@ -37,7 +38,10 @@ function NotificationsTab() {
 }
 
 export default function ProfileSettingsDialogContent() {
-    const [tab, setTab] = React.useState<SettingsTab>("general");
+    const { modalParams, setModalParams } = useModalStore((state) => state);
+    const [tab, setTab] = React.useState<SettingsTab>(
+        modalParams?.tab ?? "general"
+    );
 
     function TabButton({
         forTab,
@@ -51,7 +55,10 @@ export default function ProfileSettingsDialogContent() {
         return (
             <Button
                 variant={forTab == tab ? "default" : "ghost"}
-                onClick={() => setTab(forTab)}
+                onClick={() => {
+                    setTab(forTab);
+                    setModalParams({ tab: forTab });
+                }}
                 className="w-full flex items-center justify-start gap-1 text-sm"
             >
                 {icon}

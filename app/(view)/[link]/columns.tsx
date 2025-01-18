@@ -10,7 +10,7 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useModalStore } from "@/providers/modal";
-import { useOrderStore } from "@/providers/order";
+import { ModalType } from "@/stores/modal";
 import {
     contentCategoryLabels,
     orderStatusLabels,
@@ -145,7 +145,6 @@ const orderAuthorizedColumns: ColumnDef<Order>[] = [
         cell: ({ row }) => {
             const order = row.original;
             const { openModal } = useModalStore((state) => state);
-            const { setOrder } = useOrderStore((state) => state);
 
             return (
                 <div className="flex items-center text-center">
@@ -155,8 +154,11 @@ const orderAuthorizedColumns: ColumnDef<Order>[] = [
                         className="text-red-500"
                         disabled={order.status !== "pending"}
                         onClick={() => {
-                            openModal("deny");
-                            setOrder(order);
+                            openModal(ModalType.RejectOrder, {
+                                id: order.id,
+                                message: order.message,
+                                orderer: order.ordererUsername,
+                            });
                         }}
                     >
                         <X />
@@ -167,8 +169,7 @@ const orderAuthorizedColumns: ColumnDef<Order>[] = [
                         className="text-green-500"
                         disabled={order.status !== "pending"}
                         onClick={() => {
-                            openModal("approve");
-                            setOrder(order);
+                            openModal(ModalType.ApproveOrder, { id: order.id });
                         }}
                     >
                         <Check />

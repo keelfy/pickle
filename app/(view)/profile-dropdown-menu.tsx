@@ -25,6 +25,7 @@ import OpenModalDropdownMenuItem from "./[link]/open-modal-dropdown-menu-item";
 import LoggedOutProfileNavSection from "./logged-out-nav-menu-button";
 import ProfileDropdownThemeRadioGroup from "./profile-dropdown-theme-radio-group";
 import DropdownMenuSignOutItem from "./sign-out-button";
+import { ModalType } from "@/stores/modal";
 
 export default async function ProfileDropdownMenu() {
     const user = await getUser();
@@ -99,7 +100,7 @@ export default async function ProfileDropdownMenu() {
                             </DropdownMenuPortal>
                         </DropdownMenuSub>
                         <OpenModalDropdownMenuItem
-                            modalName="profile-settings"
+                            modal={ModalType.ProfileSettings}
                             className="cursor-pointer"
                         >
                             <Settings />

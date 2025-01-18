@@ -4,22 +4,27 @@ import {
     CommandEmpty,
     CommandGroup,
     CommandInput,
-    CommandList
+    CommandList,
 } from "@/components/ui/command";
 import { toast } from "@/hooks/use-toast";
+import { useModalStore } from "@/providers/modal";
 import { useProfileStore } from "@/providers/profile-store";
 import { fetchApi } from "@/utils/api/client";
 import React from "react";
 import ContentSearchItem from "./content-search-item";
 
 export default function ProfileSearchDialogContent() {
+    const { modalParams, setModalParams } = useModalStore((state) => state);
     const { profile } = useProfileStore((state) => state);
-    const [query, setQuery] = React.useState<string>("");
+    const [query, setQuery] = React.useState<string>(modalParams?.query ?? "");
     const [debouncedQuery, setDebouncedQuery] = React.useState<string>("");
     const [result, setResult] = React.useState<ContentSearchHits>();
     const [isLoading, startTransition] = React.useTransition();
 
     React.useEffect(() => {
+        setModalParams({
+            query,
+        });
         const timeout = setTimeout(() => {
             setDebouncedQuery(query);
         }, 300);
@@ -74,7 +79,7 @@ export default function ProfileSearchDialogContent() {
             <CommandList>
                 <CommandEmpty>No results found</CommandEmpty>
                 {result?.content && result.content.length > 0 && (
-                    <CommandGroup heading={GroupHeading}>
+                    <CommandGroup heading={GroupHeading} className="pb-2">
                         {result?.content.map((hit) => (
                             <ContentSearchItem
                                 key={hit.source.id}

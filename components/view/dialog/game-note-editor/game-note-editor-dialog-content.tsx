@@ -45,7 +45,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { useModalStore } from "@/providers/modal";
-import { useOrderStore } from "@/providers/order";
+import { ModalType } from "@/stores/modal";
 import { fetchApi } from "@/utils/api/client";
 import { gameNoteStatusLabels } from "@/utils/api/constants";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -78,7 +78,12 @@ export default function GameNoteEditorDialogContent() {
     const { currentModal, openModal, closeModal } = useModalStore(
         (state) => state
     );
-    const { order } = useOrderStore((state) => state);
+    const {
+        orderId,
+        title,
+        orderer,
+        at: orderedAt,
+    } = useModalStore((state) => state.modalParams!);
 
     const [detailsOpen, setDetailsOpen] = React.useState(false);
     const [isLoading, startTransition] = React.useTransition();
@@ -96,19 +101,19 @@ export default function GameNoteEditorDialogContent() {
     });
 
     React.useEffect(() => {
-        if (order) {
+        if (orderId && title) {
             form.reset({
                 gameNote: {
-                    name: order.message,
+                    name: title,
                     status: "planned",
                     comment: "",
                 },
-                initialOrderId: order.id,
+                initialOrderId: orderId,
             });
         } else {
             form.reset();
         }
-    }, [order?.id, order?.message]);
+    }, [orderId, title]);
 
     useEffect(() => {
         setDetailsOpen(false);
@@ -142,7 +147,7 @@ export default function GameNoteEditorDialogContent() {
     return (
         <>
             <DialogHeader>
-                <DialogTitle>{order?.message}</DialogTitle>
+                <DialogTitle>{title}</DialogTitle>
                 <DialogDescription>
                     Fill card with detailed info about the game.
                 </DialogDescription>
@@ -446,14 +451,13 @@ export default function GameNoteEditorDialogContent() {
                                 <div className="flex gap-2 items-center space-x-2">
                                     <span className="text-muted-foreground">
                                         {new Date(
-                                            order!.createdAt
+                                            orderedAt
                                         ).toLocaleDateString()}
                                     </span>
-                                    <span>{order?.ordererUsername}</span>
+                                    <span>{orderer}</span>
                                     <span className="text-muted-foreground">
                                         &mdash;
                                     </span>
-                                    <span>{order?.amount}</span>
                                 </div>
                             </CollapsibleContent>
                         </Collapsible>
@@ -462,7 +466,11 @@ export default function GameNoteEditorDialogContent() {
                         <Button
                             variant="secondary"
                             type="button"
-                            onClick={() => openModal("approve")}
+                            onClick={() =>
+                                openModal(ModalType.ApproveOrder, {
+                                    id: orderId,
+                                })
+                            }
                         >
                             <ArrowLeft />
                             Back

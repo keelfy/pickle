@@ -49,6 +49,7 @@ import ProfileDropdownMenu from "../profile-dropdown-menu";
 import CurrentDate from "./current-date";
 import MenuItemUnderline from "./menu-item-underline";
 import OpenModalButton from "./open-modal-button";
+import { ModalType } from "@/stores/modal";
 
 async function ProfileAvatar({ profile }: { profile: Profile | undefined }) {
     const avatarUrl = await getProfileAvatar(profile, "lg")
@@ -262,7 +263,7 @@ async function NavMenu({ params }: Props) {
                         </Link>
                     </NavigationMenuItem>
                     <OpenModalButton
-                        modalName="search"
+                        modal={ModalType.ProfileSearch}
                         className={cn(
                             navigationMenuTriggerStyle(),
                             "text-foreground w-10 h-10"

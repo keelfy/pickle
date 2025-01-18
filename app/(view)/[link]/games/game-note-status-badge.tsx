@@ -50,7 +50,7 @@ export default function GameNoteStatusBadge({ status, className }: Props) {
             className={cn("w-min h-min flex items-center gap-1", className)}
         >
             <StatusIcon classname="w-4 h-4" />
-            {statusLabel?.label ?? "Unknown"}
+            <label>{statusLabel?.label ?? "Unknown"}</label>
         </Badge>
     );
 }

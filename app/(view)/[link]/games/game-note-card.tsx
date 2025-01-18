@@ -1,31 +1,19 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useAuthStore } from "@/providers/auth-store";
 import { useModalStore } from "@/providers/modal";
-import { useNoteStore } from "@/providers/note-store";
 import { useProfileStore } from "@/providers/profile-store";
+import { ModalType } from "@/stores/modal";
 import { fetchApi } from "@/utils/api/client";
-import { gameNoteStatusLabels } from "@/utils/api/constants";
-import {
-    CheckCheck,
-    FastForward,
-    ImageOff,
-    Loader,
-    Pause,
-    TextIcon,
-} from "lucide-react";
+import { History, ImageOff, TextIcon, UserPlus2 } from "lucide-react";
 import Image from "next/image";
 import React from "react";
-import GameNoteStatusBadge from "./GameNoteStatusBadge";
+import GameNoteStatusBadge from "./game-note-status-badge";
 
 export default function GameNoteCard({ note }: { note: GameNote }) {
-    const { profile } = useProfileStore((state) => state);
-    const { user } = useAuthStore((state) => state);
-    const { openModal } = useModalStore((state) => state);
-    const { setShortNote } = useNoteStore((state) => state);
+    const profile = useProfileStore((state) => state.profile);
+    const openModal = useModalStore((state) => state.openModal);
     const [posterUrl, setPosterUrl] = React.useState<string>();
 
     React.useEffect(() => {
@@ -46,8 +34,7 @@ export default function GameNoteCard({ note }: { note: GameNote }) {
     }, []);
 
     const openGameNote = () => {
-        setShortNote(note, 1);
-        openModal("game-note");
+        openModal(ModalType.GameNote, { id: note.id });
     };
 
     const ratingColor = React.useMemo(() => {
@@ -103,8 +90,9 @@ export default function GameNoteCard({ note }: { note: GameNote }) {
                             <table>
                                 <tbody>
                                     <tr>
-                                        <td className="text-sm pt-2 w-32">
-                                            Suggested on
+                                        <td className="text-sm pt-2 w-32 flex items-center gap-1">
+                                            <History size={12} />
+                                            Since
                                         </td>
                                         <td className="text-sm pt-2">
                                             {new Date(
@@ -117,8 +105,9 @@ export default function GameNoteCard({ note }: { note: GameNote }) {
                                         </td>
                                     </tr>
                                     <tr>
-                                        <td className="text-sm w-32">
-                                            Suggested by
+                                        <td className="text-sm w-32 flex items-center gap-1">
+                                            <UserPlus2 size={12} />
+                                            Requester
                                         </td>
                                         <td className="text-sm">
                                             {note.createdAt

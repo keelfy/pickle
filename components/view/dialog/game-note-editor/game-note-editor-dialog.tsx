@@ -6,6 +6,7 @@ import { useOrderStore } from "@/providers/order";
 import dynamic from "next/dynamic";
 import React from "react";
 import LoadingDialogContent from "../loading-dialog-content";
+import { ModalType } from "@/stores/modal";
 
 const DynamicGameNoteEditorDialogContent = dynamic(
     () => import("./game-note-editor-dialog-content"),
@@ -13,12 +14,16 @@ const DynamicGameNoteEditorDialogContent = dynamic(
 );
 
 export default function GameNoteEditorDialog() {
-    const { currentModal, closeModal } = useModalStore((state) => state);
-    const { order } = useOrderStore((state) => state);
+    const { currentModal, modalParams, closeModal } = useModalStore(
+        (state) => state
+    );
 
     const isOpen = React.useMemo(
-        () => currentModal === "game-note-editor" && order?.id !== undefined,
-        [currentModal, order?.id]
+        () =>
+            currentModal === ModalType.CreateGameNote &&
+            modalParams?.orderId &&
+            modalParams?.title,
+        [currentModal, modalParams?.orderId]
     );
 
     if (!isOpen) {
@@ -27,7 +32,7 @@ export default function GameNoteEditorDialog() {
 
     return (
         <Dialog open={isOpen} onOpenChange={closeModal}>
-            <DialogContent className="overflow-y-scroll max-h-screen">
+            <DialogContent className="overflow-y-auto max-h-screen">
                 {isOpen && <DynamicGameNoteEditorDialogContent />}
             </DialogContent>
         </Dialog>

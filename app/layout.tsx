@@ -1,9 +1,14 @@
 import { Toaster } from "@/components/ui/toaster";
 import ModalStoreProvider from "@/providers/modal";
+import { ModalQuerySync } from "@/query-params/modal";
 import { GeistSans } from "geist/font/sans";
 import { ThemeProvider } from "next-themes";
-import "./globals.css";
+import {
+    SearchParams
+} from "nuqs";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Suspense } from "react";
+import "./globals.css";
 
 const defaultUrl = process.env.VERCEL_URL
     ? `https://${process.env.VERCEL_URL}`
@@ -16,23 +21,31 @@ export const metadata = {
 };
 
 type Props = {
-    children: React.ReactNode;
+    searchParams: Promise<SearchParams>;
 };
 
-export default async function RootLayout({ children }: Props) {
+export default async function RootLayout({
+    searchParams,
+    children,
+}: React.PropsWithChildren<Props>) {
     return (
         <html lang="en" suppressHydrationWarning>
             <body className={GeistSans.className}>
-                <ThemeProvider
-                    attribute="class"
-                    defaultTheme="system"
-                    enableSystem
-                >
-                    <ModalStoreProvider>
-                        <Suspense>{children}</Suspense>
-                    </ModalStoreProvider>
-                    <Toaster />
-                </ThemeProvider>
+                <NuqsAdapter>
+                    <ThemeProvider
+                        attribute="class"
+                        defaultTheme="system"
+                        enableSystem
+                    >
+                        <ModalStoreProvider>
+                            <Suspense>
+                                {children}
+                                <ModalQuerySync />
+                            </Suspense>
+                        </ModalStoreProvider>
+                        <Toaster />
+                    </ThemeProvider>
+                </NuqsAdapter>
             </body>
         </html>
     );

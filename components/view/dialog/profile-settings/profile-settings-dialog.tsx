@@ -5,6 +5,7 @@ import { useModalStore } from "@/providers/modal";
 import dynamic from "next/dynamic";
 import React from "react";
 import LoadingDialogContent from "../loading-dialog-content";
+import { ModalType } from "@/stores/modal";
 
 const DynamicProfileSettingsDialogContent = dynamic(
     () => import("./profile-settings-dialog-content"),
@@ -15,7 +16,7 @@ export default function ProfileSettingsDialog() {
     const { currentModal } = useModalStore((state) => state);
 
     const isOpen = React.useMemo(
-        () => currentModal == "profile-settings",
+        () => currentModal == ModalType.ProfileSettings,
         [currentModal]
     );
 
@@ -24,7 +25,7 @@ export default function ProfileSettingsDialog() {
     }
 
     return (
-        <DialogContent className="overflow-y-scroll max-h-screen max-w-2xl p-0 flex flex-col gap-0">
+        <DialogContent className="overflow-y-auto max-h-screen max-w-2xl p-0 flex flex-col gap-0">
             {isOpen && <DynamicProfileSettingsDialogContent />}
         </DialogContent>
     );

@@ -45,8 +45,8 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useModalStore } from "@/providers/modal";
-import { useOrderStore } from "@/providers/order";
 import { useProfileStore } from "@/providers/profile-store";
+import { ModalType } from "@/stores/modal";
 import { fetchApi } from "@/utils/api/client";
 import { contentCategoryLabels } from "@/utils/api/constants";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -64,8 +64,9 @@ const formSchema = z.object({
 
 export default function ApproveOrderDialogContent() {
     const { openModal, closeModal } = useModalStore((state) => state);
-    const { order, setOrder } = useOrderStore((state) => state);
+    const { id: orderId } = useModalStore((state) => state.modalParams!);
     const { profile } = useProfileStore((state) => state);
+    const [order, setOrder] = React.useState<Order>();
 
     const [detailsOpen, setDetailsOpen] = React.useState<boolean>(false);
 
@@ -73,9 +74,6 @@ export default function ApproveOrderDialogContent() {
         React.useState<ContentSearchHits>();
 
     const [contentQuery, setContentQuery] = React.useState<string>("");
-
-    const [isContentSearchLoading, startContentSearchTransition] =
-        React.useTransition();
 
     const [isOrderApproving, startOrderApprovingTransition] =
         React.useTransition();
@@ -119,7 +117,7 @@ export default function ApproveOrderDialogContent() {
             return;
         }
 
-        startContentSearchTransition(async () => {
+        (async () => {
             try {
                 const response = await fetchApi<ContentSearchHits>(
                     `/v1/content?query=${debouncedContentQuery}&profileId=${profile?.id}&page=${contentSearchPage}&size=1`
@@ -131,7 +129,7 @@ export default function ApproveOrderDialogContent() {
                     description: error.message ?? "An error occurred",
                 });
             }
-        });
+        })();
     }, [debouncedContentQuery]);
 
     React.useEffect(() => {
@@ -139,7 +137,7 @@ export default function ApproveOrderDialogContent() {
             return;
         }
 
-        startContentSearchTransition(async () => {
+        (async () => {
             try {
                 const response = await fetchApi<ContentSearchHits>(
                     `/v1/content?query=${debouncedContentQuery}&profileId=${profile?.id}&page=${contentSearchPage}&size=5`
@@ -162,8 +160,29 @@ export default function ApproveOrderDialogContent() {
                     description: error.message ?? "An error occurred",
                 });
             }
-        });
+        })();
     }, [contentSearchPage]);
+
+    React.useEffect(() => {
+        if (!orderId) {
+            return;
+        }
+
+        (async () => {
+            try {
+                const response = await fetchApi<Order>(
+                    `/v1/orders/${orderId}`,
+                    true
+                );
+                setOrder(response);
+            } catch (error: any) {
+                toast({
+                    title: "Failed to fetch the order",
+                    description: error.message ?? "An error occurred",
+                });
+            }
+        })();
+    }, [orderId]);
 
     React.useEffect(() => {
         onReset();
@@ -172,8 +191,8 @@ export default function ApproveOrderDialogContent() {
     const onReset = () => {
         if (order) {
             form.reset({
-                category: order.category ?? "custom",
-                message: order.message ?? "",
+                category: order?.category ?? "custom",
+                message: order?.message ?? "",
             });
         } else {
             form.reset();
@@ -181,8 +200,8 @@ export default function ApproveOrderDialogContent() {
     };
 
     const onSubmit = (values: z.infer<typeof formSchema>) => {
-        if (!order) {
-            onCancel();
+        if (!orderId) {
+            closeModal();
             return;
         }
 
@@ -191,16 +210,13 @@ export default function ApproveOrderDialogContent() {
                 case "games":
                     startOrderApprovingTransition(async () => {
                         await fetchApi(
-                            `/v1/game-notes/${values.contentId}/orders/${order.id}`,
+                            `/v1/game-notes/${values.contentId}/orders/${orderId}`,
                             true,
                             {
                                 method: "POST",
                             }
                         )
-                            .then(() => {
-                                setOrder(undefined);
-                                closeModal();
-                            })
+                            .then(closeModal)
                             .catch((error: any) => {
                                 toast({
                                     title: "Failed to approve the order",
@@ -212,18 +228,13 @@ export default function ApproveOrderDialogContent() {
                     return;
             }
         } else {
-            setOrder({
-                ...order,
-                category: values.category,
-                message: values.message,
+            openModal(ModalType.CreateGameNote, {
+                orderId: orderId,
+                title: values.message,
+                orderer: order?.ordererUsername,
+                at: order?.createdAt,
             });
-            openModal("game-note-editor");
         }
-    };
-
-    const onCancel = () => {
-        setOrder(undefined);
-        closeModal();
     };
 
     return (
@@ -525,27 +536,29 @@ export default function ApproveOrderDialogContent() {
                             <div className="grid w-full max-w-sm items-center gap-1.5">
                                 <Label>Orderer Username</Label>
                                 <div className="rounded-md border px-4 py-2 font-mono text-sm shadow-sm">
-                                    {order!.ordererUsername}
+                                    {order?.ordererUsername}
                                 </div>
                             </div>
                             <div className="grid w-full max-w-sm items-center gap-1.5">
                                 <Label>Date of the order</Label>
                                 <div className="rounded-md border px-4 py-2 font-mono text-sm shadow-sm">
-                                    {new Date(
-                                        order!.createdAt
-                                    ).toLocaleString()}
+                                    {order?.createdAt
+                                        ? new Date(
+                                              order?.createdAt
+                                          ).toLocaleString()
+                                        : "unknown"}
                                 </div>
                             </div>
                             <div className="grid w-full max-w-sm items-center gap-1.5">
                                 <Label>Amount</Label>
                                 <div className="rounded-md border px-4 py-2 font-mono text-sm shadow-sm">
-                                    {order!.amount}
+                                    {order?.amount}
                                 </div>
                             </div>
                             <div className="grid w-full max-w-sm items-center gap-1.5">
                                 <Label>Currency</Label>
                                 <div className="rounded-md border px-4 py-2 font-mono text-sm shadow-sm">
-                                    {order!.paymentType}
+                                    {order?.paymentType}
                                 </div>
                             </div>
                         </CollapsibleContent>
@@ -555,7 +568,8 @@ export default function ApproveOrderDialogContent() {
                         <Button
                             variant="secondary"
                             type="button"
-                            onClick={onCancel}
+                            onClick={closeModal}
+                            disabled={isOrderApproving}
                         >
                             <X />
                             Cancel
@@ -564,11 +578,12 @@ export default function ApproveOrderDialogContent() {
                             variant="secondary"
                             type="button"
                             onClick={onReset}
+                            disabled={isOrderApproving}
                         >
                             <CircleOff />
                             Reset
                         </Button>
-                        <Button type="submit">
+                        <Button type="submit" disabled={isOrderApproving}>
                             <Check />
                             Continue
                         </Button>

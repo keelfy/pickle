@@ -2,22 +2,22 @@
 
 import { Button, ButtonProps } from "@/components/ui/button";
 import { useModalStore } from "@/providers/modal";
-import { ModalName } from "@/stores/modal";
+import { ModalType } from "@/stores/modal";
 
 type Props = ButtonProps & {
-    modalName: ModalName;
+    modal: ModalType;
     children?: React.ReactNode;
 };
 
 export default function OpenModalButton({
-    modalName,
+    modal,
     children,
     ...props
 }: Props) {
     const { openModal } = useModalStore((state) => state);
 
     return (
-        <Button onClick={() => openModal(modalName)} {...props}>
+        <Button onClick={() => openModal(modal)} {...props}>
             {children}
         </Button>
     );

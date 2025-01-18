@@ -6,6 +6,7 @@ import { useOrderStore } from "@/providers/order";
 import dynamic from "next/dynamic";
 import React from "react";
 import LoadingAlertDialogContent from "../loading-alert-dialog-content";
+import { ModalType } from "@/stores/modal";
 
 const DynamicDenyOrderDialogContent = dynamic(
     () => import("./deny-order-dialog-content"),
@@ -15,12 +16,15 @@ const DynamicDenyOrderDialogContent = dynamic(
 );
 
 export default function DenyOrderDialog() {
-    const { currentModal, closeModal } = useModalStore((state) => state);
-    const { order } = useOrderStore((state) => state);
+    const { currentModal, modalParams, closeModal } = useModalStore(
+        (state) => state
+    );
 
     const isOpen = React.useMemo(
-        () => currentModal === "deny" && order?.id !== undefined,
-        [currentModal, order?.id]
+        () =>
+            currentModal === ModalType.RejectOrder &&
+            modalParams?.id !== undefined,
+        [currentModal, modalParams?.id]
     );
 
     if (!isOpen) {

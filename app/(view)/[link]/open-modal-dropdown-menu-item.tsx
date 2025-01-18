@@ -2,23 +2,23 @@
 
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { useModalStore } from "@/providers/modal";
-import { ModalName } from "@/stores/modal";
+import { ModalType } from "@/stores/modal";
 import { DropdownMenuItemProps } from "@radix-ui/react-dropdown-menu";
 
 type Props = DropdownMenuItemProps & {
-    modalName: ModalName;
+    modal: ModalType;
     children?: React.ReactNode;
 };
 
 export default function OpenModalDropdownMenuItem({
-    modalName,
+    modal,
     children,
     ...props
 }: Props) {
     const { openModal } = useModalStore((state) => state);
 
     return (
-        <DropdownMenuItem onClick={() => openModal(modalName)} {...props}>
+        <DropdownMenuItem onClick={() => openModal(modal)} {...props}>
             {children}
         </DropdownMenuItem>
     );

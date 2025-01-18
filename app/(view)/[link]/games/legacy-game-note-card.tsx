@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { useModalStore } from "@/providers/modal";
 import { useNoteStore } from "@/providers/note-store";
+import { ModalType } from "@/stores/modal";
 import { gameNoteStatusLabels } from "@/utils/api/constants";
 import { ImageOff } from "lucide-react";
 
@@ -17,7 +18,7 @@ export default function LegacyGameNoteCard({ note }: { note: GameNote }) {
 
     const openGameNote = () => {
         setShortNote(note, 1);
-        openModal("game-note");
+        openModal(ModalType.GameNote);
     };
 
     return (

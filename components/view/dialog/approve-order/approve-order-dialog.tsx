@@ -2,7 +2,7 @@
 
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useModalStore } from "@/providers/modal";
-import { useOrderStore } from "@/providers/order";
+import { ModalType } from "@/stores/modal";
 import dynamic from "next/dynamic";
 import React from "react";
 import LoadingDialogContent from "../loading-dialog-content";
@@ -15,12 +15,15 @@ const DynamicApproveOrderDialogContent = dynamic(
 );
 
 export default function ApproveOrderDialog() {
-    const { currentModal, closeModal } = useModalStore((state) => state);
-    const { order } = useOrderStore((state) => state);
+    const { currentModal, modalParams, closeModal } = useModalStore(
+        (state) => state
+    );
 
     const isOpen = React.useMemo(
-        () => currentModal === "approve" && order?.id !== undefined,
-        [currentModal, order?.id]
+        () =>
+            currentModal === ModalType.ApproveOrder &&
+            modalParams?.id !== undefined,
+        [currentModal, modalParams?.id]
     );
 
     if (!isOpen) {
@@ -28,8 +31,8 @@ export default function ApproveOrderDialog() {
     }
 
     return (
-        <Dialog open={currentModal === "approve"} onOpenChange={closeModal}>
-            <DialogContent className="overflow-y-scroll max-h-screen">
+        <Dialog open={isOpen} onOpenChange={closeModal}>
+            <DialogContent className="overflow-y-auto max-h-screen">
                 {isOpen && <DynamicApproveOrderDialogContent />}
             </DialogContent>
         </Dialog>

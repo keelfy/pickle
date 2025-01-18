@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
-import NoteStoreProvider from "@/providers/note-store";
 import { fetchApi } from "@/utils/api/client";
 import { Filter, Search, SortAsc } from "lucide-react";
 import React from "react";
@@ -40,7 +39,7 @@ export default function Page({ params }: Props) {
     }, [link]);
 
     return (
-        <NoteStoreProvider>
+        <>
             <GameNoteDialog />
             <div className="flex flex-col gap-8 justify-center md:justify-start md:items-start w-full">
                 <div className="flex items-center gap-4 justify-between w-full">
@@ -68,6 +67,6 @@ export default function Page({ params }: Props) {
                     ))}
                 </div>
             </div>
-        </NoteStoreProvider>
+        </>
     );
 }

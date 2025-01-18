@@ -3,7 +3,9 @@
 import React from "react";
 import { useStore } from "zustand";
 
-import createModalStore, { ModalStore } from "@/stores/modal";
+import createModalStore, { ModalStore, ModalType } from "@/stores/modal";
+import { parseAsString, parseAsStringEnum, useQueryState } from "nuqs";
+import qs from "querystring";
 
 export type ModalStoreApi = ReturnType<typeof createModalStore>;
 
@@ -11,14 +13,32 @@ export const ModalStoreContext = React.createContext<ModalStoreApi | undefined>(
     undefined
 );
 
-export interface ModalStoreProviderProps {
+export type ModalStoreProviderProps = {
     children: React.ReactNode;
-}
+};
 
 export default function ModalStoreProvider({
     children,
+    ...props
 }: ModalStoreProviderProps) {
-    const storeRef = React.useRef<ModalStoreApi>(createModalStore());
+    const [modalQuery] = useQueryState(
+        "modal",
+        parseAsStringEnum<ModalType>(Object.values(ModalType)).withDefault(
+            ModalType.None
+        )
+    );
+
+    const [modalParamsQuery] = useQueryState(
+        "modalParams",
+        parseAsString.withDefault("")
+    );
+
+    const storeRef = React.useRef<ModalStoreApi>(
+        createModalStore({
+            currentModal: modalQuery,
+            modalParams: modalParamsQuery ? qs.parse(modalParamsQuery) : {},
+        })
+    );
 
     return (
         <ModalStoreContext.Provider value={storeRef.current}>

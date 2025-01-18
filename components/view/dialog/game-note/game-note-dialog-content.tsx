@@ -1,6 +1,6 @@
 "use client";
 
-import GameNoteStatusBadge from "@/app/(view)/[link]/games/GameNoteStatusBadge";
+import GameNoteStatusBadge from "@/app/(view)/[link]/games/game-note-status-badge";
 import { Button } from "@/components/ui/button";
 import {
     Collapsible,
@@ -10,33 +10,44 @@ import {
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import LoadingSpinner from "@/components/ui/loading-spinner";
-import { useToast } from "@/hooks/use-toast";
-import { useAuthStore } from "@/providers/auth-store";
-import { useNoteStore } from "@/providers/note-store";
-import { useProfileStore } from "@/providers/profile-store";
-import { fetchApi } from "@/utils/api/client";
-import { ChevronsUpDown, ImageOff } from "lucide-react";
-import Image from "next/image";
-import React from "react";
-import GameUrl from "../../../../app/(view)/[link]/components/game-url";
-import RatingRow from "../../../../app/(view)/[link]/components/rating-row";
 import {
     Pagination,
     PaginationContent,
-    PaginationEllipsis,
     PaginationItem,
     PaginationLink,
     PaginationNext,
     PaginationPrevious,
 } from "@/components/ui/pagination";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { useToast } from "@/hooks/use-toast";
+import { useModalStore } from "@/providers/modal";
+import { useProfileStore } from "@/providers/profile-store";
+import { fetchApi } from "@/utils/api/client";
+import {
+    Check,
+    ChevronsUpDown,
+    History,
+    ImageOff,
+    Link,
+    Rocket,
+} from "lucide-react";
+import Image from "next/image";
+import React from "react";
+import GameUrl from "../../../../app/(view)/[link]/components/game-url";
+import RatingRow from "../../../../app/(view)/[link]/components/rating-row";
 
 export default function GameNoteDialogContent() {
+    const { id: gameNoteId } = useModalStore((state) => state.modalParams!);
     const [gameNote, setGameNote] = React.useState<GameNote>();
-    const { shortNote } = useNoteStore((state) => state);
     const { profile } = useProfileStore((state) => state);
-    const { user } = useAuthStore((state) => state);
 
     const [orders, setOrders] = React.useState<Paginated<Order>>();
+    const [ordersPage, setOrdersPage] = React.useState(0);
 
     const [detailsOpen, setDetailsOpen] = React.useState(false);
     const [isLoading, startTransition] = React.useTransition();
@@ -49,7 +60,7 @@ export default function GameNoteDialogContent() {
         (async () => {
             try {
                 const res = await fetchApi<any>(
-                    `/v1/game-notes/${shortNote!.id}/posters?size=md`,
+                    `/v1/game-notes/${gameNoteId}/posters?size=md`,
                     true
                 );
                 setPosterUrl(res.url);
@@ -64,13 +75,14 @@ export default function GameNoteDialogContent() {
         setDetailsOpen(false);
         setGameNote(undefined);
         setOrders(undefined);
-    }, [shortNote?.id]);
+        setOrdersPage(0);
+    }, [gameNoteId]);
 
     React.useEffect(() => {
         startTransition(async () => {
             try {
                 const response = await fetchApi<GameNote>(
-                    `/v1/game-notes/${shortNote?.id}`
+                    `/v1/game-notes/${gameNoteId}`
                 );
                 setGameNote(response);
             } catch (error: any) {
@@ -80,14 +92,14 @@ export default function GameNoteDialogContent() {
                 });
             }
         });
-    }, [shortNote?.id]);
+    }, [gameNoteId]);
 
-    const onOrdersExpand = () => {
-        if (!detailsOpen && !orders && !areOrdersLoading) {
+    React.useEffect(() => {
+        if (!areOrdersLoading && detailsOpen) {
             startOrdersTransition(async () => {
                 try {
                     const response = await fetchApi<Paginated<Order>>(
-                        `/v1/game-notes/${shortNote?.id}/orders`
+                        `/v1/game-notes/${gameNoteId}/orders?page=${ordersPage}&size=5`
                     );
                     setOrders(response);
                 } catch (error: any) {
@@ -98,8 +110,38 @@ export default function GameNoteDialogContent() {
                 }
             });
         }
+    }, [detailsOpen, ordersPage]);
 
-        setDetailsOpen(!detailsOpen);
+    const getTimeAgoText = (date: Date) => {
+        const diff = new Date().getTime() - date.getTime();
+        const seconds = Math.floor(diff / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const hours = Math.floor(minutes / 60);
+        const days = Math.floor(hours / 24);
+        const months = Math.floor(days / 30);
+        const years = Math.floor(months / 12);
+
+        if (years > 0) {
+            return `${years} year${years > 1 ? "s" : ""} ago`;
+        }
+
+        if (months > 0) {
+            return `${months} month${months > 1 ? "s" : ""} ago`;
+        }
+
+        if (days > 0) {
+            return `${days} day${days > 1 ? "s" : ""} ago`;
+        }
+
+        if (hours > 0) {
+            return `${hours} hour${hours > 1 ? "s" : ""} ago`;
+        }
+
+        if (minutes > 0) {
+            return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
+        }
+
+        return `${seconds} second${seconds > 1 ? "s" : ""} ago`;
     };
 
     return (
@@ -107,7 +149,7 @@ export default function GameNoteDialogContent() {
             <div className="hidden">
                 <DialogHeader>
                     <DialogTitle>
-                        {shortNote?.name}
+                        {gameNote?.name}
                         {isLoading && <LoadingSpinner />}
                     </DialogTitle>
                 </DialogHeader>
@@ -131,23 +173,19 @@ export default function GameNoteDialogContent() {
                         )}
                     </div>
                     <div className="flex-1 flex flex-col gap-3 w-full justify-between">
-                        <div>
-                            <span className="font-bold text-lg">
-                                {gameNote?.name}
-                            </span>
-                            <span className="text-sm text-muted-foreground">
-                                &nbsp;&nbsp;
-                                {gameNote?.releaseDate &&
-                                    ` ${new Date(
-                                        gameNote.releaseDate
-                                    ).getFullYear()}`}
-                            </span>
+                        <div className="font-bold text-lg">
+                            {gameNote?.name}
                         </div>
                         <table className="w-full">
                             <tbody>
                                 <tr>
-                                    <td className="text-sm w-1/2 font-semibold">
-                                        Release date
+                                    <td className="text-sm w-1/2 font-semibold flex items-center gap-2">
+                                        <div>
+                                            <Rocket size={12} />
+                                        </div>
+                                        <div className="whitespace-nowrap">
+                                            Release date
+                                        </div>
                                     </td>
                                     <td>
                                         <div className="text-sm w-1/2 p-1 whitespace-nowrap">
@@ -167,7 +205,8 @@ export default function GameNoteDialogContent() {
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td className="text-sm w-1/2 font-semibold">
+                                    <td className="text-sm w-1/2 font-semibold flex items-center gap-2">
+                                        <Link size={12} />
                                         Link
                                     </td>
                                     <td className="w-1/2 text-sm p-1">
@@ -179,7 +218,8 @@ export default function GameNoteDialogContent() {
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td className="text-sm w-1/2 pt-3 font-semibold">
+                                    <td className="text-sm w-1/2 pt-3 font-semibold flex items-center gap-2">
+                                        <Check size={12} />
                                         Status
                                     </td>
                                     <td className="w-1/2 text-sm p-1 pt-3">
@@ -189,8 +229,13 @@ export default function GameNoteDialogContent() {
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td className="text-sm w-1/2 font-semibold">
-                                        Last Played
+                                    <td className="text-sm w-1/2 font-semibold flex items-center gap-2">
+                                        <div>
+                                            <History size={12} />
+                                        </div>
+                                        <div className="whitespace-nowrap">
+                                            Last played
+                                        </div>
                                     </td>
                                     <td>
                                         <div className="text-sm w-1/2 p-1 whitespace-nowrap">
@@ -233,7 +278,7 @@ export default function GameNoteDialogContent() {
 
                 <Collapsible
                     open={detailsOpen}
-                    onOpenChange={onOrdersExpand}
+                    onOpenChange={() => setDetailsOpen(!detailsOpen)}
                     className="space-y-2"
                 >
                     <div className="flex items-center space-x-4">
@@ -248,38 +293,148 @@ export default function GameNoteDialogContent() {
                         </CollapsibleTrigger>
                         {areOrdersLoading && <LoadingSpinner />}
                     </div>
-                    <CollapsibleContent className="flex flex-col gap-2 pl-2">
-                        {orders?.content.map((order) => (
-                            <div
-                                key={order.id}
-                                className="flex gap-2 items-center space-x-2"
-                            >
-                                <span className="text-muted-foreground">
-                                    {new Date(
-                                        order.createdAt
-                                    ).toLocaleDateString()}
-                                </span>
-                                <span>{order.ordererUsername}</span>
-                                {order.amount && (
-                                    <>
-                                        <span className="text-muted-foreground">
-                                            &mdash;
-                                        </span>
-                                        <span>{order.amount}</span>
-                                    </>
-                                )}
-                            </div>
-                        ))}
-                        <Pagination>
-                            <PaginationContent>
-                                <PaginationItem>
-                                    <PaginationPrevious href="#" />
-                                </PaginationItem>
-                                <PaginationItem>
-                                    <PaginationNext href="#" />
-                                </PaginationItem>
-                            </PaginationContent>
-                        </Pagination>
+                    <CollapsibleContent>
+                        <div className="flex flex-col gap-3 pl-2 border p-2 rounded-md">
+                            <TooltipProvider>
+                                <table className="w-fit border-separate border-spacing-y-0.5 border-spacing-x-2">
+                                    <tbody>
+                                        {orders?.content.map((order) => (
+                                            <tr key={order.id}>
+                                                <td className="text-muted-foreground">
+                                                    <Tooltip>
+                                                        <TooltipTrigger>
+                                                            {getTimeAgoText(
+                                                                new Date(
+                                                                    order.createdAt
+                                                                )
+                                                            )}
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                            {new Date(
+                                                                order.createdAt
+                                                            ).toLocaleString(
+                                                                undefined,
+                                                                {
+                                                                    year: "numeric",
+                                                                    month: "numeric",
+                                                                    day: "numeric",
+                                                                    hour: "numeric",
+                                                                    minute: "numeric",
+                                                                }
+                                                            )}
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </td>
+                                                <td>{order.ordererUsername}</td>
+                                                {/* {order.amount && (
+                                        <>
+                                            <span className="text-muted-foreground">
+                                                &mdash;
+                                            </span>
+                                            <span>{order.amount}</span>
+                                        </>
+                                    )} */}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </TooltipProvider>
+                            {orders && (
+                                <Pagination>
+                                    <PaginationContent>
+                                        <PaginationItem>
+                                            <PaginationPrevious
+                                                href=""
+                                                aria-disabled={ordersPage <= 0}
+                                                tabIndex={
+                                                    ordersPage <= 0
+                                                        ? -1
+                                                        : undefined
+                                                }
+                                                className={
+                                                    ordersPage <= 0
+                                                        ? "pointer-events-none opacity-50"
+                                                        : undefined
+                                                }
+                                                onClick={() =>
+                                                    setOrdersPage(
+                                                        ordersPage - 1
+                                                    )
+                                                }
+                                            />
+                                        </PaginationItem>
+                                        <PaginationItem
+                                            className={
+                                                ordersPage === 0
+                                                    ? "invisible"
+                                                    : ""
+                                            }
+                                        >
+                                            <PaginationLink
+                                                href="#"
+                                                onClick={() =>
+                                                    setOrdersPage(
+                                                        ordersPage - 1
+                                                    )
+                                                }
+                                            >
+                                                {ordersPage}
+                                            </PaginationLink>
+                                        </PaginationItem>
+                                        <PaginationItem>
+                                            <PaginationLink href="#" isActive>
+                                                {ordersPage + 1}
+                                            </PaginationLink>
+                                        </PaginationItem>
+                                        <PaginationItem
+                                            className={
+                                                ordersPage ===
+                                                orders.totalPages - 1
+                                                    ? "invisible"
+                                                    : ""
+                                            }
+                                        >
+                                            <PaginationLink
+                                                href="#"
+                                                onClick={() =>
+                                                    setOrdersPage(
+                                                        ordersPage + 1
+                                                    )
+                                                }
+                                            >
+                                                {ordersPage + 2}
+                                            </PaginationLink>
+                                        </PaginationItem>
+                                        <PaginationItem>
+                                            <PaginationNext
+                                                href="#"
+                                                aria-disabled={
+                                                    ordersPage ===
+                                                    orders.totalPages - 1
+                                                }
+                                                tabIndex={
+                                                    ordersPage ===
+                                                    orders.totalPages - 1
+                                                        ? -1
+                                                        : undefined
+                                                }
+                                                className={
+                                                    ordersPage ===
+                                                    orders.totalPages - 1
+                                                        ? "pointer-events-none opacity-50"
+                                                        : undefined
+                                                }
+                                                onClick={() =>
+                                                    setOrdersPage(
+                                                        ordersPage + 1
+                                                    )
+                                                }
+                                            />
+                                        </PaginationItem>
+                                    </PaginationContent>
+                                </Pagination>
+                            )}
+                        </div>
                     </CollapsibleContent>
                 </Collapsible>
             </div>

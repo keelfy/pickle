@@ -1,40 +1,44 @@
 import { createStore } from "zustand";
 import { devtools } from "zustand/middleware";
 
-export type ModalName =
-    | "approve"
-    | "deny"
-    | "game-note-editor"
-    | "approve-confirmation"
-    | "search"
-    | "create"
-    | "profile-settings"
-    | "game-note";
+export enum ModalType {
+    None = "none",
+    ApproveOrder = "approve-order",
+    RejectOrder = "reject-order",
+    CreateOrder = "create-order",
+    GameNote = "game-note",
+    CreateGameNote = "create-game-note",
+    ProfileSearch = "profile-search",
+    ProfileSettings = "profile-settings",
+}
 
 type Action = {
-    openModal: (modalName: ModalName) => void;
+    openModal: (modalName: ModalType, params?: Record<string, any>) => void;
+    setModalParams: (params: Record<string, any>) => void;
     closeModal: () => void;
 }
 
 type State = {
-    currentModal: ModalName | undefined;
+    currentModal: ModalType;
+    modalParams?: Record<string, any>;
 }
 
 export type ModalStore = Action & State;
 
 const defaultInitialState: State = {
-    currentModal: undefined,
+    currentModal: ModalType.None,
+    modalParams: {},
 }
 
 const createModalStore = (initialState: State = defaultInitialState) => {
     return createStore<ModalStore>()(devtools((set) => ({
         ...initialState,
-        openModal: (modalName) => set(() => ({
+        openModal: (modalName, params) => set(() => ({
             currentModal: modalName,
+            modalParams: params ?? {}
         })),
-        closeModal: () => set(() => ({
-            currentModal: undefined
-        })),
+        setModalParams: (params) => set((state) => ({ ...state, modalParams: params })),
+        closeModal: () => set(() => defaultInitialState),
     })))
 }
 

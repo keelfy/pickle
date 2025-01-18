@@ -11,14 +11,15 @@ import {
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import { useToast } from "@/hooks/use-toast";
 import { useModalStore } from "@/providers/modal";
-import { useOrderStore } from "@/providers/order";
 import { fetchApi } from "@/utils/api/client";
 import { Check, X } from "lucide-react";
 import React from "react";
 
 export default function DenyOrderDialogContent() {
     const { closeModal } = useModalStore((state) => state);
-    const { order, setOrder } = useOrderStore((state) => state);
+    const { id, message, orderer } = useModalStore(
+        (state) => state.modalParams!
+    );
 
     const { toast } = useToast();
     const [isLoading, startTransition] = React.useTransition();
@@ -30,14 +31,13 @@ export default function DenyOrderDialogContent() {
                     status: "rejected",
                 };
                 const rejectedOrder = await fetchApi<Order>(
-                    `/v1/orders/${order!.id}`,
+                    `/v1/orders/${id}`,
                     true,
                     {
                         method: "PATCH",
                         body: JSON.stringify(req),
                     }
                 );
-                setOrder(undefined);
                 closeModal();
                 toast({
                     title: `Order rejected successfully`,
@@ -60,11 +60,9 @@ export default function DenyOrderDialogContent() {
                 <AlertDialogDescription>
                     You're about to cancel suggestion of
                     <br />
-                    <span className="font-semibold">{order!.message}</span>
+                    <span className="font-semibold">{message}</span>
                     &nbsp;from&nbsp;
-                    <span className="font-semibold">
-                        {order!.ordererUsername}
-                    </span>
+                    <span className="font-semibold">{orderer}</span>
                     .
                     <br />
                     <br />

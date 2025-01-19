@@ -16,7 +16,7 @@ import (
 type SQLDatabase interface {
 	Queries() *db.Queries
 	Ping(ctx context.Context) error
-	FindPaginatedGameNotesByUserId(ctx context.Context, userID uuid.UUID, sort *types.CursorSort) ([]*db.GameNote, error)
+	FindPaginatedGameNotesByUserId(ctx context.Context, userID uuid.UUID, sort *types.CursorSort) ([]*db.FindPaginatedGameNotesByUserIdRow, error)
 	FindSortedOrdersByReceiverId(ctx context.Context, receiverID uuid.UUID, sort *types.CursorSort) ([]*db.Order, error)
 }
 
@@ -61,16 +61,25 @@ func (sqlDb *sqlDatabase) Ping(ctx context.Context) error {
 }
 
 const findPaginatedGameNotesByUserIdQuery = `
-	SELECT id, created_at, name, release_date, rate, comment, status, last_played_at
-	FROM "game_notes" 
-	WHERE "user_id" = $1 
-		AND "%s" %s $2 
-	ORDER BY "%s" %s 
+	SELECT 
+		gn."id",
+		gn."created_at",
+		gn."name",
+		gn."status",
+		gn."rate",
+		gn."comment",
+		gn."release_date",
+		o."username" AS "initial_orderer_username"
+	FROM "game_notes" gn
+		JOIN "orderers" o ON gn."initial_orderer_id" = o."id"
+	WHERE gn."user_id" = $1 
+		AND gn."%s" %s $2 
+	ORDER BY gn."%s" %s 
 	LIMIT $3
 `
 
 // Queries game notes by receiver id with cursor pagination and dynamic sorting
-func (sqlDb *sqlDatabase) FindPaginatedGameNotesByUserId(ctx context.Context, userID uuid.UUID, sort *types.CursorSort) ([]*db.GameNote, error) {
+func (sqlDb *sqlDatabase) FindPaginatedGameNotesByUserId(ctx context.Context, userID uuid.UUID, sort *types.CursorSort) ([]*db.FindPaginatedGameNotesByUserIdRow, error) {
 	comparisonOperator := "<"
 	if strings.ToUpper(sort.Direction) == "DESC" {
 		comparisonOperator = ">"
@@ -82,18 +91,18 @@ func (sqlDb *sqlDatabase) FindPaginatedGameNotesByUserId(ctx context.Context, us
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*db.GameNote
+	var items []*db.FindPaginatedGameNotesByUserIdRow
 	for rows.Next() {
-		var i db.GameNote
+		var i db.FindPaginatedGameNotesByUserIdRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.CreatedAt,
 			&i.Name,
-			&i.ReleaseDate,
+			&i.Status,
 			&i.Rate,
 			&i.Comment,
-			&i.Status,
-			&i.LastPlayedAt,
+			&i.ReleaseDate,
+			&i.InitialOrdererUsername,
 		); err != nil {
 			return nil, err
 		}

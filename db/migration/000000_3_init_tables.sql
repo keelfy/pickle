@@ -19,15 +19,25 @@ CREATE TABLE IF NOT EXISTS "profiles" (
     "user_id" uuid NOT NULL,
     "created_at" timestamptz NOT NULL DEFAULT now(),
     "updated_at" timestamptz NOT NULL DEFAULT now(),
-    "avatar_url_updated_at" timestamptz NOT NULL DEFAULT now(),
-    -- nullable because webhook creates profile
     "updated_by" uuid,
     "username" text NOT NULL,
     "link" text NOT NULL,
     "description" text NOT NULL DEFAULT '',
+    PRIMARY KEY ("user_id"),
+    FOREIGN KEY ("updated_by") REFERENCES "profiles"("user_id")
+);
+CREATE TABLE IF NOT EXISTS "profile_avatars" (
+    "user_id" uuid NOT NULL,
+    "created_at" timestamptz NOT NULL DEFAULT now(),
+    "created_by" uuid,
+    "updated_at" timestamptz NOT NULL DEFAULT now(),
+    "updated_by" uuid,
+    "avatar_key" text,
     "avatar_url" text,
     "avatar_preview_key" text,
     PRIMARY KEY ("user_id"),
+    FOREIGN KEY ("user_id") REFERENCES "profiles"("user_id"),
+    FOREIGN KEY ("created_by") REFERENCES "profiles"("user_id"),
     FOREIGN KEY ("updated_by") REFERENCES "profiles"("user_id")
 );
 CREATE TABLE IF NOT EXISTS "orderers" (
@@ -88,7 +98,7 @@ CREATE TABLE IF NOT EXISTS "game_notes" (
     "release_date" timestamptz,
     "rate" smallint,
     "comment" text,
-    "ordered" boolean NOT NULL,
+    "initial_orderer_id" uuid NOT NULL,
     "status" game_note_status NOT NULL DEFAULT('planned'),
     "last_played_at" timestamptz,
     "poster_key" text,

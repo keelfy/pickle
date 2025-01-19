@@ -15,7 +15,7 @@ import (
 
 type GameNoteService interface {
 	GetById(ctx context.Context, id uuid.UUID) (*db.GameNote, error)
-	GetByReceiverId(ctx context.Context, userID uuid.UUID, sort *types.CursorSort) ([]*db.GameNote, error)
+	GetByReceiverId(ctx context.Context, userID uuid.UUID, sort *types.CursorSort) ([]*db.FindPaginatedGameNotesByUserIdRow, error)
 	CreateGameNote(ctx context.Context, req *types.CreateGameNoteReq, userId uuid.UUID) (*db.GameNote, error)
 	ValidateCreateGameNote(req *types.CreateGameNoteReq, userId uuid.UUID) error
 	IndexGameNote(ctx context.Context, gameNote *db.GameNote, initialOrderer *db.Orderer) error
@@ -60,7 +60,7 @@ func (service *gameNoteService) GetById(ctx context.Context, id uuid.UUID) (*db.
 }
 
 // Fetches game notes by receiver ID or returns CustomError if error occurred
-func (service *gameNoteService) GetByReceiverId(ctx context.Context, userID uuid.UUID, sort *types.CursorSort) ([]*db.GameNote, error) {
+func (service *gameNoteService) GetByReceiverId(ctx context.Context, userID uuid.UUID, sort *types.CursorSort) ([]*db.FindPaginatedGameNotesByUserIdRow, error) {
 	gameNotes, err := service.sqlDb.FindPaginatedGameNotesByUserId(ctx, userID, sort)
 	if err != nil {
 		return nil, errors.NewInternalServerError("Error occurred during game notes fetching", err)
@@ -100,19 +100,18 @@ func (service *gameNoteService) CreateGameNote(ctx context.Context, req *types.C
 	// Insert new game note into database
 	// TODO: Data validation before insertion, e.g. min-max rating or release date not after today
 	gameNote, err := service.sqlDb.Queries().InsertGameNote(ctx, db.InsertGameNoteParams{
-		CreatedBy:    userId,
-		UpdatedBy:    userId,
-		UserID:       order.ReceiverID,
-		GameID:       nil, // TODO: Implement games
-		Name:         req.GameNote.Name,
-		Link:         req.GameNote.Link,
-		ReleaseDate:  req.GameNote.ReleaseDate,
-		Rate:         req.GameNote.Rate,
-		Comment:      req.GameNote.Comment,
-		Ordered:      true,
-		Status:       req.GameNote.Status,
-		LastPlayedAt: req.GameNote.LastPlayedAt,
-		PosterKey:    posterKey,
+		CreatedBy:        userId,
+		UpdatedBy:        userId,
+		UserID:           order.ReceiverID,
+		Name:             req.GameNote.Name,
+		Link:             req.GameNote.Link,
+		ReleaseDate:      req.GameNote.ReleaseDate,
+		Rate:             req.GameNote.Rate,
+		Comment:          req.GameNote.Comment,
+		InitialOrdererID: initialOrderer.ID,
+		Status:           req.GameNote.Status,
+		LastPlayedAt:     req.GameNote.LastPlayedAt,
+		PosterKey:        posterKey,
 	})
 	if err != nil {
 		return nil, errors.NewInternalServerError("Error occurred during game note creation", err)

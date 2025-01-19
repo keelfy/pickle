@@ -6,10 +6,12 @@ DROP INDEX IF EXISTS "idx_game_notes_user_id";
 
 DROP TABLE IF EXISTS "migration_logs";
 DROP TABLE IF EXISTS "es_migration_logs";
+DROP TABLE IF EXISTS "poster_previews";
 DROP TABLE IF EXISTS "game_note_orders";
 DROP TABLE IF EXISTS "game_notes";
 DROP TABLE IF EXISTS "orders";
 DROP TABLE IF EXISTS "orderers";
+DROP TABLE IF EXISTS "profile_avatars";
 DROP TABLE IF EXISTS "profiles";
 
 DROP TYPE IF EXISTS "content_category";

@@ -47,18 +47,19 @@ type ContentRes struct {
 type ContentSearchRes = PaginatedRes[SearchHitRes[ContentRes]]
 
 type GameNoteRes struct {
-	ID           string            `json:"id"`
-	CreatedAt    time.Time         `json:"createdAt"`
-	UserID       string            `json:"userId"`
-	Name         string            `json:"name"`
-	Link         *string           `json:"link,omitempty"`
-	ReleaseDate  *time.Time        `json:"releaseDate,omitempty"`
-	Rate         *int16            `json:"rate,omitempty"`
-	Comment      *string           `json:"comment,omitempty"`
-	Ordered      bool              `json:"ordered"`
-	Status       db.GameNoteStatus `json:"status"`
-	LastPlayedAt *time.Time        `json:"lastPlayedAt,omitempty"`
-	PosterURL    *string           `json:"posterUrl,omitempty"`
+	ID                     string            `json:"id"`
+	CreatedAt              time.Time         `json:"createdAt"`
+	UserID                 string            `json:"userId"`
+	Name                   string            `json:"name"`
+	Link                   *string           `json:"link,omitempty"`
+	ReleaseDate            *time.Time        `json:"releaseDate,omitempty"`
+	Rate                   *int16            `json:"rate,omitempty"`
+	Comment                *string           `json:"comment,omitempty"`
+	Ordered                bool              `json:"ordered"`
+	Status                 db.GameNoteStatus `json:"status"`
+	LastPlayedAt           *time.Time        `json:"lastPlayedAt,omitempty"`
+	PosterURL              *string           `json:"posterUrl,omitempty"`
+	InitialOrdererUsername *string           `json:"initialOrdererUsername,omitempty"`
 }
 
 type OrdererRes struct {

@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	"strings"
-	"time"
 
 	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/google/uuid"
@@ -134,17 +133,9 @@ func (service *profileService) UpdateProfile(ctx context.Context, userId uuid.UU
 		}
 	}
 
-	avatarUrl := profile.AvatarUrl
-	avatarUrlUpdatedAt := profile.AvatarUrlUpdatedAt
-
-	if profile.AvatarPreviewKey != nil {
-		url, err := service.avatarService.ConfirmProfileAvatar(ctx, profile)
-		if err != nil {
-			return nil, err
-		}
-
-		avatarUrl = &url
-		avatarUrlUpdatedAt = time.Now()
+	err = service.avatarService.ConfirmProfileAvatar(ctx, userId)
+	if err != nil {
+		return nil, err
 	}
 
 	// lower the link
@@ -157,14 +148,11 @@ func (service *profileService) UpdateProfile(ctx context.Context, userId uuid.UU
 
 	// update profile
 	updatedProfile, err := service.sqlDb.Queries().UpdateProfileByUserId(ctx, db.UpdateProfileByUserIdParams{
-		UserID:             profile.UserID,
-		UpdatedBy:          &profile.UserID,
-		Username:           req.Username,
-		Link:               strings.ToLower(req.Link),
-		Description:        description,
-		AvatarUrl:          avatarUrl,
-		AvatarPreviewKey:   nil,
-		AvatarUrlUpdatedAt: avatarUrlUpdatedAt,
+		UserID:      profile.UserID,
+		UpdatedBy:   &profile.UserID,
+		Username:    req.Username,
+		Link:        strings.ToLower(req.Link),
+		Description: description,
 	})
 	if err == pgx.ErrNoRows {
 		return nil, errors.NewNotFoundError("Profile not found", err)
@@ -238,15 +226,18 @@ func (service *profileService) CreateProfileWebhook(ctx context.Context, req *ty
 	}
 
 	createdProfile, err := service.sqlDb.Queries().InsertProfile(ctx, db.InsertProfileParams{
-		UserID:           userId,
-		Username:         name,
-		Description:      "",
-		Link:             link,
-		AvatarUrl:        avatarUrl,
-		AvatarPreviewKey: nil,
+		UserID:      userId,
+		Username:    name,
+		Description: "",
+		Link:        link,
 	})
 	if err != nil {
 		return nil, errors.NewInternalServerError("Error occurred creating a profile", err)
+	}
+
+	_, err = service.avatarService.CreateProfileAvatarForUser(ctx, userId, nil, avatarUrl)
+	if err != nil {
+		return nil, err
 	}
 
 	return createdProfile, nil

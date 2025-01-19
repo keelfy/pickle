@@ -10,7 +10,7 @@ INSERT INTO "game_notes" (
     "user_id",
     "rate",
     "comment",
-    "ordered",
+    "initial_orderer_id",
     "status",
     "last_played_at",
     "poster_key"
@@ -39,11 +39,20 @@ WHERE "id" = $1;
 
 -- Author: Egor Kuzmin (keelfy)
 -- name: FindPaginatedGameNotesByUserId :many
-SELECT * 
-FROM "game_notes" 
-WHERE "user_id" = $1
-    AND "updated_at" < $2
-ORDER BY "updated_at" DESC
+SELECT 
+    gn."id",
+    gn."created_at",
+    gn."name",
+    gn."status",
+    gn."rate",
+    gn."comment",
+    gn."release_date",
+    o."username" AS "initial_orderer_username"
+FROM "game_notes" gn
+    JOIN "orderers" o ON gn."initial_orderer_id" = o."id"
+WHERE gn."user_id" = $1
+    AND gn."updated_at" < $2
+ORDER BY gn."updated_at" DESC
 LIMIT $3;
 
 -- Author: Egor Kuzmin (keelfy)

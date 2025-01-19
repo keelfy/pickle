@@ -15,8 +15,6 @@ export type GameNoteReq = {
 	comment: string
 	ordered: boolean
 	status: number
-	completionStatus: number
-	completionDate: string
 }
 
 export type CreateGameNoteReq = {

@@ -6,12 +6,21 @@ import { useModalStore } from "@/providers/modal";
 import { useProfileStore } from "@/providers/profile-store";
 import { ModalType } from "@/stores/modal";
 import { fetchApi } from "@/utils/api/client";
-import { History, ImageOff, TextIcon, UserPlus2 } from "lucide-react";
+import {
+    EditIcon,
+    History,
+    ImageOff,
+    TextIcon,
+    UserPlus2,
+    X,
+} from "lucide-react";
 import Image from "next/image";
 import React from "react";
 import GameNoteStatusBadge from "./game-note-status-badge";
+import { useAuthStore } from "@/providers/auth-store";
 
 export default function GameNoteCard({ note }: { note: GameNote }) {
+    const user = useAuthStore((state) => state.user);
     const profile = useProfileStore((state) => state.profile);
     const openModal = useModalStore((state) => state.openModal);
     const [posterUrl, setPosterUrl] = React.useState<string>();
@@ -110,22 +119,32 @@ export default function GameNoteCard({ note }: { note: GameNote }) {
                                             Requester
                                         </td>
                                         <td className="text-sm">
-                                            {note.createdAt
-                                                ? "randombird1213"
+                                            {note.initialOrdererUsername
+                                                ? note.initialOrdererUsername
                                                 : "N/A"}
                                         </td>
                                     </tr>
                                 </tbody>
                             </table>
                         </div>
-                        <Button
-                            variant="ghost"
-                            className="w-min"
-                            onClick={openGameNote}
-                        >
-                            <TextIcon />
-                            Details
-                        </Button>
+                        <div className="flex items-center gap-2">
+                            <Button variant="ghost" onClick={openGameNote}>
+                                <TextIcon />
+                                Details
+                            </Button>
+                            {profile?.id === user?.id && user?.id && (
+                                <>
+                                    <Button variant="ghost">
+                                        <EditIcon />
+                                        Edit
+                                    </Button>
+                                    <Button variant="ghost">
+                                        <X className="text-destructive" />
+                                        Remove
+                                    </Button>
+                                </>
+                            )}
+                        </div>
                     </div>
                 </div>
                 <div className="h-min flex gap-4">

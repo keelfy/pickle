@@ -37,6 +37,8 @@ type GameNote = {
     comment?: string;
     status: GameNoteStatus;
     lastPlayedAt?: Date;
+    initialOrdererId: string;
+    initialOrdererUsername?: string;
 };
 
 type Orderer = {

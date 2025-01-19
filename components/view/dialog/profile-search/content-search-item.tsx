@@ -15,19 +15,17 @@ export default function ContentSearchItem({ source, link }: Props) {
     const { closeModal } = useModalStore((state) => state);
 
     return (
-        <Link href={`/${link}/games`} onClick={closeModal}>
-            <CommandItem asChild className="cursor-pointer">
-                <div className="flex items-center justify-between w-full">
-                    <div className="text-md">{source.name}</div>
-                    <Badge>
-                        {
-                            contentCategoryLabels.find(
-                                (cat) => cat.value === source.category
-                            )?.label
-                        }
-                    </Badge>
-                </div>
-            </CommandItem>
-        </Link>
+        <CommandItem asChild className="cursor-pointer">
+            <div className="flex items-center justify-between w-full">
+                <div className="text-md">{source.name}</div>
+                <Badge>
+                    {
+                        contentCategoryLabels.find(
+                            (cat) => cat.value === source.category
+                        )?.label
+                    }
+                </Badge>
+            </div>
+        </CommandItem>
     );
 }

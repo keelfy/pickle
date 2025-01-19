@@ -3,21 +3,35 @@
 import { Button } from "@/components/ui/button";
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { LayoutGrid, MessageCircle, Settings, Shield } from "lucide-react";
+import { useModalStore } from "@/providers/modal";
+import {
+    HandshakeIcon,
+    LayoutGrid,
+    MessageCircle,
+    Settings,
+    Shield
+} from "lucide-react";
 import React from "react";
 import GeneralSettingsTab from "./general-settings-tab";
-import { useModalStore } from "@/providers/modal";
+import SecuritySettingsTab from "./security-settings-tab";
 
-type SettingsTab = "general" | "security" | "notifications" | "connections";
+type SettingsTab =
+    | "general"
+    | "security"
+    | "notifications"
+    | "moderation"
+    | "connections";
 
 function TabContent({ tab }: { tab: SettingsTab }) {
     switch (tab) {
         case "general":
             return <GeneralSettingsTab />;
         case "security":
-            return <SecurityTab />;
+            return <SecuritySettingsTab />;
         case "connections":
             return <ConnectionsTab />;
+        case "moderation":
+            return <ModerationTab />;
         case "notifications":
             return <NotificationsTab />;
     }
@@ -25,12 +39,12 @@ function TabContent({ tab }: { tab: SettingsTab }) {
     return <div>Tab content</div>;
 }
 
-function SecurityTab() {
-    return <div>Security tab</div>;
-}
-
 function ConnectionsTab() {
     return <div>Connections tab</div>;
+}
+
+function ModerationTab() {
+    return <div>Moderation tab</div>;
 }
 
 function NotificationsTab() {
@@ -91,6 +105,11 @@ export default function ProfileSettingsDialogContent() {
                         forTab="connections"
                         icon={<LayoutGrid />}
                         label="Integrations"
+                    />
+                    <TabButton
+                        forTab="moderation"
+                        icon={<HandshakeIcon />}
+                        label="Moderation"
                     />
                     <TabButton
                         forTab="notifications"

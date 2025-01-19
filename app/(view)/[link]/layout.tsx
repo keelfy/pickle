@@ -65,7 +65,7 @@ async function ProfileAvatar({ profile }: { profile: Profile | undefined }) {
                         alt="Avatar"
                         width={128}
                         height={128}
-                        unoptimized
+                        priority
                     />
                 )}
             </AvatarImage>
@@ -266,10 +266,13 @@ async function NavMenu({ params }: Props) {
                         modal={ModalType.ProfileSearch}
                         className={cn(
                             navigationMenuTriggerStyle(),
-                            "text-foreground w-10 h-10"
+                            "text-foreground h-10 flex items-center gap-2"
                         )}
                     >
                         <Search />
+                        <kbd className="pointer-events-none inline-flex select-none items-center gap-1 h-5 rounded bg-secondary px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+                            <span className="text-xs">⌘</span>K
+                        </kbd>
                     </OpenModalButton>
                 </NavigationMenuList>
             </NavigationMenu>

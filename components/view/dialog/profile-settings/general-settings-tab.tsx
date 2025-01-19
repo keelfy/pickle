@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import {
     Form,
     FormControl,
+    FormDescription,
     FormField,
     FormItem,
     FormLabel,
@@ -229,8 +230,9 @@ export default function GeneralSettingsTab() {
                                             handleFileChange(e.target.files)
                                         }
                                     />
-                                    <div className="text-xs">
-                                        JPEG, PNG, GIF, SVG, WEBP or BMP
+                                    <div className="text-xs text-muted-foreground">
+                                        Max 5MB • jpg, png, gif, svg, webp or
+                                        bmp
                                     </div>
                                 </div>
                             </FormItem>
@@ -241,12 +243,14 @@ export default function GeneralSettingsTab() {
                         name="username"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel htmlFor="username">
-                                    Profile name
-                                </FormLabel>
+                                <FormLabel>Profile name</FormLabel>
                                 <FormControl>
                                     <Input placeholder="Jane Doe" {...field} />
                                 </FormControl>
+                                <FormDescription>
+                                    This is how your name will be displayed on
+                                    your profile.
+                                </FormDescription>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -272,6 +276,9 @@ export default function GeneralSettingsTab() {
                                     </FormControl>
                                     <LinkValidationStatusIcon className="absolute right-9 translate-y-3" />
                                 </div>
+                                <FormDescription>
+                                    This is how others can find you on Pickle.
+                                </FormDescription>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -290,6 +297,11 @@ export default function GeneralSettingsTab() {
                                         {...field}
                                     />
                                 </FormControl>
+                                <FormDescription>
+                                    A short description about yourself that will
+                                    be displayed on your profile. 500 characters
+                                    max.
+                                </FormDescription>
                                 <FormMessage />
                             </FormItem>
                         )}

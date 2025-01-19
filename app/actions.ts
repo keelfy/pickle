@@ -100,48 +100,76 @@ export const forgotPasswordAction = async (formData: FormData) => {
     );
 };
 
-export const resetPasswordAction = async (formData: FormData) => {
+export const changePasswordAction = async ({currentPassword, newPassword}: {currentPassword: string, newPassword: string}) => {
     const supabase = await createClient();
 
-    const password = formData.get("password") as string;
-    const confirmPassword = formData.get("confirmPassword") as string;
+    if (!currentPassword) {
+        return "Current password is required";
+    } else if (!newPassword) {
+        return "Password is required";
+    } else if (newPassword.length < 6) {
+        return "Password must be at least 6 characters";
+    };
 
-    if (!password || !confirmPassword) {
-        encodedRedirect(
-            "error",
-            "/protected/reset-password",
-            "/",
-            "Password and confirm password are required"
-        );
+    // Get the current user's email
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user?.email) {
+        return 'User not authenticated'
     }
 
-    if (password !== confirmPassword) {
-        encodedRedirect(
-            "error",
-            "/protected/reset-password",
-            "/",
-            "Passwords do not match"
-        );
+    // Verify current password
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: currentPassword,
+    });
+
+    if (signInError) {
+        return 'Invalid current password'
     }
 
     const { error } = await supabase.auth.updateUser({
-        password: password,
+        password: newPassword,
     });
 
     if (error) {
-        encodedRedirect(
-            "error",
-            "/protected/reset-password",
-            "/",
-            "Password update failed"
-        );
+        return "Password update failed";
     }
 
-    encodedRedirect("success", "/protected/reset-password", "/", "Password updated");
+    return undefined;
 };
+
+export const changeEmailAction = async (email: string) => {
+    if (!email) {
+        return "Email is required";
+    } 
+
+    const supabase = await createClient();
+    const { data: {session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+        return "User not authenticated";
+    } else if (session?.user.email === email) {
+        return "Email is the same as current email";
+    }
+
+    const { error } = await supabase.auth.updateUser({
+        email,
+    });
+
+    if (error) {
+        return error.message ? error.message : "Failed to update email";
+    }
+
+    return undefined;
+}
 
 export const signOutAction = async () => {
     const supabase = await createClient();
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: "local" });
     // return redirect("/sign-in");
 };
+
+export const logOutAllDevicesAction = async () => {
+    const supabase = await createClient();
+    await supabase.auth.signOut({ scope: "global" });
+}

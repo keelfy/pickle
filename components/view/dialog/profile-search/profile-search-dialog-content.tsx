@@ -1,20 +1,25 @@
 "use client";
 
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
     CommandEmpty,
     CommandGroup,
     CommandInput,
+    CommandItem,
     CommandList,
 } from "@/components/ui/command";
 import { toast } from "@/hooks/use-toast";
 import { useModalStore } from "@/providers/modal";
 import { useProfileStore } from "@/providers/profile-store";
+import { ModalType } from "@/stores/modal";
 import { fetchApi } from "@/utils/api/client";
+import { contentCategoryLabels } from "@/utils/api/constants";
 import React from "react";
-import ContentSearchItem from "./content-search-item";
 
 export default function ProfileSearchDialogContent() {
-    const { modalParams, setModalParams } = useModalStore((state) => state);
+    const { modalParams, setModalParams, openModal, closeModal } =
+        useModalStore((state) => state);
     const { profile } = useProfileStore((state) => state);
     const [query, setQuery] = React.useState<string>(modalParams?.query ?? "");
     const [debouncedQuery, setDebouncedQuery] = React.useState<string>("");
@@ -22,11 +27,11 @@ export default function ProfileSearchDialogContent() {
     const [isLoading, startTransition] = React.useTransition();
 
     React.useEffect(() => {
-        setModalParams({
-            query,
-        });
         const timeout = setTimeout(() => {
             setDebouncedQuery(query);
+            setModalParams({
+                query,
+            });
         }, 300);
 
         return () => {
@@ -68,6 +73,33 @@ export default function ProfileSearchDialogContent() {
         ),
         [profile?.username]
     );
+    const [selectedIndex, setSelectedIndex] = React.useState<number>(0);
+
+    React.useEffect(() => {
+        setSelectedIndex(0);
+    }, [result?.content]);
+
+    const handleKeyDown = React.useCallback(
+        (event: React.KeyboardEvent) => {
+            if (!result?.content?.length) return;
+
+            if (event.key === "ArrowDown") {
+                setSelectedIndex((prev) =>
+                    Math.min(prev + 1, result.content.length - 1)
+                );
+            } else if (event.key === "ArrowUp") {
+                setSelectedIndex((prev) => Math.max(prev - 1, 0));
+            } else if (event.key === "Enter") {
+                const selectedContent = result.content[selectedIndex];
+                if (selectedContent) {
+                    openModal(ModalType.GameNote, {
+                        id: selectedContent.source.id,
+                    });
+                }
+            }
+        },
+        [result?.content, selectedIndex, openModal]
+    );
 
     return (
         <>
@@ -75,17 +107,39 @@ export default function ProfileSearchDialogContent() {
                 placeholder="Search for content in this profile"
                 onValueChange={setQuery}
                 value={query}
+                onKeyDown={handleKeyDown}
             />
             <CommandList>
                 <CommandEmpty>No results found</CommandEmpty>
                 {result?.content && result.content.length > 0 && (
                     <CommandGroup heading={GroupHeading} className="pb-2">
-                        {result?.content.map((hit) => (
-                            <ContentSearchItem
-                                key={hit.source.id}
-                                source={hit.source}
-                                link={profile!.link}
-                            />
+                        {result?.content.map(({ source }) => (
+                            <CommandItem
+                                key={source.id}
+                                asChild
+                                className="p-2 cursor-pointer"
+                            >
+                                <Button
+                                    className="flex items-center justify-between w-full"
+                                    variant="ghost"
+                                    onClick={() =>
+                                        openModal(ModalType.GameNote, {
+                                            id: source.id,
+                                        })
+                                    }
+                                >
+                                    <div className="text-md">{source.name}</div>
+                                    <Badge>
+                                        {
+                                            contentCategoryLabels.find(
+                                                (cat) =>
+                                                    cat.value ===
+                                                    source.category
+                                            )?.label
+                                        }
+                                    </Badge>
+                                </Button>
+                            </CommandItem>
                         ))}
                     </CommandGroup>
                 )}

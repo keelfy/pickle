@@ -54,7 +54,7 @@ export default async function ProfileDropdownMenu() {
                                     alt="Avatar"
                                     width={64}
                                     height={64}
-                                    unoptimized
+                                    priority
                                 />
                             )}
                         </AvatarImage>

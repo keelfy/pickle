@@ -56,7 +56,9 @@ ORDER BY gn."updated_at" DESC
 LIMIT $3;
 
 -- Author: Egor Kuzmin (keelfy)
--- name: CountGameNotesByUserId :one
-SELECT COUNT(*) AS "total"
+-- name: CountPlayedGameNotesByUserId :one
+SELECT COUNT(*) AS "count"
 FROM "game_notes"
-WHERE "user_id" = $1;
+WHERE "user_id" = $1
+    AND "status" IN ('playing', 'finished', 'dropped')
+GROUP BY "user_id";

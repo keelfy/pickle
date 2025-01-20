@@ -19,6 +19,7 @@ type GameNoteService interface {
 	CreateGameNote(ctx context.Context, req *types.CreateGameNoteReq, userId uuid.UUID) (*db.GameNote, error)
 	ValidateCreateGameNote(req *types.CreateGameNoteReq, userId uuid.UUID) error
 	IndexGameNote(ctx context.Context, gameNote *db.GameNote, initialOrderer *db.Orderer) error
+	CountPlayedByUserId(ctx context.Context, userID uuid.UUID) (int64, error)
 }
 
 type gameNoteService struct {
@@ -188,4 +189,13 @@ func (service *gameNoteService) IndexGameNote(ctx context.Context, gameNote *db.
 		return errors.NewInternalServerError("Error occurred during game note indexing", err)
 	}
 	return nil
+}
+
+func (service *gameNoteService) CountPlayedByUserId(ctx context.Context, userID uuid.UUID) (int64, error) {
+	counts, err := service.sqlDb.Queries().CountPlayedGameNotesByUserId(ctx, userID)
+	if err != nil {
+		return 0, errors.NewInternalServerError("Error occurred during game notes counting", err)
+	}
+
+	return counts, nil
 }

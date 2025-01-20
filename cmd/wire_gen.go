@@ -38,12 +38,18 @@ func InitializeAPI(ctx context.Context) (api.PickleAPI, func(), error) {
 	imageService := services.NewImageService()
 	avatarService := services.NewAvatarService(sqlDatabase, cacheClient, s3Client, imageService)
 	profileService := services.NewProfileService(sqlDatabase, s3Client, cacheClient, avatarService)
-	profileHandler := handlers.NewUserHandler(profileService, avatarService)
 	elasticClient, err := storage.NewElasticClient()
 	if err != nil {
 		cleanup()
 		return nil, nil, err
 	}
+	ordererService := services.NewOrdererService(sqlDatabase)
+	gameNoteOrderService := services.NewGameNoteOrderService(sqlDatabase)
+	orderService := services.NewOrderService(sqlDatabase, profileService, ordererService, gameNoteOrderService)
+	contentService := services.NewContentService(elasticClient)
+	posterService := services.NewPosterService(sqlDatabase, s3Client, cacheClient, imageService, profileService)
+	gameNoteService := services.NewGameNoteService(sqlDatabase, elasticClient, cacheClient, orderService, profileService, ordererService, contentService, gameNoteOrderService, posterService)
+	profileHandler := handlers.NewUserHandler(profileService, avatarService, gameNoteService, orderService)
 	supabaseClient, err := storage.NewSupabaseClient(ctx)
 	if err != nil {
 		cleanup()
@@ -51,13 +57,7 @@ func InitializeAPI(ctx context.Context) (api.PickleAPI, func(), error) {
 	}
 	statusService := services.NewStatusService(supabaseClient, s3Client)
 	statusHandler := handlers.NewStatusHandler(sqlDatabase, elasticClient, cacheClient, statusService)
-	ordererService := services.NewOrdererService(sqlDatabase)
-	gameNoteOrderService := services.NewGameNoteOrderService(sqlDatabase)
-	orderService := services.NewOrderService(sqlDatabase, profileService, ordererService, gameNoteOrderService)
 	orderHandler := handlers.NewOrdersHandler(orderService, profileService)
-	contentService := services.NewContentService(elasticClient)
-	posterService := services.NewPosterService(sqlDatabase, s3Client, cacheClient, imageService, profileService)
-	gameNoteService := services.NewGameNoteService(sqlDatabase, elasticClient, cacheClient, orderService, profileService, ordererService, contentService, gameNoteOrderService, posterService)
 	gameNoteHandler := handlers.NewGameNoteHandler(profileService, gameNoteService, orderService, posterService)
 	posterHandler := handlers.NewPosterHandler(posterService)
 	migrationService := services.NewMigrationService(sqlDatabase, elasticClient)

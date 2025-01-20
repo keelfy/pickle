@@ -12,12 +12,12 @@ import (
 
 type Querier interface {
 	// Author: Egor Kuzmin (keelfy)
-	CountGameNotesByUserId(ctx context.Context, userID uuid.UUID) (int64, error)
-	// Author: Egor Kuzmin (keelfy)
 	CountOrdersByGameNoteId(ctx context.Context, gameNoteID uuid.UUID) (int64, error)
 	// Author: Egor Kuzmin (keelfy)
 	// Counts orders by receiver id
 	CountOrdersByReceiverId(ctx context.Context, receiverID uuid.UUID) (int64, error)
+	// Author: Egor Kuzmin (keelfy)
+	CountPlayedGameNotesByUserId(ctx context.Context, userID uuid.UUID) (int64, error)
 	// Author: Egor Kuzmin (keelfy)
 	FindElasticsearchMigrationByName(ctx context.Context, name string) (*EsMigrationLog, error)
 	// Author: Egor Kuzmin (keelfy)

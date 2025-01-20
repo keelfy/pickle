@@ -12,18 +12,20 @@ import (
 	"github.com/google/uuid"
 )
 
-const countGameNotesByUserId = `-- name: CountGameNotesByUserId :one
-SELECT COUNT(*) AS "total"
+const countPlayedGameNotesByUserId = `-- name: CountPlayedGameNotesByUserId :one
+SELECT COUNT(*) AS "count"
 FROM "game_notes"
 WHERE "user_id" = $1
+    AND "status" IN ('playing', 'finished', 'dropped')
+GROUP BY "user_id"
 `
 
 // Author: Egor Kuzmin (keelfy)
-func (q *Queries) CountGameNotesByUserId(ctx context.Context, userID uuid.UUID) (int64, error) {
-	row := q.db.QueryRow(ctx, countGameNotesByUserId, userID)
-	var total int64
-	err := row.Scan(&total)
-	return total, err
+func (q *Queries) CountPlayedGameNotesByUserId(ctx context.Context, userID uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countPlayedGameNotesByUserId, userID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
 }
 
 const findGameNoteById = `-- name: FindGameNoteById :one
@@ -69,7 +71,7 @@ SELECT
     gn."release_date",
     o."username" AS "initial_orderer_username"
 FROM "game_notes" gn
-    JOIN "orderers" o ON gn."initial_orderer_id" = o."username"
+    JOIN "orderers" o ON gn."initial_orderer_id" = o."id"
 WHERE gn."user_id" = $1
     AND gn."updated_at" < $2
 ORDER BY gn."updated_at" DESC

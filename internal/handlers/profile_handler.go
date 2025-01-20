@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"sync"
 
 	"github.com/jinzhu/copier"
 	"github.com/pickle.pw/monolith/internal/config"
@@ -25,14 +26,18 @@ type ProfileHandler interface {
 }
 
 type profileHandler struct {
-	userService   services.ProfileService
-	avatarService services.AvatarService
+	profileService  services.ProfileService
+	avatarService   services.AvatarService
+	gameNoteService services.GameNoteService
+	orderService    services.OrderService
 }
 
-func NewUserHandler(userService services.ProfileService, avatarService services.AvatarService) ProfileHandler {
+func NewUserHandler(profileService services.ProfileService, avatarService services.AvatarService, gameNoteService services.GameNoteService, orderService services.OrderService) ProfileHandler {
 	return &profileHandler{
-		userService:   userService,
-		avatarService: avatarService,
+		profileService:  profileService,
+		avatarService:   avatarService,
+		gameNoteService: gameNoteService,
+		orderService:    orderService,
 	}
 }
 
@@ -45,7 +50,7 @@ func (h *profileHandler) GetProfileById(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	user, err := h.userService.GetProfileById(ctx, id)
+	user, err := h.profileService.GetProfileById(ctx, id)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
@@ -70,20 +75,46 @@ func (h *profileHandler) GetProfileByLink(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	user, err := h.userService.GetProfileByLink(ctx, link)
+	profile, err := h.profileService.GetProfileByLink(ctx, link)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
 	}
 
-	w.Header().Add(utils.HeaderContentType, utils.ApplicationJsonType)
-	w.WriteHeader(http.StatusOK)
+	var playedCount, orderedCount int64
+	var playedErr, orderedErr error
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		playedCount, playedErr = h.gameNoteService.CountPlayedByUserId(ctx, profile.UserID)
+	}()
+
+	go func() {
+		defer wg.Done()
+		orderedCount, orderedErr = h.orderService.CountOrdersByReceiverId(ctx, profile.UserID)
+	}()
+
+	wg.Wait()
+
+	if playedErr != nil {
+		logger.Errorf(ctx, "Error occurred during played count: %v", playedErr)
+	}
+
+	if orderedErr != nil {
+		logger.Errorf(ctx, "Error occurred during ordered count: %v", orderedErr)
+	}
 
 	response := &types.ProfileRes{}
-	copier.Copy(response, user)
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		logger.Errorf(ctx, "Error encoding response: %v", err)
+	copier.Copy(response, profile)
+	response.Counts = &types.CountsRes{
+		Played:  playedCount,
+		Watched: 0,
+		Ordered: orderedCount,
 	}
+	utils.WriteHttpJsonResponse(ctx, w, response)
 }
 
 // Returns the profile of the user who is currently logged in
@@ -91,7 +122,7 @@ func (handler *profileHandler) GetMyProfile(w http.ResponseWriter, r *http.Reque
 	ctx := r.Context()
 	userId := utils.UserIdFromContext(ctx)
 
-	user, err := handler.userService.GetProfileById(ctx, userId)
+	user, err := handler.profileService.GetProfileById(ctx, userId)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
@@ -111,7 +142,7 @@ func (handler *profileHandler) UpdateSettings(w http.ResponseWriter, r *http.Req
 	req := &types.UpdateProfileReq{}
 	json.NewDecoder(r.Body).Decode(req)
 
-	profile, err := handler.userService.UpdateProfile(ctx, userId, req)
+	profile, err := handler.profileService.UpdateProfile(ctx, userId, req)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
@@ -137,7 +168,7 @@ func (handler *profileHandler) ValidateProfileLink(w http.ResponseWriter, r *htt
 		Message: "Link is available",
 	}
 
-	err := handler.userService.ValidateLink(ctx, link)
+	err := handler.profileService.ValidateLink(ctx, link)
 	if err != nil {
 		response.Valid = false
 		response.Message = err.Error()
@@ -228,7 +259,7 @@ func (handler *profileHandler) CreateProfileWebhook(w http.ResponseWriter, r *ht
 	req := &types.SupabaseWebhookPayload{}
 	json.NewDecoder(r.Body).Decode(req)
 
-	_, err := handler.userService.CreateProfileWebhook(ctx, req)
+	_, err := handler.profileService.CreateProfileWebhook(ctx, req)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return

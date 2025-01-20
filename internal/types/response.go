@@ -29,12 +29,19 @@ type StatusRes struct {
 	Authentication string `json:"authentication"`
 }
 
+type CountsRes struct {
+	Played  int64 `json:"played"`
+	Watched int64 `json:"watched"`
+	Ordered int64 `json:"ordered"`
+}
+
 type ProfileRes struct {
-	UserID      string    `json:"id"`
-	CreatedAt   time.Time `json:"createdAt"`
-	Username    string    `json:"username"`
-	Link        string    `json:"link"`
-	Description *string   `json:"description,omitempty"`
+	UserID      string     `json:"id"`
+	CreatedAt   time.Time  `json:"createdAt"`
+	Username    string     `json:"username"`
+	Link        string     `json:"link"`
+	Description *string    `json:"description,omitempty"`
+	Counts      *CountsRes `json:"counts,omitempty"`
 }
 
 type ContentRes struct {
@@ -89,4 +96,8 @@ type OrderRes struct {
 type LinkValidationRes struct {
 	Valid   bool   `json:"valid"`
 	Message string `json:"message"`
+}
+
+type StatusCountRes struct {
+	Count int64 `json:"count"`
 }

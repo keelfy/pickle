@@ -21,6 +21,7 @@ type OrderService interface {
 	ApproveOrderById(ctx context.Context, orderId, gameNoteId, userId uuid.UUID) (*db.Order, error)
 	GetPaginatedByGameNoteId(ctx context.Context, id uuid.UUID, pagination *types.Pagination) ([]*db.Order, error)
 	CountGameNotesById(ctx context.Context, id uuid.UUID) (int64, error)
+	CountOrdersByReceiverId(ctx context.Context, receiverId uuid.UUID) (int64, error)
 }
 
 type orderService struct {
@@ -216,6 +217,14 @@ func (service *orderService) GetPaginatedByGameNoteId(ctx context.Context, id uu
 
 func (service *orderService) CountGameNotesById(ctx context.Context, id uuid.UUID) (int64, error) {
 	count, err := service.sqlDb.Queries().CountOrdersByGameNoteId(ctx, id)
+	if err != nil {
+		return 0, errors.NewInternalServerError("Error occurred during orders count", err)
+	}
+	return count, nil
+}
+
+func (service *orderService) CountOrdersByReceiverId(ctx context.Context, receiverId uuid.UUID) (int64, error) {
+	count, err := service.sqlDb.Queries().CountOrdersByReceiverId(ctx, receiverId)
 	if err != nil {
 		return 0, errors.NewInternalServerError("Error occurred during orders count", err)
 	}

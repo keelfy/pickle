@@ -170,11 +170,11 @@ func (service *avatarService) ConfirmProfileAvatar(ctx context.Context, userID u
 		return errors.NewInternalServerError("Error occurred getting preview avatar", err)
 	}
 
-	avatarUrl := avatar.AvatarUrl
+	avatarKey := avatar.AvatarKey
 	url := fmt.Sprintf("s3://%s/%s", bucketName, key)
 
-	if avatarUrl != nil && avatarUrl != &url {
-		err = service.s3Client.DeleteObject(ctx, bucketName, *avatarUrl)
+	if avatarKey != nil && avatarKey != &key {
+		err = service.s3Client.DeleteObject(ctx, bucketName, *avatarKey)
 		if err != nil {
 			logger.Errorf(ctx, "Error occurred deleting preview avatar: %v", err)
 		}

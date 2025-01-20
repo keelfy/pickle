@@ -46,11 +46,20 @@ WHERE "receiver_id" = $1;
 -- Author: Egor Kuzmin (keelfy)
 -- Queries last orders by receiver id
 -- name: FindLastOrdersByReceiverId :many
-SELECT *
-FROM "orders"
-WHERE "receiver_id" = $1
-ORDER BY "created_at" DESC
+SELECT 
+    o."id", 
+    o."created_at", 
+    o."payment_type", 
+    o."amount", 
+    o."status", 
+    o."orderer_username", 
+    o."message", 
+    o."category"
+FROM "orders" o
+WHERE o."receiver_id" = $1
+ORDER BY o."created_at" DESC
 LIMIT $2;
+
 
 -- Author: Egor Kuzmin (keelfy)
 -- Updates order, updated_at and updated_by

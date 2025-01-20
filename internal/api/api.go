@@ -93,12 +93,7 @@ func (api *pickleAPI) v1RouteHandler() http.Handler {
 
 	// Protected routes
 	r.Group(func(r chi.Router) {
-		// Seek, verify and validate JWT tokens
 		r.Use(jwtAuth.Verifier(api.tokenAuth))
-		// Handle valid / invalid tokens. In this example, we use
-		// the provided authenticator middleware, but you can write your
-		// own very easily, look at the Authenticator method in jwtAuth.go
-		// and tweak it, its not scary.
 		r.Use(middleware.Authenticator(api.tokenAuth))
 
 		api.registerV1ProtectedRoutes(r)
@@ -148,7 +143,6 @@ func (api *pickleAPI) registerV1ProtectedRoutes(r chi.Router) {
 func (api *pickleAPI) registerV1ApiKeyRoutes(r chi.Router) {
 	r.Route("/supabase-webhooks", func(r chi.Router) {
 		r.Post("/users", api.profileHandler.CreateProfileWebhook)
-		// TODO: DELETE /webhooks/supabase/users
 	})
 }
 

@@ -1,9 +1,16 @@
+type ProfileCounts = {
+    played: number;
+    watched: number;
+    ordered: number;
+}
+
 type Profile = {
     id: string;
     createdAt: Date;
     username: string;
     link: string;
     description: string | undefined;
+    counts?: ProfileCounts;
 };
 
 type ProfileAvatar = {

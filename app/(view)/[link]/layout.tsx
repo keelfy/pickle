@@ -125,7 +125,7 @@ async function LayoutBody({
                                                     played
                                                 </div>
                                                 <div className="text-2xl font-semibold">
-                                                    38
+                                                    {ownerProfile.counts?.played ?? 0}
                                                 </div>
                                             </div>
                                         </td>
@@ -140,7 +140,7 @@ async function LayoutBody({
                                                     watched
                                                 </div>
                                                 <div className="text-2xl font-semibold">
-                                                    3
+                                                    {ownerProfile.counts?.watched ?? 0}
                                                 </div>
                                             </div>
                                         </td>

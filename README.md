@@ -5,7 +5,7 @@ This is the API for the Pickle app.
 ## What is Pickle?
 
 Pickle is a platform for collecting and sharing a content that users find interesting or worth remembering.
-Also, it is a platform for content-makers to communicate with their audience by giving sharing opinions.
+Also, it is a platform for content-makers to communicate with their audience by sharing opinions.
 
 ## Brief overview of the pickle infrastructure
 
@@ -17,6 +17,7 @@ Note that this is a first version of the infrastructure, and it will be changed 
 
 - [DEPLOYED DEMO](https://pickle.pw/keelfy)
 - [frontend repo](https://github.com/keelfy/pickle-front)
+- [Swagger](https://staging.api.pickle.pw/swagger/index.html)
 - [figma design](https://www.figma.com/design/2X3MAm8ddAmANWGLQHiP5h/Pickle)
 - [tasks board on linear](https://linear.app/rubedo/team/PIC)
 

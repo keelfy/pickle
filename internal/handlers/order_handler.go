@@ -16,7 +16,7 @@ import (
 
 type OrderHandler interface {
 	GetOrderByID(w http.ResponseWriter, r *http.Request)
-	GetSortedOrdersByLink(w http.ResponseWriter, r *http.Request)
+	GetSortedOrdersByUserID(w http.ResponseWriter, r *http.Request)
 	CreateOrder(w http.ResponseWriter, r *http.Request)
 	UpdateOrderByID(w http.ResponseWriter, r *http.Request)
 }
@@ -71,17 +71,14 @@ func (handler *orderHandler) GetOrderByID(w http.ResponseWriter, r *http.Request
 // @Tags orders
 // @Accept json
 // @Produce json
-// @Param link path string true "Link"
 // @Param userId path string true "User ID"
 // @Success 200 {object} []types.OrderRes
 // @Failure 400 {object} string
 // @Failure 500 {object} string
-// @Router /v1/users/{userId}/orders/sorted-by-receiver-link/{link} [get]
-func (handler *orderHandler) GetSortedOrdersByLink(w http.ResponseWriter, r *http.Request) {
+// @Router /v1/users/{userId}/orders [get]
+func (handler *orderHandler) GetSortedOrdersByUserID(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-
-	// Extracting path variables
-	receiverLink, err := utils.ReadPathVariable("link", r)
+	userId, err := utils.ReadPathUUIDVariable("userId", r)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
@@ -95,7 +92,7 @@ func (handler *orderHandler) GetSortedOrdersByLink(w http.ResponseWriter, r *htt
 	}
 
 	// Find receiver by link
-	receiver, err := handler.userService.GetProfileByLink(ctx, receiverLink)
+	receiver, err := handler.userService.GetProfileById(ctx, userId)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
@@ -154,7 +151,7 @@ func (handler *orderHandler) CreateOrder(w http.ResponseWriter, r *http.Request)
 // @Success 200 {object} types.OrderRes
 // @Failure 400 {object} string
 // @Failure 500 {object} string
-// @Router /v1/orders/{orderId} [put]
+// @Router /v1/users/{userId}/orders/{orderId} [put]
 func (handler *orderHandler) UpdateOrderByID(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userId := ctx.Value(middleware.UserIDKey).(uuid.UUID)

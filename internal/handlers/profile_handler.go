@@ -144,7 +144,7 @@ func (h *profileHandler) GetProfileByLink(w http.ResponseWriter, r *http.Request
 // @Success 200 {object} types.ProfileRes
 // @Failure 400 {object} string
 // @Failure 500 {object} string
-// @Router /v1/profiles/me [get]
+// @Router /v1/users/me [get]
 func (handler *profileHandler) GetMyProfile(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userId := utils.UserIdFromContext(ctx)
@@ -169,7 +169,7 @@ func (handler *profileHandler) GetMyProfile(w http.ResponseWriter, r *http.Reque
 // @Success 200 {object} types.ProfileRes
 // @Failure 400 {object} string
 // @Failure 500 {object} string
-// @Router /v1/profiles/me [patch]
+// @Router /v1/users/me [patch]
 func (handler *profileHandler) UpdateSettings(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userId := utils.UserIdFromContext(ctx)
@@ -264,7 +264,7 @@ func (handler *profileHandler) GetProfileAvatarUrl(w http.ResponseWriter, r *htt
 // @Success 200 {object} types.ImageRes
 // @Failure 400 {object} string
 // @Failure 500 {object} string
-// @Router /v1/profiles/me/avatar [get]
+// @Router /v1/users/me/avatar [get]
 func (handler *profileHandler) GetMyProfileAvatarUrl(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userId := utils.UserIdFromContext(ctx)
@@ -292,7 +292,7 @@ func (handler *profileHandler) GetMyProfileAvatarUrl(w http.ResponseWriter, r *h
 // @Success 200 {object} types.ImagePreviewRes
 // @Failure 400 {object} string
 // @Failure 500 {object} string
-// @Router /v1/profiles/me/avatar [post]
+// @Router /v1/users/me/avatar [post]
 func (handler *profileHandler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userId := utils.UserIdFromContext(ctx)
@@ -336,7 +336,7 @@ func (handler *profileHandler) UploadAvatar(w http.ResponseWriter, r *http.Reque
 // @Success 200 {object} types.ProfileRes
 // @Failure 400 {object} string
 // @Failure 500 {object} string
-// @Router /v1/profiles/webhook [post]
+// @Router /v1/supabase-webhooks/users [post]
 func (handler *profileHandler) CreateProfileWebhook(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 

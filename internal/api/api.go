@@ -130,14 +130,10 @@ func (api *pickleAPI) v1RouteHandler() http.Handler {
 
 	r.Route("/profiles", func(r chi.Router) {
 		r.Get("/validate-link", api.profileHandler.ValidateProfileLink)
+		r.Get("/{link}", api.profileHandler.GetProfileByLink)
+	})
 
-		// for optimization purposes, so user can get all of profile data asynchronously
-		r.Route("/{link}", func(r chi.Router) {
-			r.Get("/", api.profileHandler.GetProfileByLink)
-			r.Get("/game-notes", api.gameNoteHandler.GetSortedByReceiverLink)
-			r.Get("/orders", api.orderHandler.GetSortedOrdersByLink)
-		})
-
+	r.Route("/users", func(r chi.Router) {
 		r.Route("/me", func(r chi.Router) {
 			api.useProtectedRoutes(r)
 
@@ -146,56 +142,60 @@ func (api *pickleAPI) v1RouteHandler() http.Handler {
 			r.Post("/avatar", api.profileHandler.UploadAvatar)
 			r.Get("/avatar", api.profileHandler.GetMyProfileAvatarUrl)
 		})
-	})
 
-	r.Route("/users/{userId}", func(r chi.Router) {
-		r.Get("/", api.profileHandler.GetProfileById)
-		r.Get("/avatar", api.profileHandler.GetProfileAvatarUrl)
+		r.Route("/{userId}", func(r chi.Router) {
+			r.Get("/", api.profileHandler.GetProfileById)
+			r.Get("/avatar", api.profileHandler.GetProfileAvatarUrl)
 
-		r.Route("/game-notes", func(r chi.Router) {
-			r.Group(func(r chi.Router) {
-				api.useProtectedRoutes(r)
-
-				r.Post("/", api.gameNoteHandler.CreateGameNote)
-			})
-
-			r.Route("/{noteId}", func(r chi.Router) {
-				r.Get("/", api.gameNoteHandler.GetGameNoteById)
-				r.Get("/orders", api.gameNoteHandler.GetOrdersById)
-				r.Get("/posters", api.gameNoteHandler.GetPosterImageURL)
+			r.Route("/game-notes", func(r chi.Router) {
+				r.Get("/", api.gameNoteHandler.GetSortedGameNotesByUserID)
 
 				r.Group(func(r chi.Router) {
 					api.useProtectedRoutes(r)
 
-					r.Delete("/", api.gameNoteHandler.DeleteGameNote)
-					r.Patch("/", api.gameNoteHandler.UpdateGameNote)
+					r.Post("/", api.gameNoteHandler.CreateGameNote)
+				})
+
+				r.Route("/{noteId}", func(r chi.Router) {
+					r.Get("/", api.gameNoteHandler.GetGameNoteById)
+					r.Get("/orders", api.gameNoteHandler.GetOrdersById)
+					r.Get("/posters", api.gameNoteHandler.GetPosterImageURL)
+
+					r.Group(func(r chi.Router) {
+						api.useProtectedRoutes(r)
+
+						r.Delete("/", api.gameNoteHandler.DeleteGameNote)
+						r.Patch("/", api.gameNoteHandler.UpdateGameNote)
+					})
 				})
 			})
-		})
 
-		r.Route("/orders", func(r chi.Router) {
-			r.Group(func(r chi.Router) {
-				api.useProtectedRoutes(r)
+			r.Route("/orders", func(r chi.Router) {
+				r.Get("/", api.orderHandler.GetSortedOrdersByUserID)
 
-				r.Post("/", api.orderHandler.CreateOrder)
+				r.Group(func(r chi.Router) {
+					api.useProtectedRoutes(r)
+
+					r.Post("/", api.orderHandler.CreateOrder)
+				})
+
+				r.Route("/{orderId}", func(r chi.Router) {
+					api.useProtectedRoutes(r)
+
+					r.Get("/", api.orderHandler.GetOrderByID)
+					r.Patch("/", api.orderHandler.UpdateOrderByID)
+				})
 			})
 
-			r.Route("/{orderId}", func(r chi.Router) {
+			r.Route("/posters", func(r chi.Router) {
 				api.useProtectedRoutes(r)
 
-				r.Get("/", api.orderHandler.GetOrderByID)
-				r.Patch("/", api.orderHandler.UpdateOrderByID)
+				r.Post("/", api.posterHandler.UploadPoster)
 			})
-		})
 
-		r.Route("/posters", func(r chi.Router) {
-			api.useProtectedRoutes(r)
-
-			r.Post("/", api.posterHandler.UploadPoster)
-		})
-
-		r.Route("/content", func(r chi.Router) {
-			r.Get("/", api.contentService.SearchContent)
+			r.Route("/content", func(r chi.Router) {
+				r.Get("/", api.contentService.SearchContent)
+			})
 		})
 	})
 

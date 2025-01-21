@@ -31,6 +31,7 @@ func NewPosterHandler(posterService services.PosterService) PosterHandler {
 // @Produce json
 // @Param file formData file true "File"
 // @Param url formData string false "URL"
+// @Param userId path string true "User ID"
 // @Success 200 {object} types.ImagePreviewRes
 // @Failure 400 {object} string
 // @Failure 500 {object} string

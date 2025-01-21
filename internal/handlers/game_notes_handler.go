@@ -17,7 +17,7 @@ import (
 
 type GameNoteHandler interface {
 	CreateGameNote(w http.ResponseWriter, r *http.Request)
-	GetSortedByReceiverLink(w http.ResponseWriter, r *http.Request)
+	GetSortedGameNotesByUserID(w http.ResponseWriter, r *http.Request)
 	GetGameNoteById(w http.ResponseWriter, r *http.Request)
 	GetOrdersById(w http.ResponseWriter, r *http.Request)
 	GetPosterImageURL(w http.ResponseWriter, r *http.Request)
@@ -46,11 +46,12 @@ func NewGameNoteHandler(userService services.ProfileService, service services.Ga
 // @Tags game-notes
 // @Accept json
 // @Produce json
+// @Param userId path string true "User ID"
 // @Param gameNoteReq body types.GameNoteReq true "Game note request"
 // @Success 200 {object} types.GameNoteRes
 // @Failure 400 {object} string
 // @Failure 500 {object} string
-// @Router /v1/game-notes [post]
+// @Router /v1/users/{userId}/game-notes [post]
 func (h *gameNoteHandler) CreateGameNote(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userId := ctx.Value(middleware.UserIDKey).(uuid.UUID)
@@ -79,14 +80,14 @@ func (h *gameNoteHandler) CreateGameNote(w http.ResponseWriter, r *http.Request)
 // @Tags game-notes
 // @Accept json
 // @Produce json
-// @Param link path string true "Link"
+// @Param userId path string true "User ID"
 // @Success 200 {object} []types.GameNoteRes
 // @Failure 400 {object} string
 // @Failure 500 {object} string
-// @Router /v1/game-notes/sorted-by-receiver-link/{link} [get]
-func (handler *gameNoteHandler) GetSortedByReceiverLink(w http.ResponseWriter, r *http.Request) {
+// @Router /v1/users/{userId}/game-notes [get]
+func (handler *gameNoteHandler) GetSortedGameNotesByUserID(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	link, err := utils.ReadPathVariable("link", r)
+	userId, err := utils.ReadPathUUIDVariable("userId", r)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
@@ -98,7 +99,7 @@ func (handler *gameNoteHandler) GetSortedByReceiverLink(w http.ResponseWriter, r
 		return
 	}
 
-	receiver, err := handler.userService.GetProfileByLink(ctx, link)
+	receiver, err := handler.userService.GetProfileById(ctx, userId)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
@@ -139,11 +140,12 @@ func (handler *gameNoteHandler) GetGameNoteById(w http.ResponseWriter, r *http.R
 // @Tags game-notes
 // @Accept json
 // @Produce json
+// @Param userId path string true "User ID"
 // @Param noteId path string true "Note ID"
 // @Success 200 {object} []types.OrderRes
 // @Failure 400 {object} string
 // @Failure 500 {object} string
-// @Router /v1/game-notes/{noteId}/orders [get]
+// @Router /v1/users/{userId}/game-notes/{noteId}/orders [get]
 func (handler *gameNoteHandler) GetOrdersById(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	noteId, err := utils.ReadPathUUIDVariable("noteId", r)
@@ -198,12 +200,13 @@ func (handler *gameNoteHandler) GetOrdersById(w http.ResponseWriter, r *http.Req
 // @Tags game-notes
 // @Accept json
 // @Produce json
+// @Param userId path string true "User ID"
 // @Param noteId path string true "Note ID"
 // @Param size query string true "Size"
 // @Success 200 {object} types.ImageRes
 // @Failure 400 {object} string
 // @Failure 500 {object} string
-// @Router /v1/game-notes/{noteId}/poster [get]
+// @Router /v1/users/{userId}/game-notes/{noteId}/poster [get]
 func (handler *gameNoteHandler) GetPosterImageURL(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	size := utils.GetQueryParam(r, "size", "md")
@@ -241,12 +244,13 @@ func (handler *gameNoteHandler) GetPosterImageURL(w http.ResponseWriter, r *http
 // @Tags game-notes
 // @Accept json
 // @Produce json
+// @Param userId path string true "User ID"
 // @Param noteId path string true "Note ID"
 // @Param resetApprovedOrders query string true "Reset approved orders"
 // @Success 200
 // @Failure 400 {object} string
 // @Failure 500 {object} string
-// @Router /v1/game-notes/{noteId} [delete]
+// @Router /v1/users/{userId}/game-notes/{noteId} [delete]
 func (handler *gameNoteHandler) DeleteGameNote(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userId := ctx.Value(middleware.UserIDKey).(uuid.UUID)
@@ -271,12 +275,13 @@ func (handler *gameNoteHandler) DeleteGameNote(w http.ResponseWriter, r *http.Re
 // @Tags game-notes
 // @Accept json
 // @Produce json
+// @Param userId path string true "User ID"
 // @Param noteId path string true "Note ID"
 // @Param gameNoteReq body types.GameNoteReq true "Game note request"
 // @Success 200
 // @Failure 400 {object} string
 // @Failure 500 {object} string
-// @Router /v1/game-notes/{noteId} [put]
+// @Router /v1/users/{userId}/game-notes/{noteId} [put]
 func (handler *gameNoteHandler) UpdateGameNote(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userId := ctx.Value(middleware.UserIDKey).(uuid.UUID)

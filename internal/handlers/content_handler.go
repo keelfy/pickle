@@ -33,7 +33,7 @@ func NewContentHandler(elastic storage.ElasticClient, contentService services.Co
 // @Param query query string true "Query"
 // @Param userId query string true "User ID"
 // @Success 200 {object} []types.ContentRes
-// @Router /content/search [get]
+// @Router /v1/users/{userId}/content/search [get]
 func (h *contentHandler) SearchContent(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 

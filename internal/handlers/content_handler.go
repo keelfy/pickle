@@ -43,13 +43,7 @@ func (h *contentHandler) SearchContent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userId, err := utils.GetRequiredQueryParam(r, "userId")
-	if err != nil {
-		utils.HttpError(ctx, err, w)
-		return
-	}
-
-	userUUID, err := utils.ParseUUIDFromString(userId)
+	userId, err := utils.ReadPathUUIDVariable("userId", r)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
@@ -61,7 +55,7 @@ func (h *contentHandler) SearchContent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	content, err := h.elastic.SearchContent(ctx, query, userUUID, pagination)
+	content, err := h.elastic.SearchContent(ctx, query, userId, pagination)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return

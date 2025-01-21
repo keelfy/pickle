@@ -28,6 +28,7 @@ Note that this is a first version of the infrastructure, and it will be changed 
 4. An option to switch on/off the orders.
 5. Support for moderators to help content makers to moderate their content.
 6. Integration with the DonationAlerts, DonatePay, Streamlabs and StreamElements (maybe other services too, but these for starters).
-7. OpenTelementry to track the API usage.
+7. OpenTelementry to track usage.
+8. Rate limiting.
 
 -- That's it for the next couple of months :)

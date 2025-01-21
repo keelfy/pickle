@@ -291,13 +291,13 @@ func (handler *gameNoteHandler) UpdateGameNote(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	var req types.GameNoteReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	req := &types.GameNoteReq{}
+	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 		utils.HttpError(ctx, errors.NewBadRequestError("Invalid request body", err), w)
 		return
 	}
 
-	err = handler.gameNoteService.UpdateGameNoteById(ctx, noteId, &req, userId)
+	err = handler.gameNoteService.UpdateGameNoteById(ctx, noteId, req, userId)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return

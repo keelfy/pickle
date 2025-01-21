@@ -283,7 +283,12 @@ func (service *gameNoteService) UpdateGameNoteById(ctx context.Context, id uuid.
 		}
 	}
 
-	err = service.IndexGameNote(ctx, gameNote, nil)
+	orderer, err := service.ordererService.GetOrdererById(ctx, gameNote.InitialOrdererID)
+	if err != nil {
+		return err
+	}
+
+	err = service.IndexGameNote(ctx, gameNote, orderer)
 	if err != nil {
 		return err
 	}

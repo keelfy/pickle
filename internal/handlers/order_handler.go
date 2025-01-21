@@ -154,9 +154,9 @@ func (handler *orderHandler) CreateOrder(w http.ResponseWriter, r *http.Request)
 // @Router /v1/users/{userId}/orders/{orderId} [put]
 func (handler *orderHandler) UpdateOrderByID(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userId := ctx.Value(middleware.UserIDKey).(uuid.UUID)
+	authUserId := ctx.Value(middleware.UserIDKey).(uuid.UUID)
 
-	link, err := utils.ReadPathVariable("link", r)
+	userId, err := utils.ReadPathUUIDVariable("userId", r)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
@@ -182,12 +182,12 @@ func (handler *orderHandler) UpdateOrderByID(w http.ResponseWriter, r *http.Requ
 	)
 
 	g.Go(func() error {
-		receiver, err = handler.userService.GetProfileByLink(ctx, link)
+		receiver, err = handler.userService.GetProfileById(ctx, userId)
 		return nil
 	})
 
 	g.Go(func() error {
-		initiator, err = handler.userService.GetProfileById(ctx, userId)
+		initiator, err = handler.userService.GetProfileById(ctx, authUserId)
 		return nil
 	})
 

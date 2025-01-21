@@ -62,3 +62,23 @@ FROM "game_notes"
 WHERE "user_id" = $1
     AND "status" IN ('playing', 'finished', 'dropped')
 GROUP BY "user_id";
+
+-- Author: Egor Kuzmin (keelfy)
+-- name: DeleteGameNoteById :exec
+DELETE FROM "game_notes"
+WHERE "id" = $1;
+
+-- Author: Egor Kuzmin (keelfy)
+-- name: UpdateGameNoteById :exec
+UPDATE "game_notes"
+SET "updated_by" = $2, 
+    "updated_at" = NOW(),
+    "name" = $3,
+    "link" = $4,
+    "release_date" = $5,
+    "rate" = $6,
+    "comment" = $7,
+    "status" = $8,
+    "last_played_at" = $9,
+    "poster_key" = $10
+WHERE "id" = $1;

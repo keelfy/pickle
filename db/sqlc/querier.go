@@ -19,12 +19,14 @@ type Querier interface {
 	// Author: Egor Kuzmin (keelfy)
 	CountPlayedGameNotesByUserId(ctx context.Context, userID uuid.UUID) (int64, error)
 	// Author: Egor Kuzmin (keelfy)
+	DeleteGameNoteById(ctx context.Context, id uuid.UUID) error
+	// Author: Egor Kuzmin (keelfy)
 	FindElasticsearchMigrationByName(ctx context.Context, name string) (*EsMigrationLog, error)
 	// Author: Egor Kuzmin (keelfy)
 	FindGameNoteById(ctx context.Context, id uuid.UUID) (*GameNote, error)
 	// Author: Egor Kuzmin (keelfy)
 	// Queries last orders by receiver id
-	FindLastOrdersByReceiverId(ctx context.Context, arg FindLastOrdersByReceiverIdParams) ([]*Order, error)
+	FindLastOrdersByReceiverId(ctx context.Context, arg FindLastOrdersByReceiverIdParams) ([]*FindLastOrdersByReceiverIdRow, error)
 	// Author: Egor Kuzmin (keelfy)
 	FindMigrationByName(ctx context.Context, name string) (*MigrationLog, error)
 	// Author: Egor Kuzmin (keelfy)
@@ -68,6 +70,10 @@ type Querier interface {
 	InsertProfile(ctx context.Context, arg InsertProfileParams) (*Profile, error)
 	// Author: Egor Kuzmin (keelfy)
 	InsertProfileAvatar(ctx context.Context, arg InsertProfileAvatarParams) (*ProfileAvatar, error)
+	// Author: Egor Kuzmin (keelfy)
+	ResetApprovedOrdersByGameNoteId(ctx context.Context, gameNoteID uuid.UUID) error
+	// Author: Egor Kuzmin (keelfy)
+	UpdateGameNoteById(ctx context.Context, arg UpdateGameNoteByIdParams) error
 	// Author: Egor Kuzmin (keelfy)
 	// Updates order, updated_at and updated_by
 	UpdateOrderById(ctx context.Context, arg UpdateOrderByIdParams) (*Order, error)

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	db "github.com/pickle.pw/monolith/db/sqlc"
 	"github.com/pickle.pw/monolith/internal/config"
@@ -15,6 +16,7 @@ import (
 
 type SQLDatabase interface {
 	Queries() *db.Queries
+	Begin(ctx context.Context) (pgx.Tx, error)
 	Ping(ctx context.Context) error
 	FindPaginatedGameNotesByUserId(ctx context.Context, userID uuid.UUID, sort *types.CursorSort) ([]*db.FindPaginatedGameNotesByUserIdRow, error)
 	FindSortedOrdersByReceiverId(ctx context.Context, receiverID uuid.UUID, sort *types.CursorSort) ([]*db.Order, error)
@@ -49,6 +51,10 @@ func NewPGXPoolWithCleanup(ctx context.Context) (SQLDatabase, func(), error) {
 
 func (s *sqlDatabase) Queries() *db.Queries {
 	return s.queries
+}
+
+func (s *sqlDatabase) Begin(ctx context.Context) (pgx.Tx, error) {
+	return s.conn.Begin(ctx)
 }
 
 func (sqlDb *sqlDatabase) Ping(ctx context.Context) error {

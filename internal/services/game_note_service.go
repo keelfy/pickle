@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/google/uuid"
 	db "github.com/pickle.pw/monolith/db/sqlc"
@@ -16,37 +15,35 @@ import (
 type GameNoteService interface {
 	GetById(ctx context.Context, id uuid.UUID) (*db.GameNote, error)
 	GetByReceiverId(ctx context.Context, userID uuid.UUID, sort *types.CursorSort) ([]*db.FindPaginatedGameNotesByUserIdRow, error)
-	CreateGameNote(ctx context.Context, req *types.CreateGameNoteReq, userId uuid.UUID) (*db.GameNote, error)
-	ValidateCreateGameNote(req *types.CreateGameNoteReq, userId uuid.UUID) error
+	CreateOrderedGameNote(ctx context.Context, userId uuid.UUID, initialOrder *db.Order, initialOrderer *db.Orderer, title string) (*db.GameNote, error)
+	CreateGameNote(ctx context.Context, userID, creatorID uuid.UUID, req *types.GameNoteReq) (*db.GameNote, error)
 	IndexGameNote(ctx context.Context, gameNote *db.GameNote, initialOrderer *db.Orderer) error
 	CountPlayedByUserId(ctx context.Context, userID uuid.UUID) (int64, error)
+	DeleteGameNoteById(ctx context.Context, id uuid.UUID, initiatorID uuid.UUID, resetApprovedOrders bool) error
+	UpdateGameNoteById(ctx context.Context, id uuid.UUID, req *types.GameNoteReq, initiatorID uuid.UUID) error
 }
 
 type gameNoteService struct {
 	sqlDb                storage.SQLDatabase
 	elastic              storage.ElasticClient
 	cache                storage.CacheClient
-	orderService         OrderService
 	userService          ProfileService
 	ordererService       OrdererService
-	contentService       ContentService
 	gameNoteOrderService GameNoteOrderService
 	posterService        PosterService
 }
 
 func NewGameNoteService(
 	sqlDb storage.SQLDatabase, elastic storage.ElasticClient, cache storage.CacheClient,
-	orderService OrderService, userService ProfileService, ordererService OrdererService,
-	contentService ContentService, gameNoteOrderService GameNoteOrderService, posterService PosterService,
+	userService ProfileService, ordererService OrdererService,
+	gameNoteOrderService GameNoteOrderService, posterService PosterService,
 ) GameNoteService {
 	return &gameNoteService{
 		sqlDb:                sqlDb,
 		elastic:              elastic,
 		cache:                cache,
-		orderService:         orderService,
 		userService:          userService,
 		ordererService:       ordererService,
-		contentService:       contentService,
 		gameNoteOrderService: gameNoteOrderService,
 		posterService:        posterService,
 	}
@@ -72,63 +69,25 @@ func (service *gameNoteService) GetByReceiverId(ctx context.Context, userID uuid
 
 // Creates game note and initial order (or approves existing) using user
 // Validated inputs is expected
-func (service *gameNoteService) CreateGameNote(ctx context.Context, req *types.CreateGameNoteReq, userId uuid.UUID) (*db.GameNote, error) {
-	initialOrder, err := service.orderService.GetOrderById(ctx, req.InitialOrderID)
-	if err != nil {
-		return nil, err
+func (service *gameNoteService) CreateOrderedGameNote(ctx context.Context, userId uuid.UUID, initialOrder *db.Order, initialOrderer *db.Orderer, title string) (*db.GameNote, error) {
+	// validation
+	if len(userId) == 0 {
+		return nil, errors.NewUnauthorizedError("Receiver ID is required", nil)
+	} else if len(title) == 0 {
+		return nil, errors.NewBadRequestError("Name of the note is required", nil)
 	}
 
-	initialOrderer, err := service.ordererService.GetOrdererById(ctx, initialOrder.OrdererID)
-	if err != nil {
-		return nil, err
-	}
-
-	order, err := service.orderService.UpdateOrderStatus(ctx, initialOrder, db.OrderStatusApproved, userId)
-	if err != nil {
-		return nil, err
-	}
-
-	var posterKey *string
-
-	if req.Poster != nil && req.Poster.PreviewID != nil {
-		posterPreviewId := *req.Poster.PreviewID
-		posterKey, err = service.posterService.ConfirmS3PosterPreviewByID(ctx, posterPreviewId, "game-note")
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// Insert new game note into database
-	// TODO: Data validation before insertion, e.g. min-max rating or release date not after today
 	gameNote, err := service.sqlDb.Queries().InsertGameNote(ctx, db.InsertGameNoteParams{
 		CreatedBy:        userId,
 		UpdatedBy:        userId,
-		UserID:           order.ReceiverID,
-		Name:             req.GameNote.Name,
-		Link:             req.GameNote.Link,
-		ReleaseDate:      req.GameNote.ReleaseDate,
-		Rate:             req.GameNote.Rate,
-		Comment:          req.GameNote.Comment,
+		UserID:           initialOrder.ReceiverID,
+		Name:             title,
 		InitialOrdererID: initialOrderer.ID,
-		Status:           req.GameNote.Status,
-		LastPlayedAt:     req.GameNote.LastPlayedAt,
-		PosterKey:        posterKey,
+		Status:           db.GameNoteStatusPlanned,
 	})
 	if err != nil {
 		return nil, errors.NewInternalServerError("Error occurred during game note creation", err)
 	}
-
-	// clear poster URL cache
-
-	for sizeName := range posterSizes {
-		cacheKey := fmt.Sprintf("poster:game-note:%s:%s", gameNote.ID, sizeName)
-		err = service.cache.DeleteKey(ctx, cacheKey)
-		if err != nil {
-			logger.Errorf(ctx, "Error occurred deleting avatar URL from cache: %v", err)
-		}
-	}
-
-	// Create game note - order relation
 
 	var g errgroup.Group
 
@@ -136,14 +95,8 @@ func (service *gameNoteService) CreateGameNote(ctx context.Context, req *types.C
 		return service.gameNoteOrderService.CreateGameNoteOrder(ctx, userId, initialOrder.ID, gameNote.ID)
 	})
 
-	// Index documents in Elasticsearch
-
 	g.Go(func() error {
 		return service.IndexGameNote(ctx, gameNote, initialOrderer)
-	})
-
-	g.Go(func() error {
-		return service.contentService.IndexContent(ctx, gameNote.ID, gameNote.Name, gameNote.UserID, db.ContentCategoryGames)
 	})
 
 	if err := g.Wait(); err != nil {
@@ -153,39 +106,71 @@ func (service *gameNoteService) CreateGameNote(ctx context.Context, req *types.C
 	return gameNote, nil
 }
 
-// Validates incoming data for #CreateGameNote func
-func (service *gameNoteService) ValidateCreateGameNote(req *types.CreateGameNoteReq, userId uuid.UUID) error {
-	// User is required
-	if len(userId) == 0 {
-		return errors.NewUnauthorizedError("Authentication is required", nil)
+func (service *gameNoteService) CreateGameNote(ctx context.Context, userID, creatorID uuid.UUID, req *types.GameNoteReq) (*db.GameNote, error) {
+	// TODO: moderators should be able to create game notes for other users
+	if userID != creatorID {
+		return nil, errors.NewForbiddenError("You are not allowed to create a game note for another user", nil)
 	}
 
-	if len(req.InitialOrderID) == 0 {
-		// Game note or order ID is a minimum
-		if req.GameNote == nil {
-			return errors.NewBadRequestError("Game or initial order ID is required", nil)
-		}
+	var (
+		posterKey *string
+		err       error
+	)
 
-		// Name is expected
-		if len(req.GameNote.Name) == 0 {
-			return errors.NewBadRequestError("Name of the game is required", nil)
+	if req.Poster != nil && req.Poster.PreviewID != nil {
+		posterPreviewId := *req.Poster.PreviewID
+		posterKey, err = service.posterService.ConfirmS3PosterPreviewByID(ctx, posterPreviewId, "game-note")
+		if err != nil {
+			return nil, err
 		}
 	}
 
-	return nil
+	gameNote, err := service.sqlDb.Queries().InsertGameNote(ctx, db.InsertGameNoteParams{
+		CreatedBy:    creatorID,
+		UpdatedBy:    creatorID,
+		UserID:       userID,
+		Name:         req.Name,
+		Status:       req.Status,
+		Link:         req.Link,
+		ReleaseDate:  req.ReleaseDate,
+		Rate:         req.Rate,
+		Comment:      req.Comment,
+		LastPlayedAt: req.LastPlayedAt,
+		PosterKey:    posterKey,
+	})
+	if err != nil {
+		return nil, errors.NewInternalServerError("Error occurred during game note creation", err)
+	}
+
+	err = service.IndexGameNote(ctx, gameNote, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return gameNote, nil
 }
 
 func (service *gameNoteService) IndexGameNote(ctx context.Context, gameNote *db.GameNote, initialOrderer *db.Orderer) error {
-	document := &types.EsGameNote{
-		ID:          gameNote.ID,
-		Name:        gameNote.Name,
-		UserID:      gameNote.UserID,
-		OrdererName: initialOrderer.Username,
-		RequestDate: gameNote.CreatedAt,
-		Status:      gameNote.Status,
-	}
-	_, err := service.elastic.IndexDocument(ctx, "game_notes", document)
-	if err != nil {
+	var g errgroup.Group
+
+	g.Go(func() error {
+		return service.elastic.IndexContent(ctx, gameNote.ID, gameNote.Name, gameNote.UserID, db.ContentCategoryGames)
+	})
+
+	g.Go(func() error {
+		document := &types.EsGameNote{
+			ID:          gameNote.ID,
+			Name:        gameNote.Name,
+			UserID:      gameNote.UserID,
+			OrdererName: initialOrderer.Username,
+			RequestDate: gameNote.CreatedAt,
+			Status:      gameNote.Status,
+		}
+		_, err := service.elastic.IndexDocument(ctx, "game_notes", gameNote.ID.String(), document)
+		return err
+	})
+
+	if err := g.Wait(); err != nil {
 		return errors.NewInternalServerError("Error occurred during game note indexing", err)
 	}
 	return nil
@@ -198,4 +183,110 @@ func (service *gameNoteService) CountPlayedByUserId(ctx context.Context, userID 
 	}
 
 	return counts, nil
+}
+
+func (service *gameNoteService) DeleteGameNoteById(ctx context.Context, id uuid.UUID, initiatorID uuid.UUID, resetApprovedOrders bool) error {
+	gameNote, err := service.GetById(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	if gameNote.UserID != initiatorID {
+		return errors.NewForbiddenError("You are not allowed to delete this game note", nil)
+	}
+
+	// Start transaction
+	tx, err := service.sqlDb.Begin(ctx)
+	if err != nil {
+		return errors.NewInternalServerError("Error starting transaction", err)
+	}
+	defer tx.Rollback(ctx)
+
+	qtx := service.sqlDb.Queries().WithTx(tx)
+
+	if resetApprovedOrders {
+		err = qtx.ResetApprovedOrdersByGameNoteId(ctx, id)
+		if err != nil {
+			return errors.NewInternalServerError("Error occurred during orders reset", err)
+		}
+	}
+
+	err = qtx.DeleteGameNoteById(ctx, id)
+	if err != nil {
+		return errors.NewInternalServerError("Error occurred during game note deletion", err)
+	}
+
+	// Commit transaction
+	err = tx.Commit(ctx)
+	if err != nil {
+		return errors.NewInternalServerError("Error committing transaction", err)
+	}
+
+	var g errgroup.Group
+
+	g.Go(func() error {
+		return service.elastic.DeleteContentNoteByID(ctx, "game_notes", gameNote.ID)
+	})
+
+	g.Go(func() error {
+		return service.elastic.DeleteContent(ctx, gameNote.ID, db.ContentCategoryGames)
+	})
+
+	if err := g.Wait(); err != nil {
+		logger.Errorf(ctx, "[ELASTIC] Error deleting game note: %v", err)
+	}
+
+	return nil
+}
+
+func (service *gameNoteService) UpdateGameNoteById(ctx context.Context, id uuid.UUID, req *types.GameNoteReq, initiatorID uuid.UUID) error {
+	gameNote, err := service.GetById(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	if gameNote.UserID != initiatorID {
+		return errors.NewForbiddenError("You are not allowed to update this game note", nil)
+	}
+
+	var posterKey *string
+
+	if req.Poster != nil && req.Poster.PreviewID != nil {
+		posterPreviewId := *req.Poster.PreviewID
+		posterKey, err = service.posterService.ConfirmS3PosterPreviewByID(ctx, posterPreviewId, "game-note")
+		if err != nil {
+			return err
+		}
+	}
+
+	err = service.sqlDb.Queries().UpdateGameNoteById(ctx, db.UpdateGameNoteByIdParams{
+		ID:           id,
+		UpdatedBy:    initiatorID,
+		Name:         req.Name,
+		Link:         req.Link,
+		ReleaseDate:  req.ReleaseDate,
+		Rate:         req.Rate,
+		Comment:      req.Comment,
+		Status:       req.Status,
+		LastPlayedAt: req.LastPlayedAt,
+		PosterKey:    posterKey,
+	})
+	if err != nil {
+		return errors.NewInternalServerError("Error occurred during game note update", err)
+	}
+
+	// delete old poster key if it was updated
+	if gameNote.PosterKey != nil && *gameNote.PosterKey != *posterKey {
+		err = service.posterService.DeletePosterKey(ctx, "game-note", *gameNote.PosterKey)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = service.IndexGameNote(ctx, gameNote, nil)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

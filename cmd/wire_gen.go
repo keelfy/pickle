@@ -16,6 +16,7 @@ import (
 
 import (
 	_ "github.com/joho/godotenv/autoload"
+	_ "github.com/pickle.pw/monolith/docs"
 )
 
 // Injectors from wire.go:
@@ -45,10 +46,10 @@ func InitializeAPI(ctx context.Context) (api.PickleAPI, func(), error) {
 	}
 	ordererService := services.NewOrdererService(sqlDatabase)
 	gameNoteOrderService := services.NewGameNoteOrderService(sqlDatabase)
-	orderService := services.NewOrderService(sqlDatabase, profileService, ordererService, gameNoteOrderService)
-	contentService := services.NewContentService(elasticClient)
 	posterService := services.NewPosterService(sqlDatabase, s3Client, cacheClient, imageService, profileService)
-	gameNoteService := services.NewGameNoteService(sqlDatabase, elasticClient, cacheClient, orderService, profileService, ordererService, contentService, gameNoteOrderService, posterService)
+	gameNoteService := services.NewGameNoteService(sqlDatabase, elasticClient, cacheClient, profileService, ordererService, gameNoteOrderService, posterService)
+	contentService := services.NewContentService(elasticClient, gameNoteService, gameNoteOrderService)
+	orderService := services.NewOrderService(sqlDatabase, profileService, ordererService, contentService)
 	profileHandler := handlers.NewUserHandler(profileService, avatarService, gameNoteService, orderService)
 	supabaseClient, err := storage.NewSupabaseClient(ctx)
 	if err != nil {
@@ -57,11 +58,11 @@ func InitializeAPI(ctx context.Context) (api.PickleAPI, func(), error) {
 	}
 	statusService := services.NewStatusService(supabaseClient, s3Client)
 	statusHandler := handlers.NewStatusHandler(sqlDatabase, elasticClient, cacheClient, statusService)
-	orderHandler := handlers.NewOrdersHandler(orderService, profileService)
+	orderHandler := handlers.NewOrdersHandler(orderService, profileService, contentService)
 	gameNoteHandler := handlers.NewGameNoteHandler(profileService, gameNoteService, orderService, posterService)
 	posterHandler := handlers.NewPosterHandler(posterService)
 	migrationService := services.NewMigrationService(sqlDatabase, elasticClient)
-	contentHandler := handlers.NewContentHandler(contentService)
+	contentHandler := handlers.NewContentHandler(elasticClient, contentService)
 	pickleAPI := api.NewPickleAPI(profileHandler, statusHandler, orderHandler, gameNoteHandler, posterHandler, migrationService, contentHandler)
 	return pickleAPI, func() {
 		cleanup()

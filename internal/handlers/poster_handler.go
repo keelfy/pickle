@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/pickle.pw/monolith/internal/config"
 	"github.com/pickle.pw/monolith/internal/services"
+	"github.com/pickle.pw/monolith/internal/types"
 	"github.com/pickle.pw/monolith/internal/utils"
 )
 
@@ -23,6 +24,17 @@ func NewPosterHandler(posterService services.PosterService) PosterHandler {
 	}
 }
 
+// @Summary Upload a poster
+// @Description Upload a poster
+// @Tags posters
+// @Accept json
+// @Produce json
+// @Param file formData file true "File"
+// @Param url formData string false "URL"
+// @Success 200 {object} types.ImagePreviewRes
+// @Failure 400 {object} string
+// @Failure 500 {object} string
+// @Router /v1/users/{userId}/posters [post]
 func (h *posterHandler) UploadPoster(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userId := utils.UserIdFromContext(ctx)
@@ -65,11 +77,9 @@ func (h *posterHandler) UploadPoster(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	utils.WriteHttpJsonResponse(ctx, w, struct {
-		PreviewID  uuid.UUID `json:"previewId"`
-		PreviewURL string    `json:"previewUrl"`
-	}{
+	res := &types.ImagePreviewRes{
 		PreviewID:  previewId,
 		PreviewURL: previewUrl,
-	})
+	}
+	utils.WriteHttpJsonResponse(ctx, w, res)
 }

@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/pickle.pw/monolith/internal/services"
+	"github.com/pickle.pw/monolith/internal/storage"
 	"github.com/pickle.pw/monolith/internal/types"
 	"github.com/pickle.pw/monolith/internal/utils"
 )
@@ -13,15 +14,26 @@ type ContentHandler interface {
 }
 
 type contentHandler struct {
+	elastic        storage.ElasticClient
 	contentService services.ContentService
 }
 
-func NewContentHandler(contentService services.ContentService) ContentHandler {
+func NewContentHandler(elastic storage.ElasticClient, contentService services.ContentService) ContentHandler {
 	return &contentHandler{
+		elastic:        elastic,
 		contentService: contentService,
 	}
 }
 
+// @Summary Search content
+// @Description Search content
+// @Tags content
+// @Accept json
+// @Produce json
+// @Param query query string true "Query"
+// @Param userId query string true "User ID"
+// @Success 200 {object} []types.ContentRes
+// @Router /content/search [get]
 func (h *contentHandler) SearchContent(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -31,13 +43,13 @@ func (h *contentHandler) SearchContent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	profileId, err := utils.GetRequiredQueryParam(r, "profileId")
+	userId, err := utils.GetRequiredQueryParam(r, "userId")
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
 	}
 
-	profileUuid, err := utils.ParseUUIDFromString(profileId)
+	userUUID, err := utils.ParseUUIDFromString(userId)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
@@ -49,8 +61,7 @@ func (h *contentHandler) SearchContent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Business logic of content search
-	content, err := h.contentService.SearchContent(ctx, query, profileUuid, pagination)
+	content, err := h.elastic.SearchContent(ctx, query, userUUID, pagination)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return

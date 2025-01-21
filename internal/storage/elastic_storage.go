@@ -11,7 +11,9 @@ import (
 	"github.com/elastic/go-elasticsearch/v8/typedapi/core/search"
 	esTypes "github.com/elastic/go-elasticsearch/v8/typedapi/types"
 	"github.com/google/uuid"
+	db "github.com/pickle.pw/monolith/db/sqlc"
 	"github.com/pickle.pw/monolith/internal/config"
+	"github.com/pickle.pw/monolith/internal/errors"
 	"github.com/pickle.pw/monolith/internal/logger"
 	"github.com/pickle.pw/monolith/internal/types"
 )
@@ -19,9 +21,12 @@ import (
 type ElasticClient interface {
 	Ping(ctx context.Context) error
 	CreateOrUpdateIndex(ctx context.Context, indexName string, query []byte) error
-	IndexDocument(ctx context.Context, indexName string, document any) (*index.Response, error)
+	IndexDocument(ctx context.Context, indexName, id string, document any) (*index.Response, error)
 	Search(ctx context.Context, indexName string, query *esTypes.Query, pagination *types.Pagination) (*search.Response, error)
+	IndexContent(ctx context.Context, id uuid.UUID, name string, userId uuid.UUID, category db.ContentCategory) error
 	SearchContent(ctx context.Context, query string, userId uuid.UUID, pagination *types.Pagination) (*search.Response, error)
+	DeleteContentNoteByID(ctx context.Context, indexName string, contentID uuid.UUID) error
+	DeleteContent(ctx context.Context, contentID uuid.UUID, category db.ContentCategory) error
 }
 
 type elasticClient struct {
@@ -114,8 +119,8 @@ func (storage *elasticClient) createIndex(ctx context.Context, indexName string,
 	return nil
 }
 
-func (storage *elasticClient) IndexDocument(ctx context.Context, indexName string, document any) (*index.Response, error) {
-	response, err := storage.client.Index(indexName).Document(document).Do(ctx)
+func (storage *elasticClient) IndexDocument(ctx context.Context, indexName, id string, document any) (*index.Response, error) {
+	response, err := storage.client.Index(indexName).Id(id).Document(document).Do(ctx)
 	if err != nil {
 		logger.Debugf(ctx, "[ELASTIC] Error indexing document: %v", err)
 		return nil, err
@@ -141,6 +146,21 @@ func (storage *elasticClient) Search(ctx context.Context, indexName string, quer
 
 	logger.Debugf(ctx, "[ELASTIC] Documents found: %d", response.Hits.Total.Value)
 	return response, nil
+}
+
+func (service *elasticClient) IndexContent(ctx context.Context, id uuid.UUID, name string, userId uuid.UUID, category db.ContentCategory) error {
+	document := &types.EsContent{
+		ID:       id,
+		Name:     name,
+		UserID:   userId,
+		Category: category,
+	}
+	docID := fmt.Sprintf("%s-%s", category, id.String())
+	_, err := service.IndexDocument(ctx, "content", docID, document)
+	if err != nil {
+		return errors.NewInternalServerError("Error occurred during content indexing", err)
+	}
+	return nil
 }
 
 func (storage *elasticClient) SearchContent(ctx context.Context, query string, userId uuid.UUID, pagination *types.Pagination) (*search.Response, error) {
@@ -176,4 +196,23 @@ func (storage *elasticClient) SearchContent(ctx context.Context, query string, u
 
 	logger.Debugf(ctx, "[ELASTIC] Content found: %d", response.Hits.Total.Value)
 	return response, nil
+}
+
+func (storage *elasticClient) DeleteContentNoteByID(ctx context.Context, indexName string, contentID uuid.UUID) error {
+	_, err := storage.client.Delete(indexName, contentID.String()).Do(ctx)
+	if err != nil {
+		return errors.NewInternalServerError("Error deleting content document", err)
+	}
+	logger.Debugf(ctx, "[ELASTIC] Content deleted: %s", contentID)
+	return nil
+}
+
+func (storage *elasticClient) DeleteContent(ctx context.Context, contentID uuid.UUID, category db.ContentCategory) error {
+	docID := fmt.Sprintf("%s-%s", category, contentID.String())
+	_, err := storage.client.Delete("content", docID).Do(ctx)
+	if err != nil {
+		return errors.NewInternalServerError("Error deleting content document", err)
+	}
+	logger.Debugf(ctx, "[ELASTIC] Content deleted: %s", contentID)
+	return nil
 }

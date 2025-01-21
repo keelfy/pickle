@@ -25,6 +25,7 @@ type PosterService interface {
 	GetLatestPosterPreviewByUserId(ctx context.Context, userId uuid.UUID) ([]*db.PosterPreview, error)
 	ConfirmS3PosterPreviewByID(ctx context.Context, id uuid.UUID, prefix string) (*string, error)
 	GetPosterImageURL(ctx context.Context, prefix, size, imageKey string, cbTime time.Time) (string, error)
+	DeletePosterKey(ctx context.Context, prefix, posterKey string) error
 }
 
 type posterService struct {
@@ -220,4 +221,24 @@ func (service *posterService) GetPosterImageURL(ctx context.Context, prefix, siz
 		return "", err
 	}
 	return imageUrl, nil
+}
+
+func (s *posterService) DeletePosterKey(ctx context.Context, prefix, posterKey string) error {
+	bucketName := config.GetContentPosterBucketName()
+	key := fmt.Sprintf("%s/%s", prefix, posterKey)
+
+	err := s.s3.DeleteObject(ctx, bucketName, key)
+	if err != nil {
+		return errors.NewInternalServerError("Error occurred deleting previous poster", err)
+	}
+
+	for sizeName := range posterSizes {
+		cacheKey := fmt.Sprintf("poster:%s:%s:%s", prefix, posterKey, sizeName)
+		err = s.cache.DeleteKey(ctx, cacheKey)
+		if err != nil {
+			logger.Errorf(ctx, "Error occurred deleting poster cache: %v", err)
+		}
+	}
+
+	return nil
 }

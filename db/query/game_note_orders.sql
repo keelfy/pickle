@@ -18,3 +18,13 @@ RETURNING *;
 SELECT COUNT(*) AS "total"
 FROM "game_note_orders"
 WHERE "game_note_id" = $1;
+
+-- Author: Egor Kuzmin (keelfy)
+-- name: ResetApprovedOrdersByGameNoteId :exec
+UPDATE "orders"
+SET "status" = 'pending'
+WHERE "id" IN (
+    SELECT "order_id"
+    FROM "game_note_orders"
+    WHERE "game_note_id" = $1
+);

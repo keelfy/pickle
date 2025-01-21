@@ -14,6 +14,7 @@ import (
 	"github.com/pickle.pw/monolith/internal/logger"
 	"github.com/pickle.pw/monolith/internal/middleware"
 	"github.com/pickle.pw/monolith/internal/services"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 type PickleAPI interface {
@@ -48,6 +49,20 @@ func NewPickleAPI(
 	}
 }
 
+// @title Pickle API
+// @version 1.0
+// @description This is a Pickle server.
+// @termsOfService http://swagger.io/terms/
+
+// @contact.name API Support
+// @contact.url http://www.swagger.io/support
+// @contact.email support@swagger.io
+
+// @license.name Apache 2.0
+// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host api.pickle.pw
+// @BasePath /v1
 func (api *pickleAPI) BuildAPI(ctx context.Context) (*chi.Mux, error) {
 	// Apply Elasticsearch migrations
 	err := api.applyElasticsearchMigrations(ctx)
@@ -68,7 +83,13 @@ func (api *pickleAPI) BuildAPI(ctx context.Context) (*chi.Mux, error) {
 
 	// /v1 routes
 	r.Mount("/v1", api.v1RouteHandler())
-	logger.Info(ctx, "Mounted /v1 routes")
+
+	// swagger endpoint
+	r.Get("/swagger/*", httpSwagger.Handler(
+		httpSwagger.URL("/swagger/doc.json"),
+	))
+
+	logger.Info(ctx, "API is ready")
 	return r, nil
 }
 
@@ -88,84 +109,95 @@ func (api *pickleAPI) applyElasticsearchMigrations(ctx context.Context) error {
 	return nil
 }
 
+func (api *pickleAPI) useProtectedRoutes(r chi.Router) {
+	r.Use(jwtAuth.Verifier(api.tokenAuth), middleware.Authenticator(api.tokenAuth))
+}
+
+func (api *pickleAPI) useApiKey(r chi.Router) {
+	r.Use(middleware.ApiKey())
+}
+
 func (api *pickleAPI) v1RouteHandler() http.Handler {
 	r := chi.NewRouter()
 
-	// Protected routes
-	r.Group(func(r chi.Router) {
-		r.Use(jwtAuth.Verifier(api.tokenAuth))
-		r.Use(middleware.Authenticator(api.tokenAuth))
+	r.Get("/health", api.statusHandler.Health)
 
-		api.registerV1ProtectedRoutes(r)
+	r.Route("/supabase-webhooks", func(r chi.Router) {
+		api.useApiKey(r)
+
+		r.Post("/users", api.profileHandler.CreateProfileWebhook)
 	})
 
-	// Webhook routes
-	r.Group(func(r chi.Router) {
-		r.Use(middleware.ApiKey())
+	r.Route("/profiles", func(r chi.Router) {
+		r.Get("/validate-link", api.profileHandler.ValidateProfileLink)
 
-		api.registerV1ApiKeyRoutes(r)
+		// for optimization purposes, so user can get all of profile data asynchronously
+		r.Route("/{link}", func(r chi.Router) {
+			r.Get("/", api.profileHandler.GetProfileByLink)
+			r.Get("/game-notes", api.gameNoteHandler.GetSortedByReceiverLink)
+			r.Get("/orders", api.orderHandler.GetSortedOrdersByLink)
+		})
+
+		r.Route("/me", func(r chi.Router) {
+			api.useProtectedRoutes(r)
+
+			r.Get("/", api.profileHandler.GetMyProfile)
+			r.Patch("/", api.profileHandler.UpdateSettings)
+			r.Post("/avatar", api.profileHandler.UploadAvatar)
+			r.Get("/avatar", api.profileHandler.GetMyProfileAvatarUrl)
+		})
 	})
 
-	// Public routes
-	r.Group(func(r chi.Router) {
-		api.registerV1PublicRoutes(r)
+	r.Route("/users/{userId}", func(r chi.Router) {
+		r.Get("/", api.profileHandler.GetProfileById)
+		r.Get("/avatar", api.profileHandler.GetProfileAvatarUrl)
+
+		r.Route("/game-notes", func(r chi.Router) {
+			r.Group(func(r chi.Router) {
+				api.useProtectedRoutes(r)
+
+				r.Post("/", api.gameNoteHandler.CreateGameNote)
+			})
+
+			r.Route("/{noteId}", func(r chi.Router) {
+				r.Get("/", api.gameNoteHandler.GetGameNoteById)
+				r.Get("/orders", api.gameNoteHandler.GetOrdersById)
+				r.Get("/posters", api.gameNoteHandler.GetPosterImageURL)
+
+				r.Group(func(r chi.Router) {
+					api.useProtectedRoutes(r)
+
+					r.Delete("/", api.gameNoteHandler.DeleteGameNote)
+					r.Patch("/", api.gameNoteHandler.UpdateGameNote)
+				})
+			})
+		})
+
+		r.Route("/orders", func(r chi.Router) {
+			r.Group(func(r chi.Router) {
+				api.useProtectedRoutes(r)
+
+				r.Post("/", api.orderHandler.CreateOrder)
+			})
+
+			r.Route("/{orderId}", func(r chi.Router) {
+				api.useProtectedRoutes(r)
+
+				r.Get("/", api.orderHandler.GetOrderByID)
+				r.Patch("/", api.orderHandler.UpdateOrderByID)
+			})
+		})
+
+		r.Route("/posters", func(r chi.Router) {
+			api.useProtectedRoutes(r)
+
+			r.Post("/", api.posterHandler.UploadPoster)
+		})
+
+		r.Route("/content", func(r chi.Router) {
+			r.Get("/", api.contentService.SearchContent)
+		})
 	})
 
 	return r
-}
-
-func (api *pickleAPI) registerV1ProtectedRoutes(r chi.Router) {
-	r.Route("/profiles/me", func(r chi.Router) {
-		r.Get("/", api.profileHandler.GetMyProfile)
-		r.Patch("/", api.profileHandler.UpdateSettings)
-		r.Post("/avatar", api.profileHandler.UploadAvatar)
-		r.Get("/avatar", api.profileHandler.GetMyProfileAvatarUrl)
-	})
-
-	r.Post("/posters", api.posterHandler.UploadPoster)
-
-	r.Route("/game-notes", func(r chi.Router) {
-		r.Post("/", api.gameNoteHandler.CreateGameNote)
-	})
-
-	r.Post("/game-notes/{gameNoteId}/orders/{orderId}", api.orderHandler.ApproveOrderById)
-
-	r.Route("/orders", func(r chi.Router) {
-		r.Post("/", api.orderHandler.CreateOrder)
-
-		r.Route("/{id}", func(r chi.Router) {
-			r.Get("/", api.orderHandler.GetOrderByID)
-			r.Patch("/", api.orderHandler.UpdateOrderById)
-		})
-	})
-}
-
-func (api *pickleAPI) registerV1ApiKeyRoutes(r chi.Router) {
-	r.Route("/supabase-webhooks", func(r chi.Router) {
-		r.Post("/users", api.profileHandler.CreateProfileWebhook)
-	})
-}
-
-func (api *pickleAPI) registerV1PublicRoutes(r chi.Router) {
-	r.Get("/health", api.statusHandler.Health)
-
-	r.Get("/profiles/validate-link", api.profileHandler.ValidateProfileLink)
-	r.Route("/profiles/{link}", func(r chi.Router) {
-		r.Get("/", api.profileHandler.GetProfileByLink)
-		r.Get("/game-notes", api.gameNoteHandler.GetSortedByReceiverLink)
-		r.Get("/orders", api.orderHandler.GetSortedOrdersByLink)
-	})
-
-	r.Route("/game-notes/{id}", func(r chi.Router) {
-		r.Get("/", api.gameNoteHandler.GetGameNoteById)
-		r.Get("/orders", api.gameNoteHandler.GetOrdersById)
-		r.Get("/posters", api.gameNoteHandler.GetPosterImageURL)
-	})
-
-	r.Get("/content", api.contentService.SearchContent)
-
-	r.Route("/users/{id}", func(r chi.Router) {
-		r.Get("/", api.profileHandler.GetProfileById)
-		r.Get("/avatar", api.profileHandler.GetProfileAvatarUrl)
-	})
 }

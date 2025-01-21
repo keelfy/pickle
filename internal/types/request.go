@@ -42,16 +42,11 @@ type GameNoteReq struct {
 	Comment      *string           `json:"comment"`
 	Status       db.GameNoteStatus `json:"status"`
 	LastPlayedAt *time.Time        `json:"lastPlayedAt"`
+	Poster       *PosterReq        `json:"poster"`
 }
 
 type PosterReq struct {
 	PreviewID *uuid.UUID `json:"previewId"`
-}
-
-type CreateGameNoteReq struct {
-	GameNote       *GameNoteReq `json:"gameNote"`
-	InitialOrderID uuid.UUID    `json:"initialOrderId"`
-	Poster         *PosterReq   `json:"poster"`
 }
 
 type CreateOrderReq struct {
@@ -63,16 +58,9 @@ type CreateOrderReq struct {
 	Message         string             `json:"message"`
 }
 
-type ApproveOrderReq struct {
-	Category db.NullContentCategory `json:"category"`
-	Message  string                 `json:"message"`
-}
-
-type UpdateOrderReq struct {
-	Status db.OrderStatus `json:"status"`
-}
-
-type DenyOrderReq struct {
-	OrderId  *uuid.UUID `json:"orderId"`
-	UserLink string     `json:"userLink"`
+type OrderReq struct {
+	Status    db.OrderStatus      `json:"status"`
+	Title     *string             `json:"title,omitempty"`
+	Category  *db.ContentCategory `json:"category,omitempty"`
+	ContentID *uuid.UUID          `json:"contentId,omitempty"`
 }

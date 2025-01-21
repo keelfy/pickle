@@ -116,6 +116,8 @@ CREATE TABLE IF NOT EXISTS "game_note_orders" (
     "updated_at" timestamptz NOT NULL DEFAULT now(),
     "updated_by" uuid NOT NULL,
     PRIMARY KEY (game_note_id, order_id),
+    FOREIGN KEY (game_note_id) REFERENCES game_notes(id) ON DELETE CASCADE,
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
     FOREIGN KEY (created_by) REFERENCES profiles(user_id),
     FOREIGN KEY (updated_by) REFERENCES profiles(user_id)
 );

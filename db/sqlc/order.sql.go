@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -25,10 +26,18 @@ func (q *Queries) CountOrdersByReceiverId(ctx context.Context, receiverID uuid.U
 }
 
 const findLastOrdersByReceiverId = `-- name: FindLastOrdersByReceiverId :many
-SELECT id, created_at, created_by, updated_at, updated_by, receiver_id, payment_type, amount, status, orderer_id, orderer_username, message, category, updated_message, updated_category
-FROM "orders"
-WHERE "receiver_id" = $1
-ORDER BY "created_at" DESC
+SELECT 
+    o."id", 
+    o."created_at", 
+    o."payment_type", 
+    o."amount", 
+    o."status", 
+    o."orderer_username", 
+    o."message", 
+    o."category"
+FROM "orders" o
+WHERE o."receiver_id" = $1
+ORDER BY o."created_at" DESC
 LIMIT $2
 `
 
@@ -37,33 +46,37 @@ type FindLastOrdersByReceiverIdParams struct {
 	Limit      int32     `json:"limit"`
 }
 
+type FindLastOrdersByReceiverIdRow struct {
+	ID              uuid.UUID       `json:"id"`
+	CreatedAt       time.Time       `json:"created_at"`
+	PaymentType     int16           `json:"payment_type"`
+	Amount          float32         `json:"amount"`
+	Status          OrderStatus     `json:"status"`
+	OrdererUsername string          `json:"orderer_username"`
+	Message         string          `json:"message"`
+	Category        ContentCategory `json:"category"`
+}
+
 // Author: Egor Kuzmin (keelfy)
 // Queries last orders by receiver id
-func (q *Queries) FindLastOrdersByReceiverId(ctx context.Context, arg FindLastOrdersByReceiverIdParams) ([]*Order, error) {
+func (q *Queries) FindLastOrdersByReceiverId(ctx context.Context, arg FindLastOrdersByReceiverIdParams) ([]*FindLastOrdersByReceiverIdRow, error) {
 	rows, err := q.db.Query(ctx, findLastOrdersByReceiverId, arg.ReceiverID, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*Order
+	var items []*FindLastOrdersByReceiverIdRow
 	for rows.Next() {
-		var i Order
+		var i FindLastOrdersByReceiverIdRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.CreatedAt,
-			&i.CreatedBy,
-			&i.UpdatedAt,
-			&i.UpdatedBy,
-			&i.ReceiverID,
 			&i.PaymentType,
 			&i.Amount,
 			&i.Status,
-			&i.OrdererID,
 			&i.OrdererUsername,
 			&i.Message,
 			&i.Category,
-			&i.UpdatedMessage,
-			&i.UpdatedCategory,
 		); err != nil {
 			return nil, err
 		}

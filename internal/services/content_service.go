@@ -3,47 +3,47 @@ package services
 import (
 	"context"
 
-	"github.com/elastic/go-elasticsearch/v8/typedapi/core/search"
 	"github.com/google/uuid"
 	db "github.com/pickle.pw/monolith/db/sqlc"
-	"github.com/pickle.pw/monolith/internal/errors"
 	"github.com/pickle.pw/monolith/internal/storage"
-	"github.com/pickle.pw/monolith/internal/types"
 )
 
 type ContentService interface {
-	IndexContent(ctx context.Context, id uuid.UUID, name string, userId uuid.UUID, category db.ContentCategory) error
-	SearchContent(ctx context.Context, query string, userId uuid.UUID, pagination *types.Pagination) (*search.Response, error)
+	CreateOrderedContent(ctx context.Context, category db.ContentCategory, order *db.Order, orderer *db.Orderer, title string) error
+	AttachOrderToContent(ctx context.Context, order *db.Order, contentID uuid.UUID, category db.ContentCategory) error
 }
 
 type contentService struct {
-	elastic storage.ElasticClient
+	elastic              storage.ElasticClient
+	gameNoteService      GameNoteService
+	gameNoteOrderService GameNoteOrderService
 }
 
-func NewContentService(elastic storage.ElasticClient) ContentService {
+func NewContentService(elastic storage.ElasticClient, gameNoteService GameNoteService, gameNoteOrderService GameNoteOrderService) ContentService {
 	return &contentService{
-		elastic: elastic,
+		elastic:              elastic,
+		gameNoteService:      gameNoteService,
+		gameNoteOrderService: gameNoteOrderService,
 	}
 }
 
-func (service *contentService) IndexContent(ctx context.Context, id uuid.UUID, name string, userId uuid.UUID, category db.ContentCategory) error {
-	document := &types.EsContent{
-		ID:       id,
-		Name:     name,
-		UserID:   userId,
-		Category: category,
+func (service *contentService) CreateOrderedContent(ctx context.Context, contentType db.ContentCategory, order *db.Order, orderer *db.Orderer, title string) error {
+	switch contentType {
+	case db.ContentCategoryGames:
+		_, err := service.gameNoteService.CreateOrderedGameNote(ctx, order.ReceiverID, order, orderer, title)
+		if err != nil {
+			return err
+		}
 	}
-	_, err := service.elastic.IndexDocument(ctx, "content", document)
-	if err != nil {
-		return errors.NewInternalServerError("Error occurred during content indexing", err)
-	}
+
 	return nil
 }
 
-func (service *contentService) SearchContent(ctx context.Context, query string, userId uuid.UUID, pagination *types.Pagination) (*search.Response, error) {
-	response, err := service.elastic.SearchContent(ctx, query, userId, pagination)
-	if err != nil {
-		return nil, errors.NewInternalServerError("Error occurred during content search", err)
+func (service *contentService) AttachOrderToContent(ctx context.Context, order *db.Order, contentID uuid.UUID, category db.ContentCategory) error {
+	switch category {
+	case db.ContentCategoryGames:
+		return service.gameNoteOrderService.CreateGameNoteOrder(ctx, order.ReceiverID, order.ID, contentID)
 	}
-	return response, nil
+
+	return nil
 }

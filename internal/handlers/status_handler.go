@@ -31,6 +31,14 @@ func NewStatusHandler(sqlDb storage.SQLDatabase, elastic storage.ElasticClient, 
 	}
 }
 
+// @Summary Get system health status
+// @Description Get the health status of all system components including API, Database, Search, and Cache
+// @Tags status
+// @Accept json
+// @Produce json
+// @Success 200 {object} types.StatusRes
+// @Failure 500 {object} types.StatusRes
+// @Router /v1/health [get]
 func (handler *statusHandler) Health(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 

@@ -28,6 +28,17 @@ func (q *Queries) CountPlayedGameNotesByUserId(ctx context.Context, userID uuid.
 	return count, err
 }
 
+const deleteGameNoteById = `-- name: DeleteGameNoteById :exec
+DELETE FROM "game_notes"
+WHERE "id" = $1
+`
+
+// Author: Egor Kuzmin (keelfy)
+func (q *Queries) DeleteGameNoteById(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteGameNoteById, id)
+	return err
+}
+
 const findGameNoteById = `-- name: FindGameNoteById :one
 SELECT id, created_at, created_by, updated_at, updated_by, user_id, game_id, name, link, release_date, rate, comment, initial_orderer_id, status, last_played_at, poster_key, poster_updated_at
 FROM "game_notes"
@@ -212,4 +223,49 @@ func (q *Queries) InsertGameNote(ctx context.Context, arg InsertGameNoteParams) 
 		&i.PosterUpdatedAt,
 	)
 	return &i, err
+}
+
+const updateGameNoteById = `-- name: UpdateGameNoteById :exec
+UPDATE "game_notes"
+SET "updated_by" = $2, 
+    "updated_at" = NOW(),
+    "name" = $3,
+    "link" = $4,
+    "release_date" = $5,
+    "rate" = $6,
+    "comment" = $7,
+    "status" = $8,
+    "last_played_at" = $9,
+    "poster_key" = $10
+WHERE "id" = $1
+`
+
+type UpdateGameNoteByIdParams struct {
+	ID           uuid.UUID      `json:"id"`
+	UpdatedBy    uuid.UUID      `json:"updated_by"`
+	Name         string         `json:"name"`
+	Link         *string        `json:"link"`
+	ReleaseDate  *time.Time     `json:"release_date"`
+	Rate         *int16         `json:"rate"`
+	Comment      *string        `json:"comment"`
+	Status       GameNoteStatus `json:"status"`
+	LastPlayedAt *time.Time     `json:"last_played_at"`
+	PosterKey    *string        `json:"poster_key"`
+}
+
+// Author: Egor Kuzmin (keelfy)
+func (q *Queries) UpdateGameNoteById(ctx context.Context, arg UpdateGameNoteByIdParams) error {
+	_, err := q.db.Exec(ctx, updateGameNoteById,
+		arg.ID,
+		arg.UpdatedBy,
+		arg.Name,
+		arg.Link,
+		arg.ReleaseDate,
+		arg.Rate,
+		arg.Comment,
+		arg.Status,
+		arg.LastPlayedAt,
+		arg.PosterKey,
+	)
+	return err
 }

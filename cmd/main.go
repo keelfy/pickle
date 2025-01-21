@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"net/http"
 	"os/signal"
@@ -10,6 +11,7 @@ import (
 	// autoload .env file
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/ory/graceful"
+	_ "github.com/pickle.pw/monolith/docs"
 	"github.com/pickle.pw/monolith/internal/config"
 	"github.com/pickle.pw/monolith/internal/logger"
 )
@@ -38,6 +40,12 @@ func main() {
 	server := graceful.WithDefaults(&http.Server{
 		Addr:    fmt.Sprintf(":%s", port),
 		Handler: r,
+		// Enable HTTP/2
+		TLSConfig: &tls.Config{
+			MinVersion: tls.VersionTLS12,
+			// Optimize HTTP/2 performance
+			NextProtos: []string{"h2", "http/1.1"},
+		},
 	})
 
 	logger.Infof(ctx, "Starting the server on port %v", port)

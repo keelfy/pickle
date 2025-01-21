@@ -29,6 +29,15 @@ type StatusRes struct {
 	Authentication string `json:"authentication"`
 }
 
+type ImageRes struct {
+	URL *string `json:"url"`
+}
+
+type ImagePreviewRes struct {
+	PreviewID  uuid.UUID `json:"previewId"`
+	PreviewURL string    `json:"previewUrl"`
+}
+
 type CountsRes struct {
 	Played  int64 `json:"played"`
 	Watched int64 `json:"watched"`

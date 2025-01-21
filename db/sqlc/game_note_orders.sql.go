@@ -66,3 +66,19 @@ func (q *Queries) InsertGameNoteOrder(ctx context.Context, arg InsertGameNoteOrd
 	)
 	return &i, err
 }
+
+const resetApprovedOrdersByGameNoteId = `-- name: ResetApprovedOrdersByGameNoteId :exec
+UPDATE "orders"
+SET "status" = 'pending'
+WHERE "id" IN (
+    SELECT "order_id"
+    FROM "game_note_orders"
+    WHERE "game_note_id" = $1
+)
+`
+
+// Author: Egor Kuzmin (keelfy)
+func (q *Queries) ResetApprovedOrdersByGameNoteId(ctx context.Context, gameNoteID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, resetApprovedOrdersByGameNoteId, gameNoteID)
+	return err
+}

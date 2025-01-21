@@ -1,3 +1,4 @@
+basePath: /v1
 definitions:
   github_com_pickle_pw_monolith_db_sqlc.ContentCategory:
     enum:
@@ -248,8 +249,19 @@ definitions:
       username:
         type: string
     type: object
+host: api.pickle.pw
 info:
-  contact: {}
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: This is a Pickle server.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Pickle API
+  version: "1.0"
 paths:
   /v1/health:
     get:

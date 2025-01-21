@@ -9,16 +9,16 @@ Also, it is a platform for content-makers to communicate with their audience by 
 
 ## Brief overview of the pickle infrastructure
 
+Note that this is a first version of the infrastructure, and it will be changed in the future.
+
 ![Pickle Infrastructure](./readme/architecture%20v1.png)
 
 ## Useful links
 
 - [DEPLOYED DEMO](https://pickle.pw/keelfy)
-- [Pickle Frontend](https://github.com/keelfy/pickle-front)
-- [imgproxy](https://github.com/DarthSim/imgproxy)
-- [Paddle](https://paddle.com/)
-- [supabase](https://supabase.com/)
-- [railway](https://railway.app/)
+- [frontend repo](https://github.com/keelfy/pickle-front)
+- [figma design](https://www.figma.com/design/2X3MAm8ddAmANWGLQHiP5h/Pickle)
+- [tasks board on linear](https://linear.app/rubedo/team/PIC)
 
 ## Short-term goals for the API only (2025-01-21)
 

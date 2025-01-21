@@ -116,3 +116,9 @@ func GetImgProxyKey() string {
 func GetImgProxySalt() string {
 	return os.Getenv("IMGPROXY_SALT")
 }
+
+/** CORS */
+
+func GetCorsAllowedOrigins() []string {
+	return strings.Split(os.Getenv("CORS_ALLOWED_ORIGINS"), ";")
+}

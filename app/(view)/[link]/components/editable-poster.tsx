@@ -10,12 +10,13 @@ import FileSelectPopover, { ImageFile } from "../file-select-popover";
 
 type Props = {
     value?: string;
+    defaultImageUrl?: string;
     onChange: (value: string | undefined) => void;
 };
 
 const maxFiles = 3;
 
-const EditablePoster = ({ value, onChange }: Props) => {
+const EditablePoster = ({ value, defaultImageUrl, onChange }: Props) => {
     const profile = useProfileStore((state) => state.profile);
     const [imageFiles, setImageFiles] = React.useState<ImageFile[]>([]);
 
@@ -86,9 +87,9 @@ const EditablePoster = ({ value, onChange }: Props) => {
 
     return (
         <div className="relative flex flex-col max-w-[150px] max-h-[225px] min-h-max min-w-max rounded-lg">
-            {imageFile?.preview?.url ? (
+            {imageFile?.preview?.url || defaultImageUrl ? (
                 <Image
-                    src={imageFile?.preview?.url ?? ""}
+                    src={imageFile?.preview?.url ?? defaultImageUrl ?? ""}
                     alt="Poster preview"
                     width={150}
                     height={225}

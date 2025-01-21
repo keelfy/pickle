@@ -20,10 +20,9 @@ export default function GameNoteEditorDialog() {
 
     const isOpen = React.useMemo(
         () =>
-            currentModal === ModalType.CreateGameNote &&
-            modalParams?.orderId &&
-            modalParams?.title,
-        [currentModal, modalParams?.orderId]
+            currentModal === ModalType.GameNoteEditor &&
+            modalParams?.id,
+        [currentModal, modalParams?.id]
     );
 
     if (!isOpen) {

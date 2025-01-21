@@ -60,6 +60,10 @@ export default function GameNoteCard({ note }: { note: GameNote }) {
         return "text-red-500";
     }, [note.rate]);
 
+    const openGameNoteEditor = () => {
+        openModal(ModalType.GameNoteEditor, { id: note.id });
+    };
+
     const onDelete = () =>
         openModal(ModalType.DeleteContentAlert, {
             type: DeleteContentType.GameNote,
@@ -139,7 +143,7 @@ export default function GameNoteCard({ note }: { note: GameNote }) {
                             </Button>
                             {profile?.id === user?.id && user?.id && (
                                 <>
-                                    <Button variant="ghost">
+                                    <Button variant="ghost" onClick={openGameNoteEditor}>
                                         <EditIcon />
                                         Edit
                                     </Button>

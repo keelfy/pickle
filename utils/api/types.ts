@@ -47,6 +47,7 @@ type GameNote = {
     lastPlayedAt?: Date;
     initialOrdererId: string;
     initialOrdererUsername?: string;
+    poster?: Partial<ImagePreview>;
 };
 
 type Orderer = {

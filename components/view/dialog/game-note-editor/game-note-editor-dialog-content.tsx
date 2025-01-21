@@ -43,125 +43,131 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useToast } from "@/hooks/use-toast";
+import { fetchGameNote, fetchGameNotePoster, updateGameNote } from "@/hooks/api-endpoints-client";
+import { toast } from "@/hooks/use-toast";
 import { useModalStore } from "@/providers/modal";
-import { ModalType } from "@/stores/modal";
-import { fetchApi } from "@/utils/api/client";
+import { useProfileStore } from "@/providers/profile-store";
 import { gameNoteStatusLabels } from "@/utils/api/constants";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PopoverClose } from "@radix-ui/react-popover";
-import { ArrowLeft, ArrowRight, ChevronsUpDown, Edit } from "lucide-react";
-import React, { useEffect } from "react";
+import { Check, ChevronsUpDown, Edit, X } from "lucide-react";
+import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 const formSchema = z.object({
-    gameNote: z.object({
-        name: z.string(),
-        link: z.string().optional(),
-        releaseDate: z.date().optional(),
-        status: z.custom<GameNoteStatus>(),
-        lastPlayedAt: z.date().optional(),
-        comment: z.string().optional(),
-        rate: z.number().max(10).min(1).optional(),
-        // highlights: z.array(z.string()).optional(),
-    }),
-    initialOrderId: z.string().optional(),
-    poster: z
-        .object({
-            previewId: z.string().optional(),
-        })
-        .optional(),
+    name: z.string(),
+    link: z.string().optional(),
+    releaseDate: z.date().optional(),
+    status: z.custom<GameNoteStatus>(),
+    lastPlayedAt: z.date().optional(),
+    comment: z.string().optional(),
+    rate: z.number().max(10).min(1).optional(),
+    poster: z.object({
+        previewId: z.string().optional(),
+    }).optional(),
 });
 
 export default function GameNoteEditorDialogContent() {
-    const { currentModal, openModal, closeModal } = useModalStore(
+    const { currentModal, closeModal } = useModalStore(
         (state) => state
     );
-    const {
-        orderId,
-        title,
-        orderer,
-        at: orderedAt,
-    } = useModalStore((state) => state.modalParams!);
+    const { id: gameNoteId } = useModalStore((state) => state.modalParams!);
+    const profile = useProfileStore((state) => state.profile);
 
+    const [gameNote, setGameNote] = React.useState<GameNote>();
+    const [posterUrl, setPosterUrl] = React.useState<string>();
     const [detailsOpen, setDetailsOpen] = React.useState(false);
     const [isLoading, startTransition] = React.useTransition();
-    const { toast } = useToast();
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            gameNote: {
-                name: "",
-                status: "planned", // planned
-                comment: "",
-            },
+            name: "",
+            status: "planned",
+            comment: "",
         },
     });
 
     React.useEffect(() => {
-        if (orderId && title) {
+        if (gameNote) {
             form.reset({
-                gameNote: {
-                    name: title,
-                    status: "planned",
-                    comment: "",
-                },
-                initialOrderId: orderId,
+                name: gameNote.name,
+                link: gameNote.link,
+                releaseDate: gameNote.releaseDate ? new Date(gameNote.releaseDate) : undefined,
+                status: gameNote.status,
+                lastPlayedAt: gameNote.lastPlayedAt ? new Date(gameNote.lastPlayedAt) : undefined,
+                comment: gameNote.comment,
+                rate: gameNote.rate,
+                poster: gameNote.poster,
             });
         } else {
             form.reset();
         }
-    }, [orderId, title]);
+    }, [gameNote?.id]);
 
-    useEffect(() => {
+    React.useEffect(() => {
         setDetailsOpen(false);
     }, [currentModal]);
 
-    const onSubmit = (values: z.infer<typeof formSchema>) => {
+    React.useEffect(() => {
+        if (gameNoteId) {
+            fetchGameNote(profile, gameNoteId).then(setGameNote).catch(err => {
+                console.error(err);
+                toast({
+                    title: "Failed to fetch game note",
+                    description: "Try again later.",
+                });
+            });
+
+            fetchGameNotePoster(profile, gameNoteId, 'md').then(res => setPosterUrl(res?.url)).catch(err => {
+                console.error(err);
+                setPosterUrl(undefined);
+                toast({
+                    title: "Failed to fetch game note poster",
+                    description: err.message ?? "Try again later.",
+                });
+            });
+        }
+    }, [gameNoteId]);
+
+    const onSubmit = form.handleSubmit((values) => {
         startTransition(async () => {
             try {
-                await fetchApi(`/v1/game-notes`, true, {
-                    method: "POST",
-                    body: JSON.stringify(values),
+                const res = await updateGameNote(profile, gameNoteId, values);
+                form.reset(res);
+                toast({
+                    title: "Game note updated",
+                    description: "The game note was updated.",
                 });
             } catch (error: any) {
-                console.error(error);
                 toast({
-                    title: "Failed to approve order",
+                    title: "Failed to update game note",
                     description:
                         "Status code: " + error.status + ". Try again later.",
                 });
-                return;
             }
-
-            toast({
-                title: "Order approved",
-                description: "The game was added to your list.",
-            });
-            closeModal();
         });
-    };
+    });
 
     return (
         <>
             <DialogHeader>
-                <DialogTitle>{title}</DialogTitle>
+                <DialogTitle>{gameNote?.name}</DialogTitle>
                 <DialogDescription>
                     Fill card with detailed info about the game.
                 </DialogDescription>
             </DialogHeader>
 
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)}>
+                <form onSubmit={onSubmit}>
                     <div className="space-y-6">
                         <div className="flex items-start space-x-4">
                             <EditablePoster
                                 value={form.watch("poster.previewId")}
+                                defaultImageUrl={posterUrl}
                                 onChange={(value) => {
                                     form.setValue("poster.previewId", value);
-                                    form.setFocus("poster.previewId");
                                 }}
                             />
                             <table className="w-full">
@@ -175,7 +181,7 @@ export default function GameNoteEditorDialogContent() {
                                         <td>
                                             <FormField
                                                 control={form.control}
-                                                name="gameNote.releaseDate"
+                                                name="releaseDate"
                                                 render={({ field }) => (
                                                     <FormItem>
                                                         <FormControl>
@@ -211,7 +217,7 @@ export default function GameNoteEditorDialogContent() {
                                         <td className="w-1/2">
                                             <FormField
                                                 control={form.control}
-                                                name="gameNote.link"
+                                                name="link"
                                                 render={({ field }) => (
                                                     <FormItem>
                                                         <Popover>
@@ -269,7 +275,7 @@ export default function GameNoteEditorDialogContent() {
                                         <td className="pt-4">
                                             <FormField
                                                 control={form.control}
-                                                name="gameNote.status"
+                                                name="status"
                                                 render={({ field }) => (
                                                     <FormItem>
                                                         <Popover>
@@ -309,11 +315,8 @@ export default function GameNoteEditorDialogContent() {
                                                                         selectedValue
                                                                     ) => {
                                                                         form.setValue(
-                                                                            "gameNote.status",
+                                                                            "status",
                                                                             selectedValue
-                                                                        );
-                                                                        form.setFocus(
-                                                                            "gameNote.status"
                                                                         );
                                                                     }}
                                                                     getLabel={(
@@ -342,7 +345,7 @@ export default function GameNoteEditorDialogContent() {
                                         <td>
                                             <FormField
                                                 control={form.control}
-                                                name="gameNote.lastPlayedAt"
+                                                name="lastPlayedAt"
                                                 render={({ field }) => (
                                                     <FormItem>
                                                         <DateTimePicker
@@ -377,7 +380,7 @@ export default function GameNoteEditorDialogContent() {
                         <div className="mb-4">
                             <FormField
                                 control={form.control}
-                                name="gameNote.rate"
+                                name="rate"
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel className="text-md font-semibold">
@@ -398,7 +401,7 @@ export default function GameNoteEditorDialogContent() {
                             </Label>
                             <FormField
                                 control={form.control}
-                                name="gameNote.comment"
+                                name="comment"
                                 render={({ field }) => (
                                     <Textarea
                                         {...field}
@@ -450,14 +453,9 @@ export default function GameNoteEditorDialogContent() {
                             <CollapsibleContent>
                                 <div className="flex gap-2 items-center space-x-2">
                                     <span className="text-muted-foreground">
-                                        {new Date(
-                                            orderedAt
-                                        ).toLocaleDateString()}
+                                        22 min ago
                                     </span>
-                                    <span>{orderer}</span>
-                                    <span className="text-muted-foreground">
-                                        &mdash;
-                                    </span>
+                                    <span>{gameNote?.initialOrdererUsername}</span>
                                 </div>
                             </CollapsibleContent>
                         </Collapsible>
@@ -466,18 +464,14 @@ export default function GameNoteEditorDialogContent() {
                         <Button
                             variant="secondary"
                             type="button"
-                            onClick={() =>
-                                openModal(ModalType.ApproveOrder, {
-                                    id: orderId,
-                                })
-                            }
+                            onClick={closeModal}
                         >
-                            <ArrowLeft />
-                            Back
+                            <X />
+                            Cancel
                         </Button>
                         <Button type="submit" disabled={isLoading}>
-                            {isLoading ? <LoadingSpinner /> : <ArrowRight />}
-                            Continue
+                            {isLoading ? <LoadingSpinner /> : <Check />}
+                            Confirm
                         </Button>
                     </DialogFooter>
                 </form>

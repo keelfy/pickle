@@ -46,6 +46,14 @@ export async function fetchGameNote(profile: Profile | undefined, gameNoteId: st
     return fetchApi<GameNote>(`/v1/users/${profile.id}/game-notes/${gameNoteId}`);
 }
 
+export async function updateGameNote(profile: Profile | undefined, gameNoteId: string, gameNote: Partial<GameNote>) {
+    if (!profile) return undefined;
+    return fetchApi<GameNote>(`/v1/users/${profile.id}/game-notes/${gameNoteId}`, true, {
+        method: "PATCH",
+        body: JSON.stringify(gameNote),
+    });
+}
+
 export async function fetchGameNoteOrders(profile: Profile | undefined, gameNoteId: string, cursor: string, limit: number, direction: 'asc' | 'desc' = 'desc') {
     if (!profile) return undefined;
     return fetchApi<Paginated<Order>>(`/v1/users/${profile.id}/game-notes/${gameNoteId}/orders?cursor=${cursor}&limit=${limit}&direction=${direction}`);
@@ -69,7 +77,7 @@ export async function createOrder(profile: Profile | undefined, order: Partial<O
     });
 }
 
-export async function updateOrder(profile: Profile | undefined, orderId: string, order: Partial<Order>) {
+export async function updateOrder(profile: Profile | undefined, orderId: string, order: any) {
     if (!profile) return undefined;
     return fetchApi<Order>(`/v1/users/${profile.id}/orders/${orderId}`, true, {
         method: "PATCH",

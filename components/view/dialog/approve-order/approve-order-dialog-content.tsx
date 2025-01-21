@@ -47,7 +47,6 @@ import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useModalStore } from "@/providers/modal";
 import { useProfileStore } from "@/providers/profile-store";
-import { ModalType } from "@/stores/modal";
 import { contentCategoryLabels } from "@/utils/api/constants";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PopoverClose } from "@radix-ui/react-popover";
@@ -58,12 +57,12 @@ import { z } from "zod";
 
 const formSchema = z.object({
     category: z.custom<ContentCategory>(),
-    message: z.string(),
+    title: z.string(),
     contentId: z.string().optional(),
 });
 
 export default function ApproveOrderDialogContent() {
-    const { openModal, closeModal } = useModalStore((state) => state);
+    const { closeModal } = useModalStore((state) => state);
     const { id: orderId } = useModalStore((state) => state.modalParams!);
     const { profile } = useProfileStore((state) => state);
     const [order, setOrder] = React.useState<Order>();
@@ -87,7 +86,7 @@ export default function ApproveOrderDialogContent() {
         resolver: zodResolver(formSchema),
         defaultValues: {
             category: order?.category ?? "custom",
-            message: order?.message ?? "",
+            title: order?.message ?? "",
         },
     });
 
@@ -185,7 +184,7 @@ export default function ApproveOrderDialogContent() {
         if (order) {
             form.reset({
                 category: order?.category ?? "custom",
-                message: order?.message ?? "",
+                title: order?.message ?? "",
             });
         } else {
             form.reset();
@@ -198,33 +197,33 @@ export default function ApproveOrderDialogContent() {
             return;
         }
 
-        if (values.contentId) {
-            switch (values.category) {
-                case "games":
-                    startOrderApprovingTransition(async () => {
-                        try {
-                            await updateOrder(profile, orderId, {
-                                status: 'approved',
-                            });
-                            closeModal();
-                        } catch (error: any) {
-                            toast({
-                                title: "Failed to approve the order",
-                                description:
-                                    error.message ?? "An error occurred",
-                            });
-                        }
-                    });
-                    return;
+        startOrderApprovingTransition(async () => {
+            try {
+                await updateOrder(profile, orderId, {
+                    status: 'approved',
+                    category: values.category,
+                    title: values.title,
+                    contentId: values.contentId,
+                });
+
+                // if (values.contentId) {
+                closeModal();
+                // } else {
+                // openModal(ModalType.CreateGameNote, {
+                //     orderId: orderId,
+                //     title: values.message,
+                //     orderer: order?.ordererUsername,
+                //     at: order?.createdAt,
+                // });
+                // }
+            } catch (error: any) {
+                toast({
+                    title: "Failed to approve the order",
+                    description:
+                        error.message ?? "An error occurred",
+                });
             }
-        } else {
-            openModal(ModalType.CreateGameNote, {
-                orderId: orderId,
-                title: values.message,
-                orderer: order?.ordererUsername,
-                at: order?.createdAt,
-            });
-        }
+        });
     };
 
     return (
@@ -288,7 +287,7 @@ export default function ApproveOrderDialogContent() {
                     <div className="space-y-2">
                         <FormField
                             control={form.control}
-                            name="message"
+                            name="title"
                             render={({ field }) => (
                                 <FormItem className="flex flex-col gap-2">
                                     <FormLabel>Title</FormLabel>
@@ -330,12 +329,12 @@ export default function ApproveOrderDialogContent() {
                                                                 }
                                                                 onSelect={() => {
                                                                     form.setValue(
-                                                                        "message",
+                                                                        "title",
                                                                         order?.message ??
                                                                         ""
                                                                     );
                                                                     form.setFocus(
-                                                                        "message"
+                                                                        "title"
                                                                     );
                                                                     form.setValue(
                                                                         "contentId",
@@ -356,12 +355,12 @@ export default function ApproveOrderDialogContent() {
                                                                         }
                                                                         onSelect={() => {
                                                                             form.setValue(
-                                                                                "message",
+                                                                                "title",
                                                                                 contentQuery ??
                                                                                 ""
                                                                             );
                                                                             form.setFocus(
-                                                                                "message"
+                                                                                "title"
                                                                             );
                                                                             form.setValue(
                                                                                 "contentId",
@@ -405,7 +404,7 @@ export default function ApproveOrderDialogContent() {
                                                                         }
                                                                         onSelect={() => {
                                                                             form.setValue(
-                                                                                "message",
+                                                                                "title",
                                                                                 source.name
                                                                             );
                                                                             form.setValue(
@@ -417,7 +416,7 @@ export default function ApproveOrderDialogContent() {
                                                                                 source.id
                                                                             );
                                                                             form.setFocus(
-                                                                                "message"
+                                                                                "title"
                                                                             );
                                                                         }}
                                                                         className="flex items-center justify-between gap-2"
@@ -575,7 +574,7 @@ export default function ApproveOrderDialogContent() {
                         </Button>
                         <Button type="submit" disabled={isOrderApproving}>
                             <Check />
-                            Continue
+                            Approve
                         </Button>
                     </DialogFooter>
                 </form>

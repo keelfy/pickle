@@ -1,7 +1,7 @@
 import { fetchApi } from "@/utils/api/client";
 
 export async function uploadAvatarForPreview(formData: FormData) {
-    return fetchApi<ImagePreview>(`/v1/profiles/me/avatar`, true, {
+    return fetchApi<ImagePreview>(`/v1/users/me/avatar`, true, {
         method: "POST",
         body: formData,
     });
@@ -12,7 +12,7 @@ export async function validateProfileLink(link: string) {
 }
 
 export async function updateMyProfile(data: Partial<Profile>) {
-    return fetchApi<Profile>(`/v1/profiles/me`, true, {
+    return fetchApi<Profile>(`/v1/users/me`, true, {
         method: "PATCH",
         body: JSON.stringify(data),
     });

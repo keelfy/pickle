@@ -24,10 +24,10 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { fetchGameNote, fetchGameNoteOrders, fetchGameNotePoster } from "@/hooks/api-endpoints-client";
 import { useToast } from "@/hooks/use-toast";
 import { useModalStore } from "@/providers/modal";
 import { useProfileStore } from "@/providers/profile-store";
-import { fetchApi } from "@/utils/api/client";
 import {
     Check,
     ChevronsUpDown,
@@ -59,11 +59,8 @@ export default function GameNoteDialogContent() {
     React.useEffect(() => {
         (async () => {
             try {
-                const res = await fetchApi<any>(
-                    `/v1/game-notes/${gameNoteId}/posters?size=md`,
-                    true
-                );
-                setPosterUrl(res.url);
+                const res = await fetchGameNotePoster(profile, gameNoteId, 'md');
+                setPosterUrl(res?.url);
             } catch (error: any) {
                 console.error(error);
                 setPosterUrl(undefined);
@@ -81,9 +78,7 @@ export default function GameNoteDialogContent() {
     React.useEffect(() => {
         startTransition(async () => {
             try {
-                const response = await fetchApi<GameNote>(
-                    `/v1/game-notes/${gameNoteId}`
-                );
+                const response = await fetchGameNote(profile, gameNoteId);
                 setGameNote(response);
             } catch (error: any) {
                 toast({
@@ -98,9 +93,7 @@ export default function GameNoteDialogContent() {
         if (!areOrdersLoading && detailsOpen) {
             startOrdersTransition(async () => {
                 try {
-                    const response = await fetchApi<Paginated<Order>>(
-                        `/v1/game-notes/${gameNoteId}/orders?page=${ordersPage}&size=5`
-                    );
+                    const response = await fetchGameNoteOrders(profile, gameNoteId, ordersPage.toString(), 5);
                     setOrders(response);
                 } catch (error: any) {
                     toast({
@@ -150,7 +143,6 @@ export default function GameNoteDialogContent() {
                 <DialogHeader>
                     <DialogTitle>
                         {gameNote?.name}
-                        {isLoading && <LoadingSpinner />}
                     </DialogTitle>
                 </DialogHeader>
             </div>
@@ -191,15 +183,15 @@ export default function GameNoteDialogContent() {
                                         <div className="text-sm w-1/2 p-1 whitespace-nowrap">
                                             {gameNote?.releaseDate
                                                 ? new Date(
-                                                      gameNote?.releaseDate
-                                                  ).toLocaleDateString(
-                                                      undefined,
-                                                      {
-                                                          year: "numeric",
-                                                          month: "short",
-                                                          day: "numeric",
-                                                      }
-                                                  )
+                                                    gameNote?.releaseDate
+                                                ).toLocaleDateString(
+                                                    undefined,
+                                                    {
+                                                        year: "numeric",
+                                                        month: "short",
+                                                        day: "numeric",
+                                                    }
+                                                )
                                                 : "N/A"}
                                         </div>
                                     </td>
@@ -241,15 +233,15 @@ export default function GameNoteDialogContent() {
                                         <div className="text-sm w-1/2 p-1 whitespace-nowrap">
                                             {gameNote?.lastPlayedAt
                                                 ? new Date(
-                                                      gameNote?.lastPlayedAt
-                                                  ).toLocaleDateString(
-                                                      undefined,
-                                                      {
-                                                          year: "numeric",
-                                                          month: "short",
-                                                          day: "numeric",
-                                                      }
-                                                  )
+                                                    gameNote?.lastPlayedAt
+                                                ).toLocaleDateString(
+                                                    undefined,
+                                                    {
+                                                        year: "numeric",
+                                                        month: "short",
+                                                        day: "numeric",
+                                                    }
+                                                )
                                                 : "N/A"}
                                         </div>
                                     </td>
@@ -389,7 +381,7 @@ export default function GameNoteDialogContent() {
                                         <PaginationItem
                                             className={
                                                 ordersPage ===
-                                                orders.totalPages - 1
+                                                    orders.totalPages - 1
                                                     ? "invisible"
                                                     : ""
                                             }
@@ -414,13 +406,13 @@ export default function GameNoteDialogContent() {
                                                 }
                                                 tabIndex={
                                                     ordersPage ===
-                                                    orders.totalPages - 1
+                                                        orders.totalPages - 1
                                                         ? -1
                                                         : undefined
                                                 }
                                                 className={
                                                     ordersPage ===
-                                                    orders.totalPages - 1
+                                                        orders.totalPages - 1
                                                         ? "pointer-events-none opacity-50"
                                                         : undefined
                                                 }

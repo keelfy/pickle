@@ -1,4 +1,4 @@
-import { getMyAvatar, getMyProfile } from "@/hooks/api-endpoints-server";
+import { fetchMyAvatar, fetchMyProfile } from "@/hooks/api-endpoints-server";
 import getUser from "@/hooks/getUser";
 import AuthStoreProvider from "@/providers/auth-store";
 import React, { Suspense } from "react";
@@ -9,8 +9,8 @@ async function getAuth() {
     try {
         user = await getUser();
         if (user !== undefined) {
-            profile = await getMyProfile();
-            avatarUrl = await getMyAvatar("lg").then(
+            profile = await fetchMyProfile();
+            avatarUrl = await fetchMyAvatar("lg").then(
                 (res) => res?.url ?? undefined
             );
         }

@@ -13,15 +13,16 @@ type Profile = {
     counts?: ProfileCounts;
 };
 
-type ProfileAvatar = {
+type Image = {
     url: string | undefined;
-    width: number;
-    height: number;
 }
 
-type ProfileAvatarPreview = {
+type ImagePreview = {
+    previewId: string;
     previewUrl: string;
 }
+
+type ImageSize = 'sm' | 'md' | 'lg';
 
 type ContentCategory = 'games' | 'movies' | 'video' | 'anime' | 'series' | 'custom';
 

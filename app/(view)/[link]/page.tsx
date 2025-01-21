@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { getProfileByLink } from "@/hooks/api-endpoints-server";
+import { fetchProfileByLink } from "@/hooks/api-endpoints-server";
 import { createClient } from "@/utils/supabase/server";
 import { Filter, Search, SortAsc } from "lucide-react";
 import CreateOrderButton from "./components/create-order-button";
@@ -19,7 +19,7 @@ export default async function Page({ params }: Props) {
     // const searchParams = useSearchParams();
     // const page = parseInt(searchParams.get("page") ?? "0");
 
-    const ownerProfile = await getProfileByLink(link).catch(() => undefined);
+    const ownerProfile = await fetchProfileByLink(link).catch(() => undefined);
 
     if (!ownerProfile) {
         return null;

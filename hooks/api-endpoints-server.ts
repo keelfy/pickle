@@ -1,25 +1,24 @@
 import { fetchApi } from "@/utils/api/server";
 import { User } from "@supabase/supabase-js";
 
-export async function getProfileByUser(user: User | null | undefined) {
+export async function fetchProfileByUser(user: User | null | undefined) {
     if (!user) return undefined;
     return fetchApi<Profile>(`/v1/users/${user?.id}`);
 }
 
-export async function getMyProfile() {
+export async function fetchMyProfile() {
     return fetchApi<Profile>(`/v1/profiles/me`, true);
 }
 
-export async function getProfileByLink(link: string) {
+export async function fetchProfileByLink(link: string) {
     return fetchApi<Profile>(`/v1/profiles/${link}`, true);
 }
 
-export async function getProfileAvatar(profile: Profile | undefined, size: 'sm' | 'md' | 'lg' = 'md') {
+export async function fetchProfileAvatar(profile: Profile | undefined, size: ImageSize = 'md') {
     if (!profile) return undefined;
-    return fetchApi<ProfileAvatar>(`/v1/users/${profile.id}/avatar?size=${size}`);
+    return fetchApi<Image>(`/v1/users/${profile.id}/avatar?size=${size}`);
 }
 
-export async function getMyAvatar(size: 'sm' | 'md' | 'lg' = 'md') {
-    return fetchApi<ProfileAvatar>(`/v1/profiles/me/avatar?size=${size}`, true);
+export async function fetchMyAvatar(size: ImageSize = 'md') {
+    return fetchApi<Image>(`/v1/profiles/me/avatar?size=${size}`, true);
 }
-

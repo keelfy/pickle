@@ -8,7 +8,7 @@ async function getTokenFromSession(): Promise<string | undefined> {
 
 export async function fetchApi<T>(
     url: string,
-    authorized: boolean = false,
+    authorized: boolean = true,
     options: RequestInit = {}
 ): Promise<T> {
     const token = authorized ? await getTokenFromSession() : undefined;

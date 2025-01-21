@@ -42,12 +42,12 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { fetchContentSearch, fetchOrderById, updateOrder } from "@/hooks/api-endpoints-client";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useModalStore } from "@/providers/modal";
 import { useProfileStore } from "@/providers/profile-store";
 import { ModalType } from "@/stores/modal";
-import { fetchApi } from "@/utils/api/client";
 import { contentCategoryLabels } from "@/utils/api/constants";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PopoverClose } from "@radix-ui/react-popover";
@@ -119,9 +119,7 @@ export default function ApproveOrderDialogContent() {
 
         (async () => {
             try {
-                const response = await fetchApi<ContentSearchHits>(
-                    `/v1/content?query=${debouncedContentQuery}&profileId=${profile?.id}&page=${contentSearchPage}&size=1`
-                );
+                const response = await fetchContentSearch(profile, debouncedContentQuery, contentSearchPage, 5);
                 setContentSearchResults(response);
             } catch (error: any) {
                 toast({
@@ -139,11 +137,9 @@ export default function ApproveOrderDialogContent() {
 
         (async () => {
             try {
-                const response = await fetchApi<ContentSearchHits>(
-                    `/v1/content?query=${debouncedContentQuery}&profileId=${profile?.id}&page=${contentSearchPage}&size=5`
-                );
+                const response = await fetchContentSearch(profile, debouncedContentQuery, contentSearchPage, 5);
 
-                if (contentSearchResults?.content) {
+                if (contentSearchResults?.content && response?.content) {
                     setContentSearchResults({
                         ...response,
                         content: [
@@ -170,10 +166,7 @@ export default function ApproveOrderDialogContent() {
 
         (async () => {
             try {
-                const response = await fetchApi<Order>(
-                    `/v1/orders/${orderId}`,
-                    true
-                );
+                const response = await fetchOrderById(profile, orderId);
                 setOrder(response);
             } catch (error: any) {
                 toast({
@@ -209,21 +202,18 @@ export default function ApproveOrderDialogContent() {
             switch (values.category) {
                 case "games":
                     startOrderApprovingTransition(async () => {
-                        await fetchApi(
-                            `/v1/game-notes/${values.contentId}/orders/${orderId}`,
-                            true,
-                            {
-                                method: "POST",
-                            }
-                        )
-                            .then(closeModal)
-                            .catch((error: any) => {
-                                toast({
-                                    title: "Failed to approve the order",
-                                    description:
-                                        error.message ?? "An error occurred",
-                                });
+                        try {
+                            await updateOrder(profile, orderId, {
+                                status: 'approved',
                             });
+                            closeModal();
+                        } catch (error: any) {
+                            toast({
+                                title: "Failed to approve the order",
+                                description:
+                                    error.message ?? "An error occurred",
+                            });
+                        }
                     });
                     return;
             }
@@ -311,13 +301,13 @@ export default function ApproveOrderDialogContent() {
                                                     className={cn(
                                                         "w-full justify-between",
                                                         !field.value &&
-                                                            "text-muted-foreground"
+                                                        "text-muted-foreground"
                                                     )}
                                                 >
                                                     {field.value.length > 50
                                                         ? `${field.value.slice(0, 50)}...`
                                                         : field.value ||
-                                                          "Select a content"}
+                                                        "Select a content"}
                                                     <ChevronsUpDown className="opacity-50" />
                                                 </Button>
                                             </FormControl>
@@ -342,7 +332,7 @@ export default function ApproveOrderDialogContent() {
                                                                     form.setValue(
                                                                         "message",
                                                                         order?.message ??
-                                                                            ""
+                                                                        ""
                                                                     );
                                                                     form.setFocus(
                                                                         "message"
@@ -359,33 +349,33 @@ export default function ApproveOrderDialogContent() {
                                                         </PopoverClose>
                                                         {contentQuery.length >
                                                             0 && (
-                                                            <PopoverClose className="w-full">
-                                                                <CommandItem
-                                                                    value={
-                                                                        contentQuery
-                                                                    }
-                                                                    onSelect={() => {
-                                                                        form.setValue(
-                                                                            "message",
-                                                                            contentQuery ??
+                                                                <PopoverClose className="w-full">
+                                                                    <CommandItem
+                                                                        value={
+                                                                            contentQuery
+                                                                        }
+                                                                        onSelect={() => {
+                                                                            form.setValue(
+                                                                                "message",
+                                                                                contentQuery ??
                                                                                 ""
-                                                                        );
-                                                                        form.setFocus(
-                                                                            "message"
-                                                                        );
-                                                                        form.setValue(
-                                                                            "contentId",
-                                                                            undefined
-                                                                        );
-                                                                    }}
-                                                                    className="text-start"
-                                                                >
-                                                                    {
-                                                                        contentQuery
-                                                                    }
-                                                                </CommandItem>
-                                                            </PopoverClose>
-                                                        )}
+                                                                            );
+                                                                            form.setFocus(
+                                                                                "message"
+                                                                            );
+                                                                            form.setValue(
+                                                                                "contentId",
+                                                                                undefined
+                                                                            );
+                                                                        }}
+                                                                        className="text-start"
+                                                                    >
+                                                                        {
+                                                                            contentQuery
+                                                                        }
+                                                                    </CommandItem>
+                                                                </PopoverClose>
+                                                            )}
                                                     </CommandGroup>
                                                     <CommandGroup
                                                         heading={
@@ -464,7 +454,7 @@ export default function ApproveOrderDialogContent() {
                                                             contentSearchResults
                                                                 .content
                                                                 .length ===
-                                                                0 && (
+                                                            0 && (
                                                                 <CommandItem
                                                                     className="italic"
                                                                     disabled
@@ -479,13 +469,13 @@ export default function ApproveOrderDialogContent() {
                                                                 .content
                                                                 .length > 0 &&
                                                             contentSearchResults.totalPages -
-                                                                1 >
-                                                                contentSearchResults.page && (
+                                                            1 >
+                                                            contentSearchResults.page && (
                                                                 <CommandItem
                                                                     onSelect={() => {
                                                                         setContentSearchPage(
                                                                             contentSearchPage +
-                                                                                1
+                                                                            1
                                                                         );
                                                                     }}
                                                                 >
@@ -544,8 +534,8 @@ export default function ApproveOrderDialogContent() {
                                 <div className="rounded-md border px-4 py-2 font-mono text-sm shadow-sm">
                                     {order?.createdAt
                                         ? new Date(
-                                              order?.createdAt
-                                          ).toLocaleString()
+                                            order?.createdAt
+                                        ).toLocaleString()
                                         : "unknown"}
                                 </div>
                             </div>

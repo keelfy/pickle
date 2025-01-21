@@ -1,7 +1,7 @@
 "use client";
 
+import { fetchProfileOrders } from "@/hooks/api-endpoints-client";
 import { useAuthStore } from "@/providers/auth-store";
-import { fetchApi } from "@/utils/api/client";
 import React from "react";
 import { getOrderTableColumns } from "../columns";
 import { DataTable } from "../data-table";
@@ -26,10 +26,8 @@ export default function OrdersDataTable({ link, placeholder }: Props) {
 
         const fetchOrders = async () => {
             try {
-                const orders = await fetchApi<Order[]>(
-                    `/v1/profiles/${link}/orders?cursor=${cursor}&column=created_at&limit=${10}&direction=desc`
-                );
-                setOrders(orders);
+                const orders = await fetchProfileOrders(profile, cursor, 'created_at', 10, 'desc');
+                setOrders(orders ?? []);
             } catch (error: any) {
                 console.log(error);
             }

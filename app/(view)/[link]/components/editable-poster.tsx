@@ -1,11 +1,12 @@
 "use client";
 
-import { fetchApi } from "@/utils/api/client";
+import { uploadPoster } from "@/hooks/api-endpoints-client";
+import { cn } from "@/lib/utils";
+import { useProfileStore } from "@/providers/profile-store";
 import { Upload } from "lucide-react";
 import Image from "next/image";
 import React from "react";
 import FileSelectPopover, { ImageFile } from "../file-select-popover";
-import { cn } from "@/lib/utils";
 
 type Props = {
     value?: string;
@@ -15,6 +16,7 @@ type Props = {
 const maxFiles = 3;
 
 const EditablePoster = ({ value, onChange }: Props) => {
+    const profile = useProfileStore((state) => state.profile);
     const [imageFiles, setImageFiles] = React.useState<ImageFile[]>([]);
 
     function updateImageFileById(id: string, update: Partial<ImageFile>) {
@@ -40,14 +42,11 @@ const EditablePoster = ({ value, onChange }: Props) => {
             });
 
             try {
-                const res = await fetchApi<any>("/v1/posters?size=md", true, {
-                    method: "POST",
-                    body: formData,
-                });
+                const res = await uploadPoster(profile, formData, 'md');
                 updateImageFileById(image.uploadId, {
                     preview: {
-                        id: res.previewId,
-                        url: res.previewUrl,
+                        id: res?.previewId ?? "",
+                        url: res?.previewUrl ?? "",
                     },
                 });
             } catch (error: any) {

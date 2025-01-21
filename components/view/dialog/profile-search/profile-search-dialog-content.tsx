@@ -9,11 +9,11 @@ import {
     CommandItem,
     CommandList,
 } from "@/components/ui/command";
+import { fetchContentSearch } from "@/hooks/api-endpoints-client";
 import { toast } from "@/hooks/use-toast";
 import { useModalStore } from "@/providers/modal";
 import { useProfileStore } from "@/providers/profile-store";
 import { ModalType } from "@/stores/modal";
-import { fetchApi } from "@/utils/api/client";
 import { contentCategoryLabels } from "@/utils/api/constants";
 import React from "react";
 
@@ -51,9 +51,7 @@ export default function ProfileSearchDialogContent() {
 
         startTransition(async () => {
             try {
-                const response = await fetchApi<ContentSearchHits>(
-                    `/v1/content?query=${debouncedQuery}&profileId=${profile?.id}`
-                );
+                const response = await fetchContentSearch(profile, debouncedQuery, 0, 10);
                 setResult(response);
             } catch (error: any) {
                 toast({

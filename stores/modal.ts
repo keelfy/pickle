@@ -10,6 +10,7 @@ export enum ModalType {
     CreateGameNote = "create-game-note",
     ProfileSearch = "profile-search",
     ProfileSettings = "profile-settings",
+    DeleteContentAlert = "delete-content-alert",
 }
 
 type Action = {
@@ -20,7 +21,7 @@ type Action = {
 
 type State = {
     currentModal: ModalType;
-    modalParams?: Record<string, any>;
+    modalParams?: any;
 }
 
 export type ModalStore = Action & State;

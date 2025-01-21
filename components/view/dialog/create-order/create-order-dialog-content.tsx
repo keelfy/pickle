@@ -17,9 +17,10 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import LoadingSpinner from "@/components/ui/loading-spinner";
-import { useToast } from "@/hooks/use-toast";
+import { createOrder } from "@/hooks/api-endpoints-client";
+import { toast } from "@/hooks/use-toast";
 import { useModalStore } from "@/providers/modal";
-import { fetchApi } from "@/utils/api/client";
+import { useProfileStore } from "@/providers/profile-store";
 import { contentCategoryLabels } from "@/utils/api/constants";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Check, Dice5, X } from "lucide-react";
@@ -44,7 +45,7 @@ type Props = {
 
 export default function CreateOrderDialogContent({ link }: Props) {
     const { closeModal } = useModalStore((state) => state);
-    const { toast } = useToast();
+    const profile = useProfileStore((state) => state.profile);
     const [isLoading, startTransition] = useTransition();
 
     const form = useForm<z.infer<typeof formSchema>>({
@@ -70,10 +71,7 @@ export default function CreateOrderDialogContent({ link }: Props) {
     const onSubmit = (data: z.infer<typeof formSchema>) => {
         startTransition(async () => {
             try {
-                await fetchApi("/v1/orders", true, {
-                    method: "POST",
-                    body: JSON.stringify(data),
-                });
+                await createOrder(profile, data);
                 closeModal();
             } catch (error: any) {
                 toast({

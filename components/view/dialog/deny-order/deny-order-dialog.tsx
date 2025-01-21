@@ -2,11 +2,10 @@
 
 import { AlertDialog, AlertDialogContent } from "@/components/ui/alert-dialog";
 import { useModalStore } from "@/providers/modal";
-import { useOrderStore } from "@/providers/order";
+import { ModalType } from "@/stores/modal";
 import dynamic from "next/dynamic";
 import React from "react";
 import LoadingAlertDialogContent from "../loading-alert-dialog-content";
-import { ModalType } from "@/stores/modal";
 
 const DynamicDenyOrderDialogContent = dynamic(
     () => import("./deny-order-dialog-content"),

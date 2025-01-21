@@ -14,10 +14,10 @@ import {
 import { Input } from "@/components/ui/input";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import { Textarea } from "@/components/ui/textarea";
+import { updateMyProfile, uploadAvatarForPreview, validateProfileLink } from "@/hooks/api-endpoints-client";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/providers/auth-store";
-import { fetchApi } from "@/utils/api/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Check, CircleOff, Upload, X } from "lucide-react";
 import Image from "next/image";
@@ -67,9 +67,7 @@ export default function GeneralSettingsTab() {
         const getData = setTimeout(async () => {
             try {
                 setLinkValidating(true);
-                const res = await fetchApi<LinkValidation>(
-                    `/v1/profiles/validate-link?link=${form.watch("link")}`
-                );
+                const res = await validateProfileLink(form.watch("link"));
                 if (res.valid) {
                     form.clearErrors("link");
                 } else {
@@ -94,10 +92,7 @@ export default function GeneralSettingsTab() {
     const onSubmit = async (data: z.infer<typeof formSchema>) =>
         startTransition(async () => {
             try {
-                const res = await fetchApi<Profile>("/v1/profiles/me", true, {
-                    method: "PATCH",
-                    body: JSON.stringify(data),
-                });
+                const res = await updateMyProfile(data);
                 updateProfile(res);
                 form.reset({
                     ...profile,
@@ -130,15 +125,7 @@ export default function GeneralSettingsTab() {
                 formData.append("file", file);
 
                 try {
-                    const response = await fetchApi<any>(
-                        "/v1/profiles/me/avatar",
-                        true,
-                        {
-                            method: "POST",
-                            body: formData,
-                        }
-                    );
-
+                    const response = await uploadAvatarForPreview(formData);
                     if (response.previewUrl) {
                         form.setValue(
                             "avatarUrl",

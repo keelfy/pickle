@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import DropdownMenuDialogWrapper from "@/components/view/dialog/dropdown-menu-dialog-wrapper";
 import ProfileSettingsDialog from "@/components/view/dialog/profile-settings/profile-settings-dialog";
-import { getMyAvatar, getMyProfile } from "@/hooks/api-endpoints-server";
+import { fetchMyAvatar, fetchMyProfile } from "@/hooks/api-endpoints-server";
 import getUser from "@/hooks/getUser";
 import { MessageCircle, Moon, Settings, User } from "lucide-react";
 import Image from "next/image";
@@ -34,8 +34,8 @@ export default async function ProfileDropdownMenu() {
         return <LoggedOutProfileNavSection />;
     }
 
-    const profile = await getMyProfile().catch(() => undefined);
-    const avatarUrl = await getMyAvatar("md")
+    const profile = await fetchMyProfile().catch(() => undefined);
+    const avatarUrl = await fetchMyAvatar("md")
         .then((res) => res?.url)
         .catch(() => undefined);
 

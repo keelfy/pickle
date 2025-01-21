@@ -1,11 +1,13 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { DeleteContentType } from "@/components/view/dialog/delete-content-alert/delete-content-alert-dialog";
+import { fetchGameNotePoster } from "@/hooks/api-endpoints-client";
 import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/providers/auth-store";
 import { useModalStore } from "@/providers/modal";
 import { useProfileStore } from "@/providers/profile-store";
 import { ModalType } from "@/stores/modal";
-import { fetchApi } from "@/utils/api/client";
 import {
     EditIcon,
     History,
@@ -17,7 +19,6 @@ import {
 import Image from "next/image";
 import React from "react";
 import GameNoteStatusBadge from "./game-note-status-badge";
-import { useAuthStore } from "@/providers/auth-store";
 
 export default function GameNoteCard({ note }: { note: GameNote }) {
     const user = useAuthStore((state) => state.user);
@@ -29,11 +30,8 @@ export default function GameNoteCard({ note }: { note: GameNote }) {
         if (note) {
             (async () => {
                 try {
-                    const res = await fetchApi<any>(
-                        `/v1/game-notes/${note.id}/posters?size=sm`,
-                        true
-                    );
-                    setPosterUrl(res.url);
+                    const res = await fetchGameNotePoster(profile, note.id, 'sm');
+                    setPosterUrl(res?.url ?? undefined);
                 } catch (error: any) {
                     console.error(error);
                     setPosterUrl(undefined);
@@ -61,6 +59,13 @@ export default function GameNoteCard({ note }: { note: GameNote }) {
 
         return "text-red-500";
     }, [note.rate]);
+
+    const onDelete = () =>
+        openModal(ModalType.DeleteContentAlert, {
+            type: DeleteContentType.GameNote,
+            title: note.name,
+            id: note.id,
+        });
 
     return (
         <div className="flex flex-col gap-4 shadow rounded-lg p-4 border text-start">
@@ -138,9 +143,9 @@ export default function GameNoteCard({ note }: { note: GameNote }) {
                                         <EditIcon />
                                         Edit
                                     </Button>
-                                    <Button variant="ghost">
+                                    <Button variant="ghost" onClick={onDelete}>
                                         <X className="text-destructive" />
-                                        Remove
+                                        Delete
                                     </Button>
                                 </>
                             )}
@@ -156,7 +161,7 @@ export default function GameNoteCard({ note }: { note: GameNote }) {
                             {note.rate ?? "N/A"}
                         </div>
                         <div className="font-semibold whitespace-nowrap">
-                            {profile?.username}`s rating
+                            rating
                         </div>
                     </div>
                 </div>

@@ -3,8 +3,9 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { fetchProfileGameNotes } from "@/hooks/api-endpoints-client";
 import { toast } from "@/hooks/use-toast";
-import { fetchApi } from "@/utils/api/client";
+import { useProfileStore } from "@/providers/profile-store";
 import { Filter, Search, SortAsc } from "lucide-react";
 import React from "react";
 import GameNoteDialog from "../../../../components/view/dialog/game-note/game-note-dialog";
@@ -18,16 +19,16 @@ type Props = {
 
 export default function Page({ params }: Props) {
     const { link } = React.use(params);
-
+    const profile = useProfileStore((state) => state.profile);
     const [notes, setNotes] = React.useState<GameNote[]>([]);
 
     React.useEffect(() => {
+        if (!profile) return;
+
         const fetchNotes = async () => {
             try {
-                const notes = await fetchApi<GameNote[]>(
-                    `/v1/profiles/${link}/game-notes?cursor=${new Date("1900-01-20").toISOString()}&limit=10&direction=desc`
-                );
-                setNotes(notes);
+                const notes = await fetchProfileGameNotes(profile, new Date("1900-01-20").toISOString(), 10, 'desc');
+                setNotes(notes ?? []);
             } catch (error: any) {
                 toast({
                     title: "Failed to fetch game notes",

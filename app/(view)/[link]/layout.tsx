@@ -16,13 +16,15 @@ import {
     navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 import { Separator } from "@/components/ui/separator";
+import DeleteContentAlertDialog from "@/components/view/dialog/delete-content-alert/delete-content-alert-dialog";
 import GameNoteEditorDialog from "@/components/view/dialog/game-note-editor/game-note-editor-dialog";
 import {
-    getProfileAvatar,
-    getProfileByLink,
+    fetchProfileAvatar,
+    fetchProfileByLink,
 } from "@/hooks/api-endpoints-server";
 import OrderStoreProvider from "@/providers/order";
 import ProfileStoreProvider from "@/providers/profile-store";
+import { ModalType } from "@/stores/modal";
 import { cn } from "@/utils/cn";
 import {
     SiInstagram,
@@ -49,10 +51,9 @@ import ProfileDropdownMenu from "../profile-dropdown-menu";
 import CurrentDate from "./current-date";
 import MenuItemUnderline from "./menu-item-underline";
 import OpenModalButton from "./open-modal-button";
-import { ModalType } from "@/stores/modal";
 
 async function ProfileAvatar({ profile }: { profile: Profile | undefined }) {
-    const avatarUrl = await getProfileAvatar(profile, "lg")
+    const avatarUrl = await fetchProfileAvatar(profile, "lg")
         .then((res) => res?.url ?? undefined)
         .catch(() => undefined);
 
@@ -80,7 +81,7 @@ async function LayoutBody({
 }: React.PropsWithChildren<Props>) {
     const { link } = await params;
 
-    const ownerProfile = await getProfileByLink(link).catch(
+    const ownerProfile = await fetchProfileByLink(link).catch(
         (error: any) => error.message
     );
 
@@ -184,6 +185,7 @@ async function LayoutBody({
             <GameNoteEditorDialog />
             <ProfileSearchDialog />
             <CreateOrderDialog link={link} />
+            <DeleteContentAlertDialog />
         </ProfileStoreProvider>
     );
 }

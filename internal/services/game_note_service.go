@@ -24,9 +24,9 @@ type GameNoteService interface {
 }
 
 type gameNoteService struct {
-	sqlDb                storage.SQLDatabase
-	elastic              storage.ElasticClient
-	cache                storage.CacheClient
+	sqlDb                storage.RelationalStorage
+	elastic              storage.ElasticStorage
+	cache                storage.CacheStorage
 	userService          ProfileService
 	ordererService       OrdererService
 	gameNoteOrderService GameNoteOrderService
@@ -34,7 +34,7 @@ type gameNoteService struct {
 }
 
 func NewGameNoteService(
-	sqlDb storage.SQLDatabase, elastic storage.ElasticClient, cache storage.CacheClient,
+	sqlDb storage.RelationalStorage, elastic storage.ElasticStorage, cache storage.CacheStorage,
 	userService ProfileService, ordererService OrdererService,
 	gameNoteOrderService GameNoteOrderService, posterService PosterService,
 ) GameNoteService {

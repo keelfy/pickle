@@ -12,10 +12,10 @@ type StatusService interface {
 
 type statusService struct {
 	supabase storage.SupabaseClient
-	s3       storage.S3Client
+	s3       storage.FileStorage
 }
 
-func NewStatusService(supabase storage.SupabaseClient, s3 storage.S3Client) StatusService {
+func NewStatusService(supabase storage.SupabaseClient, s3 storage.FileStorage) StatusService {
 	return &statusService{
 		supabase: supabase,
 		s3:       s3,

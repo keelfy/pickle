@@ -15,10 +15,10 @@ type OrdererService interface {
 }
 
 type ordererService struct {
-	sqlDb storage.SQLDatabase
+	sqlDb storage.RelationalStorage
 }
 
-func NewOrdererService(sqlDb storage.SQLDatabase) OrdererService {
+func NewOrdererService(sqlDb storage.RelationalStorage) OrdererService {
 	return &ordererService{
 		sqlDb: sqlDb,
 	}

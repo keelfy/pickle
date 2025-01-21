@@ -22,13 +22,13 @@ type ProfileService interface {
 }
 
 type profileService struct {
-	sqlDb         storage.SQLDatabase
-	s3Client      storage.S3Client
-	cache         storage.CacheClient
+	sqlDb         storage.RelationalStorage
+	s3Client      storage.FileStorage
+	cache         storage.CacheStorage
 	avatarService AvatarService
 }
 
-func NewProfileService(sqlDb storage.SQLDatabase, s3Client storage.S3Client, cache storage.CacheClient, avatarService AvatarService) ProfileService {
+func NewProfileService(sqlDb storage.RelationalStorage, s3Client storage.FileStorage, cache storage.CacheStorage, avatarService AvatarService) ProfileService {
 	return &profileService{
 		sqlDb:         sqlDb,
 		s3Client:      s3Client,

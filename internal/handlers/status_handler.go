@@ -16,13 +16,13 @@ type StatusHandler interface {
 }
 
 type statusHandler struct {
-	sqlDb         storage.SQLDatabase
-	elastic       storage.ElasticClient
-	cache         storage.CacheClient
+	sqlDb         storage.RelationalStorage
+	elastic       storage.ElasticStorage
+	cache         storage.CacheStorage
 	statusService services.StatusService
 }
 
-func NewStatusHandler(sqlDb storage.SQLDatabase, elastic storage.ElasticClient, cache storage.CacheClient, statusService services.StatusService) StatusHandler {
+func NewStatusHandler(sqlDb storage.RelationalStorage, elastic storage.ElasticStorage, cache storage.CacheStorage, statusService services.StatusService) StatusHandler {
 	return &statusHandler{
 		sqlDb:         sqlDb,
 		elastic:       elastic,

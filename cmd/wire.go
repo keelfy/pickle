@@ -15,11 +15,11 @@ import (
 
 func InitializeAPI(ctx context.Context) (api.PickleAPI, func(), error) {
 	wire.Build(
-		storage.NewPGXPoolWithCleanup,
+		storage.NewRelationalStorage,
 		storage.NewSupabaseClient,
-		storage.NewElasticClient,
-		storage.NewS3Client,
-		storage.NewCacheClient,
+		storage.NewElasticStorage,
+		storage.NewFileStorage,
+		storage.NewCacheStorage,
 		services.ProviderSet,
 		handlers.ProviderSet,
 		api.NewPickleAPI,

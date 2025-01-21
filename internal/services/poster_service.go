@@ -29,15 +29,15 @@ type PosterService interface {
 }
 
 type posterService struct {
-	sqlDB          storage.SQLDatabase
-	s3             storage.S3Client
-	cache          storage.CacheClient
+	sqlDB          storage.RelationalStorage
+	s3             storage.FileStorage
+	cache          storage.CacheStorage
 	imageService   ImageService
 	profileService ProfileService
 }
 
 func NewPosterService(
-	sqlDB storage.SQLDatabase, s3 storage.S3Client, cache storage.CacheClient,
+	sqlDB storage.RelationalStorage, s3 storage.FileStorage, cache storage.CacheStorage,
 	imageService ImageService, profileService ProfileService,
 ) PosterService {
 	return &posterService{
@@ -86,7 +86,7 @@ func (s *posterService) uploadPosterForPreview(ctx context.Context, userId uuid.
 	previewKey := "preview/" + objectKey
 
 	// Upload the file to S3
-	err = s.s3.UploadFileToS3(ctx, bucketName, previewKey, fileReader)
+	err = s.s3.UploadFile(ctx, bucketName, previewKey, fileReader)
 	if err != nil {
 		return uuid.Nil, "", errors.NewInternalServerError("Error occurred uploading file", err)
 	}

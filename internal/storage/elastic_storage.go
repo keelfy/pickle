@@ -18,7 +18,7 @@ import (
 	"github.com/pickle.pw/monolith/internal/types"
 )
 
-type ElasticClient interface {
+type ElasticStorage interface {
 	Ping(ctx context.Context) error
 	CreateOrUpdateIndex(ctx context.Context, indexName string, query []byte) error
 	IndexDocument(ctx context.Context, indexName, id string, document any) (*index.Response, error)
@@ -29,12 +29,11 @@ type ElasticClient interface {
 	DeleteContent(ctx context.Context, contentID uuid.UUID, category db.ContentCategory) error
 }
 
-type elasticClient struct {
+type elasticStorage struct {
 	client *elasticsearch.TypedClient
 }
 
-func NewElasticClient() (ElasticClient, error) {
-	ctx := context.Background()
+func NewElasticStorage(ctx context.Context) (ElasticStorage, error) {
 	logger.Infof(ctx, "%v Elasticsearch %v", strings.Repeat("~", 11), strings.Repeat("~", 11))
 
 	client, err := elasticsearch.NewTypedClient(elasticsearch.Config{
@@ -46,7 +45,7 @@ func NewElasticClient() (ElasticClient, error) {
 		return nil, fmt.Errorf("Error creating the client: %s", err)
 	}
 
-	storage := &elasticClient{
+	storage := &elasticStorage{
 		client: client,
 	}
 
@@ -55,7 +54,7 @@ func NewElasticClient() (ElasticClient, error) {
 	return storage, nil
 }
 
-func (storage *elasticClient) logElasticsearchClusterInfo() {
+func (storage *elasticStorage) logElasticsearchClusterInfo() {
 	ctx := context.Background()
 	info, err := storage.client.Info().Do(ctx)
 	if err != nil {
@@ -67,7 +66,7 @@ func (storage *elasticClient) logElasticsearchClusterInfo() {
 	logger.Infof(ctx, "Server: %s", info.Version.Int)
 }
 
-func (storage *elasticClient) Ping(ctx context.Context) error {
+func (storage *elasticStorage) Ping(ctx context.Context) error {
 	_, err := storage.client.Info().Do(ctx)
 	if err != nil {
 		logger.Errorf(ctx, "[ELASTIC] Error pinging Elasticsearch: %v", err)
@@ -76,7 +75,7 @@ func (storage *elasticClient) Ping(ctx context.Context) error {
 	return nil
 }
 
-func (storage *elasticClient) CreateOrUpdateIndex(ctx context.Context, indexName string, query []byte) error {
+func (storage *elasticStorage) CreateOrUpdateIndex(ctx context.Context, indexName string, query []byte) error {
 	// Check if index exists
 	if exists, err := storage.indexExists(ctx, indexName); exists {
 		err := storage.putMapping(ctx, indexName, query)
@@ -97,11 +96,11 @@ func (storage *elasticClient) CreateOrUpdateIndex(ctx context.Context, indexName
 	return nil
 }
 
-func (storage *elasticClient) indexExists(ctx context.Context, indexName string) (bool, error) {
+func (storage *elasticStorage) indexExists(ctx context.Context, indexName string) (bool, error) {
 	return storage.client.Indices.Exists(indexName).IsSuccess(ctx)
 }
 
-func (storage *elasticClient) putMapping(ctx context.Context, indexName string, query []byte) error {
+func (storage *elasticStorage) putMapping(ctx context.Context, indexName string, query []byte) error {
 	mappingReader := bytes.NewReader(query)
 	_, err := storage.client.Indices.PutMapping(indexName).Raw(mappingReader).Do(ctx)
 	if err != nil {
@@ -110,7 +109,7 @@ func (storage *elasticClient) putMapping(ctx context.Context, indexName string, 
 	return nil
 }
 
-func (storage *elasticClient) createIndex(ctx context.Context, indexName string, query []byte) error {
+func (storage *elasticStorage) createIndex(ctx context.Context, indexName string, query []byte) error {
 	mappingReader := bytes.NewReader(query)
 	_, err := storage.client.Indices.Create(indexName).Raw(mappingReader).Do(ctx)
 	if err != nil {
@@ -119,7 +118,7 @@ func (storage *elasticClient) createIndex(ctx context.Context, indexName string,
 	return nil
 }
 
-func (storage *elasticClient) IndexDocument(ctx context.Context, indexName, id string, document any) (*index.Response, error) {
+func (storage *elasticStorage) IndexDocument(ctx context.Context, indexName, id string, document any) (*index.Response, error) {
 	response, err := storage.client.Index(indexName).Id(id).Document(document).Do(ctx)
 	if err != nil {
 		logger.Debugf(ctx, "[ELASTIC] Error indexing document: %v", err)
@@ -130,7 +129,7 @@ func (storage *elasticClient) IndexDocument(ctx context.Context, indexName, id s
 	return response, nil
 }
 
-func (storage *elasticClient) Search(ctx context.Context, indexName string, query *esTypes.Query, pagination *types.Pagination) (*search.Response, error) {
+func (storage *elasticStorage) Search(ctx context.Context, indexName string, query *esTypes.Query, pagination *types.Pagination) (*search.Response, error) {
 	response, err := storage.client.Search().
 		Index(indexName).
 		Request(&search.Request{
@@ -148,7 +147,7 @@ func (storage *elasticClient) Search(ctx context.Context, indexName string, quer
 	return response, nil
 }
 
-func (service *elasticClient) IndexContent(ctx context.Context, id uuid.UUID, name string, userId uuid.UUID, category db.ContentCategory) error {
+func (service *elasticStorage) IndexContent(ctx context.Context, id uuid.UUID, name string, userId uuid.UUID, category db.ContentCategory) error {
 	document := &types.EsContent{
 		ID:       id,
 		Name:     name,
@@ -163,7 +162,7 @@ func (service *elasticClient) IndexContent(ctx context.Context, id uuid.UUID, na
 	return nil
 }
 
-func (storage *elasticClient) SearchContent(ctx context.Context, query string, userId uuid.UUID, pagination *types.Pagination) (*search.Response, error) {
+func (storage *elasticStorage) SearchContent(ctx context.Context, query string, userId uuid.UUID, pagination *types.Pagination) (*search.Response, error) {
 	esQuery := &esTypes.Query{
 		Bool: &esTypes.BoolQuery{
 			Filter: []esTypes.Query{
@@ -198,7 +197,7 @@ func (storage *elasticClient) SearchContent(ctx context.Context, query string, u
 	return response, nil
 }
 
-func (storage *elasticClient) DeleteContentNoteByID(ctx context.Context, indexName string, contentID uuid.UUID) error {
+func (storage *elasticStorage) DeleteContentNoteByID(ctx context.Context, indexName string, contentID uuid.UUID) error {
 	_, err := storage.client.Delete(indexName, contentID.String()).Do(ctx)
 	if err != nil {
 		return errors.NewInternalServerError("Error deleting content document", err)
@@ -207,7 +206,7 @@ func (storage *elasticClient) DeleteContentNoteByID(ctx context.Context, indexNa
 	return nil
 }
 
-func (storage *elasticClient) DeleteContent(ctx context.Context, contentID uuid.UUID, category db.ContentCategory) error {
+func (storage *elasticStorage) DeleteContent(ctx context.Context, contentID uuid.UUID, category db.ContentCategory) error {
 	docID := fmt.Sprintf("%s-%s", category, contentID.String())
 	_, err := storage.client.Delete("content", docID).Do(ctx)
 	if err != nil {

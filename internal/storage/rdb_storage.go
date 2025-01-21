@@ -14,7 +14,7 @@ import (
 	"github.com/pickle.pw/monolith/internal/types"
 )
 
-type SQLDatabase interface {
+type RelationalStorage interface {
 	Queries() *db.Queries
 	Begin(ctx context.Context) (pgx.Tx, error)
 	Ping(ctx context.Context) error
@@ -22,12 +22,12 @@ type SQLDatabase interface {
 	FindSortedOrdersByReceiverId(ctx context.Context, receiverID uuid.UUID, sort *types.CursorSort) ([]*db.Order, error)
 }
 
-type sqlDatabase struct {
+type relationalStorage struct {
 	conn    *pgxpool.Pool
 	queries *db.Queries
 }
 
-func NewPGXPoolWithCleanup(ctx context.Context) (SQLDatabase, func(), error) {
+func NewRelationalStorage(ctx context.Context) (RelationalStorage, func(), error) {
 	logger.Infof(ctx, "%v PostgreSQL %v", strings.Repeat("~", 12), strings.Repeat("~", 13))
 	pool, err := pgxpool.New(ctx, config.GetDatabaseURL())
 	if err != nil {
@@ -35,7 +35,7 @@ func NewPGXPoolWithCleanup(ctx context.Context) (SQLDatabase, func(), error) {
 	}
 
 	queries := db.New(pool)
-	sqlDatabase := &sqlDatabase{
+	sqlDatabase := &relationalStorage{
 		conn:    pool,
 		queries: queries,
 	}
@@ -49,15 +49,15 @@ func NewPGXPoolWithCleanup(ctx context.Context) (SQLDatabase, func(), error) {
 	return sqlDatabase, cleanup, nil
 }
 
-func (s *sqlDatabase) Queries() *db.Queries {
+func (s *relationalStorage) Queries() *db.Queries {
 	return s.queries
 }
 
-func (s *sqlDatabase) Begin(ctx context.Context) (pgx.Tx, error) {
+func (s *relationalStorage) Begin(ctx context.Context) (pgx.Tx, error) {
 	return s.conn.Begin(ctx)
 }
 
-func (sqlDb *sqlDatabase) Ping(ctx context.Context) error {
+func (sqlDb *relationalStorage) Ping(ctx context.Context) error {
 	err := sqlDb.conn.Ping(ctx)
 	if err != nil {
 		logger.Debugf(ctx, "[SQL] Error pinging PostgreSQL: %v", err)
@@ -85,7 +85,7 @@ const findPaginatedGameNotesByUserIdQuery = `
 `
 
 // Queries game notes by receiver id with cursor pagination and dynamic sorting
-func (sqlDb *sqlDatabase) FindPaginatedGameNotesByUserId(ctx context.Context, userID uuid.UUID, sort *types.CursorSort) ([]*db.FindPaginatedGameNotesByUserIdRow, error) {
+func (sqlDb *relationalStorage) FindPaginatedGameNotesByUserId(ctx context.Context, userID uuid.UUID, sort *types.CursorSort) ([]*db.FindPaginatedGameNotesByUserIdRow, error) {
 	comparisonOperator := "<"
 	if strings.ToUpper(sort.Direction) == "DESC" {
 		comparisonOperator = ">"
@@ -130,7 +130,7 @@ const findOrdersByReceiverIdQuery = `
 `
 
 // Queries orders by receiver id with cursor pagination and dynamic sorting
-func (sqlDb *sqlDatabase) FindSortedOrdersByReceiverId(ctx context.Context, receiverID uuid.UUID, sort *types.CursorSort) ([]*db.Order, error) {
+func (sqlDb *relationalStorage) FindSortedOrdersByReceiverId(ctx context.Context, receiverID uuid.UUID, sort *types.CursorSort) ([]*db.Order, error) {
 	comparisonOperator := "<"
 	if strings.ToUpper(sort.Direction) == "DESC" {
 		comparisonOperator = ">"

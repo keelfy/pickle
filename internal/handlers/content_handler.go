@@ -14,11 +14,11 @@ type ContentHandler interface {
 }
 
 type contentHandler struct {
-	elastic        storage.ElasticClient
+	elastic        storage.ElasticStorage
 	contentService services.ContentService
 }
 
-func NewContentHandler(elastic storage.ElasticClient, contentService services.ContentService) ContentHandler {
+func NewContentHandler(elastic storage.ElasticStorage, contentService services.ContentService) ContentHandler {
 	return &contentHandler{
 		elastic:        elastic,
 		contentService: contentService,

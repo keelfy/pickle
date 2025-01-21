@@ -15,19 +15,35 @@ import (
 )
 
 type S3Client interface {
-	UploadFileToS3(ctx context.Context, bucketName, key string, fileReader io.Reader) error
+	PutObject(ctx context.Context, params *s3.PutObjectInput, optFns ...func(*s3.Options)) (*s3.PutObjectOutput, error)
+	DeleteObject(ctx context.Context, params *s3.DeleteObjectInput, optFns ...func(*s3.Options)) (*s3.DeleteObjectOutput, error)
+	DeleteObjects(ctx context.Context, params *s3.DeleteObjectsInput, optFns ...func(*s3.Options)) (*s3.DeleteObjectsOutput, error)
+	CopyObject(ctx context.Context, params *s3.CopyObjectInput, optFns ...func(*s3.Options)) (*s3.CopyObjectOutput, error)
+}
+
+type FileStorage interface {
+	UploadFile(ctx context.Context, bucketName, key string, fileReader io.Reader) error
 	DeleteObject(ctx context.Context, bucketName, key string) error
 	BulkDeleteObject(ctx context.Context, bucketName string, keys []string) error
 	CopyObject(ctx context.Context, oldBucketName, newBucketName, oldKey, newKey string) error
 	MoveObject(ctx context.Context, oldBucketName, newBucketName, oldKey, newKey string) error
 }
 
-type s3Client struct {
-	client *s3.Client
+type fileStorage struct {
+	client S3Client
 }
 
-func NewS3Client(ctx context.Context) (S3Client, error) {
+func NewFileStorage(ctx context.Context) (FileStorage, error) {
 	logger.Infof(ctx, "%v S3 Uploader %v", strings.Repeat("~", 12), strings.Repeat("~", 12))
+
+	// Check required environment variables
+	region := os.Getenv("AWS_REGION")
+	accessKey := os.Getenv("AWS_ACCESS_KEY_ID")
+	secretKey := os.Getenv("AWS_SECRET_ACCESS_KEY")
+
+	if region == "" || accessKey == "" || secretKey == "" {
+		return nil, fmt.Errorf("missing required AWS credentials: AWS_REGION, AWS_ACCESS_KEY_ID, and AWS_SECRET_ACCESS_KEY must be set")
+	}
 
 	cfg, err := awsConfig.LoadDefaultConfig(ctx)
 	if err != nil {
@@ -35,17 +51,16 @@ func NewS3Client(ctx context.Context) (S3Client, error) {
 	}
 
 	client := s3.NewFromConfig(cfg)
-	logger.Infof(ctx, "S3 client created")
-
-	s3Client := &s3Client{
+	s3Client := &fileStorage{
 		client: client,
 	}
 
+	logger.Infof(ctx, "S3 client created")
 	logger.Infof(ctx, "%s", strings.Repeat("~", 37))
 	return s3Client, nil
 }
 
-func (storage *s3Client) UploadFileToS3(ctx context.Context, bucketName, key string, fileReader io.Reader) error {
+func (storage *fileStorage) UploadFile(ctx context.Context, bucketName, key string, fileReader io.Reader) error {
 	// Read file content into a temporary file
 	tempFile, err := os.CreateTemp("", "upload-")
 	if err != nil {
@@ -79,7 +94,7 @@ func (storage *s3Client) UploadFileToS3(ctx context.Context, bucketName, key str
 	return nil
 }
 
-func (storage *s3Client) DeleteObject(ctx context.Context, bucketName, key string) error {
+func (storage *fileStorage) DeleteObject(ctx context.Context, bucketName, key string) error {
 	output, err := storage.client.DeleteObject(ctx, &s3.DeleteObjectInput{
 		Bucket: aws.String(bucketName),
 		Key:    aws.String(key),
@@ -93,7 +108,7 @@ func (storage *s3Client) DeleteObject(ctx context.Context, bucketName, key strin
 	return nil
 }
 
-func (storage *s3Client) BulkDeleteObject(ctx context.Context, bucketName string, keys []string) error {
+func (storage *fileStorage) BulkDeleteObject(ctx context.Context, bucketName string, keys []string) error {
 	objects := make([]s3Types.ObjectIdentifier, len(keys))
 	for i, key := range keys {
 		objects[i] = s3Types.ObjectIdentifier{
@@ -116,7 +131,7 @@ func (storage *s3Client) BulkDeleteObject(ctx context.Context, bucketName string
 	return nil
 }
 
-func (storage *s3Client) CopyObject(ctx context.Context, oldBucketName, newBucketName, oldKey, newKey string) error {
+func (storage *fileStorage) CopyObject(ctx context.Context, oldBucketName, newBucketName, oldKey, newKey string) error {
 	output, err := storage.client.CopyObject(ctx, &s3.CopyObjectInput{
 		Bucket:     aws.String(newBucketName),
 		CopySource: aws.String(fmt.Sprintf("%s/%s", oldBucketName, oldKey)),
@@ -131,7 +146,7 @@ func (storage *s3Client) CopyObject(ctx context.Context, oldBucketName, newBucke
 	return nil
 }
 
-func (storage *s3Client) MoveObject(ctx context.Context, oldBucketName, newBucketName, oldKey, newKey string) error {
+func (storage *fileStorage) MoveObject(ctx context.Context, oldBucketName, newBucketName, oldKey, newKey string) error {
 	err := storage.CopyObject(ctx, oldBucketName, newBucketName, oldKey, newKey)
 	if err != nil {
 		return fmt.Errorf("failed to copy object: %w", err)

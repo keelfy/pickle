@@ -22,47 +22,47 @@ import (
 // Injectors from wire.go:
 
 func InitializeAPI(ctx context.Context) (api.PickleAPI, func(), error) {
-	sqlDatabase, cleanup, err := storage.NewPGXPoolWithCleanup(ctx)
+	relationalStorage, cleanup, err := storage.NewRelationalStorage(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
-	s3Client, err := storage.NewS3Client(ctx)
+	fileStorage, err := storage.NewFileStorage(ctx)
 	if err != nil {
 		cleanup()
 		return nil, nil, err
 	}
-	cacheClient, err := storage.NewCacheClient(ctx)
+	cacheStorage, err := storage.NewCacheStorage(ctx)
 	if err != nil {
 		cleanup()
 		return nil, nil, err
 	}
 	imageService := services.NewImageService()
-	avatarService := services.NewAvatarService(sqlDatabase, cacheClient, s3Client, imageService)
-	profileService := services.NewProfileService(sqlDatabase, s3Client, cacheClient, avatarService)
-	elasticClient, err := storage.NewElasticClient()
+	avatarService := services.NewAvatarService(relationalStorage, cacheStorage, fileStorage, imageService)
+	profileService := services.NewProfileService(relationalStorage, fileStorage, cacheStorage, avatarService)
+	elasticStorage, err := storage.NewElasticStorage(ctx)
 	if err != nil {
 		cleanup()
 		return nil, nil, err
 	}
-	ordererService := services.NewOrdererService(sqlDatabase)
-	gameNoteOrderService := services.NewGameNoteOrderService(sqlDatabase)
-	posterService := services.NewPosterService(sqlDatabase, s3Client, cacheClient, imageService, profileService)
-	gameNoteService := services.NewGameNoteService(sqlDatabase, elasticClient, cacheClient, profileService, ordererService, gameNoteOrderService, posterService)
-	contentService := services.NewContentService(elasticClient, gameNoteService, gameNoteOrderService)
-	orderService := services.NewOrderService(sqlDatabase, profileService, ordererService, contentService)
+	ordererService := services.NewOrdererService(relationalStorage)
+	gameNoteOrderService := services.NewGameNoteOrderService(relationalStorage)
+	posterService := services.NewPosterService(relationalStorage, fileStorage, cacheStorage, imageService, profileService)
+	gameNoteService := services.NewGameNoteService(relationalStorage, elasticStorage, cacheStorage, profileService, ordererService, gameNoteOrderService, posterService)
+	contentService := services.NewContentService(elasticStorage, gameNoteService, gameNoteOrderService)
+	orderService := services.NewOrderService(relationalStorage, profileService, ordererService, contentService)
 	profileHandler := handlers.NewUserHandler(profileService, avatarService, gameNoteService, orderService)
 	supabaseClient, err := storage.NewSupabaseClient(ctx)
 	if err != nil {
 		cleanup()
 		return nil, nil, err
 	}
-	statusService := services.NewStatusService(supabaseClient, s3Client)
-	statusHandler := handlers.NewStatusHandler(sqlDatabase, elasticClient, cacheClient, statusService)
+	statusService := services.NewStatusService(supabaseClient, fileStorage)
+	statusHandler := handlers.NewStatusHandler(relationalStorage, elasticStorage, cacheStorage, statusService)
 	orderHandler := handlers.NewOrdersHandler(orderService, profileService, contentService)
 	gameNoteHandler := handlers.NewGameNoteHandler(profileService, gameNoteService, orderService, posterService)
 	posterHandler := handlers.NewPosterHandler(posterService)
-	migrationService := services.NewMigrationService(sqlDatabase, elasticClient)
-	contentHandler := handlers.NewContentHandler(elasticClient, contentService)
+	migrationService := services.NewMigrationService(relationalStorage, elasticStorage)
+	contentHandler := handlers.NewContentHandler(elasticStorage, contentService)
 	pickleAPI := api.NewPickleAPI(profileHandler, statusHandler, orderHandler, gameNoteHandler, posterHandler, migrationService, contentHandler)
 	return pickleAPI, func() {
 		cleanup()

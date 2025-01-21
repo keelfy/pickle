@@ -18,11 +18,11 @@ type MigrationService interface {
 }
 
 type migrationService struct {
-	sqlDb   storage.SQLDatabase
-	elastic storage.ElasticClient
+	sqlDb   storage.RelationalStorage
+	elastic storage.ElasticStorage
 }
 
-func NewMigrationService(sqlDb storage.SQLDatabase, elastic storage.ElasticClient) MigrationService {
+func NewMigrationService(sqlDb storage.RelationalStorage, elastic storage.ElasticStorage) MigrationService {
 	return &migrationService{
 		sqlDb:   sqlDb,
 		elastic: elastic,

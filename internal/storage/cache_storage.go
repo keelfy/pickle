@@ -10,18 +10,18 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-type CacheClient interface {
+type CacheStorage interface {
 	Ping(ctx context.Context) error
 	GetKey(ctx context.Context, key string) (*string, error)
 	SetKey(ctx context.Context, key string, value string, expiration time.Duration) error
 	DeleteKey(ctx context.Context, key string) error
 }
 
-type cacheClient struct {
+type cacheStorage struct {
 	client *redis.Client
 }
 
-func NewCacheClient(ctx context.Context) (CacheClient, error) {
+func NewCacheStorage(ctx context.Context) (CacheStorage, error) {
 	logger.Infof(ctx, "%v Redis %v", strings.Repeat("~", 15), strings.Repeat("~", 15))
 	url := config.GetRedisURL()
 	opts, err := redis.ParseURL(url)
@@ -29,7 +29,7 @@ func NewCacheClient(ctx context.Context) (CacheClient, error) {
 		return nil, err
 	}
 	client := redis.NewClient(opts)
-	cacheClient := &cacheClient{
+	cacheClient := &cacheStorage{
 		client: client,
 	}
 
@@ -38,7 +38,7 @@ func NewCacheClient(ctx context.Context) (CacheClient, error) {
 	return cacheClient, nil
 }
 
-func (storage *cacheClient) Ping(ctx context.Context) error {
+func (storage *cacheStorage) Ping(ctx context.Context) error {
 	err := storage.client.Ping(ctx).Err()
 	if err != nil {
 		logger.Debugf(ctx, "[CACHE] Error pinging Redis: %v", err)
@@ -46,7 +46,7 @@ func (storage *cacheClient) Ping(ctx context.Context) error {
 	return err
 }
 
-func (storage *cacheClient) GetKey(ctx context.Context, key string) (*string, error) {
+func (storage *cacheStorage) GetKey(ctx context.Context, key string) (*string, error) {
 	value, err := storage.client.Get(ctx, key).Result()
 	if err == nil {
 		logger.Debugf(ctx, "[CACHE] Retrieved value of '%s'", key)
@@ -60,7 +60,7 @@ func (storage *cacheClient) GetKey(ctx context.Context, key string) (*string, er
 	return nil, nil
 }
 
-func (storage *cacheClient) SetKey(ctx context.Context, key string, value string, expiration time.Duration) error {
+func (storage *cacheStorage) SetKey(ctx context.Context, key string, value string, expiration time.Duration) error {
 	err := storage.client.Set(ctx, key, value, expiration).Err()
 	if err != nil {
 		logger.Debugf(ctx, "[CACHE] Error adding key '%s': %v", key, err)
@@ -71,7 +71,7 @@ func (storage *cacheClient) SetKey(ctx context.Context, key string, value string
 	return nil
 }
 
-func (storage *cacheClient) DeleteKey(ctx context.Context, key string) error {
+func (storage *cacheStorage) DeleteKey(ctx context.Context, key string) error {
 	err := storage.client.Del(ctx, key).Err()
 	if err == redis.Nil {
 		return nil

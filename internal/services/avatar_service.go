@@ -25,13 +25,13 @@ type AvatarService interface {
 }
 
 type avatarService struct {
-	sqlDb        storage.SQLDatabase
-	cache        storage.CacheClient
-	s3Client     storage.S3Client
+	sqlDb        storage.RelationalStorage
+	cache        storage.CacheStorage
+	s3Client     storage.FileStorage
 	imageService ImageService
 }
 
-func NewAvatarService(sqlDb storage.SQLDatabase, cache storage.CacheClient, s3Client storage.S3Client, imageService ImageService) AvatarService {
+func NewAvatarService(sqlDb storage.RelationalStorage, cache storage.CacheStorage, s3Client storage.FileStorage, imageService ImageService) AvatarService {
 	return &avatarService{
 		sqlDb:        sqlDb,
 		cache:        cache,
@@ -123,7 +123,7 @@ func (service *avatarService) UploadAvatarForPreviewById(ctx context.Context, us
 	previewKey := "preview/" + fileName
 
 	// Upload the file to S3
-	err = service.s3Client.UploadFileToS3(ctx, bucketName, previewKey, file)
+	err = service.s3Client.UploadFile(ctx, bucketName, previewKey, file)
 	if err != nil {
 		return "", errors.NewInternalServerError("Error occurred uploading file", err)
 	}

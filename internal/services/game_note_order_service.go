@@ -14,10 +14,10 @@ type GameNoteOrderService interface {
 }
 
 type gameNoteOrderService struct {
-	sqlDb storage.SQLDatabase
+	sqlDb storage.RelationalStorage
 }
 
-func NewGameNoteOrderService(sqlDb storage.SQLDatabase) GameNoteOrderService {
+func NewGameNoteOrderService(sqlDb storage.RelationalStorage) GameNoteOrderService {
 	return &gameNoteOrderService{
 		sqlDb: sqlDb,
 	}

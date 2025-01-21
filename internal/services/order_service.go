@@ -23,13 +23,13 @@ type OrderService interface {
 }
 
 type orderService struct {
-	sqlDb          storage.SQLDatabase
+	sqlDb          storage.RelationalStorage
 	userService    ProfileService
 	ordererService OrdererService
 	contentService ContentService
 }
 
-func NewOrderService(sqlDb storage.SQLDatabase, userService ProfileService, ordererService OrdererService, contentService ContentService) OrderService {
+func NewOrderService(sqlDb storage.RelationalStorage, userService ProfileService, ordererService OrdererService, contentService ContentService) OrderService {
 	return &orderService{
 		sqlDb:          sqlDb,
 		userService:    userService,

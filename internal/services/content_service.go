@@ -14,12 +14,12 @@ type ContentService interface {
 }
 
 type contentService struct {
-	elastic              storage.ElasticClient
+	elastic              storage.ElasticStorage
 	gameNoteService      GameNoteService
 	gameNoteOrderService GameNoteOrderService
 }
 
-func NewContentService(elastic storage.ElasticClient, gameNoteService GameNoteService, gameNoteOrderService GameNoteOrderService) ContentService {
+func NewContentService(elastic storage.ElasticStorage, gameNoteService GameNoteService, gameNoteOrderService GameNoteOrderService) ContentService {
 	return &contentService{
 		elastic:              elastic,
 		gameNoteService:      gameNoteService,

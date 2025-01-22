@@ -5,6 +5,7 @@ import { useAuthStore } from "@/providers/auth-store";
 import React from "react";
 import { getOrderTableColumns } from "../columns";
 import { DataTable } from "../data-table";
+import { useProfileStore } from "@/providers/profile-store";
 
 type Props = {
     link: string;
@@ -12,7 +13,8 @@ type Props = {
 };
 
 export default function OrdersDataTable({ link, placeholder }: Props) {
-    const { user, profile } = useAuthStore((state) => state);
+    const { user } = useAuthStore((state) => state);
+    const profile = useProfileStore((state) => state.profile);
     const isUserAuthorized: boolean =
         user?.id !== null && user?.id !== undefined && user?.id === profile?.id;
 

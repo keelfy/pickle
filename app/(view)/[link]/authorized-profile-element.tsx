@@ -13,7 +13,7 @@ export default function AuthorizedProfileElement({ children, className }: React.
     const user = useAuthStore(state => state.user);
 
     return (
-        <div className={cn(className, user?.id === undefined || profile?.id !== user?.id && "hidden")}>
+        <div className={cn(className, (user?.id === undefined || profile?.id !== user?.id) && "hidden")}>
             {children}
         </div>
     )

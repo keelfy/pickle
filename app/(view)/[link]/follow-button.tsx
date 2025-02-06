@@ -18,8 +18,9 @@ export function FollowButton({ className }: Props) {
     const user = useAuthStore(state => state.user);
     const [isFollowing, setIsFollowing] = React.useState<boolean>(profile?.isFollowing ?? false);
     const [isHovering, setIsHovering] = React.useState<boolean>(false);
+    const [isPending, startTransition] = React.useTransition();
 
-    const handleFollow = async () => {
+    const handleFollow = () => startTransition(async () => {
         const prevValue = isFollowing;
         try {
             setIsFollowing(true);
@@ -42,9 +43,9 @@ export function FollowButton({ className }: Props) {
             });
             setIsFollowing(prevValue);
         }
-    };
+    });
 
-    const handleUnfollow = async () => {
+    const handleUnfollow = () => startTransition(async () => {
         if (user?.id === profile?.id) {
             return;
         }
@@ -71,7 +72,7 @@ export function FollowButton({ className }: Props) {
             });
             setIsFollowing(prevValue);
         }
-    };
+    });
 
     React.useEffect(() => {
         setIsFollowing(profile?.isFollowing ?? false);
@@ -84,18 +85,25 @@ export function FollowButton({ className }: Props) {
             onClick={isFollowing ? handleUnfollow : handleFollow}
             onMouseEnter={() => setIsHovering(true)}
             onMouseLeave={() => setIsHovering(false)}
+            disabled={user === undefined || isPending}
         >
             <div className="relative text-red-500 mr-2">
                 <HeartIcon
                     size={16}
                     fill={isFollowing ? "currentColor" : "none"}
                     strokeWidth={1.5}
-                    className={cn("w-4 h-4 absolute transition-opacity duration-500 -top-2 -left-2 opacity-100", isHovering && isFollowing && "opacity-0")}
+                    className={cn("w-4 h-4 absolute transition-opacity duration-500 -top-2 -left-2 opacity-100",
+                        isHovering && isFollowing && "opacity-0",
+                        isPending && "animate-pulse"
+                    )}
                 />
                 <HeartCrackIcon
                     size={16}
                     strokeWidth={1.5}
-                    className={cn("w-4 h-4 absolute transition-opacity duration-500 opacity-0 -top-2 -left-2", isHovering && isFollowing && "opacity-100")}
+                    className={cn("w-4 h-4 absolute transition-opacity duration-500 opacity-0 -top-2 -left-2",
+                        isHovering && isFollowing && "opacity-100",
+                        isPending && "animate-pulse"
+                    )}
                 />
             </div>
             {isFollowing ? "Unfollow" : "Follow"}

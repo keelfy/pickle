@@ -46,7 +46,16 @@ func (service *followerService) clearFollowerCountCache(ctx context.Context, use
 }
 
 func (service *followerService) Follow(ctx context.Context, userId uuid.UUID, followerId uuid.UUID) error {
-	err := service.sqlDb.Queries().InsertFollower(ctx, db.InsertFollowerParams{
+	isFollowing, err := service.IsFollowing(ctx, userId, followerId)
+	if err != nil {
+		return err
+	}
+
+	if isFollowing {
+		return errors.NewBadRequestError("User is already following target user", nil)
+	}
+
+	err = service.sqlDb.Queries().InsertFollower(ctx, db.InsertFollowerParams{
 		UserID:     userId,
 		FollowerID: followerId,
 	})
@@ -61,7 +70,16 @@ func (service *followerService) Follow(ctx context.Context, userId uuid.UUID, fo
 }
 
 func (service *followerService) Unfollow(ctx context.Context, userId uuid.UUID, followerId uuid.UUID) error {
-	err := service.sqlDb.Queries().DeleteFollower(ctx, db.DeleteFollowerParams{
+	isFollowing, err := service.IsFollowing(ctx, userId, followerId)
+	if err != nil {
+		return err
+	}
+
+	if !isFollowing {
+		return errors.NewBadRequestError("User is not following target user", nil)
+	}
+
+	err = service.sqlDb.Queries().DeleteFollower(ctx, db.DeleteFollowerParams{
 		UserID:     userId,
 		FollowerID: followerId,
 	})
@@ -113,6 +131,10 @@ func (service *followerService) GetFollows(ctx context.Context, followerId uuid.
 }
 
 func (service *followerService) IsFollowing(ctx context.Context, userId uuid.UUID, followerId uuid.UUID) (bool, error) {
+	if userId == followerId {
+		return true, nil
+	}
+
 	count, err := service.sqlDb.Queries().IsFollowing(ctx, db.IsFollowingParams{
 		UserID:     userId,
 		FollowerID: followerId,

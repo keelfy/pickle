@@ -127,12 +127,13 @@ func (s *posterService) uploadPosterForPreview(ctx context.Context, userId uuid.
 	keysToDelete := make([]string, 0)
 
 	for index, preview := range existingPreviews {
-		if preview.ObjectKey == previewKey {
+		if preview.ObjectKey == objectKey {
 			continue
 		}
 
-		if index > 5 || preview.CreatedAt.Before(time.Now().Add(config.GetPosterPreviewStoreTime())) {
-			keysToDelete = append(keysToDelete, preview.ObjectKey)
+		if index > 5 || preview.CreatedAt.Before(time.Now().Add(-config.GetPosterPreviewStoreTime())) {
+			key := fmt.Sprintf("preview/%s", preview.ObjectKey)
+			keysToDelete = append(keysToDelete, key)
 		}
 	}
 

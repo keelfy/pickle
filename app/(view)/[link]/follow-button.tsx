@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { followProfile, unfollowProfile } from "@/hooks/api-endpoints-client";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/providers/auth-store";
 import { useProfileStore } from "@/providers/profile-store";
 import { HeartCrackIcon, HeartIcon } from "lucide-react";
 import React from "react";
@@ -13,7 +14,8 @@ type Props = {
 }
 
 export function FollowButton({ className }: Props) {
-    const {profile, update } = useProfileStore(state => state);
+    const { profile, update } = useProfileStore(state => state);
+    const user = useAuthStore(state => state.user);
     const [isFollowing, setIsFollowing] = React.useState<boolean>(profile?.isFollowing ?? false);
     const [isHovering, setIsHovering] = React.useState<boolean>(false);
 
@@ -22,7 +24,7 @@ export function FollowButton({ className }: Props) {
         try {
             setIsFollowing(true);
             await followProfile(profile);
-            
+
             if (profile?.counts) {
                 update({
                     ...profile,
@@ -43,6 +45,10 @@ export function FollowButton({ className }: Props) {
     };
 
     const handleUnfollow = async () => {
+        if (user?.id === profile?.id) {
+            return;
+        }
+
         const prevValue = isFollowing;
         try {
             setIsFollowing(false);

@@ -1,5 +1,5 @@
 import { SiInstagram } from "@icons-pack/react-simple-icons";
-import { Clapperboard } from "lucide-react";
+import { Clapperboard, MoreHorizontalIcon, ShieldPlusIcon, SparklesIcon } from "lucide-react";
 
 import { SiX } from "@icons-pack/react-simple-icons";
 
@@ -7,13 +7,17 @@ import { SiYoutube } from "@icons-pack/react-simple-icons";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { fetchProfileAvatar } from "@/hooks/api-endpoints-server";
+import { cn } from "@/lib/utils";
 import { SiTwitch } from "@icons-pack/react-simple-icons";
 import { Gamepad } from "lucide-react";
 import Image from "next/image";
 import { Suspense } from "react";
 import { FollowButton } from "./follow-button";
-import { cn } from "@/lib/utils";
+import SuggestionLinkCopyButton from "./suggestion-link-copy-button";
+import ManualCreationDropdownMenu from "./manual-creation-dropdown-menu";
+import AuthorizedProfileElement from "./authorized-profile-element";
 
 type Props = {
     profile: Profile;
@@ -55,7 +59,7 @@ export default function ProfileCard({ profile, className }: Props) {
     return (
         <div className={cn("min-w-80 space-y-4", className)}>
             <div className="space-y-4">
-                <div className="space-y-0.5 pl-6">
+                <div className="space-y-0.5">
                     <div className="text-3xl font-bold">
                         {profile?.username}
                     </div>
@@ -122,6 +126,24 @@ export default function ProfileCard({ profile, className }: Props) {
                     </div>
                 </div>
             </div>
+            <div className="grid gap-2">
+                <div className="flex items-center">
+                    <a href={`https://pickle.pw/${profile.link}/suggestion`} target="_blank" rel="noopener noreferrer" className="w-full">
+                        <Button className="w-full rounded-r-none">
+                            <SparklesIcon />
+                            Suggest a title
+                        </Button>
+                    </a>
+                    <SuggestionLinkCopyButton className="rounded-l-none" />
+                </div>
+                <AuthorizedProfileElement className="flex items-center">
+                    <Button variant="secondary" className="w-full rounded-r-none">
+                        <ShieldPlusIcon />
+                        Add a title manually
+                    </Button>
+                    <ManualCreationDropdownMenu className="rounded-l-none" />
+                </AuthorizedProfileElement>
+            </div>
             <div className="rounded-xl bg-primary-foreground p-6 text-sm text-muted-foreground">
                 {(profile?.description ?? "").length > 0 ? (
                     profile?.description
@@ -131,17 +153,17 @@ export default function ProfileCard({ profile, className }: Props) {
                     </div>
                 )}
             </div>
-            <div className="flex items-center justify-around gap-2">
-                <Button variant="outline" size="icon">
+            <div className="flex items-center gap-2 ml-4">
+                <Button variant="secondary" size="icon">
                     <SiTwitch />
                 </Button>
-                <Button variant="outline" size="icon">
+                <Button variant="secondary" size="icon">
                     <SiYoutube />
                 </Button>
-                <Button variant="outline" size="icon">
+                <Button variant="secondary" size="icon">
                     <SiX />
                 </Button>
-                <Button variant="outline" size="icon">
+                <Button variant="secondary" size="icon">
                     <SiInstagram />
                 </Button>
             </div>

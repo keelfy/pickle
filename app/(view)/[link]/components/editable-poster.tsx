@@ -1,12 +1,12 @@
 "use client";
 
-import { uploadPoster } from "@/hooks/api-endpoints-client";
+import { deletePosterPreview, uploadPosterPreview } from "@/hooks/api-endpoints-client";
 import { cn } from "@/lib/utils";
 import { useProfileStore } from "@/providers/profile-store";
 import { Upload } from "lucide-react";
 import Image from "next/image";
 import React from "react";
-import FileSelectPopover, { ImageFile } from "../file-select-popover";
+import FileSelectPopover from "../file-select-popover";
 
 type Props = {
     value?: string;
@@ -14,100 +14,60 @@ type Props = {
     onChange: (value: string | undefined) => void;
 };
 
-const maxFiles = 3;
-
 const EditablePoster = ({ value, defaultImageUrl, onChange }: Props) => {
     const profile = useProfileStore((state) => state.profile);
-    const [imageFiles, setImageFiles] = React.useState<ImageFile[]>([]);
+    const [previewUrl, setPreviewUrl] = React.useState<string | undefined>(defaultImageUrl);
 
-    function updateImageFileById(id: string, update: Partial<ImageFile>) {
-        setImageFiles((prevFiles) =>
-            prevFiles.map((file) =>
-                file.uploadId === id ? { ...file, ...update } : file
-            )
-        );
+    async function uploadImage(file: File) {
+        const formData = new FormData();
+        formData.append("file", file);
+        return uploadPosterPreview(profile, formData, 'md');
     }
 
-    function onImageFileSelected(image: ImageFile) {
-        setImageFiles((prevFiles) => {
-            const newFiles = [...prevFiles, image];
-            return newFiles.slice(-maxFiles);
-        });
-
-        (async () => {
-            const formData = new FormData();
-            formData.append("file", image.file);
-
-            updateImageFileById(image.uploadId, {
-                isLoading: true,
-            });
-
-            try {
-                const res = await uploadPoster(profile, formData, 'md');
-                updateImageFileById(image.uploadId, {
-                    preview: {
-                        id: res?.previewId ?? "",
-                        url: res?.previewUrl ?? "",
-                    },
-                });
-            } catch (error: any) {
-                updateImageFileById(image.uploadId, {
-                    error: error.message ?? "An error occurred",
-                });
-            }
-
-            updateImageFileById(image.uploadId, {
-                isLoading: false,
-            });
-        })();
+    async function deleteImage(id: string) {
+        deletePosterPreview(profile, id);
     }
 
-    function onImageFileDeleted(uploadId: string) {
-        setImageFiles((prevFiles) =>
-            prevFiles.filter((file) => file.uploadId !== uploadId)
-        );
+    async function embedImage(url: string) {
+        const formData = new FormData();
+        formData.append("url", url);
+        return uploadPosterPreview(profile, formData, 'md');
     }
 
-    const imageFileWithPreview: ImageFile | undefined = React.useMemo(() => {
-        const imageFile = imageFiles.filter(
-            ({ preview }) => preview && preview.url && preview.id
-        );
-        return imageFile.length > 0
-            ? imageFile[imageFile.length - 1]
-            : undefined;
-    }, [imageFiles]);
-
-    const imageFile: ImageFile | undefined = React.useMemo(() => {
-        return imageFiles.find(({ preview }) => preview?.id === value);
-    }, [value]);
+    function onImagePreviewChanged(preview: ImagePreview | undefined) {
+        setPreviewUrl(preview?.previewUrl ?? defaultImageUrl);
+        onChange(preview?.previewId);
+    }
 
     React.useEffect(() => {
-        onChange(imageFileWithPreview?.preview?.id);
-    }, [imageFileWithPreview?.uploadId]);
+        setPreviewUrl(defaultImageUrl);
+    }, [defaultImageUrl]);
 
     return (
-        <div className="relative flex flex-col max-w-[150px] max-h-[225px] min-h-max min-w-max rounded-lg">
-            {imageFile?.preview?.url || defaultImageUrl ? (
+        <div className="relative flex flex-col max-w-[150px] max-h-[225px] min-h-max min-w-max">
+            {previewUrl ? (
                 <Image
-                    src={imageFile?.preview?.url ?? defaultImageUrl ?? ""}
+                    src={previewUrl ?? ""}
                     alt="Poster preview"
                     width={150}
                     height={225}
-                    unoptimized
+                    className="rounded-lg"
                 />
             ) : (
-                <div className="w-[150px] h-[225px]" />
+                <div className="w-[150px] h-[225px] rounded-lg" />
             )}
             <FileSelectPopover
-                onImageFileSelected={onImageFileSelected}
-                onImageFileDeleted={onImageFileDeleted}
-                imageFiles={imageFiles}
+                selectedPreviewId={value}
+                onImagePreviewChanged={onImagePreviewChanged}
+                uploadImage={uploadImage}
+                deleteImage={deleteImage}
+                embedImage={embedImage}
             >
                 <button
                     type="button"
                     className={cn(
                         "absolute inset-0 w-full h-full flex items-center justify-center transition-opacity hover:opacity-100 duration-500 bg-primary-foreground/70 border border-gray-300 border-dashed rounded-lg",
-                        imageFile?.preview?.url ? "opacity-0" : "opacity-100"
+                        previewUrl ? "opacity-0" : "opacity-100"
                     )}
                 >
                     <div className="flex flex-col items-center justify-center gap-4 rounded-lg px-2 py-4">

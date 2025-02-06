@@ -2,6 +2,7 @@ type ProfileCounts = {
     played: number;
     watched: number;
     ordered: number;
+    followers: number;
 }
 
 type Profile = {
@@ -11,6 +12,7 @@ type Profile = {
     link: string;
     description: string | undefined;
     counts?: ProfileCounts;
+    isFollowing: boolean;
 };
 
 type Image = {
@@ -75,3 +77,14 @@ type Order = {
     updatedCategory: ContentCategory;
     updatedMessage: string;
 };
+
+type OrderUpdate = Order & Partial<{
+    contentCreated: boolean;
+    contentId: string;
+}>;
+
+type PosterPreview = {
+    id: string;
+    createdAt: Date;
+    url: string;
+}

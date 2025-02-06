@@ -23,11 +23,18 @@ export async function fetchProfileOrders(profile: Profile | undefined, cursor: s
     return fetchApi<Order[]>(`/v1/users/${profile.id}/orders?cursor=${cursor}&column=${column}&limit=${limit}&direction=${direction}`);
 }
 
-export async function uploadPoster(profile: Profile | undefined, formData: FormData, size: ImageSize = 'md') {
+export async function uploadPosterPreview(profile: Profile | undefined, formData: FormData, size: ImageSize = 'md') {
     if (!profile) return undefined;
-    return fetchApi<ImagePreview>(`/v1/users/${profile.id}/posters?size=${size}`, true, {
+    return fetchApi<ImagePreview>(`/v1/users/${profile.id}/posters/previews?size=${size}`, true, {
         method: "POST",
         body: formData,
+    });
+}
+
+export async function deletePosterPreview(profile: Profile | undefined, id: string) {
+    if (!profile) return undefined;
+    return fetchApi(`/v1/users/${profile.id}/posters/previews/${id}`, true, {
+        method: "DELETE",
     });
 }
 
@@ -79,7 +86,7 @@ export async function createOrder(profile: Profile | undefined, order: Partial<O
 
 export async function updateOrder(profile: Profile | undefined, orderId: string, order: any) {
     if (!profile) return undefined;
-    return fetchApi<Order>(`/v1/users/${profile.id}/orders/${orderId}`, true, {
+    return fetchApi<OrderUpdate>(`/v1/users/${profile.id}/orders/${orderId}`, true, {
         method: "PATCH",
         body: JSON.stringify(order),
     });
@@ -90,5 +97,18 @@ export async function deleteContent(profile: Profile | undefined, path: string, 
     return fetchApi(`/v1/users/${profile.id}/${path}/${id}?resetApprovedOrders=${resetApprovedOrders}`, true, {
         method: "DELETE",
     });
+}
 
+export async function followProfile(profile: Profile | undefined) {
+    if (!profile) return undefined;
+    return fetchApi(`/v1/users/${profile.id}/follows`, true, {
+        method: "POST",
+    });
+}
+
+export async function unfollowProfile(profile: Profile | undefined) {
+    if (!profile) return undefined;
+    return fetchApi(`/v1/users/${profile.id}/follows`, true, {
+        method: "DELETE",
+    });
 }

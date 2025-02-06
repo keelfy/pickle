@@ -50,7 +50,7 @@ import { useProfileStore } from "@/providers/profile-store";
 import { gameNoteStatusLabels } from "@/utils/api/constants";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PopoverClose } from "@radix-ui/react-popover";
-import { Check, ChevronsUpDown, Edit, X } from "lucide-react";
+import { Check, ChevronsUpDown, CircleOff, Edit, X } from "lucide-react";
 import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -120,14 +120,16 @@ export default function GameNoteEditorDialogContent() {
                 });
             });
 
-            fetchGameNotePoster(profile, gameNoteId, 'md').then(res => setPosterUrl(res?.url)).catch(err => {
-                console.error(err);
-                setPosterUrl(undefined);
-                toast({
-                    title: "Failed to fetch game note poster",
-                    description: err.message ?? "Try again later.",
+            fetchGameNotePoster(profile, gameNoteId, 'md')
+                .then(res => setPosterUrl(res?.url))
+                .catch(err => {
+                    console.error(err);
+                    setPosterUrl(undefined);
+                    toast({
+                        title: "Failed to fetch game note poster",
+                        description: err.message ?? "Try again later.",
+                    });
                 });
-            });
         }
     }, [gameNoteId]);
 
@@ -140,6 +142,7 @@ export default function GameNoteEditorDialogContent() {
                     title: "Game note updated",
                     description: "The game note was updated.",
                 });
+                closeModal();
             } catch (error: any) {
                 toast({
                     title: "Failed to update game note",
@@ -462,14 +465,23 @@ export default function GameNoteEditorDialogContent() {
                     </div>
                     <DialogFooter className="mt-4">
                         <Button
-                            variant="secondary"
+                            variant="destructive"
                             type="button"
                             onClick={closeModal}
                         >
                             <X />
                             Cancel
                         </Button>
-                        <Button type="submit" disabled={isLoading}>
+                        <Button
+                            variant="secondary"
+                            type="button"
+                            onClick={() => form.reset()}
+                            disabled={isLoading || !form.formState.isDirty}
+                        >
+                            <CircleOff />
+                            Reset
+                        </Button>
+                        <Button type="submit" disabled={isLoading || !form.formState.isValid || !form.formState.isDirty}>
                             {isLoading ? <LoadingSpinner /> : <Check />}
                             Confirm
                         </Button>

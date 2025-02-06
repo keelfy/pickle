@@ -7,11 +7,11 @@ export async function fetchProfileByUser(user: User | null | undefined) {
 }
 
 export async function fetchMyProfile() {
-    return fetchApi<Profile>(`/v1/users/me`, true);
+    return fetchApi<Profile>(`/v1/users/me`);
 }
 
 export async function fetchProfileByLink(link: string) {
-    return fetchApi<Profile>(`/v1/profiles/${link}`, true);
+    return fetchApi<Profile>(`/v1/profiles/${link}`);
 }
 
 export async function fetchProfileAvatar(profile: Profile | undefined, size: ImageSize = 'md') {
@@ -20,5 +20,5 @@ export async function fetchProfileAvatar(profile: Profile | undefined, size: Ima
 }
 
 export async function fetchMyAvatar(size: ImageSize = 'md') {
-    return fetchApi<Image>(`/v1/users/me/avatar?size=${size}`, true);
+    return fetchApi<Image>(`/v1/users/me/avatar?size=${size}`);
 }

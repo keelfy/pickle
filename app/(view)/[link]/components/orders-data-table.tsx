@@ -8,11 +8,10 @@ import { DataTable } from "../data-table";
 import { useProfileStore } from "@/providers/profile-store";
 
 type Props = {
-    link: string;
     placeholder?: React.ReactNode;
 };
 
-export default function OrdersDataTable({ link, placeholder }: Props) {
+export default function OrdersDataTable({ placeholder }: Props) {
     const { user } = useAuthStore((state) => state);
     const profile = useProfileStore((state) => state.profile);
     const isUserAuthorized: boolean =
@@ -24,7 +23,7 @@ export default function OrdersDataTable({ link, placeholder }: Props) {
     );
 
     React.useEffect(() => {
-        if (!link || link.length === 0) return
+        if (!profile) return
 
         const fetchOrders = async () => {
             try {
@@ -37,7 +36,7 @@ export default function OrdersDataTable({ link, placeholder }: Props) {
         fetchOrders();
         const intervalId = setInterval(fetchOrders, 5000);
         return () => clearInterval(intervalId);
-    }, [link]);
+    }, [profile?.id]);
 
     return (
         <DataTable

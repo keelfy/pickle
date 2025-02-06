@@ -47,6 +47,7 @@ import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useModalStore } from "@/providers/modal";
 import { useProfileStore } from "@/providers/profile-store";
+import { ModalType } from "@/stores/modal";
 import { contentCategoryLabels } from "@/utils/api/constants";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PopoverClose } from "@radix-ui/react-popover";
@@ -62,7 +63,7 @@ const formSchema = z.object({
 });
 
 export default function ApproveOrderDialogContent() {
-    const { closeModal } = useModalStore((state) => state);
+    const { closeModal, openModal } = useModalStore((state) => state);
     const { id: orderId } = useModalStore((state) => state.modalParams!);
     const { profile } = useProfileStore((state) => state);
     const [order, setOrder] = React.useState<Order>();
@@ -199,23 +200,20 @@ export default function ApproveOrderDialogContent() {
 
         startOrderApprovingTransition(async () => {
             try {
-                await updateOrder(profile, orderId, {
+                const res = await updateOrder(profile, orderId, {
                     status: 'approved',
                     category: values.category,
                     title: values.title,
                     contentId: values.contentId,
                 });
 
-                // if (values.contentId) {
-                closeModal();
-                // } else {
-                // openModal(ModalType.CreateGameNote, {
-                //     orderId: orderId,
-                //     title: values.message,
-                //     orderer: order?.ordererUsername,
-                //     at: order?.createdAt,
-                // });
-                // }
+                if (!res?.contentCreated) {
+                    closeModal();
+                } else {
+                    openModal(ModalType.GameNoteEditor, {
+                        id: res.contentId,
+                    });
+                }
             } catch (error: any) {
                 toast({
                     title: "Failed to approve the order",

@@ -24,6 +24,8 @@ type ProfileHandler interface {
 	GetMyProfileAvatarUrl(w http.ResponseWriter, r *http.Request)
 	UploadAvatar(w http.ResponseWriter, r *http.Request)
 	CreateProfileWebhook(w http.ResponseWriter, r *http.Request)
+	FollowProfile(w http.ResponseWriter, r *http.Request)
+	UnfollowProfile(w http.ResponseWriter, r *http.Request)
 }
 
 type profileHandler struct {
@@ -31,14 +33,19 @@ type profileHandler struct {
 	avatarService   services.AvatarService
 	gameNoteService services.GameNoteService
 	orderService    services.OrderService
+	followerService services.FollowerService
 }
 
-func NewUserHandler(profileService services.ProfileService, avatarService services.AvatarService, gameNoteService services.GameNoteService, orderService services.OrderService) ProfileHandler {
+func NewUserHandler(
+	profileService services.ProfileService, avatarService services.AvatarService, gameNoteService services.GameNoteService,
+	orderService services.OrderService, followerService services.FollowerService,
+) ProfileHandler {
 	return &profileHandler{
 		profileService:  profileService,
 		avatarService:   avatarService,
 		gameNoteService: gameNoteService,
 		orderService:    orderService,
+		followerService: followerService,
 	}
 }
 
@@ -94,17 +101,22 @@ func (h *profileHandler) GetProfileByLink(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	authUserId, _ := utils.UserIdFromContext(ctx)
+
 	profile, err := h.profileService.GetProfileByLink(ctx, link)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
 	}
 
-	var playedCount, orderedCount int64
-	var playedErr, orderedErr error
+	var (
+		playedCount, orderedCount, followerCount           int64
+		playedErr, orderedErr, followerErr, isFollowingErr error
+		isFollowing                                        bool
+		wg                                                 sync.WaitGroup
+	)
 
-	var wg sync.WaitGroup
-	wg.Add(2)
+	wg.Add(3)
 
 	go func() {
 		defer wg.Done()
@@ -116,6 +128,20 @@ func (h *profileHandler) GetProfileByLink(w http.ResponseWriter, r *http.Request
 		orderedCount, orderedErr = h.orderService.CountOrdersByReceiverId(ctx, profile.UserID)
 	}()
 
+	go func() {
+		defer wg.Done()
+		followerCount, followerErr = h.followerService.CountFollowers(ctx, profile.UserID)
+	}()
+
+	if authUserId != uuid.Nil {
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+			isFollowing, isFollowingErr = h.followerService.IsFollowing(ctx, profile.UserID, authUserId)
+		}()
+	}
+
 	wg.Wait()
 
 	if playedErr != nil {
@@ -126,13 +152,23 @@ func (h *profileHandler) GetProfileByLink(w http.ResponseWriter, r *http.Request
 		logger.Errorf(ctx, "Error occurred during ordered count: %v", orderedErr)
 	}
 
+	if followerErr != nil {
+		logger.Errorf(ctx, "Error occurred during follower count: %v", followerErr)
+	}
+
+	if isFollowingErr != nil {
+		logger.Errorf(ctx, "Error occurred during is following: %v", isFollowingErr)
+	}
+
 	response := &types.ProfileRes{}
 	copier.Copy(response, profile)
 	response.Counts = &types.CountsRes{
-		Played:  playedCount,
-		Watched: 0,
-		Ordered: orderedCount,
+		Played:    playedCount,
+		Watched:   0,
+		Ordered:   orderedCount,
+		Followers: followerCount,
 	}
+	response.IsFollowing = isFollowing
 	utils.WriteHttpJsonResponse(ctx, w, response)
 }
 
@@ -147,7 +183,11 @@ func (h *profileHandler) GetProfileByLink(w http.ResponseWriter, r *http.Request
 // @Router /v1/users/me [get]
 func (handler *profileHandler) GetMyProfile(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userId := utils.UserIdFromContext(ctx)
+	userId, err := utils.UserIdFromContext(ctx)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
 
 	user, err := handler.profileService.GetProfileById(ctx, userId)
 	if err != nil {
@@ -172,7 +212,11 @@ func (handler *profileHandler) GetMyProfile(w http.ResponseWriter, r *http.Reque
 // @Router /v1/users/me [patch]
 func (handler *profileHandler) UpdateSettings(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userId := utils.UserIdFromContext(ctx)
+	userId, err := utils.UserIdFromContext(ctx)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
 
 	// Read the body
 	req := &types.UpdateProfileReq{}
@@ -267,7 +311,12 @@ func (handler *profileHandler) GetProfileAvatarUrl(w http.ResponseWriter, r *htt
 // @Router /v1/users/me/avatar [get]
 func (handler *profileHandler) GetMyProfileAvatarUrl(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userId := utils.UserIdFromContext(ctx)
+	userId, err := utils.UserIdFromContext(ctx)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
 	size := utils.GetQueryParam(r, "size", "md")
 
 	avatarUrl, err := handler.avatarService.GetAvatarUrlById(ctx, userId, size)
@@ -295,11 +344,16 @@ func (handler *profileHandler) GetMyProfileAvatarUrl(w http.ResponseWriter, r *h
 // @Router /v1/users/me/avatar [post]
 func (handler *profileHandler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userId := utils.UserIdFromContext(ctx)
+	userId, err := utils.UserIdFromContext(ctx)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
 	size := utils.GetQueryParam(r, "size", "lg")
 
 	// Parse the form to retrieve the uploaded file
-	err := r.ParseMultipartForm(config.GetMaxFileSizeBytes())
+	err = r.ParseMultipartForm(config.GetMaxFileSizeBytes())
 	if err != nil {
 		http.Error(w, "Unable to parse form", http.StatusBadRequest)
 		return
@@ -351,4 +405,70 @@ func (handler *profileHandler) CreateProfileWebhook(w http.ResponseWriter, r *ht
 	}
 
 	w.WriteHeader(http.StatusCreated)
+}
+
+// @Summary Follow profile
+// @Description Follow profile
+// @Tags profiles
+// @Accept json
+// @Produce json
+// @Param userId path string true "User ID"
+// @Success 204
+// @Failure 400 {object} string
+// @Failure 500 {object} string
+// @Router /v1/users/{userId}/follows [post]
+func (handler *profileHandler) FollowProfile(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	authUserId, err := utils.UserIdFromContext(ctx)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
+	userId, err := utils.ReadPathUUIDVariable("userId", r)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
+	err = handler.followerService.Follow(ctx, authUserId, userId)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// @Summary Unfollow profile
+// @Description Unfollow profile
+// @Tags profiles
+// @Accept json
+// @Produce json
+// @Param userId path string true "User ID"
+// @Success 204
+// @Failure 400 {object} string
+// @Failure 500 {object} string
+// @Router /v1/users/{userId}/follows [delete]
+func (handler *profileHandler) UnfollowProfile(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	authUserId, err := utils.UserIdFromContext(ctx)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
+	userId, err := utils.ReadPathUUIDVariable("userId", r)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
+	err = handler.followerService.Unfollow(ctx, userId, authUserId)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

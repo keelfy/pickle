@@ -12,6 +12,8 @@ import (
 
 type Querier interface {
 	// Author: Egor Kuzmin (keelfy)
+	CountFollowers(ctx context.Context, userID uuid.UUID) (int64, error)
+	// Author: Egor Kuzmin (keelfy)
 	CountOrdersByGameNoteId(ctx context.Context, gameNoteID uuid.UUID) (int64, error)
 	// Author: Egor Kuzmin (keelfy)
 	// Counts orders by receiver id
@@ -19,7 +21,10 @@ type Querier interface {
 	// Author: Egor Kuzmin (keelfy)
 	CountPlayedGameNotesByUserId(ctx context.Context, userID uuid.UUID) (int64, error)
 	// Author: Egor Kuzmin (keelfy)
+	DeleteFollower(ctx context.Context, arg DeleteFollowerParams) error
+	// Author: Egor Kuzmin (keelfy)
 	DeleteGameNoteById(ctx context.Context, id uuid.UUID) error
+	DeletePosterPreview(ctx context.Context, id uuid.UUID) error
 	// Author: Egor Kuzmin (keelfy)
 	FindElasticsearchMigrationByName(ctx context.Context, name string) (*EsMigrationLog, error)
 	// Author: Egor Kuzmin (keelfy)
@@ -53,7 +58,11 @@ type Querier interface {
 	// Author: Egor Kuzmin (keelfy)
 	FindProfileByLink(ctx context.Context, link string) (*Profile, error)
 	// Author: Egor Kuzmin (keelfy)
+	GetUserFollows(ctx context.Context, followerID uuid.UUID) ([]*Profile, error)
+	// Author: Egor Kuzmin (keelfy)
 	InsertElasticsearchMigration(ctx context.Context, name string) error
+	// Author: Egor Kuzmin (keelfy)
+	InsertFollower(ctx context.Context, arg InsertFollowerParams) error
 	// Author: Egor Kuzmin (keelfy)
 	InsertGameNote(ctx context.Context, arg InsertGameNoteParams) (*GameNote, error)
 	// Author: Egor Kuzmin (keelfy)
@@ -65,11 +74,13 @@ type Querier interface {
 	InsertOrder(ctx context.Context, arg InsertOrderParams) (*Order, error)
 	// Author: Egor Kuzmin (keelfy)
 	InsertOrderer(ctx context.Context, arg InsertOrdererParams) (*Orderer, error)
-	InsertPosterPreview(ctx context.Context, arg InsertPosterPreviewParams) error
+	InsertPosterPreview(ctx context.Context, arg InsertPosterPreviewParams) (*PosterPreview, error)
 	// Author: Egor Kuzmin (keelfy)
 	InsertProfile(ctx context.Context, arg InsertProfileParams) (*Profile, error)
 	// Author: Egor Kuzmin (keelfy)
 	InsertProfileAvatar(ctx context.Context, arg InsertProfileAvatarParams) (*ProfileAvatar, error)
+	// Author: Egor Kuzmin (keelfy)
+	IsFollowing(ctx context.Context, arg IsFollowingParams) (int64, error)
 	// Author: Egor Kuzmin (keelfy)
 	ResetApprovedOrdersByGameNoteId(ctx context.Context, gameNoteID uuid.UUID) error
 	// Author: Egor Kuzmin (keelfy)

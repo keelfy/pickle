@@ -12,8 +12,9 @@ import (
 
 type CacheStorage interface {
 	Ping(ctx context.Context) error
-	GetKey(ctx context.Context, key string) (*string, error)
-	SetKey(ctx context.Context, key string, value string, expiration time.Duration) error
+	GetKey(ctx context.Context, key string) (string, error)
+	GetInt64(ctx context.Context, key string) (int64, error)
+	SetKey(ctx context.Context, key string, value interface{}, expiration time.Duration) error
 	DeleteKey(ctx context.Context, key string) error
 }
 
@@ -46,21 +47,27 @@ func (storage *cacheStorage) Ping(ctx context.Context) error {
 	return err
 }
 
-func (storage *cacheStorage) GetKey(ctx context.Context, key string) (*string, error) {
+func (storage *cacheStorage) GetKey(ctx context.Context, key string) (string, error) {
 	value, err := storage.client.Get(ctx, key).Result()
-	if err == nil {
-		logger.Debugf(ctx, "[CACHE] Retrieved value of '%s'", key)
-		return &value, nil
-	} else if err != redis.Nil {
+	if err != nil {
 		logger.Debugf(ctx, "[CACHE] Error getting key '%s': %v", key, err)
-		return nil, err
+		return "", err
 	}
 
-	logger.Debugf(ctx, "[CACHE] Key '%s' not found", key)
-	return nil, nil
+	logger.Debugf(ctx, "[CACHE] Retrieved value of '%s'", key)
+	return value, nil
 }
 
-func (storage *cacheStorage) SetKey(ctx context.Context, key string, value string, expiration time.Duration) error {
+func (storage *cacheStorage) GetInt64(ctx context.Context, key string) (int64, error) {
+	value, err := storage.client.Get(ctx, key).Int64()
+	if err != nil {
+		logger.Debugf(ctx, "[CACHE] Error getting key '%s': %v", key, err)
+		return 0, err
+	}
+	return value, nil
+}
+
+func (storage *cacheStorage) SetKey(ctx context.Context, key string, value interface{}, expiration time.Duration) error {
 	err := storage.client.Set(ctx, key, value, expiration).Err()
 	if err != nil {
 		logger.Debugf(ctx, "[CACHE] Error adding key '%s': %v", key, err)

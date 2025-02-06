@@ -153,6 +153,12 @@ type EsMigrationLog struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+type Follower struct {
+	UserID     uuid.UUID `json:"user_id"`
+	FollowerID uuid.UUID `json:"follower_id"`
+	CreatedAt  time.Time `json:"created_at"`
+}
+
 type GameNote struct {
 	ID               uuid.UUID      `json:"id"`
 	CreatedAt        time.Time      `json:"created_at"`

@@ -14,3 +14,10 @@ CREATE UNIQUE INDEX IF NOT EXISTS "uidx_migration_logs_name" ON "migration_logs"
 
 -- es_migrations
 CREATE UNIQUE INDEX IF NOT EXISTS "uidx_es_migration_logs_name" ON "es_migration_logs"("name");
+
+-- followers
+CREATE INDEX IF NOT EXISTS "idx_followers_user_id" ON "followers"("user_id");
+CREATE INDEX IF NOT EXISTS "idx_followers_follower_id" ON "followers"("follower_id");
+
+-- poster_previews
+CREATE INDEX IF NOT EXISTS "idx_poster_previews_created_by" ON "poster_previews"("created_by");

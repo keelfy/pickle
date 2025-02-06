@@ -493,6 +493,86 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/users/{userId}/follows": {
+            "post": {
+                "description": "Follow profile",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profiles"
+                ],
+                "summary": "Follow profile",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Unfollow profile",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profiles"
+                ],
+                "summary": "Unfollow profile",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/users/{userId}/game-notes": {
             "get": {
                 "description": "Get game notes sorted by receiver link",
@@ -1143,6 +1223,9 @@ const docTemplate = `{
         "github_com_pickle_pw_monolith_internal_types.CountsRes": {
             "type": "object",
             "properties": {
+                "followers": {
+                    "type": "integer"
+                },
                 "ordered": {
                     "type": "integer"
                 },
@@ -1373,6 +1456,9 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "string"
+                },
+                "isFollowing": {
+                    "type": "boolean"
                 },
                 "link": {
                     "type": "string"

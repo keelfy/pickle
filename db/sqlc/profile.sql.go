@@ -55,6 +55,43 @@ func (q *Queries) FindProfileByLink(ctx context.Context, link string) (*Profile,
 	return &i, err
 }
 
+const getUserFollows = `-- name: GetUserFollows :many
+SELECT p.user_id, p.created_at, p.updated_at, p.updated_by, p.username, p.link, p.description 
+FROM "profiles" p
+JOIN "followers" f ON p."user_id" = f."user_id"
+WHERE f."follower_id" = $1
+ORDER BY f."created_at" DESC
+`
+
+// Author: Egor Kuzmin (keelfy)
+func (q *Queries) GetUserFollows(ctx context.Context, followerID uuid.UUID) ([]*Profile, error) {
+	rows, err := q.db.Query(ctx, getUserFollows, followerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []*Profile
+	for rows.Next() {
+		var i Profile
+		if err := rows.Scan(
+			&i.UserID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.UpdatedBy,
+			&i.Username,
+			&i.Link,
+			&i.Description,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, &i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const insertProfile = `-- name: InsertProfile :one
 INSERT INTO "profiles" (
         "user_id",

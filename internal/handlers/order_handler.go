@@ -197,13 +197,15 @@ func (handler *orderHandler) UpdateOrderByID(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	updatedOrder, err := handler.orderService.UpdateOrderByID(ctx, orderId, initiator, receiver, req)
+	updatedOrder, relatedContentID, err := handler.orderService.UpdateOrderByID(ctx, orderId, initiator, receiver, req)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
 	}
 
-	orderResponse := &types.OrderRes{}
-	copier.Copy(orderResponse, updatedOrder)
-	utils.WriteHttpJsonResponse(ctx, w, orderResponse)
+	response := &types.OrderUpdateRes{}
+	copier.Copy(response, updatedOrder)
+	response.ContentCreated = relatedContentID != uuid.Nil
+	response.ContentID = relatedContentID
+	utils.WriteHttpJsonResponse(ctx, w, response)
 }

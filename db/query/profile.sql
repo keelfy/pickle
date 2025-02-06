@@ -31,3 +31,11 @@ SET "updated_at" = now(),
     "description" = $5
 WHERE "user_id" = $1
 RETURNING *;
+
+-- Author: Egor Kuzmin (keelfy)
+-- name: GetUserFollows :many
+SELECT p.* 
+FROM "profiles" p
+JOIN "followers" f ON p."user_id" = f."user_id"
+WHERE f."follower_id" = $1
+ORDER BY f."created_at" DESC;

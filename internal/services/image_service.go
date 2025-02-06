@@ -70,17 +70,6 @@ func (service *imageService) DownloadImageFile(ctx context.Context, url string) 
 		N: config.GetMaxFileSizeBytes() + 1, // Limit to maxFileSize bytes + 1 extra to detect oversized files
 	}
 
-	contentLength := resp.Header.Get("Content-Length")
-	if contentLength == "" {
-		return nil, 0, fmt.Errorf("Content-Length header is missing")
-	}
-
-	// Parse Content-Length to int64
-	_, err = fmt.Sscanf(contentLength, "%d", &fileSize)
-	if err != nil {
-		return nil, 0, fmt.Errorf("failed to parse Content-Length: %w", err)
-	}
-
 	if resp.StatusCode != http.StatusOK {
 		return nil, 0, fmt.Errorf("received non-200 response: %d", resp.StatusCode)
 	}

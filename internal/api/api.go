@@ -96,7 +96,11 @@ func (api *pickleAPI) applyElasticsearchMigrations(ctx context.Context) error {
 }
 
 func (api *pickleAPI) useProtectedRoutes(r chi.Router) {
-	r.Use(jwtAuth.Verifier(api.tokenAuth), middleware.Authenticator(api.tokenAuth))
+	r.Use(jwtAuth.Verifier(api.tokenAuth), middleware.Authenticator(api.tokenAuth, true))
+}
+
+func (api *pickleAPI) useUnprotectedRoutes(r chi.Router) {
+	r.Use(jwtAuth.Verifier(api.tokenAuth), middleware.Authenticator(api.tokenAuth, false))
 }
 
 func (api *pickleAPI) useApiKey(r chi.Router) {
@@ -115,6 +119,8 @@ func (api *pickleAPI) v1RouteHandler() http.Handler {
 	})
 
 	r.Route("/profiles", func(r chi.Router) {
+		api.useUnprotectedRoutes(r)
+
 		r.Get("/validate-link", api.profileHandler.ValidateProfileLink)
 		r.Get("/{link}", api.profileHandler.GetProfileByLink)
 	})
@@ -132,6 +138,13 @@ func (api *pickleAPI) v1RouteHandler() http.Handler {
 		r.Route("/{userId}", func(r chi.Router) {
 			r.Get("/", api.profileHandler.GetProfileById)
 			r.Get("/avatar", api.profileHandler.GetProfileAvatarUrl)
+
+			r.Route("/follows", func(r chi.Router) {
+				api.useProtectedRoutes(r)
+
+				r.Post("/", api.profileHandler.FollowProfile)
+				r.Delete("/", api.profileHandler.UnfollowProfile)
+			})
 
 			r.Route("/game-notes", func(r chi.Router) {
 				r.Get("/", api.gameNoteHandler.GetSortedGameNotesByUserID)
@@ -173,10 +186,16 @@ func (api *pickleAPI) v1RouteHandler() http.Handler {
 				})
 			})
 
-			r.Route("/posters", func(r chi.Router) {
+			r.Route("/posters/previews", func(r chi.Router) {
 				api.useProtectedRoutes(r)
 
-				r.Post("/", api.posterHandler.UploadPoster)
+				r.Get("/", api.posterHandler.GetPosterPreviews)
+				r.Post("/", api.posterHandler.UploadPosterPreview)
+
+				r.Route("/{previewId}", func(r chi.Router) {
+					r.Get("/image", api.posterHandler.GetPosterPreviewImageURL)
+					r.Delete("/", api.posterHandler.DeletePosterPreview)
+				})
 			})
 
 			r.Route("/content", func(r chi.Router) {

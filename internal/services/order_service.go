@@ -16,7 +16,7 @@ type OrderService interface {
 	GetSortedByReceiverId(ctx context.Context, receiverId uuid.UUID, sort *types.CursorSort) ([]*db.Order, error)
 	UpdateOrderStatus(ctx context.Context, order *db.Order, status db.OrderStatus, initiatorUserID uuid.UUID) (*db.Order, error)
 	CreateOrder(ctx context.Context, userId uuid.UUID, req *types.CreateOrderReq) (*db.Order, error)
-	UpdateOrderByID(ctx context.Context, orderId uuid.UUID, initiator, receiver *db.Profile, req *types.OrderReq) (*db.Order, error)
+	UpdateOrderByID(ctx context.Context, orderId uuid.UUID, initiator, receiver *db.Profile, req *types.OrderReq) (*db.Order, uuid.UUID, error)
 	GetPaginatedByGameNoteId(ctx context.Context, id uuid.UUID, pagination *types.Pagination) ([]*db.Order, error)
 	CountGameNotesById(ctx context.Context, id uuid.UUID) (int64, error)
 	CountOrdersByReceiverId(ctx context.Context, receiverId uuid.UUID) (int64, error)
@@ -110,39 +110,51 @@ func (service *orderService) CreateOrder(ctx context.Context, userId uuid.UUID, 
 	return createdOrder, nil
 }
 
-func (service *orderService) UpdateOrderByID(ctx context.Context, orderId uuid.UUID, initiator, receiver *db.Profile, req *types.OrderReq) (*db.Order, error) {
+func (service *orderService) UpdateOrderByID(ctx context.Context, orderId uuid.UUID, initiator, receiver *db.Profile, req *types.OrderReq) (*db.Order, uuid.UUID, error) {
 	order, err := service.GetOrderById(ctx, orderId)
 	if err != nil {
-		return nil, err
+		return nil, uuid.Nil, err
 	}
 
 	if order.ReceiverID != receiver.UserID {
-		return nil, errors.NewForbiddenError("User is not allowed to update the order", nil)
+		return nil, uuid.Nil, errors.NewForbiddenError("User is not allowed to update the order", nil)
 	}
 
 	if order.Status != req.Status {
 		if req.Status == db.OrderStatusApproved {
-			return service.approveOrderByID(ctx, order, initiator, req)
+			approvedOrder, relatedContentID, err := service.approveOrderByID(ctx, order, initiator, req)
+			if err != nil {
+				return nil, uuid.Nil, err
+			}
+
+			return approvedOrder, relatedContentID, nil
 		} else if req.Status == db.OrderStatusRejected {
-			return service.rejectOrderByID(ctx, order, initiator)
+			rejectedOrder, err := service.rejectOrderByID(ctx, order, initiator)
+			if err != nil {
+				return nil, uuid.Nil, err
+			}
+
+			return rejectedOrder, uuid.Nil, nil
 		}
 	}
 
-	return order, nil
+	return order, uuid.Nil, nil
 }
 
-func (service *orderService) approveOrderByID(ctx context.Context, order *db.Order, approver *db.Profile, req *types.OrderReq) (*db.Order, error) {
+func (service *orderService) approveOrderByID(ctx context.Context, order *db.Order, approver *db.Profile, req *types.OrderReq) (*db.Order, uuid.UUID, error) {
+	relatedContentID := uuid.Nil
+
 	if req.Category == nil || len(*req.Category) == 0 {
 		if req.ContentID == nil || len(*req.ContentID) == 0 {
-			return nil, errors.NewBadRequestError("Either category and title or content ID is required", nil)
+			return nil, relatedContentID, errors.NewBadRequestError("Either category and title or content ID is required", nil)
 		}
 	} else if req.Title == nil || len(*req.Title) == 0 {
-		return nil, errors.NewBadRequestError("Both category and title are required", nil)
+		return nil, relatedContentID, errors.NewBadRequestError("Both category and title are required", nil)
 	}
 
 	tx, err := service.sqlDb.Begin(ctx)
 	if err != nil {
-		return nil, errors.NewInternalServerError("Error occurred during order approval", err)
+		return nil, relatedContentID, errors.NewInternalServerError("Error occurred during order approval", err)
 	}
 	defer tx.Rollback(ctx)
 	qtx := service.sqlDb.Queries().WithTx(tx)
@@ -153,32 +165,32 @@ func (service *orderService) approveOrderByID(ctx context.Context, order *db.Ord
 		Status:    db.OrderStatusApproved,
 	})
 	if err != nil {
-		return nil, errors.NewInternalServerError("Error occurred during order approval", err)
+		return nil, relatedContentID, errors.NewInternalServerError("Error occurred during order approval", err)
 	}
 
 	if req.ContentID != nil && len(*req.ContentID) != 0 {
 		err = service.contentService.AttachOrderToContent(ctx, order, *req.ContentID, *req.Category)
 		if err != nil {
-			return nil, err
+			return nil, relatedContentID, err
 		}
 	} else {
 		orderer, err := service.ordererService.GetOrdererById(ctx, order.OrdererID)
 		if err != nil {
-			return nil, err
+			return nil, relatedContentID, err
 		}
 
-		err = service.contentService.CreateOrderedContent(ctx, *req.Category, order, orderer, *req.Title)
+		relatedContentID, err = service.contentService.CreateOrderedContent(ctx, *req.Category, order, orderer, *req.Title)
 		if err != nil {
-			return nil, err
+			return nil, relatedContentID, err
 		}
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, errors.NewInternalServerError("Error occurred during order approval", err)
+		return nil, relatedContentID, errors.NewInternalServerError("Error occurred during order approval", err)
 	}
 
-	return approvedOrder, nil
+	return approvedOrder, relatedContentID, nil
 }
 
 func (service *orderService) rejectOrderByID(ctx context.Context, order *db.Order, initiator *db.Profile) (*db.Order, error) {

@@ -39,9 +39,10 @@ type ImagePreviewRes struct {
 }
 
 type CountsRes struct {
-	Played  int64 `json:"played"`
-	Watched int64 `json:"watched"`
-	Ordered int64 `json:"ordered"`
+	Played    int64 `json:"played,omitempty"`
+	Watched   int64 `json:"watched,omitempty"`
+	Ordered   int64 `json:"ordered,omitempty"`
+	Followers int64 `json:"followers,omitempty"`
 }
 
 type ProfileRes struct {
@@ -51,6 +52,7 @@ type ProfileRes struct {
 	Link        string     `json:"link"`
 	Description *string    `json:"description,omitempty"`
 	Counts      *CountsRes `json:"counts,omitempty"`
+	IsFollowing bool       `json:"isFollowing"`
 }
 
 type ContentRes struct {
@@ -102,6 +104,12 @@ type OrderRes struct {
 	UpdatedMessage  string             `json:"updatedMessage"`
 }
 
+type OrderUpdateRes struct {
+	OrderRes
+	ContentCreated bool      `json:"contentCreated"`
+	ContentID      uuid.UUID `json:"contentId,omitempty"`
+}
+
 type LinkValidationRes struct {
 	Valid   bool   `json:"valid"`
 	Message string `json:"message"`
@@ -109,4 +117,10 @@ type LinkValidationRes struct {
 
 type StatusCountRes struct {
 	Count int64 `json:"count"`
+}
+
+type PosterPreviewRes struct {
+	ID        uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"createdAt"`
+	URL       string    `json:"url"`
 }

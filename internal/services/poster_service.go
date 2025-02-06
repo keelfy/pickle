@@ -20,12 +20,15 @@ import (
 
 type PosterService interface {
 	GetPosterPreviewByID(ctx context.Context, id uuid.UUID) (*db.PosterPreview, error)
+	GetPosterPreviews(ctx context.Context, userId uuid.UUID) ([]*db.PosterPreview, error)
 	UploadPosterForPreview(ctx context.Context, userId uuid.UUID, size string, file multipart.File, fileHeader *multipart.FileHeader) (uuid.UUID, string, error)
 	EmbedPosterForPreview(ctx context.Context, userId uuid.UUID, size, embeddedUrl string) (uuid.UUID, string, error)
 	GetLatestPosterPreviewByUserId(ctx context.Context, userId uuid.UUID) ([]*db.PosterPreview, error)
 	ConfirmS3PosterPreviewByID(ctx context.Context, id uuid.UUID, prefix string) (*string, error)
 	GetPosterImageURL(ctx context.Context, prefix, size, imageKey string, cbTime time.Time) (string, error)
+	GetPosterPreviewImageURL(ctx context.Context, id uuid.UUID, size string) (string, error)
 	DeletePosterKey(ctx context.Context, prefix, posterKey string) error
+	DeletePosterPreview(ctx context.Context, id uuid.UUID, userId uuid.UUID) error
 }
 
 type posterService struct {
@@ -65,6 +68,17 @@ func (s *posterService) GetPosterPreviewByID(ctx context.Context, id uuid.UUID) 
 	return posterPreview, nil
 }
 
+func (s *posterService) GetPosterPreviews(ctx context.Context, userId uuid.UUID) ([]*db.PosterPreview, error) {
+	posterPreviews, err := s.sqlDB.Queries().FindPosterPreviewByCreatedAtAfterAndCreatedBy(ctx, db.FindPosterPreviewByCreatedAtAfterAndCreatedByParams{
+		CreatedBy: userId,
+		CreatedAt: time.Now().Add(-config.GetPosterPreviewStoreTime()),
+	})
+	if err != nil {
+		return nil, errors.NewInternalServerError("Error occurred getting poster previews", err)
+	}
+	return posterPreviews, nil
+}
+
 func (s *posterService) uploadPosterForPreview(ctx context.Context, userId uuid.UUID, size string, fileReader io.Reader, fileExtension string) (uuid.UUID, string, error) {
 	if _, ok := posterSizes[size]; !ok {
 		return uuid.Nil, "", errors.NewBadRequestError("Invalid size", nil)
@@ -91,7 +105,7 @@ func (s *posterService) uploadPosterForPreview(ctx context.Context, userId uuid.
 		return uuid.Nil, "", errors.NewInternalServerError("Error occurred uploading file", err)
 	}
 
-	err = s.sqlDB.Queries().InsertPosterPreview(ctx, db.InsertPosterPreviewParams{
+	posterPreview, err := s.sqlDB.Queries().InsertPosterPreview(ctx, db.InsertPosterPreviewParams{
 		ID:        posterPreviewId,
 		CreatedBy: userId,
 		ObjectKey: objectKey,
@@ -128,10 +142,9 @@ func (s *posterService) uploadPosterForPreview(ctx context.Context, userId uuid.
 
 	// generate imgproxy URL for preview
 
-	dims := posterSizes[size]
-	imageUrl, err := s.imageService.GetResizedImageUrlFromS3(bucketName, previewKey, dims[0], dims[1], nil)
+	imageUrl, err := s.GetPosterImageURL(ctx, "preview", size, objectKey, posterPreview.CreatedAt)
 	if err != nil {
-		return uuid.Nil, "", errors.NewInternalServerError("Error occurred getting profile avatar URL", err)
+		return uuid.Nil, "", errors.NewInternalServerError("Error occurred getting poster preview URL", err)
 	}
 
 	return posterPreviewId, imageUrl, nil
@@ -202,10 +215,8 @@ func (service *posterService) GetPosterImageURL(ctx context.Context, prefix, siz
 
 	cacheKey := fmt.Sprintf("poster:%s:%s:%s", prefix, imageKey, size)
 	cachedUrl, err := service.cache.GetKey(ctx, cacheKey)
-	if err != nil {
-		logger.Errorf(ctx, "Error occurred getting poster image URL from cache: %v", err)
-	} else if cachedUrl != nil {
-		return *cachedUrl, nil
+	if err == nil {
+		return cachedUrl, nil
 	}
 
 	bucket := config.GetContentPosterBucketName()
@@ -223,6 +234,15 @@ func (service *posterService) GetPosterImageURL(ctx context.Context, prefix, siz
 	return imageUrl, nil
 }
 
+func (s *posterService) GetPosterPreviewImageURL(ctx context.Context, id uuid.UUID, size string) (string, error) {
+	posterPreview, err := s.GetPosterPreviewByID(ctx, id)
+	if err != nil {
+		return "", err
+	}
+
+	return s.GetPosterImageURL(ctx, "preview", size, posterPreview.ObjectKey, posterPreview.CreatedAt)
+}
+
 func (s *posterService) DeletePosterKey(ctx context.Context, prefix, posterKey string) error {
 	bucketName := config.GetContentPosterBucketName()
 	key := fmt.Sprintf("%s/%s", prefix, posterKey)
@@ -238,6 +258,32 @@ func (s *posterService) DeletePosterKey(ctx context.Context, prefix, posterKey s
 		if err != nil {
 			logger.Errorf(ctx, "Error occurred deleting poster cache: %v", err)
 		}
+	}
+
+	return nil
+}
+
+func (s *posterService) DeletePosterPreview(ctx context.Context, id uuid.UUID, userID uuid.UUID) error {
+	posterPreview, err := s.GetPosterPreviewByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	if posterPreview.CreatedBy != userID {
+		return errors.NewForbiddenError("You are not allowed to delete this poster preview", nil)
+	}
+
+	bucketName := config.GetContentPosterBucketName()
+	previewKey := "preview/" + posterPreview.ObjectKey
+
+	err = s.s3.DeleteObject(ctx, bucketName, previewKey)
+	if err != nil {
+		return errors.NewInternalServerError("Error occurred deleting poster preview", err)
+	}
+
+	err = s.sqlDB.Queries().DeletePosterPreview(ctx, id)
+	if err != nil {
+		return errors.NewInternalServerError("Error occurred deleting poster preview", err)
 	}
 
 	return nil

@@ -12,6 +12,15 @@ import (
 	"github.com/google/uuid"
 )
 
+const deletePosterPreview = `-- name: DeletePosterPreview :exec
+DELETE FROM "poster_previews" WHERE "id" = $1
+`
+
+func (q *Queries) DeletePosterPreview(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deletePosterPreview, id)
+	return err
+}
+
 const findPosterPreviewByCreatedAtAfterAndCreatedBy = `-- name: FindPosterPreviewByCreatedAtAfterAndCreatedBy :many
 SELECT id, created_at, created_by, object_key 
 FROM "poster_previews" 
@@ -99,7 +108,7 @@ func (q *Queries) FindPosterPreviewById(ctx context.Context, id uuid.UUID) (*Pos
 	return &i, err
 }
 
-const insertPosterPreview = `-- name: InsertPosterPreview :exec
+const insertPosterPreview = `-- name: InsertPosterPreview :one
 INSERT INTO "poster_previews" (
     "id",
     "created_by",
@@ -109,6 +118,7 @@ INSERT INTO "poster_previews" (
     $2,
     $3
 )
+RETURNING id, created_at, created_by, object_key
 `
 
 type InsertPosterPreviewParams struct {
@@ -117,7 +127,14 @@ type InsertPosterPreviewParams struct {
 	ObjectKey string    `json:"object_key"`
 }
 
-func (q *Queries) InsertPosterPreview(ctx context.Context, arg InsertPosterPreviewParams) error {
-	_, err := q.db.Exec(ctx, insertPosterPreview, arg.ID, arg.CreatedBy, arg.ObjectKey)
-	return err
+func (q *Queries) InsertPosterPreview(ctx context.Context, arg InsertPosterPreviewParams) (*PosterPreview, error) {
+	row := q.db.QueryRow(ctx, insertPosterPreview, arg.ID, arg.CreatedBy, arg.ObjectKey)
+	var i PosterPreview
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.CreatedBy,
+		&i.ObjectKey,
+	)
+	return &i, err
 }

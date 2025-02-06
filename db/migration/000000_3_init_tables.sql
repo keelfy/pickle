@@ -1,20 +1,15 @@
--- Author: Egor Kuzmin (keelfy)
 CREATE TABLE IF NOT EXISTS "migration_logs" (
     "id" SERIAL,
-    -- SERIAL is an auto-incrementing integer
     "name" text NOT NULL,
     "created_at" timestamptz NOT NULL DEFAULT NOW(),
     PRIMARY KEY ("id")
 );
--- Author: Egor Kuzmin (keelfy)
 CREATE TABLE IF NOT EXISTS "es_migration_logs" (
     "id" SERIAL,
-    -- SERIAL is an auto-incrementing integer
     "name" text NOT NULL,
     "created_at" timestamptz NOT NULL DEFAULT NOW(),
     PRIMARY KEY ("id")
 );
--- Author: Egor Kuzmin (keelfy)
 CREATE TABLE IF NOT EXISTS "profiles" (
     "user_id" uuid NOT NULL,
     "created_at" timestamptz NOT NULL DEFAULT now(),
@@ -39,6 +34,14 @@ CREATE TABLE IF NOT EXISTS "profile_avatars" (
     FOREIGN KEY ("user_id") REFERENCES "profiles"("user_id"),
     FOREIGN KEY ("created_by") REFERENCES "profiles"("user_id"),
     FOREIGN KEY ("updated_by") REFERENCES "profiles"("user_id")
+);
+CREATE TABLE IF NOT EXISTS "followers" (
+    "user_id" uuid NOT NULL,
+    "follower_id" uuid NOT NULL,
+    "created_at" timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY ("user_id", "follower_id"),
+    FOREIGN KEY ("user_id") REFERENCES "profiles"("user_id"),
+    FOREIGN KEY ("follower_id") REFERENCES "profiles"("user_id")
 );
 CREATE TABLE IF NOT EXISTS "orderers" (
     "id" uuid NOT NULL DEFAULT gen_random_uuid(),

@@ -11,6 +11,7 @@ import (
 	"github.com/pickle.pw/monolith/internal/errors"
 	"github.com/pickle.pw/monolith/internal/storage"
 	"github.com/pickle.pw/monolith/internal/types"
+	"golang.org/x/sync/singleflight"
 )
 
 type ProfileService interface {
@@ -26,6 +27,7 @@ type profileService struct {
 	s3Client      storage.FileStorage
 	cache         storage.CacheStorage
 	avatarService AvatarService
+	group         singleflight.Group
 }
 
 func NewProfileService(sqlDb storage.RelationalStorage, s3Client storage.FileStorage, cache storage.CacheStorage, avatarService AvatarService) ProfileService {
@@ -34,10 +36,10 @@ func NewProfileService(sqlDb storage.RelationalStorage, s3Client storage.FileSto
 		s3Client:      s3Client,
 		cache:         cache,
 		avatarService: avatarService,
+		group:         singleflight.Group{},
 	}
 }
 
-// Return not null models.User or CustomError
 func (service *profileService) GetProfileById(ctx context.Context, userId uuid.UUID) (*db.Profile, error) {
 	user, err := service.sqlDb.Queries().FindProfileById(ctx, userId)
 	if err == pgx.ErrNoRows {
@@ -49,7 +51,6 @@ func (service *profileService) GetProfileById(ctx context.Context, userId uuid.U
 	return user, nil
 }
 
-// Return not null models.User or CustomError
 func (service *profileService) GetProfileByLink(ctx context.Context, userLink string) (*db.Profile, error) {
 	user, err := service.sqlDb.Queries().FindProfileByLink(ctx, strings.ToLower(userLink))
 	if err == pgx.ErrNoRows {

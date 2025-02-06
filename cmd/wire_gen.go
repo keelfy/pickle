@@ -50,7 +50,8 @@ func InitializeAPI(ctx context.Context) (api.PickleAPI, func(), error) {
 	gameNoteService := services.NewGameNoteService(relationalStorage, elasticStorage, cacheStorage, profileService, ordererService, gameNoteOrderService, posterService)
 	contentService := services.NewContentService(elasticStorage, gameNoteService, gameNoteOrderService)
 	orderService := services.NewOrderService(relationalStorage, profileService, ordererService, contentService)
-	profileHandler := handlers.NewUserHandler(profileService, avatarService, gameNoteService, orderService)
+	followerService := services.NewFollowerService(relationalStorage, cacheStorage)
+	profileHandler := handlers.NewUserHandler(profileService, avatarService, gameNoteService, orderService, followerService)
 	supabaseClient, err := storage.NewSupabaseClient(ctx)
 	if err != nil {
 		cleanup()

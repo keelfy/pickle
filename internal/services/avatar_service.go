@@ -77,10 +77,8 @@ func (service *avatarService) GetAvatarUrlById(ctx context.Context, userID uuid.
 
 	cacheKey := fmt.Sprintf("avatar:%s:%s", avatar.UserID, size)
 	cachedUrl, err := service.cache.GetKey(ctx, cacheKey)
-	if err != nil {
-		logger.Errorf(ctx, "Error occurred getting avatar URL from cache: %v", err)
-	} else if cachedUrl != nil {
-		return cachedUrl, nil
+	if err == nil {
+		return &cachedUrl, nil
 	}
 
 	if avatar.AvatarUrl == nil {
@@ -93,11 +91,7 @@ func (service *avatarService) GetAvatarUrlById(ctx context.Context, userID uuid.
 		return nil, err
 	}
 
-	err = service.cache.SetKey(ctx, cacheKey, url, time.Hour*24*30)
-	if err != nil {
-		logger.Errorf(ctx, "Error occurred setting avatar URL to cache: %v", err)
-	}
-
+	_ = service.cache.SetKey(ctx, cacheKey, url, time.Hour*24*30)
 	return &url, nil
 }
 

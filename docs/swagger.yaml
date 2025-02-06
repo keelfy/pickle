@@ -55,6 +55,8 @@ definitions:
     type: object
   github_com_pickle_pw_monolith_internal_types.CountsRes:
     properties:
+      followers:
+        type: integer
       ordered:
         type: integer
       played:
@@ -205,6 +207,8 @@ definitions:
         type: string
       id:
         type: string
+      isFollowing:
+        type: boolean
       link:
         type: string
       username:
@@ -461,6 +465,59 @@ paths:
       summary: Search content
       tags:
       - content
+  /v1/users/{userId}/follows:
+    delete:
+      consumes:
+      - application/json
+      description: Unfollow profile
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Unfollow profile
+      tags:
+      - profiles
+    post:
+      consumes:
+      - application/json
+      description: Follow profile
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Follow profile
+      tags:
+      - profiles
   /v1/users/{userId}/game-notes:
     get:
       consumes:

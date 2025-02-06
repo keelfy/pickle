@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 
 	"github.com/google/uuid"
 	db "github.com/pickle.pw/monolith/db/sqlc"
@@ -9,7 +10,7 @@ import (
 )
 
 type ContentService interface {
-	CreateOrderedContent(ctx context.Context, category db.ContentCategory, order *db.Order, orderer *db.Orderer, title string) error
+	CreateOrderedContent(ctx context.Context, contentType db.ContentCategory, order *db.Order, orderer *db.Orderer, title string) (uuid.UUID, error)
 	AttachOrderToContent(ctx context.Context, order *db.Order, contentID uuid.UUID, category db.ContentCategory) error
 }
 
@@ -27,16 +28,18 @@ func NewContentService(elastic storage.ElasticStorage, gameNoteService GameNoteS
 	}
 }
 
-func (service *contentService) CreateOrderedContent(ctx context.Context, contentType db.ContentCategory, order *db.Order, orderer *db.Orderer, title string) error {
+func (service *contentService) CreateOrderedContent(ctx context.Context, contentType db.ContentCategory, order *db.Order, orderer *db.Orderer, title string) (uuid.UUID, error) {
 	switch contentType {
 	case db.ContentCategoryGames:
-		_, err := service.gameNoteService.CreateOrderedGameNote(ctx, order.ReceiverID, order, orderer, title)
+		gameNote, err := service.gameNoteService.CreateOrderedGameNote(ctx, order.ReceiverID, order, orderer, title)
 		if err != nil {
-			return err
+			return uuid.Nil, err
 		}
+
+		return gameNote.ID, nil
 	}
 
-	return nil
+	return uuid.Nil, errors.New("invalid content type")
 }
 
 func (service *contentService) AttachOrderToContent(ctx context.Context, order *db.Order, contentID uuid.UUID, category db.ContentCategory) error {
@@ -45,5 +48,5 @@ func (service *contentService) AttachOrderToContent(ctx context.Context, order *
 		return service.gameNoteOrderService.CreateGameNoteOrder(ctx, order.ReceiverID, order.ID, contentID)
 	}
 
-	return nil
+	return errors.New("invalid content type")
 }

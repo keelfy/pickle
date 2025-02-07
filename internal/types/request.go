@@ -45,6 +45,11 @@ type GameNoteReq struct {
 	Poster       *PosterReq        `json:"poster"`
 }
 
+type ReactionReq struct {
+	EmoteID string `json:"emoteId"`
+	Source  string `json:"source"`
+}
+
 type PosterReq struct {
 	PreviewID *uuid.UUID `json:"previewId"`
 }

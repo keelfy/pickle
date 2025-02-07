@@ -23,21 +23,30 @@ type GameNoteHandler interface {
 	GetPosterImageURL(w http.ResponseWriter, r *http.Request)
 	DeleteGameNote(w http.ResponseWriter, r *http.Request)
 	UpdateGameNote(w http.ResponseWriter, r *http.Request)
+	GetGameNoteReactions(w http.ResponseWriter, r *http.Request)
+	AddGameNoteReaction(w http.ResponseWriter, r *http.Request)
+	RemoveGameNoteReaction(w http.ResponseWriter, r *http.Request)
 }
 
 type gameNoteHandler struct {
-	userService     services.ProfileService
-	gameNoteService services.GameNoteService
-	orderService    services.OrderService
-	posterService   services.PosterService
+	userService             services.ProfileService
+	gameNoteService         services.GameNoteService
+	orderService            services.OrderService
+	posterService           services.PosterService
+	gameNoteReactionService services.GameNoteReactionService
 }
 
-func NewGameNoteHandler(userService services.ProfileService, service services.GameNoteService, orderService services.OrderService, posterService services.PosterService) GameNoteHandler {
+func NewGameNoteHandler(
+	userService services.ProfileService, service services.GameNoteService,
+	orderService services.OrderService, posterService services.PosterService,
+	gameNoteReactionService services.GameNoteReactionService,
+) GameNoteHandler {
 	return &gameNoteHandler{
-		userService:     userService,
-		gameNoteService: service,
-		orderService:    orderService,
-		posterService:   posterService,
+		userService:             userService,
+		gameNoteService:         service,
+		orderService:            orderService,
+		posterService:           posterService,
+		gameNoteReactionService: gameNoteReactionService,
 	}
 }
 
@@ -54,10 +63,14 @@ func NewGameNoteHandler(userService services.ProfileService, service services.Ga
 // @Router /v1/users/{userId}/game-notes [post]
 func (h *gameNoteHandler) CreateGameNote(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userId := ctx.Value(middleware.UserIDKey).(uuid.UUID)
+	userId, err := utils.UserIdFromContext(ctx)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
 
 	req := &types.GameNoteReq{}
-	err := json.NewDecoder(r.Body).Decode(req)
+	err = json.NewDecoder(r.Body).Decode(req)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
@@ -253,7 +266,12 @@ func (handler *gameNoteHandler) GetPosterImageURL(w http.ResponseWriter, r *http
 // @Router /v1/users/{userId}/game-notes/{noteId} [delete]
 func (handler *gameNoteHandler) DeleteGameNote(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userId := ctx.Value(middleware.UserIDKey).(uuid.UUID)
+	userId, err := utils.UserIdFromContext(ctx)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
 	resetApprovedOrders := utils.GetQueryParam(r, "resetApprovedOrders", "false")
 	noteId, err := utils.ReadPathUUIDVariable("noteId", r)
 	if err != nil {
@@ -284,7 +302,12 @@ func (handler *gameNoteHandler) DeleteGameNote(w http.ResponseWriter, r *http.Re
 // @Router /v1/users/{userId}/game-notes/{noteId} [put]
 func (handler *gameNoteHandler) UpdateGameNote(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userId := ctx.Value(middleware.UserIDKey).(uuid.UUID)
+	userId, err := utils.UserIdFromContext(ctx)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
 	noteId, err := utils.ReadPathUUIDVariable("noteId", r)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
@@ -298,6 +321,107 @@ func (handler *gameNoteHandler) UpdateGameNote(w http.ResponseWriter, r *http.Re
 	}
 
 	err = handler.gameNoteService.UpdateGameNoteById(ctx, noteId, req, userId)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (handler *gameNoteHandler) GetGameNoteReactions(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userId := ctx.Value(middleware.UserIDKey)
+	noteId, err := utils.ReadPathUUIDVariable("noteId", r)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
+	var reactions any
+
+	if userId == nil {
+		reactions, err = handler.gameNoteReactionService.GetGameNoteReactionsByGameNoteId(ctx, noteId)
+		if err != nil {
+			utils.HttpError(ctx, err, w)
+			return
+		}
+	} else {
+		reactions, err = handler.gameNoteReactionService.GetGameNoteReactionsByGameNoteIdAndUserId(ctx, noteId, userId.(uuid.UUID))
+		if err != nil {
+			utils.HttpError(ctx, err, w)
+			return
+		}
+	}
+
+	response := []types.NoteReactionRes{}
+	copier.Copy(&response, reactions)
+	utils.WriteHttpJsonResponse(ctx, w, response)
+}
+
+func (handler *gameNoteHandler) AddGameNoteReaction(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	userId, err := utils.UserIdFromContext(ctx)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
+	noteId, err := utils.ReadPathUUIDVariable("noteId", r)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
+	req := &types.ReactionReq{}
+	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+		utils.HttpError(ctx, errors.NewBadRequestError("Invalid request body", err), w)
+		return
+	}
+
+	emoteId := req.EmoteID
+	if emoteId == "" {
+		utils.HttpError(ctx, errors.NewBadRequestError("Emote ID is required", nil), w)
+		return
+	}
+
+	source := req.Source
+	if source == "" {
+		utils.HttpError(ctx, errors.NewBadRequestError("Source is required", nil), w)
+		return
+	}
+
+	err = handler.gameNoteReactionService.AddGameNoteReaction(ctx, noteId, userId, emoteId, source)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (handler *gameNoteHandler) RemoveGameNoteReaction(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userId, err := utils.UserIdFromContext(ctx)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
+	noteId, err := utils.ReadPathUUIDVariable("noteId", r)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
+	req := &types.ReactionReq{}
+	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+		utils.HttpError(ctx, errors.NewBadRequestError("Invalid request body", err), w)
+		return
+	}
+
+	err = handler.gameNoteReactionService.RemoveGameNoteReaction(ctx, noteId, userId, req.EmoteID, req.Source)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return

@@ -11,6 +11,7 @@ import (
 )
 
 type Querier interface {
+	AddGameNoteReaction(ctx context.Context, arg AddGameNoteReactionParams) error
 	// Author: Egor Kuzmin (keelfy)
 	CountFollowers(ctx context.Context, userID uuid.UUID) (int64, error)
 	// Author: Egor Kuzmin (keelfy)
@@ -57,6 +58,8 @@ type Querier interface {
 	FindProfileById(ctx context.Context, userID uuid.UUID) (*Profile, error)
 	// Author: Egor Kuzmin (keelfy)
 	FindProfileByLink(ctx context.Context, link string) (*Profile, error)
+	GetGameNoteReactionsByGameNoteId(ctx context.Context, gameNoteID uuid.UUID) ([]*GetGameNoteReactionsByGameNoteIdRow, error)
+	GetGameNoteReactionsByGameNoteIdAndUserId(ctx context.Context, arg GetGameNoteReactionsByGameNoteIdAndUserIdParams) ([]*GetGameNoteReactionsByGameNoteIdAndUserIdRow, error)
 	// Author: Egor Kuzmin (keelfy)
 	GetUserFollows(ctx context.Context, followerID uuid.UUID) ([]*Profile, error)
 	// Author: Egor Kuzmin (keelfy)
@@ -81,6 +84,7 @@ type Querier interface {
 	InsertProfileAvatar(ctx context.Context, arg InsertProfileAvatarParams) (*ProfileAvatar, error)
 	// Author: Egor Kuzmin (keelfy)
 	IsFollowing(ctx context.Context, arg IsFollowingParams) (int64, error)
+	RemoveGameNoteReaction(ctx context.Context, arg RemoveGameNoteReactionParams) error
 	// Author: Egor Kuzmin (keelfy)
 	ResetApprovedOrdersByGameNoteId(ctx context.Context, gameNoteID uuid.UUID) error
 	// Author: Egor Kuzmin (keelfy)

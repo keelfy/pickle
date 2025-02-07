@@ -15,4 +15,5 @@ var ProviderSet = wire.NewSet(
 	NewAvatarService,
 	NewPosterService,
 	NewFollowerService,
+	NewGameNoteReactionService,
 )

@@ -85,11 +85,11 @@ SELECT
 FROM "game_notes" gn
     INNER JOIN "orderers" o ON gn."initial_orderer_id" = o."id"
     LEFT JOIN (
-        SELECT game_note_id, COUNT(*) as count 
-        FROM game_note_orders 
-        GROUP BY game_note_id, order_id
+        SELECT "game_note_id", COUNT(*) as "count" 
+        FROM "game_note_orders" 
+        GROUP BY "game_note_id"
     ) order_counts ON 
-        gn."id" = order_counts.game_note_id
+        gn."id" = order_counts."game_note_id"
 WHERE gn."user_id" = $1
     AND gn."updated_at" < $2
 ORDER BY gn."updated_at" DESC

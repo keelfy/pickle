@@ -147,6 +147,49 @@ func (ns NullOrderStatus) Value() (driver.Value, error) {
 	return string(ns.OrderStatus), nil
 }
 
+type ReactionSource string
+
+const (
+	ReactionSourceUnicodeEmoji ReactionSource = "unicode_emoji"
+	ReactionSource7tv          ReactionSource = "7tv"
+	ReactionSourceCustom       ReactionSource = "custom"
+)
+
+func (e *ReactionSource) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ReactionSource(s)
+	case string:
+		*e = ReactionSource(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ReactionSource: %T", src)
+	}
+	return nil
+}
+
+type NullReactionSource struct {
+	ReactionSource ReactionSource `json:"reaction_source"`
+	Valid          bool           `json:"valid"` // Valid is true if ReactionSource is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullReactionSource) Scan(value interface{}) error {
+	if value == nil {
+		ns.ReactionSource, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ReactionSource.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullReactionSource) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ReactionSource), nil
+}
+
 type EsMigrationLog struct {
 	ID        int32     `json:"id"`
 	Name      string    `json:"name"`
@@ -186,6 +229,15 @@ type GameNoteOrder struct {
 	CreatedBy  uuid.UUID `json:"created_by"`
 	UpdatedAt  time.Time `json:"updated_at"`
 	UpdatedBy  uuid.UUID `json:"updated_by"`
+}
+
+type GameNoteReaction struct {
+	GameNoteID uuid.UUID      `json:"game_note_id"`
+	UserID     uuid.UUID      `json:"user_id"`
+	EmoteID    string         `json:"emote_id"`
+	Source     ReactionSource `json:"source"`
+	CreatedAt  time.Time      `json:"created_at"`
+	CreatedBy  uuid.UUID      `json:"created_by"`
 }
 
 type MigrationLog struct {

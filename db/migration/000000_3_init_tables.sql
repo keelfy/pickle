@@ -124,3 +124,15 @@ CREATE TABLE IF NOT EXISTS "game_note_orders" (
     FOREIGN KEY (created_by) REFERENCES profiles(user_id),
     FOREIGN KEY (updated_by) REFERENCES profiles(user_id)
 );
+CREATE TABLE IF NOT EXISTS "game_note_reactions" (
+    "game_note_id" uuid NOT NULL,
+    "user_id" uuid NOT NULL,
+    "emote_id" text NOT NULL,
+    "source" reaction_source NOT NULL,
+    "created_at" timestamptz NOT NULL DEFAULT now(),
+    "created_by" uuid NOT NULL,
+    PRIMARY KEY ("game_note_id", "user_id", "emote_id", "source"),
+    FOREIGN KEY ("game_note_id") REFERENCES "game_notes"("id") ON DELETE CASCADE,
+    FOREIGN KEY ("user_id") REFERENCES "profiles"("user_id"),
+    FOREIGN KEY ("created_by") REFERENCES "profiles"("user_id")
+);

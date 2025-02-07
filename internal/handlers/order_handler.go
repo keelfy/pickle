@@ -7,7 +7,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/jinzhu/copier"
 	db "github.com/pickle.pw/monolith/db/sqlc"
-	"github.com/pickle.pw/monolith/internal/middleware"
 	"github.com/pickle.pw/monolith/internal/services"
 	"github.com/pickle.pw/monolith/internal/types"
 	"github.com/pickle.pw/monolith/internal/utils"
@@ -128,7 +127,11 @@ func (handler *orderHandler) CreateOrder(w http.ResponseWriter, r *http.Request)
 	json.NewDecoder(r.Body).Decode(req)
 
 	// Extract JWT token from the request
-	userId := ctx.Value(middleware.UserIDKey).(uuid.UUID)
+	userId, err := utils.UserIdFromContext(ctx)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
 
 	createdOrder, err := handler.orderService.CreateOrder(ctx, userId, req)
 	if err != nil {
@@ -154,7 +157,11 @@ func (handler *orderHandler) CreateOrder(w http.ResponseWriter, r *http.Request)
 // @Router /v1/users/{userId}/orders/{orderId} [put]
 func (handler *orderHandler) UpdateOrderByID(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	authUserId := ctx.Value(middleware.UserIDKey).(uuid.UUID)
+	authUserId, err := utils.UserIdFromContext(ctx)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
 
 	userId, err := utils.ReadPathUUIDVariable("userId", r)
 	if err != nil {

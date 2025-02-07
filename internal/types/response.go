@@ -83,6 +83,13 @@ type GameNoteRes struct {
 
 type GameNoteSearchRes = PaginatedRes[SearchHitRes[GameNoteRes]]
 
+type NoteReactionRes struct {
+	EmoteID       string `json:"emoteId"`
+	Source        string `json:"source"`
+	Count         int64  `json:"count"`
+	ReactedByUser bool   `json:"reactedByUser"`
+}
+
 type OrdererRes struct {
 	ID        uuid.UUID  `json:"id"`
 	UserID    *uuid.UUID `json:"userId,omitempty"`

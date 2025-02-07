@@ -80,9 +80,16 @@ SELECT
     gn."rate",
     gn."comment",
     gn."release_date",
-    o."username" AS "initial_orderer_username"
+    o."username" AS "initial_orderer_username",
+    COALESCE(order_counts.count, 0) AS "orderer_count"
 FROM "game_notes" gn
-    JOIN "orderers" o ON gn."initial_orderer_id" = o."id"
+    INNER JOIN "orderers" o ON gn."initial_orderer_id" = o."id"
+    LEFT JOIN (
+        SELECT game_note_id, COUNT(*) as count 
+        FROM game_note_orders 
+        GROUP BY game_note_id, order_id
+    ) order_counts ON 
+        gn."id" = order_counts.game_note_id
 WHERE gn."user_id" = $1
     AND gn."updated_at" < $2
 ORDER BY gn."updated_at" DESC
@@ -104,6 +111,7 @@ type FindPaginatedGameNotesByUserIdRow struct {
 	Comment                *string        `json:"comment"`
 	ReleaseDate            *time.Time     `json:"release_date"`
 	InitialOrdererUsername string         `json:"initial_orderer_username"`
+	OrdererCount           int64          `json:"orderer_count"`
 }
 
 // Author: Egor Kuzmin (keelfy)
@@ -125,6 +133,7 @@ func (q *Queries) FindPaginatedGameNotesByUserId(ctx context.Context, arg FindPa
 			&i.Comment,
 			&i.ReleaseDate,
 			&i.InitialOrdererUsername,
+			&i.OrdererCount,
 		); err != nil {
 			return nil, err
 		}

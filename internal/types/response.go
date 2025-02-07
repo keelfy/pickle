@@ -78,7 +78,10 @@ type GameNoteRes struct {
 	LastPlayedAt           *time.Time        `json:"lastPlayedAt,omitempty"`
 	PosterURL              *string           `json:"posterUrl,omitempty"`
 	InitialOrdererUsername *string           `json:"initialOrdererUsername,omitempty"`
+	OrdererCount           int64             `json:"ordererCount"`
 }
+
+type GameNoteSearchRes = PaginatedRes[SearchHitRes[GameNoteRes]]
 
 type OrdererRes struct {
 	ID        uuid.UUID  `json:"id"`

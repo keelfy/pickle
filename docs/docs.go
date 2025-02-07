@@ -1093,9 +1093,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/users/{userId}/posters": {
-            "post": {
-                "description": "Upload a poster",
+        "/v1/users/{userId}/posters/previews": {
+            "get": {
+                "description": "Get all poster previews",
                 "consumes": [
                     "application/json"
                 ],
@@ -1105,7 +1105,59 @@ const docTemplate = `{
                 "tags": [
                     "posters"
                 ],
-                "summary": "Upload a poster",
+                "summary": "Get all poster previews",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "lg",
+                        "description": "Size",
+                        "name": "size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.PosterPreviewRes"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Upload a poster preview",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "posters"
+                ],
+                "summary": "Upload a poster preview",
                 "parameters": [
                     {
                         "type": "file",
@@ -1133,6 +1185,142 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.ImagePreviewRes"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/users/{userId}/posters/previews/{previewId}": {
+            "get": {
+                "description": "Get a poster preview",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "posters"
+                ],
+                "summary": "Get a poster preview",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Preview ID",
+                        "name": "previewId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.PosterPreviewRes"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete a poster preview",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "posters"
+                ],
+                "summary": "Delete a poster preview",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Preview ID",
+                        "name": "previewId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/users/{userId}/posters/previews/{previewId}/image": {
+            "get": {
+                "description": "Get a poster preview image URL",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "posters"
+                ],
+                "summary": "Get a poster preview image URL",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Preview ID",
+                        "name": "previewId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Size",
+                        "name": "size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.ImageRes"
                         }
                     },
                     "400": {
@@ -1316,6 +1504,9 @@ const docTemplate = `{
                 "ordered": {
                     "type": "boolean"
                 },
+                "ordererCount": {
+                    "type": "integer"
+                },
                 "posterUrl": {
                     "type": "string"
                 },
@@ -1430,6 +1621,20 @@ const docTemplate = `{
                     "$ref": "#/definitions/github_com_pickle_pw_monolith_db_sqlc.ContentCategory"
                 },
                 "updatedMessage": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_pickle_pw_monolith_internal_types.PosterPreviewRes": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "url": {
                     "type": "string"
                 }
             }

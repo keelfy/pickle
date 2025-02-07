@@ -79,6 +79,10 @@ func (service *followerService) Unfollow(ctx context.Context, userId uuid.UUID, 
 		return errors.NewBadRequestError("User is not following target user", nil)
 	}
 
+	if userId == followerId {
+		return errors.NewBadRequestError("User cannot unfollow themselves", nil)
+	}
+
 	err = service.sqlDb.Queries().DeleteFollower(ctx, db.DeleteFollowerParams{
 		UserID:     userId,
 		FollowerID: followerId,

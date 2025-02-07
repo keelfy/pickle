@@ -19,6 +19,7 @@ type GameNoteService interface {
 	CreateGameNote(ctx context.Context, userID, creatorID uuid.UUID, req *types.GameNoteReq) (*db.GameNote, error)
 	IndexGameNote(ctx context.Context, gameNote *db.GameNote, initialOrderer *db.Orderer) error
 	CountPlayedByUserId(ctx context.Context, userID uuid.UUID) (int64, error)
+	CountOrdersByGameNoteId(ctx context.Context, gameNoteId uuid.UUID) (int64, error)
 	DeleteGameNoteById(ctx context.Context, id uuid.UUID, initiatorID uuid.UUID, resetApprovedOrders bool) error
 	UpdateGameNoteById(ctx context.Context, id uuid.UUID, req *types.GameNoteReq, initiatorID uuid.UUID) error
 }
@@ -185,6 +186,13 @@ func (service *gameNoteService) CountPlayedByUserId(ctx context.Context, userID 
 	return counts, nil
 }
 
+func (service *gameNoteService) CountOrdersByGameNoteId(ctx context.Context, gameNoteId uuid.UUID) (int64, error) {
+	counts, err := service.sqlDb.Queries().CountOrdersByGameNoteId(ctx, gameNoteId)
+	if err != nil {
+		return 0, errors.NewInternalServerError("Error occurred during game notes counting", err)
+	}
+	return counts, nil
+}
 func (service *gameNoteService) DeleteGameNoteById(ctx context.Context, id uuid.UUID, initiatorID uuid.UUID, resetApprovedOrders bool) error {
 	gameNote, err := service.GetById(ctx, id)
 	if err != nil {

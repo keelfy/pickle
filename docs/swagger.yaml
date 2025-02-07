@@ -116,6 +116,8 @@ definitions:
         type: string
       ordered:
         type: boolean
+      ordererCount:
+        type: integer
       posterUrl:
         type: string
       rate:
@@ -190,6 +192,15 @@ definitions:
       updatedCategory:
         $ref: '#/definitions/github_com_pickle_pw_monolith_db_sqlc.ContentCategory'
       updatedMessage:
+        type: string
+    type: object
+  github_com_pickle_pw_monolith_internal_types.PosterPreviewRes:
+    properties:
+      createdAt:
+        type: string
+      id:
+        type: string
+      url:
         type: string
     type: object
   github_com_pickle_pw_monolith_internal_types.PosterReq:
@@ -865,11 +876,46 @@ paths:
       summary: Update an order
       tags:
       - orders
-  /v1/users/{userId}/posters:
+  /v1/users/{userId}/posters/previews:
+    get:
+      consumes:
+      - application/json
+      description: Get all poster previews
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      - default: lg
+        description: Size
+        in: query
+        name: size
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.PosterPreviewRes'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get all poster previews
+      tags:
+      - posters
     post:
       consumes:
       - application/json
-      description: Upload a poster
+      description: Upload a poster preview
       parameters:
       - description: File
         in: formData
@@ -900,7 +946,97 @@ paths:
           description: Internal Server Error
           schema:
             type: string
-      summary: Upload a poster
+      summary: Upload a poster preview
+      tags:
+      - posters
+  /v1/users/{userId}/posters/previews/{previewId}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a poster preview
+      parameters:
+      - description: Preview ID
+        in: path
+        name: previewId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Delete a poster preview
+      tags:
+      - posters
+    get:
+      consumes:
+      - application/json
+      description: Get a poster preview
+      parameters:
+      - description: Preview ID
+        in: path
+        name: previewId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.PosterPreviewRes'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get a poster preview
+      tags:
+      - posters
+  /v1/users/{userId}/posters/previews/{previewId}/image:
+    get:
+      consumes:
+      - application/json
+      description: Get a poster preview image URL
+      parameters:
+      - description: Preview ID
+        in: path
+        name: previewId
+        required: true
+        type: string
+      - description: Size
+        in: query
+        name: size
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.ImageRes'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get a poster preview image URL
       tags:
       - posters
   /v1/users/me:

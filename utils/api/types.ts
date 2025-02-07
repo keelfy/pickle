@@ -50,6 +50,7 @@ type GameNote = {
     initialOrdererId: string;
     initialOrdererUsername?: string;
     poster?: Partial<ImagePreview>;
+    ordererCount: number;
 };
 
 type Orderer = {

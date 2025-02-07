@@ -76,7 +76,7 @@ export default async function SuggestPage({ params }: Props) {
                 <div className="flex justify-between items-center gap-4">
                     <div className="flex flex-col">
                         <div className="text-xs">
-                            Powered by <a href="https://pickle.gg" target="_blank" className="underline decoration-muted-foreground underline-offset-2 font-bold">pickle</a>
+                            Powered by <a href="https://pickle.gg" target="_blank" className="hover:underline decoration-muted-foreground underline-offset-2 font-bold">pickle</a>
                         </div>
                         <div className="text-[0.7rem] text-muted-foreground">
                             Egor Kuzmin&nbsp;&bull;&nbsp;Terazije 4, 11000 Belgrade, Serbia

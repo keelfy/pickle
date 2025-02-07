@@ -75,18 +75,29 @@ function RootLayout({ children, params }: React.PropsWithChildren<Props>) {
                     </OrderStoreProvider>
                 </Suspense>
             </div>
-            <footer className="flex items-center justify-center border-t text-center text-xs py-6">
-                <p>
-                    Powered&nbsp;by&nbsp;
-                    <Link
-                        href="https://pickle.pw/"
-                        target="_blank"
-                        className="font-bold hover:underline"
-                        rel="noreferrer"
-                    >
-                        pickle
-                    </Link>
-                </p>
+            <footer className="flex items-center justify-center border-t text-center text-xs py-6 h-fit">
+                <div className="flex flex-col items-center gap-2">
+                    <p>
+                        Powered&nbsp;by&nbsp;
+                        <Link
+                            href="https://pickle.pw/"
+                            target="_blank"
+                            className="font-bold hover:underline decoration-muted-foreground underline-offset-2"
+                            rel="noreferrer"
+                        >
+                            pickle
+                        </Link>
+                    </p>
+                    <div>
+                        <Link href="/terms" target="_blank" className="hover:underline decoration-muted-foreground underline-offset-2">
+                            Terms of Service
+                        </Link>
+                        &nbsp;&bull;&nbsp;
+                        <Link href="/privacy" target="_blank" className="hover:underline decoration-muted-foreground underline-offset-2">
+                            Privacy Policy
+                        </Link>
+                    </div>
+                </div>
             </footer>
         </main>
     );

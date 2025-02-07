@@ -20,11 +20,16 @@ import Image from "next/image";
 import React from "react";
 import GameNoteStatusBadge from "./game-note-status-badge";
 
-export default function GameNoteCard({ note }: { note: GameNote }) {
+type Props = {
+    note: GameNote;
+}
+
+export default function GameNoteCard({ note }: Props) {
     const user = useAuthStore((state) => state.user);
     const profile = useProfileStore((state) => state.profile);
     const openModal = useModalStore((state) => state.openModal);
     const [posterUrl, setPosterUrl] = React.useState<string>();
+    const [isCommentExpanded, setCommentIsExpanded] = React.useState(false);
 
     React.useEffect(() => {
         if (note) {
@@ -131,6 +136,9 @@ export default function GameNoteCard({ note }: { note: GameNote }) {
                                             {note.initialOrdererUsername
                                                 ? note.initialOrdererUsername
                                                 : "N/A"}
+                                            <span className="text-muted-foreground text-xs">
+                                                {note.ordererCount > 1 && ` + ${note.ordererCount - 1} more`}
+                                            </span>
                                         </td>
                                     </tr>
                                 </tbody>
@@ -172,7 +180,23 @@ export default function GameNoteCard({ note }: { note: GameNote }) {
             </div>
             <div className="p-4 text-sm rounded-md bg-primary-foreground h-min w-full">
                 {note.comment && note.comment.length > 0 ? (
-                    note.comment
+                    <div className="flex flex-col gap-2">
+                        <div className={cn(
+                            "whitespace-pre-wrap",
+                            !isCommentExpanded && "line-clamp-3"
+                        )}>
+                            {note.comment}
+                        </div>
+                        {note.comment.split('\n').length > 3 && (
+                            <Button
+                                variant="ghost"
+                                className="w-fit"
+                                onClick={() => setCommentIsExpanded(!isCommentExpanded)}
+                            >
+                                {isCommentExpanded ? 'Show less' : 'View more'}
+                            </Button>
+                        )}
+                    </div>
                 ) : (
                     <span className="text-muted-foreground">
                         keelfy hasn't left a comment yet.

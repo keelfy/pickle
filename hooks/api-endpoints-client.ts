@@ -112,3 +112,32 @@ export async function unfollowProfile(profile: Profile | undefined) {
         method: "DELETE",
     });
 }
+
+export async function fetchGameNoteReactions(profile: Profile | undefined, gameNoteId: string) {
+    if (!profile) return undefined;
+    return fetchApi<NoteReaction[]>(`/v1/users/${profile.id}/game-notes/${gameNoteId}/reactions`);
+}
+
+export async function createGameNoteReaction(profile: Profile | undefined, gameNoteId: string, emote: string) {
+    if (!profile) return undefined;
+    const body = {
+        emoteId: emote,
+        source: 'unicode_emoji',
+    }
+    return fetchApi(`/v1/users/${profile.id}/game-notes/${gameNoteId}/reactions`, true, {
+        method: "POST",
+        body: JSON.stringify(body),
+    });
+}
+
+export async function deleteGameNoteReaction(profile: Profile | undefined, gameNoteId: string, emoteId: string) {
+    if (!profile) return undefined;
+    const body = {  
+        emoteId: emoteId,
+        source: 'unicode_emoji',
+    }
+    return fetchApi(`/v1/users/${profile.id}/game-notes/${gameNoteId}/reactions`, true, {
+        method: "DELETE",
+        body: JSON.stringify(body),
+    });
+}

@@ -8,6 +8,7 @@ import { useAuthStore } from "@/providers/auth-store";
 import { useProfileStore } from "@/providers/profile-store";
 import { HeartCrackIcon, HeartIcon } from "lucide-react";
 import React from "react";
+import useRedirectToLogin from "@/hooks/use-redirect-to-login";
 
 type Props = {
     className?: string;
@@ -19,8 +20,14 @@ export function FollowButton({ className }: Props) {
     const [isFollowing, setIsFollowing] = React.useState<boolean>(profile?.isFollowing ?? false);
     const [isHovering, setIsHovering] = React.useState<boolean>(false);
     const [isPending, startTransition] = React.useTransition();
+    const redirectToLogin = useRedirectToLogin();
 
     const handleFollow = () => startTransition(async () => {
+        if (!user) {
+            redirectToLogin();
+            return;
+        }
+
         const prevValue = isFollowing;
         try {
             setIsFollowing(true);
@@ -85,7 +92,7 @@ export function FollowButton({ className }: Props) {
             onClick={isFollowing ? handleUnfollow : handleFollow}
             onMouseEnter={() => setIsHovering(true)}
             onMouseLeave={() => setIsHovering(false)}
-            disabled={user === undefined || isPending}
+            disabled={isPending}
         >
             <div className="relative text-red-500 mr-2">
                 <HeartIcon

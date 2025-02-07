@@ -7,6 +7,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@ferrucc-io/emoji-picker": "^0.0.41",
     "@hookform/resolvers": "^3.9.1",
     "@icons-pack/react-simple-icons": "latest",
     "@radix-ui/react-alert-dialog": "^1.1.*",

@@ -1,24 +1,29 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DeleteContentType } from "@/components/view/dialog/delete-content-alert/delete-content-alert-dialog";
-import { fetchGameNotePoster } from "@/hooks/api-endpoints-client";
+import { createGameNoteReaction, deleteGameNoteReaction, fetchGameNotePoster, fetchGameNoteReactions } from "@/hooks/api-endpoints-client";
+import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/providers/auth-store";
 import { useModalStore } from "@/providers/modal";
 import { useProfileStore } from "@/providers/profile-store";
 import { ModalType } from "@/stores/modal";
+import { EmojiPicker } from "@ferrucc-io/emoji-picker";
 import {
     EditIcon,
     History,
     ImageOff,
+    PlusIcon,
     TextIcon,
     UserPlus2,
-    X,
+    X
 } from "lucide-react";
 import Image from "next/image";
 import React from "react";
 import GameNoteStatusBadge from "./game-note-status-badge";
+import useRedirectToLogin from "@/hooks/use-redirect-to-login";
 
 type Props = {
     note: GameNote;
@@ -30,6 +35,12 @@ export default function GameNoteCard({ note }: Props) {
     const openModal = useModalStore((state) => state.openModal);
     const [posterUrl, setPosterUrl] = React.useState<string>();
     const [isCommentExpanded, setCommentIsExpanded] = React.useState(false);
+
+    const redirectToLogin = useRedirectToLogin();
+
+    const [reactions, setReactions] = React.useState<NoteReaction[]>([]);
+    const [isReactionsLoading, setIsReactionsLoading] = React.useState(false);
+    const [isReactionsChanging, startReactionsChange] = React.useTransition();
 
     React.useEffect(() => {
         if (note) {
@@ -44,6 +55,23 @@ export default function GameNoteCard({ note }: Props) {
             })();
         }
     }, []);
+
+    React.useEffect(() => {
+        if (note) {
+            (async () => {
+                setIsReactionsLoading(true);
+                try {
+                    const res = await fetchGameNoteReactions(profile, note.id);
+                    setReactions(res ?? []);
+                } catch (error: any) {
+                    console.error(error);
+                    setReactions([]);
+                } finally {
+                    setIsReactionsLoading(false);
+                }
+            })();
+        }
+    }, [note]);
 
     const openGameNote = () => {
         openModal(ModalType.GameNote, { id: note.id });
@@ -75,6 +103,68 @@ export default function GameNoteCard({ note }: Props) {
             title: note.name,
             id: note.id,
         });
+
+    const handleEmojiSelect = (emoteId: string) => {
+        if (isReactionsChanging) return;
+        if (reactions.find((reaction) => reaction.emoteId === emoteId)) {
+            return;
+        }
+
+        startReactionsChange(async () => {
+            try {
+                await createGameNoteReaction(profile, note.id, emoteId);
+                const sameEmote = reactions.find((reaction) => reaction.emoteId === emoteId);
+                if (sameEmote) {
+                    sameEmote.count++;
+                } else {
+                    setReactions([...reactions, { emoteId, source: 'unicode_emoji', count: 1, reactedByUser: true }]);
+                }
+            } catch (error: any) {
+                console.error(error);
+                toast({
+                    title: "Error adding reaction",
+                    description: error.message ?? "An error occurred.",
+                });
+            }
+        });
+    }
+
+    const handleEmojiClick = (emoteId: string) => {
+        if (!user) {
+            redirectToLogin();
+            return;
+        }
+
+        if (isReactionsChanging) return;
+        const reacted = reactions.find((reaction) => reaction.emoteId === emoteId);
+        if (!reacted) return;
+
+        if (reacted.reactedByUser) {
+            startReactionsChange(async () => {
+                try {
+                    await deleteGameNoteReaction(profile, note.id, emoteId);
+                    if (reacted.count > 1) {
+                        reacted.count--;
+                        reacted.reactedByUser = false;
+                    } else {
+                        setReactions(reactions.filter((reaction) => reaction.emoteId !== emoteId));
+                    }
+                } catch (error: any) {
+                    console.error(error);
+                }
+            });
+        } else {
+            startReactionsChange(async () => {
+                try {
+                    await createGameNoteReaction(profile, note.id, emoteId);
+                    reacted.reactedByUser = true;
+                    reacted.count++;
+                } catch (error: any) {
+                    console.error(error);
+                }
+            });
+        }
+    }
 
     return (
         <div className="flex flex-col gap-4 shadow rounded-lg p-4 border text-start">
@@ -201,6 +291,44 @@ export default function GameNoteCard({ note }: Props) {
                     <span className="text-muted-foreground">
                         keelfy hasn't left a comment yet.
                     </span>
+                )}
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+                {reactions.map((reaction) => (
+                    <Button
+                        key={reaction.emoteId}
+                        className="rounded-xl px-2 py-1 h-7"
+                        onClick={() => handleEmojiClick(reaction.emoteId)}
+                        variant={reaction.reactedByUser ? "default" : "secondary"}
+                    >
+                        <div className="flex items-center gap-1">
+                            <div className="text-sm">
+                                {reaction.emoteId}
+                            </div>
+                            <div className="text-md font-semibold">
+                                {reaction.count}
+                            </div>
+                        </div>
+                    </Button>
+                ))}
+                {user && (
+                    <Popover>
+                        <PopoverTrigger>
+                            <div className="border rounded-xl px-2 py-1 h-7 flex items-center justify-center">
+                                +
+                            </div>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-fit p-0">
+                            <EmojiPicker onEmojiSelect={handleEmojiSelect}>
+                                <EmojiPicker.Header>
+                                    <EmojiPicker.Input placeholder="Search emoji" />
+                                </EmojiPicker.Header>
+                                <EmojiPicker.Group>
+                                    <EmojiPicker.List />
+                                </EmojiPicker.Group>
+                            </EmojiPicker>
+                        </PopoverContent>
+                    </Popover>
                 )}
             </div>
         </div>

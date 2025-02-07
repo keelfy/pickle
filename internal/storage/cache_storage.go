@@ -64,6 +64,8 @@ func (storage *cacheStorage) GetInt64(ctx context.Context, key string) (int64, e
 		logger.Debugf(ctx, "[CACHE] Error getting key '%s': %v", key, err)
 		return 0, err
 	}
+
+	logger.Debugf(ctx, "[CACHE] Retrieved value of '%s'", key)
 	return value, nil
 }
 

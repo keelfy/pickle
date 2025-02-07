@@ -108,7 +108,7 @@ func (service *followerService) CountFollowers(ctx context.Context, userId uuid.
 			return 0, errors.NewInternalServerError("Error occurred counting followers", err)
 		}
 
-		_ = service.cache.SetKey(ctx, cacheKey, count, 1*time.Hour)
+		_ = service.cache.SetKey(ctx, cacheKey, count, 12*time.Hour)
 		return count, nil
 	})
 	if err != nil {
@@ -140,7 +140,7 @@ func (service *followerService) IsFollowing(ctx context.Context, userId uuid.UUI
 		FollowerID: followerId,
 	})
 	if err != nil {
-		return false, err
+		return false, errors.NewInternalServerError("Error occurred checking if user is following target user", err)
 	}
 	return count > 0, nil
 }

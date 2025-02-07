@@ -431,7 +431,7 @@ func (handler *profileHandler) FollowProfile(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	err = handler.followerService.Follow(ctx, authUserId, userId)
+	err = handler.followerService.Follow(ctx, userId, authUserId)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return

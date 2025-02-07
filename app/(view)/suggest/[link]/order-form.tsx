@@ -1,0 +1,248 @@
+"use client";
+
+import { Button } from "@/components/ui/button";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/providers/auth-store";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { ClapperboardIcon, GamepadIcon, SendIcon, SquirrelIcon, TvIcon, VideoIcon } from "lucide-react";
+import Link from "next/link";
+import React from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import AuthSuggestSection from "./auth-section";
+import OrderSenderName from "./order-sender-name";
+
+type Props = {
+    profile: Profile;
+    myAvatarUrl?: string;
+    className?: string;
+}
+
+const orderFormSchema = z.object({
+    type: z.enum(["game", "movie", "series", "anime", "video"], {
+        message: "Type is required"
+    }),
+    username: z.string().optional(),
+    isAnonymously: z.boolean(),
+    amount: z.number()
+        .min(1, { message: "Amount is required" }),
+    currency: z.enum(["USD", "EUR", "RUB", "GBP", "BRL", "TRY", "PLN"], {
+        message: "Currency is required"
+    }),
+    message: z.string()
+        .min(1, { message: "Message is required" })
+        .max(150, { message: "Message must be less than 150 characters" }),
+});
+
+const CURRENCY_SYMBOLS: Record<string, string> = {
+    USD: "$",
+    EUR: "€",
+    RUB: "₽",
+    GBP: "£",
+    BRL: "R$",
+    TRY: "₺",
+    PLN: "zł"
+};
+
+const CURRENCY_NAMES: Record<string, string> = {
+    USD: "US Dollar",
+    EUR: "Euro",
+    RUB: "Russian Ruble",
+    GBP: "British Pound",
+    BRL: "Brazilian Real",
+    TRY: "Turkish Lira",
+    PLN: "Polish Zloty"
+}
+
+export default function OrderForm({ profile, myAvatarUrl, className }: Props) {
+    const myProfile = useAuthStore(state => state.profile)
+
+    const form = useForm<z.infer<typeof orderFormSchema>>({
+        resolver: zodResolver(orderFormSchema),
+        defaultValues: {
+            type: "game",
+            message: "",
+            currency: "USD",
+            amount: 0,
+            isAnonymously: myProfile === undefined,
+            username: myProfile?.username,
+        },
+    });
+
+    const onSubmit = (data: z.infer<typeof orderFormSchema>) => {
+        console.log(data);
+    }
+
+    const setAmount = (amount: number) => {
+        form.setValue("amount", amount);
+    };
+
+    const [selectedCurrency, setSelectedCurrency] = React.useState("USD");
+
+    return (
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className={cn("flex flex-col gap-8 justify-between w-full h-full", className)}>
+                <div className="grid gap-2">
+                    <div className="w-full space-y-2 mb-4">
+                        <div className="flex justify-between gap-4 items-center w-full">
+                            <OrderSenderName
+                                avatarUrl={myAvatarUrl}
+                                username={form.watch("username")}
+                                isAnonymously={form.watch("isAnonymously")}
+                                onUsernameChange={(value) => form.setValue("username", value)}
+                                onAnonymouslyChange={(value) => form.setValue("isAnonymously", value)}
+                            />
+                            <AuthSuggestSection />
+                        </div>
+                        <p className="text-sm text-muted-foreground max-w-[65ch]">
+                            Registered users can track the status changes of their suggestions even if sent anonymously.
+                        </p>
+                    </div>
+                    <FormField
+                        control={form.control}
+                        name="amount"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>How much are you willing to donate?</FormLabel>
+                                <div className="flex">
+                                    <FormField
+                                        control={form.control}
+                                        name="currency"
+                                        render={({ field: currencyField }) => (
+                                            <Select
+                                                onValueChange={(value) => {
+                                                    currencyField.onChange(value);
+                                                    setSelectedCurrency(value);
+                                                }}
+                                                defaultValue={currencyField.value}
+                                            >
+                                                <SelectTrigger className="w-20 rounded-r-none border-r-0">
+                                                    {currencyField.value.toUpperCase()}
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {Object.entries(CURRENCY_SYMBOLS).map(([key, symbol]) => (
+                                                        <SelectItem key={key} value={key}>
+                                                            {CURRENCY_NAMES[key]} &mdash; <span className="font-bold">{symbol}</span> ({key.toUpperCase()})
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        )}
+                                    />
+                                    <FormControl>
+                                        <div className="relative flex-1">
+                                            <Input
+                                                type="number"
+                                                className="rounded-l-none font-bold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                {...field}
+                                                onChange={e => {
+                                                    try {
+                                                        field.onChange(Number(e.target.value))
+                                                    } catch (error) {
+                                                        field.onChange(0)
+                                                    }
+                                                }}
+                                            />
+                                            <div className="absolute inset-y-0 right-2 flex items-center text-muted-foregroundO">
+                                                {[1, 3, 5, 10].map((amount) => (
+                                                    <Button
+                                                        key={amount}
+                                                        type="button"
+                                                        variant='ghost'
+                                                        className="underline underline-offset-4 decoration-dashed decoration-muted-foreground"
+                                                        size='sm'
+                                                        onClick={() => setAmount(amount)}
+                                                    >
+                                                        {CURRENCY_SYMBOLS[selectedCurrency]}{amount}
+                                                    </Button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </FormControl>
+                                </div>
+                                <FormDescription className="w-full text-end">
+                                    Minimum amount is 1{CURRENCY_SYMBOLS[selectedCurrency]}
+                                </FormDescription>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="type"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>What do you want to suggest?</FormLabel>
+                                <FormControl>
+                                    <Tabs
+                                        className="w-full"
+                                        onValueChange={field.onChange}
+                                        defaultValue={field.value}
+                                    >
+                                        <TabsList className="grid grid-cols-5">
+                                            <TabsTrigger value="game">
+                                                <GamepadIcon className="w-4 h-4 mr-2" />
+                                                Game
+                                            </TabsTrigger>
+                                            <TabsTrigger value="movie">
+                                                <ClapperboardIcon className="w-4 h-4 mr-2" />
+                                                Movie
+                                            </TabsTrigger>
+                                            <TabsTrigger value="series">
+                                                <TvIcon className="w-4 h-4 mr-2" />
+                                                Series
+                                            </TabsTrigger>
+                                            <TabsTrigger value="anime">
+                                                <SquirrelIcon className="w-4 h-4 mr-2" />
+                                                Anime
+                                            </TabsTrigger>
+                                            <TabsTrigger value="video">
+                                                <VideoIcon className="w-4 h-4 mr-2" />
+                                                Video
+                                            </TabsTrigger>
+                                        </TabsList>
+                                    </Tabs>
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="message"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormControl>
+                                    <div className="relative">
+                                        <Textarea
+                                            placeholder="Enter your message mentioning the title, season, episode, etc."
+                                            {...field}
+                                        />
+                                        <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
+                                            {form.watch("message").length} / 150
+                                        </div>
+                                    </div>
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </div>
+                <div className="flex flex-col gap-3">
+                    <Button type="submit" size='lg'>
+                        <SendIcon />
+                        Suggest a {form.watch("type")}
+                    </Button>
+                    <p className="text-xs text-muted-foreground">
+                        By clicking the button above, you accept our <Link href="/terms" className="underline decoration-muted-foreground underline-offset-2">terms of service</Link>.
+                    </p>
+                </div>
+            </form>
+        </Form >
+    )
+}

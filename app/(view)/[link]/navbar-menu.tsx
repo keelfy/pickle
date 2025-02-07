@@ -12,7 +12,7 @@ import ProfileDropdownMenu from "../profile-dropdown-menu";
 import CurrentDate from "./current-date";
 import MenuItemUnderline from "./menu-item-underline";
 import OpenModalButton from "./open-modal-button";
-
+import LanguageDropdownMenu from "@/components/language-dropdown-menu";
 type Props = {
     params: Promise<{
         link: string;
@@ -23,7 +23,7 @@ type Props = {
 export default async function NavMenu({ params, className }: Props) {
     const { link } = await params;
     return (
-        <div className={cn("flex items-center justify-between", className)}>
+        <div className={cn("flex items-center justify-between pt-2", className)}>
             <NavigationMenu>
                 <NavigationMenuList>
                     <Button variant="ghost" size="icon">
@@ -116,29 +116,7 @@ export default async function NavMenu({ params, className }: Props) {
                         <Button variant="secondary" size="icon">
                             <Bell />
                         </Button>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="px-2">
-                                    <div className="flex items-center gap-1">
-                                        <EarthIcon />
-                                        EN
-                                    </div>
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-content">
-                                <DropdownMenuRadioGroup value="en">
-                                    <DropdownMenuRadioItem value="en">
-                                        English
-                                    </DropdownMenuRadioItem>
-                                    <DropdownMenuRadioItem value="ru" disabled>
-                                        Русский
-                                    </DropdownMenuRadioItem>
-                                    <DropdownMenuRadioItem value="es" disabled>
-                                        Español
-                                    </DropdownMenuRadioItem>
-                                </DropdownMenuRadioGroup>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                        <LanguageDropdownMenu variant="short" />
                     </div>
                 </div>
 

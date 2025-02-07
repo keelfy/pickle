@@ -100,7 +100,7 @@ export const forgotPasswordAction = async (formData: FormData) => {
     );
 };
 
-export const changePasswordAction = async ({currentPassword, newPassword}: {currentPassword: string, newPassword: string}) => {
+export const changePasswordAction = async ({ currentPassword, newPassword }: { currentPassword: string, newPassword: string }) => {
     const supabase = await createClient();
 
     if (!currentPassword) {
@@ -141,11 +141,11 @@ export const changePasswordAction = async ({currentPassword, newPassword}: {curr
 export const changeEmailAction = async (email: string) => {
     if (!email) {
         return "Email is required";
-    } 
+    }
 
     const supabase = await createClient();
-    const { data: {session } } = await supabase.auth.getSession();
-    
+    const { data: { session } } = await supabase.auth.getSession();
+
     if (!session) {
         return "User not authenticated";
     } else if (session?.user.email === email) {
@@ -166,7 +166,6 @@ export const changeEmailAction = async (email: string) => {
 export const signOutAction = async () => {
     const supabase = await createClient();
     await supabase.auth.signOut({ scope: "local" });
-    // return redirect("/sign-in");
 };
 
 export const logOutAllDevicesAction = async () => {

@@ -1,4 +1,4 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import ProfileAvatarServer from "@/components/profile-avatar-server";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,18 +16,23 @@ import {
 } from "@/components/ui/dropdown-menu";
 import DropdownMenuDialogWrapper from "@/components/view/dialog/dropdown-menu-dialog-wrapper";
 import ProfileSettingsDialog from "@/components/view/dialog/profile-settings/profile-settings-dialog";
-import { fetchMyAvatar, fetchMyProfile } from "@/hooks/api-endpoints-server";
+import { fetchMyProfile } from "@/hooks/api-endpoints-server";
 import getUser from "@/hooks/getUser";
+import { ModalType } from "@/stores/modal";
 import { MessageCircle, Moon, Settings, User } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import OpenModalDropdownMenuItem from "./[link]/open-modal-dropdown-menu-item";
 import LoggedOutProfileNavSection from "./logged-out-nav-menu-button";
 import ProfileDropdownThemeRadioGroup from "./profile-dropdown-theme-radio-group";
 import DropdownMenuSignOutItem from "./sign-out-button";
-import { ModalType } from "@/stores/modal";
+import { cn } from "@/lib/utils";
 
-export default async function ProfileDropdownMenu() {
+type Props = {
+    className?: string;
+    avatarSize?: "sm" | "md" | "lg";
+}
+
+export default async function ProfileDropdownMenu({ className, avatarSize = "md" }: Props) {
     const user = await getUser();
 
     if (!user) {
@@ -35,35 +40,14 @@ export default async function ProfileDropdownMenu() {
     }
 
     const profile = await fetchMyProfile().catch(() => undefined);
-    const avatarUrl = await fetchMyAvatar("md")
-        .then((res) => res?.url)
-        .catch(() => undefined);
 
     return (
         <DropdownMenuDialogWrapper>
             <DropdownMenu modal={false}>
                 <DropdownMenuTrigger
                     className="hover:opacity-80 transition-opacity cursor-pointer"
-                    asChild
                 >
-                    <Avatar className="w-14 h-14">
-                        <AvatarImage src={avatarUrl} asChild>
-                            {avatarUrl && (
-                                <Image
-                                    src={avatarUrl}
-                                    alt="Avatar"
-                                    width={64}
-                                    height={64}
-                                    priority
-                                />
-                            )}
-                        </AvatarImage>
-                        <AvatarFallback>
-                            {profile?.username?.substring(0, 1) ??
-                                user?.email?.substring(0, 1) ??
-                                "U"}
-                        </AvatarFallback>
-                    </Avatar>
+                    <ProfileAvatarServer profile={profile} size={avatarSize} className={cn("w-12 h-12", className)} />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                     <DropdownMenuLabel className="flex flex-col gap-4">

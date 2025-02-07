@@ -1,23 +1,22 @@
 import { SiInstagram } from "@icons-pack/react-simple-icons";
-import { Clapperboard, MoreHorizontalIcon, ShieldPlusIcon, SparklesIcon } from "lucide-react";
+import { Clapperboard, ShieldPlusIcon, SparklesIcon } from "lucide-react";
 
 import { SiX } from "@icons-pack/react-simple-icons";
 
 import { SiYoutube } from "@icons-pack/react-simple-icons";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import ProfileAvatarServer from "@/components/profile-avatar-server";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { fetchProfileAvatar } from "@/hooks/api-endpoints-server";
 import { cn } from "@/lib/utils";
 import { SiTwitch } from "@icons-pack/react-simple-icons";
 import { Gamepad } from "lucide-react";
-import Image from "next/image";
+import Link from "next/link";
 import { Suspense } from "react";
-import { FollowButton } from "./follow-button";
-import SuggestionLinkCopyButton from "./suggestion-link-copy-button";
-import ManualCreationDropdownMenu from "./manual-creation-dropdown-menu";
 import AuthorizedProfileElement from "./authorized-profile-element";
+import { FollowButton } from "./follow-button";
+import ManualCreationDropdownMenu from "./manual-creation-dropdown-menu";
+import SuggestionLinkCopyButton from "./suggestion-link-copy-button";
 
 type Props = {
     profile: Profile;
@@ -30,29 +29,6 @@ const getFollowersCountText = (count: number) => {
     if (count < 10000) return `${(count / 1000).toFixed(1)}k`;
     if (count < 1000000) return `${(count / 1000).toFixed(0)}k`;
     return `${(count / 1000000).toFixed(1)}M`;
-}
-
-async function ProfileAvatar({ profile }: { profile: Profile | undefined }) {
-    const avatarUrl = await fetchProfileAvatar(profile, "lg")
-        .then((res) => res?.url ?? undefined)
-        .catch(() => undefined);
-
-    return (
-        <Avatar className="h-36 w-36">
-            <AvatarImage src={avatarUrl} asChild>
-                {avatarUrl && (
-                    <Image
-                        src={avatarUrl}
-                        alt="Avatar"
-                        width={128}
-                        height={128}
-                        priority
-                    />
-                )}
-            </AvatarImage>
-            <AvatarFallback>{profile?.link.substring(0, 1)}</AvatarFallback>
-        </Avatar>
-    );
 }
 
 export default function ProfileCard({ profile, className }: Props) {
@@ -85,7 +61,7 @@ export default function ProfileCard({ profile, className }: Props) {
                             </Avatar>
                         }
                     >
-                        <ProfileAvatar profile={profile} />
+                        <ProfileAvatarServer profile={profile} className="h-36 w-36" />
                     </Suspense>
                     <div className="flex flex-col gap-3 w-full">
                         <table className="w-min border-separate border-spacing-x-2">
@@ -128,12 +104,17 @@ export default function ProfileCard({ profile, className }: Props) {
             </div>
             <div className="grid gap-2">
                 <div className="flex items-center">
-                    <a href={`https://pickle.pw/${profile.link}/suggestion`} target="_blank" rel="noopener noreferrer" className="w-full">
+                    <Link
+                        href={`/suggest/${profile.link}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full"
+                    >
                         <Button className="w-full rounded-r-none">
                             <SparklesIcon />
                             Suggest a title
                         </Button>
-                    </a>
+                    </Link>
                     <SuggestionLinkCopyButton className="rounded-l-none" />
                 </div>
                 <AuthorizedProfileElement className="flex items-center">

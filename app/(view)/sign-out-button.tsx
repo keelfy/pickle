@@ -9,7 +9,10 @@ import { LogOut } from "lucide-react";
 const DropdownMenuSignOutItem = () => {
     const [isPending, startTransition] = React.useTransition();
 
-    const onSignOut = () => startTransition(() => signOutAction());
+    const onSignOut = () => startTransition(async () => {
+        await signOutAction();
+        window.location.reload();
+    });
 
     return (
         <DropdownMenuItem onClick={onSignOut} className="cursor-pointer">

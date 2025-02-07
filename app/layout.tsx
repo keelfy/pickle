@@ -7,6 +7,7 @@ import { SearchParams } from "nuqs";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Suspense } from "react";
 import "./globals.css";
+import { cn } from "@/lib/utils";
 
 const defaultUrl = process.env.VERCEL_URL
     ? `https://${process.env.VERCEL_URL}`
@@ -23,7 +24,7 @@ export default async function RootLayout({
 }: React.PropsWithChildren) {
     return (
         <html lang="en" suppressHydrationWarning>
-            <body className={GeistSans.className}>
+            <body className={cn(GeistSans.className, "antialiased")}>
                 <NuqsAdapter>
                     <ThemeProvider
                         attribute="class"

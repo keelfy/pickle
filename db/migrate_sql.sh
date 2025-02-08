@@ -15,7 +15,7 @@ fi
 # --- Migration Execution ---
 # Assuming you're using golang-migrate/migrate
 echo "Running migrations..."
-migrate -database "$DATABASE_URL" -path db/migrations up
+migrate -database "$DATABASE_URL" -path $ROOT_DIR/db/migration up
 
 # Check if migrations were successful
 if [ $? -ne 0 ]; then

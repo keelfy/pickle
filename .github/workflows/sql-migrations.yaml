@@ -28,4 +28,5 @@ jobs:
       - name: Run Migrations
         run: railway run -s ${{ vars.RAILWAY_DATABASE_SVC_ID }} ${{ github.workspace }}/db/migrate_sql.sh
         env:
+          ROOT_DIR: ${{ github.workspace }}
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}

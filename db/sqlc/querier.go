@@ -27,14 +27,10 @@ type Querier interface {
 	DeleteGameNoteById(ctx context.Context, id uuid.UUID) error
 	DeletePosterPreview(ctx context.Context, id uuid.UUID) error
 	// Author: Egor Kuzmin (keelfy)
-	FindElasticsearchMigrationByName(ctx context.Context, name string) (*EsMigrationLog, error)
-	// Author: Egor Kuzmin (keelfy)
 	FindGameNoteById(ctx context.Context, id uuid.UUID) (*GameNote, error)
 	// Author: Egor Kuzmin (keelfy)
 	// Queries last orders by receiver id
 	FindLastOrdersByReceiverId(ctx context.Context, arg FindLastOrdersByReceiverIdParams) ([]*FindLastOrdersByReceiverIdRow, error)
-	// Author: Egor Kuzmin (keelfy)
-	FindMigrationByName(ctx context.Context, name string) (*MigrationLog, error)
 	// Author: Egor Kuzmin (keelfy)
 	// Queries order by id
 	FindOrderById(ctx context.Context, id uuid.UUID) (*Order, error)
@@ -63,15 +59,11 @@ type Querier interface {
 	// Author: Egor Kuzmin (keelfy)
 	GetUserFollows(ctx context.Context, followerID uuid.UUID) ([]*Profile, error)
 	// Author: Egor Kuzmin (keelfy)
-	InsertElasticsearchMigration(ctx context.Context, name string) error
-	// Author: Egor Kuzmin (keelfy)
 	InsertFollower(ctx context.Context, arg InsertFollowerParams) error
 	// Author: Egor Kuzmin (keelfy)
 	InsertGameNote(ctx context.Context, arg InsertGameNoteParams) (*GameNote, error)
 	// Author: Egor Kuzmin (keelfy)
 	InsertGameNoteOrder(ctx context.Context, arg InsertGameNoteOrderParams) (*GameNoteOrder, error)
-	// Author: Egor Kuzmin (keelfy)
-	InsertMigration(ctx context.Context, name string) error
 	// Author: Egor Kuzmin (keelfy)
 	// Inserts a new order
 	InsertOrder(ctx context.Context, arg InsertOrderParams) (*Order, error)

@@ -240,12 +240,6 @@ type GameNoteReaction struct {
 	CreatedBy  uuid.UUID      `json:"created_by"`
 }
 
-type MigrationLog struct {
-	ID        int32     `json:"id"`
-	Name      string    `json:"name"`
-	CreatedAt time.Time `json:"created_at"`
-}
-
 type Order struct {
 	ID              uuid.UUID           `json:"id"`
 	CreatedAt       time.Time           `json:"created_at"`

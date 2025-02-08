@@ -17,15 +17,3 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "Database migrations completed successfully."
-
-echo "Generating SQLc code..."
-sqlc generate
-
-if [ $? -ne 0 ]; then
-  echo "Error: SQLc code generation failed."
-  exit 1
-fi
-
-echo "SQLc code generation completed successfully."
-
-echo "Database migration and SQLc code generation process finished."

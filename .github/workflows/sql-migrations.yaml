@@ -23,6 +23,6 @@ jobs:
         run: curl -fsSL https://railway.app/install.sh | sh
 
       - name: Run Migrations
-        run: railway run ./db/migrate_sql.sh -s ${{ vars.RAILWAY_DATABASE_SVC_ID }}
+        run: railway run -s ${{ vars.RAILWAY_DATABASE_SVC_ID }} ./db/migrate_sql.sh
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}

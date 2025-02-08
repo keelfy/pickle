@@ -20,7 +20,13 @@ dependencies: ## generate dependencies
 	go mod download
 
 add-migration: ## add migration
-	migrate create -ext sql -dir db/migration $(name)
+	migrate create -ext sql -dir ./db/migration $(name)
+
+migrate-up: ## migrate up
+	migrate -database "$DATABASE_URL" -path ./db/migration up
+
+migrate-down: ## migrate down
+	migrate -database "$DATABASE_URL" -path ./db/migration down
 
 # TODO: Will be used later to communicate with other services
 prototool-generate: ## generate proto file

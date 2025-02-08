@@ -20,6 +20,7 @@ import Image from "next/image";
 import React from "react";
 import GameNoteReactions from "./game-note-reactions";
 import GameNoteStatusBadge from "./game-note-status-badge";
+import NoteComment from "./note-comment";
 
 type Props = {
     note: GameNote;
@@ -180,31 +181,7 @@ export default function GameNoteCard({ note, defaultReactions }: Props) {
                     </div>
                 </div>
             </div>
-            <div className="p-4 text-sm rounded-md bg-primary-foreground h-min w-full">
-                {note.comment && note.comment.length > 0 ? (
-                    <div className="flex flex-col gap-2">
-                        <div className={cn(
-                            "whitespace-pre-wrap",
-                            !isCommentExpanded && "line-clamp-3"
-                        )}>
-                            {note.comment}
-                        </div>
-                        {note.comment.split('\n').length > 3 && (
-                            <Button
-                                variant="ghost"
-                                className="w-fit"
-                                onClick={() => setCommentIsExpanded(!isCommentExpanded)}
-                            >
-                                {isCommentExpanded ? 'Show less' : 'View more'}
-                            </Button>
-                        )}
-                    </div>
-                ) : (
-                    <span className="text-muted-foreground">
-                        keelfy hasn't left a comment yet.
-                    </span>
-                )}
-            </div>
+            <NoteComment comment={note.comment} />
             {defaultReactions && <GameNoteReactions note={note} defaultReactions={defaultReactions} />}
         </div>
     );

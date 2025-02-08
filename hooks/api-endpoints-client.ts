@@ -38,9 +38,8 @@ export async function deletePosterPreview(profile: Profile | undefined, id: stri
     });
 }
 
-export async function fetchProfileGameNotes(profile: Profile | undefined, cursor: string, limit: number, direction: 'asc' | 'desc' = 'desc') {
-    if (!profile) return undefined;
-    return fetchApi<GameNote[]>(`/v1/users/${profile.id}/game-notes?cursor=${cursor}&limit=${limit}&direction=${direction}`);
+export async function fetchProfileGameNotes(profile: Profile, params: URLSearchParams) {
+    return fetchApi<GameNote[]>(`/v1/users/${profile.id}/game-notes?${params.toString()}`);
 }
 
 export async function fetchGameNotePoster(profile: Profile | undefined, gameNoteId: string, size: ImageSize = 'sm') {
@@ -111,6 +110,11 @@ export async function unfollowProfile(profile: Profile | undefined) {
     return fetchApi(`/v1/users/${profile.id}/follows`, true, {
         method: "DELETE",
     });
+}
+
+export async function fetchGameNoteReactions(profile: Profile | undefined, gameNoteId: string) {
+    if (!profile) return undefined;
+    return fetchApi<Reaction[]>(`/v1/users/${profile.id}/game-notes/${gameNoteId}/reactions`);
 }
 
 export async function fetchBatchGameNoteReactions(profile: Profile | undefined, gameNoteIds: string[]) {

@@ -1,6 +1,8 @@
 "use client";
 
+import GameNoteReactions from "@/app/(view)/[link]/games/game-note-reactions";
 import GameNoteStatusBadge from "@/app/(view)/[link]/games/game-note-status-badge";
+import NoteComment from "@/app/(view)/[link]/games/note-comment";
 import { Button } from "@/components/ui/button";
 import {
     Collapsible,
@@ -24,8 +26,8 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { fetchGameNote, fetchGameNoteOrders, fetchGameNotePoster } from "@/hooks/api-endpoints-client";
-import { useToast } from "@/hooks/use-toast";
+import { fetchGameNote, fetchGameNoteOrders, fetchGameNotePoster, fetchGameNoteReactions } from "@/hooks/api-endpoints-client";
+import { toast } from "@/hooks/use-toast";
 import { useModalStore } from "@/providers/modal";
 import { useProfileStore } from "@/providers/profile-store";
 import {
@@ -40,7 +42,6 @@ import Image from "next/image";
 import React from "react";
 import GameUrl from "../../../../app/(view)/[link]/components/game-url";
 import RatingRow from "../../../../app/(view)/[link]/components/rating-row";
-
 export default function GameNoteDialogContent() {
     const { id: gameNoteId } = useModalStore((state) => state.modalParams!);
     const [gameNote, setGameNote] = React.useState<GameNote>();
@@ -52,9 +53,10 @@ export default function GameNoteDialogContent() {
     const [detailsOpen, setDetailsOpen] = React.useState(false);
     const [isLoading, startTransition] = React.useTransition();
     const [areOrdersLoading, startOrdersTransition] = React.useTransition();
-    const { toast } = useToast();
 
     const [posterUrl, setPosterUrl] = React.useState<string>();
+
+    const [reactions, setReactions] = React.useState<Reaction[]>();
 
     React.useEffect(() => {
         (async () => {
@@ -67,6 +69,19 @@ export default function GameNoteDialogContent() {
             }
         })();
     }, []);
+
+    React.useEffect(() => {
+        (async () => {
+            try {
+                const res = await fetchGameNoteReactions(profile, gameNoteId);
+                if (res) {
+                    setReactions(res);
+                }
+            } catch (error: any) {
+                console.error(error);
+            }
+        })();
+    }, [gameNoteId]);
 
     React.useEffect(() => {
         setDetailsOpen(false);
@@ -258,15 +273,11 @@ export default function GameNoteDialogContent() {
                     <RatingRow value={gameNote?.rate ?? 0} />
                 </div>
 
-                <div className="p-4 bg-primary-foreground rounded-lg text-sm">
-                    {gameNote?.comment && gameNote.comment.length > 0 ? (
-                        gameNote.comment
-                    ) : (
-                        <span className="text-muted-foreground">
-                            keelfy hasn't left a comment yet.
-                        </span>
-                    )}
-                </div>
+                <NoteComment comment={gameNote?.comment} className="rounded-lg" lengthLimit={180} />
+
+                {gameNote && reactions && (
+                    <GameNoteReactions note={gameNote} defaultReactions={reactions} />
+                )}
 
                 <Collapsible
                     open={detailsOpen}

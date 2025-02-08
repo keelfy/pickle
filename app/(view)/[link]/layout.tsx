@@ -13,6 +13,7 @@ import DenyOrderDialog from "../../../components/view/dialog/deny-order/deny-ord
 import ProfileSearchDialog from "../../../components/view/dialog/profile-search/profile-search-dialog";
 import NavMenu from "./navbar-menu";
 import ProfileCard from "./profile-card";
+import GameNoteDialog from "@/components/view/dialog/game-note/game-note-dialog";
 
 async function LayoutBody({
     children,
@@ -45,6 +46,7 @@ async function LayoutBody({
 
             <DenyOrderDialog />
             <ApproveOrderDialog />
+            <GameNoteDialog />
             <GameNoteEditorDialog />
             <ProfileSearchDialog />
             <CreateOrderDialog link={link} />

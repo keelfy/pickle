@@ -90,6 +90,11 @@ type NoteReactionRes struct {
 	ReactedByUser bool   `json:"reactedByUser"`
 }
 
+type BatchNoteReactionsRes struct {
+	NoteID    uuid.UUID         `json:"noteId"`
+	Reactions []NoteReactionRes `json:"reactions"`
+}
+
 type OrdererRes struct {
 	ID        uuid.UUID  `json:"id"`
 	UserID    *uuid.UUID `json:"userId,omitempty"`

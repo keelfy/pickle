@@ -24,6 +24,7 @@ type GameNoteHandler interface {
 	DeleteGameNote(w http.ResponseWriter, r *http.Request)
 	UpdateGameNote(w http.ResponseWriter, r *http.Request)
 	GetGameNoteReactions(w http.ResponseWriter, r *http.Request)
+	GetBatchGameNoteReactions(w http.ResponseWriter, r *http.Request)
 	AddGameNoteReaction(w http.ResponseWriter, r *http.Request)
 	RemoveGameNoteReaction(w http.ResponseWriter, r *http.Request)
 }
@@ -329,6 +330,17 @@ func (handler *gameNoteHandler) UpdateGameNote(w http.ResponseWriter, r *http.Re
 	w.WriteHeader(http.StatusOK)
 }
 
+// @Summary Get game note reactions
+// @Description Get game note reactions
+// @Tags game-notes
+// @Accept json
+// @Produce json
+// @Param userId path string true "User ID"
+// @Param noteId path string true "Note ID"
+// @Success 200 {object} []types.NoteReactionRes
+// @Failure 400 {object} string
+// @Failure 500 {object} string
+// @Router /v1/users/{userId}/game-notes/{noteId}/reactions [get]
 func (handler *gameNoteHandler) GetGameNoteReactions(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userId := ctx.Value(middleware.UserIDKey)
@@ -338,20 +350,15 @@ func (handler *gameNoteHandler) GetGameNoteReactions(w http.ResponseWriter, r *h
 		return
 	}
 
-	var reactions any
-
 	if userId == nil {
-		reactions, err = handler.gameNoteReactionService.GetGameNoteReactionsByGameNoteId(ctx, noteId)
-		if err != nil {
-			utils.HttpError(ctx, err, w)
-			return
-		}
-	} else {
-		reactions, err = handler.gameNoteReactionService.GetGameNoteReactionsByGameNoteIdAndUserId(ctx, noteId, userId.(uuid.UUID))
-		if err != nil {
-			utils.HttpError(ctx, err, w)
-			return
-		}
+		userId = uuid.Nil
+	}
+
+	gameNoteIDs := []uuid.UUID{noteId}
+	reactions, err := handler.gameNoteReactionService.GetGameNoteReactionsByGameNoteIdsAndUserId(ctx, gameNoteIDs, userId.(uuid.UUID))
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
 	}
 
 	response := []types.NoteReactionRes{}
@@ -359,6 +366,74 @@ func (handler *gameNoteHandler) GetGameNoteReactions(w http.ResponseWriter, r *h
 	utils.WriteHttpJsonResponse(ctx, w, response)
 }
 
+// @Summary Get batch game note reactions
+// @Description Get batch game note reactions
+// @Tags game-notes
+// @Accept json
+// @Produce json
+// @Param noteIds query string true "Note IDs"
+// @Success 200 {object} []types.BatchNoteReactionsRes
+// @Failure 400 {object} string
+// @Failure 500 {object} string
+// @Router /v1/users/{userId}/game-notes/reactions [get]
+func (handler *gameNoteHandler) GetBatchGameNoteReactions(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userId := ctx.Value(middleware.UserIDKey)
+	noteIds, err := utils.GetQueryParamAsUUIDs(r, "noteIds")
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
+	if len(noteIds) == 0 {
+		utils.HttpError(ctx, errors.NewBadRequestError("At least one note ID is required", nil), w)
+		return
+	}
+
+	if userId == nil {
+		userId = uuid.Nil
+	}
+
+	reactions, err := handler.gameNoteReactionService.GetGameNoteReactionsByGameNoteIdsAndUserId(ctx, noteIds, userId.(uuid.UUID))
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
+	reactionsMap := make(map[uuid.UUID][]types.NoteReactionRes)
+	for _, reaction := range reactions {
+		reactionsMap[reaction.GameNoteID] = append(reactionsMap[reaction.GameNoteID], types.NoteReactionRes{
+			EmoteID:       reaction.EmoteID,
+			Source:        string(reaction.Source),
+			Count:         reaction.Count,
+			ReactedByUser: reaction.ReactedByUser.(int32) == 1,
+		})
+	}
+
+	response := []types.BatchNoteReactionsRes{}
+
+	for _, noteId := range noteIds {
+		response = append(response, types.BatchNoteReactionsRes{
+			NoteID:    noteId,
+			Reactions: reactionsMap[noteId],
+		})
+	}
+
+	utils.WriteHttpJsonResponse(ctx, w, response)
+}
+
+// @Summary Add game note reaction
+// @Description Add game note reaction
+// @Tags game-notes
+// @Accept json
+// @Produce json
+// @Param userId path string true "User ID"
+// @Param noteId path string true "Note ID"
+// @Param reactionReq body types.ReactionReq true "Reaction request"
+// @Success 200
+// @Failure 400 {object} string
+// @Failure 500 {object} string
+// @Router /v1/users/{userId}/game-notes/{noteId}/reactions [post]
 func (handler *gameNoteHandler) AddGameNoteReaction(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -380,19 +455,7 @@ func (handler *gameNoteHandler) AddGameNoteReaction(w http.ResponseWriter, r *ht
 		return
 	}
 
-	emoteId := req.EmoteID
-	if emoteId == "" {
-		utils.HttpError(ctx, errors.NewBadRequestError("Emote ID is required", nil), w)
-		return
-	}
-
-	source := req.Source
-	if source == "" {
-		utils.HttpError(ctx, errors.NewBadRequestError("Source is required", nil), w)
-		return
-	}
-
-	err = handler.gameNoteReactionService.AddGameNoteReaction(ctx, noteId, userId, emoteId, source)
+	err = handler.gameNoteReactionService.AddGameNoteReaction(ctx, noteId, userId, req.EmoteID, req.Source)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
@@ -401,6 +464,18 @@ func (handler *gameNoteHandler) AddGameNoteReaction(w http.ResponseWriter, r *ht
 	w.WriteHeader(http.StatusOK)
 }
 
+// @Summary Remove game note reaction
+// @Description Remove game note reaction
+// @Tags game-notes
+// @Accept json
+// @Produce json
+// @Param userId path string true "User ID"
+// @Param noteId path string true "Note ID"
+// @Param reactionReq body types.ReactionReq true "Reaction request"
+// @Success 200
+// @Failure 400 {object} string
+// @Failure 500 {object} string
+// @Router /v1/users/{userId}/game-notes/{noteId}/reactions [delete]
 func (handler *gameNoteHandler) RemoveGameNoteReaction(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userId, err := utils.UserIdFromContext(ctx)

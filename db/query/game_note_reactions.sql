@@ -16,28 +16,28 @@ WHERE "game_note_id" = $1
     AND "emote_id" = $3
     AND "source" = $4;
 
--- name: GetGameNoteReactionsByGameNoteIdAndUserId :many
+-- name: GetGameNoteReactionsByGameNoteIdInAndUserId :many
 SELECT 
+    gnr."game_note_id",
     gnr."emote_id",
     gnr."source",
-    COUNT(*) as "count",
-    EXISTS (
-        SELECT 1 
-        FROM "game_note_reactions" r2 
-        WHERE r2."game_note_id" = gnr."game_note_id" 
-            AND r2."user_id" = $2 
-            AND r2."emote_id" = gnr."emote_id"
-            AND r2."source" = gnr."source"
-    ) as "reacted_by_user"
+    COUNT(DISTINCT gnr."user_id") AS "count",
+    COALESCE(
+        (
+            SELECT 1 
+            FROM "game_note_reactions" r2 
+            WHERE r2."game_note_id" = gnr."game_note_id" 
+                AND r2."user_id" = $2 
+                AND r2."emote_id" = gnr."emote_id"
+                AND r2."source" = gnr."source"
+        ), 0) AS "reacted_by_user"
 FROM "game_note_reactions" gnr
-WHERE gnr."game_note_id" = $1
-GROUP BY gnr."game_note_id", gnr."emote_id", gnr."source";
+WHERE gnr."game_note_id" = ANY($1::uuid[])
+GROUP BY gnr."game_note_id", gnr."emote_id", gnr."source"
+ORDER BY "count" DESC;
 
--- name: GetGameNoteReactionsByGameNoteId :many
-SELECT 
-    gnr."emote_id",
-    gnr."source",
-    COUNT(*) as "count"
-FROM "game_note_reactions" gnr
-WHERE gnr."game_note_id" = $1
-GROUP BY gnr."game_note_id", gnr."emote_id", gnr."source";
+-- name: CountGameNoteReactionsByGameNoteIdAndUserId :one
+SELECT COUNT(*) FROM "game_note_reactions"
+WHERE "game_note_id" = $1
+    AND "user_id" = $2;
+

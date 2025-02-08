@@ -45,7 +45,7 @@ coverage: ## test coverage
 	go tool cover -html coverage.out
 
 gen:
-	wire $(GO_DIR)/cmd && sqlc generate && swag init -g $(GO_DIR)/cmd/main.go --parseDependency --parseInternal
+	wire ./cmd && sqlc generate && swag init -g ./cmd/main.go --parseDependency --parseInternal
 
 run:
 	go run $(GO_DIR)/cmd

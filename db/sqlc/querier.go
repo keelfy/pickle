@@ -14,6 +14,7 @@ type Querier interface {
 	AddGameNoteReaction(ctx context.Context, arg AddGameNoteReactionParams) error
 	// Author: Egor Kuzmin (keelfy)
 	CountFollowers(ctx context.Context, userID uuid.UUID) (int64, error)
+	CountGameNoteReactionsByGameNoteIdAndUserId(ctx context.Context, arg CountGameNoteReactionsByGameNoteIdAndUserIdParams) (int64, error)
 	// Author: Egor Kuzmin (keelfy)
 	CountOrdersByGameNoteId(ctx context.Context, gameNoteID uuid.UUID) (int64, error)
 	// Author: Egor Kuzmin (keelfy)
@@ -55,8 +56,7 @@ type Querier interface {
 	FindProfileById(ctx context.Context, userID uuid.UUID) (*Profile, error)
 	// Author: Egor Kuzmin (keelfy)
 	FindProfileByLink(ctx context.Context, link string) (*Profile, error)
-	GetGameNoteReactionsByGameNoteId(ctx context.Context, gameNoteID uuid.UUID) ([]*GetGameNoteReactionsByGameNoteIdRow, error)
-	GetGameNoteReactionsByGameNoteIdAndUserId(ctx context.Context, arg GetGameNoteReactionsByGameNoteIdAndUserIdParams) ([]*GetGameNoteReactionsByGameNoteIdAndUserIdRow, error)
+	GetGameNoteReactionsByGameNoteIdInAndUserId(ctx context.Context, arg GetGameNoteReactionsByGameNoteIdInAndUserIdParams) ([]*GetGameNoteReactionsByGameNoteIdInAndUserIdRow, error)
 	// Author: Egor Kuzmin (keelfy)
 	GetUserFollows(ctx context.Context, followerID uuid.UUID) ([]*Profile, error)
 	InsertElasticsearchMigration(ctx context.Context, name string) error

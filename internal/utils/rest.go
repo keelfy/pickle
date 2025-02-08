@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -31,6 +32,24 @@ func GetQueryParam(r *http.Request, key, defaultValue string) string {
 		return defaultValue
 	}
 	return value
+}
+
+func GetQueryParamAsUUIDs(r *http.Request, key string) ([]uuid.UUID, error) {
+	value := r.URL.Query().Get(key)
+	uuids := []uuid.UUID{}
+
+	if value == "" {
+		return uuids, nil
+	}
+
+	for _, id := range strings.Split(value, ",") {
+		uid, err := ParseUUIDFromString(id)
+		if err != nil {
+			return uuids, err
+		}
+		uuids = append(uuids, uid)
+	}
+	return uuids, nil
 }
 
 func GetPagination(r *http.Request) (*types.Pagination, error) {

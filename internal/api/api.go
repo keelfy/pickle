@@ -155,6 +155,12 @@ func (api *pickleAPI) v1RouteHandler() http.Handler {
 					r.Post("/", api.gameNoteHandler.CreateGameNote)
 				})
 
+				r.Route("/reactions", func(r chi.Router) {
+					api.useUnprotectedRoutes(r)
+
+					r.Get("/", api.gameNoteHandler.GetBatchGameNoteReactions)
+				})
+
 				r.Route("/{noteId}", func(r chi.Router) {
 					r.Get("/", api.gameNoteHandler.GetGameNoteById)
 					r.Get("/orders", api.gameNoteHandler.GetOrdersById)

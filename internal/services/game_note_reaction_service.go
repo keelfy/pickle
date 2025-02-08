@@ -12,8 +12,7 @@ import (
 type GameNoteReactionService interface {
 	AddGameNoteReaction(ctx context.Context, gameNoteID uuid.UUID, userID uuid.UUID, emoteID string, source string) error
 	RemoveGameNoteReaction(ctx context.Context, gameNoteID uuid.UUID, userID uuid.UUID, emoteID string, source string) error
-	GetGameNoteReactionsByGameNoteIdAndUserId(ctx context.Context, gameNoteID uuid.UUID, userID uuid.UUID) ([]*db.GetGameNoteReactionsByGameNoteIdAndUserIdRow, error)
-	GetGameNoteReactionsByGameNoteId(ctx context.Context, gameNoteID uuid.UUID) ([]*db.GetGameNoteReactionsByGameNoteIdRow, error)
+	GetGameNoteReactionsByGameNoteIdsAndUserId(ctx context.Context, gameNoteIDs []uuid.UUID, userID uuid.UUID) ([]*db.GetGameNoteReactionsByGameNoteIdInAndUserIdRow, error)
 }
 
 type gameNoteReactionService struct {
@@ -25,7 +24,35 @@ func NewGameNoteReactionService(sqlDB storage.RelationalStorage) GameNoteReactio
 }
 
 func (s *gameNoteReactionService) AddGameNoteReaction(ctx context.Context, gameNoteID uuid.UUID, userID uuid.UUID, emoteID string, source string) error {
-	err := s.sqlDB.Queries().AddGameNoteReaction(ctx, db.AddGameNoteReactionParams{
+	// validate emote id
+	if emoteID == "" {
+		return errors.NewBadRequestError("emote id is required", nil)
+	}
+
+	// validate source
+	if source == "" {
+		return errors.NewBadRequestError("source is required", nil)
+	} else if source != "unicode_emoji" {
+		return errors.NewBadRequestError("invalid source", nil)
+	}
+
+	if source == "unicode_emoji" && len(emoteID) > 16 {
+		return errors.NewBadRequestError("unicode emoji must be 16 characters or less", nil)
+	}
+
+	count, err := s.sqlDB.Queries().CountGameNoteReactionsByGameNoteIdAndUserId(ctx, db.CountGameNoteReactionsByGameNoteIdAndUserIdParams{
+		GameNoteID: gameNoteID,
+		UserID:     userID,
+	})
+	if err != nil {
+		return errors.NewInternalServerError("failed to count game note reactions by game note id and user id", err)
+	}
+
+	if count >= 3 {
+		return errors.NewBadRequestError("user has reached the maximum number of reactions", nil)
+	}
+
+	err = s.sqlDB.Queries().AddGameNoteReaction(ctx, db.AddGameNoteReactionParams{
 		GameNoteID: gameNoteID,
 		UserID:     userID,
 		EmoteID:    emoteID,
@@ -51,22 +78,13 @@ func (s *gameNoteReactionService) RemoveGameNoteReaction(ctx context.Context, ga
 	return nil
 }
 
-func (s *gameNoteReactionService) GetGameNoteReactionsByGameNoteIdAndUserId(ctx context.Context, gameNoteID uuid.UUID, userID uuid.UUID) ([]*db.GetGameNoteReactionsByGameNoteIdAndUserIdRow, error) {
-	rows, err := s.sqlDB.Queries().GetGameNoteReactionsByGameNoteIdAndUserId(ctx, db.GetGameNoteReactionsByGameNoteIdAndUserIdParams{
-		GameNoteID: gameNoteID,
-		UserID:     userID,
+func (s *gameNoteReactionService) GetGameNoteReactionsByGameNoteIdsAndUserId(ctx context.Context, gameNoteIDs []uuid.UUID, userID uuid.UUID) ([]*db.GetGameNoteReactionsByGameNoteIdInAndUserIdRow, error) {
+	rows, err := s.sqlDB.Queries().GetGameNoteReactionsByGameNoteIdInAndUserId(ctx, db.GetGameNoteReactionsByGameNoteIdInAndUserIdParams{
+		Column1: gameNoteIDs,
+		UserID:  userID,
 	})
 	if err != nil {
 		return nil, errors.NewInternalServerError("failed to get game note reactions by game note id and user id", err)
 	}
-	return rows, nil
-}
-
-func (s *gameNoteReactionService) GetGameNoteReactionsByGameNoteId(ctx context.Context, gameNoteID uuid.UUID) ([]*db.GetGameNoteReactionsByGameNoteIdRow, error) {
-	rows, err := s.sqlDB.Queries().GetGameNoteReactionsByGameNoteId(ctx, gameNoteID)
-	if err != nil {
-		return nil, errors.NewInternalServerError("failed to get game note reactions by game note id", err)
-	}
-
 	return rows, nil
 }

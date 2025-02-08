@@ -26,7 +26,7 @@ prototool-generate: ## generate proto file
 
 build: init ## build binary file
 	GOOS=${GOOS} CGO_ENABLED=${CGO_ENABLED} GOARCH=${GOARCH} \
-	go build -ldflags -o "$(GO_DIR)/artifacts/bin" cmd/main.go
+	go build -ldflags='-s' -o "$(GO_DIR)/artifacts/bin" "$(GO_DIR)/cmd"
 
 test: ## test application with race
 	go test -v ./...

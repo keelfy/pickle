@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { fetchBatchGameNoteReactions, fetchGameNoteReactions, fetchProfileGameNotes } from "@/hooks/api-endpoints-client";
+import { fetchBatchGameNoteReactions, fetchProfileGameNotes } from "@/hooks/api-endpoints-client";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useProfileStore } from "@/providers/profile-store";

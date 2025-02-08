@@ -1,8 +1,8 @@
 "use client";
 
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { createGameNoteReaction, deleteGameNoteReaction, fetchGameNoteReactions } from "@/hooks/api-endpoints-client";
+import { createGameNoteReaction, deleteGameNoteReaction } from "@/hooks/api-endpoints-client";
 import useRedirectToLogin from "@/hooks/use-redirect-to-login";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";

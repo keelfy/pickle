@@ -53,11 +53,16 @@ type GameNote = {
     ordererCount: number;
 };
 
-type NoteReaction = {
+type Reaction = {
     emoteId: string;
     source: string;
     count: number;
     reactedByUser: boolean;
+}
+
+type NoteReaction = {
+    noteId: string;
+    reactions: Reaction[];
 }
 
 type Orderer = {

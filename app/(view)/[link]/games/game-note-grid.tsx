@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { fetchProfileGameNotes } from "@/hooks/api-endpoints-client";
+import { fetchBatchGameNoteReactions, fetchGameNoteReactions, fetchProfileGameNotes } from "@/hooks/api-endpoints-client";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useProfileStore } from "@/providers/profile-store";
@@ -18,6 +18,7 @@ type Props = {
 export default function GameNoteGrid({ className }: Props) {
     const profile = useProfileStore((state) => state.profile);
     const [notes, setNotes] = React.useState<GameNote[]>([]);
+    const [reactions, setReactions] = React.useState<NoteReaction[]>();
 
     React.useEffect(() => {
         if (!profile) return;
@@ -35,6 +36,21 @@ export default function GameNoteGrid({ className }: Props) {
         };
         fetchNotes();
     }, [profile?.id]);
+
+    React.useEffect(() => {
+        if (!notes || notes.length === 0) return;
+        const fetchReactions = async () => {
+            try {
+                const reactions = await fetchBatchGameNoteReactions(profile, notes.map((note) => note.id));
+                if (reactions) {
+                    setReactions(reactions);
+                }
+            } catch (error: any) {
+                console.error(error);
+            }
+        }
+        fetchReactions();
+    }, [notes]);
 
     return (
         <div className={cn("flex flex-col gap-8 justify-center md:justify-start md:items-start", className)}>
@@ -58,9 +74,19 @@ export default function GameNoteGrid({ className }: Props) {
             </div>
             {/* <div className="grid grid-flow-row w-full gap-4 justify-between md:grid-cols-[repeat(auto-fit,230px)]"> */}
             <div className="flex flex-col gap-8 w-full">
-                {notes.map((note) => (
-                    <GameNoteCard key={note.id} note={note} />
-                ))}
+                {notes.map((note) => {
+                    const defaultReactions = reactions
+                        ?.filter((reaction) => reaction.noteId === note.id)
+                        .flatMap((reaction) => reaction.reactions);
+
+                    return (
+                        <GameNoteCard
+                            key={note.id}
+                            note={note}
+                            defaultReactions={defaultReactions}
+                        />
+                    );
+                })}
             </div>
         </div>
     );

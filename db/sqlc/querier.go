@@ -26,6 +26,7 @@ type Querier interface {
 	// Author: Egor Kuzmin (keelfy)
 	DeleteGameNoteById(ctx context.Context, id uuid.UUID) error
 	DeletePosterPreview(ctx context.Context, id uuid.UUID) error
+	FindElasticsearchMigrationByName(ctx context.Context, name string) (*EsMigrationLog, error)
 	// Author: Egor Kuzmin (keelfy)
 	FindGameNoteById(ctx context.Context, id uuid.UUID) (*GameNote, error)
 	// Author: Egor Kuzmin (keelfy)
@@ -58,6 +59,7 @@ type Querier interface {
 	GetGameNoteReactionsByGameNoteIdAndUserId(ctx context.Context, arg GetGameNoteReactionsByGameNoteIdAndUserIdParams) ([]*GetGameNoteReactionsByGameNoteIdAndUserIdRow, error)
 	// Author: Egor Kuzmin (keelfy)
 	GetUserFollows(ctx context.Context, followerID uuid.UUID) ([]*Profile, error)
+	InsertElasticsearchMigration(ctx context.Context, name string) error
 	// Author: Egor Kuzmin (keelfy)
 	InsertFollower(ctx context.Context, arg InsertFollowerParams) error
 	// Author: Egor Kuzmin (keelfy)

@@ -20,13 +20,13 @@ dependencies: ## generate dependencies
 	go mod download
 
 add-migration: ## add migration
-	migrate create -ext sql -dir ./db/migration $(name)
+	migrate create -ext sql -dir $(GO_DIR)/db/migration $(name)
 
 migrate-up: ## migrate up
-	migrate -database "$DATABASE_URL" -path ./db/migration up
+	migrate -database "$DATABASE_URL" -path $(GO_DIR)/db/migration up
 
 migrate-down: ## migrate down
-	migrate -database "$DATABASE_URL" -path ./db/migration down
+	migrate -database "$DATABASE_URL" -path $(GO_DIR)/db/migration down
 
 # TODO: Will be used later to communicate with other services
 prototool-generate: ## generate proto file
@@ -38,17 +38,17 @@ build: init ## build binary file
 	go build -ldflags='-s' -o "$(GO_DIR)/artifacts/bin" "$(GO_DIR)/cmd"
 
 test: ## test application with race
-	go test -v ./...
+	go test -v $(GO_DIR)/...
 
 coverage: ## test coverage
-	go test -coverprofile=coverage.out ./...
+	go test -coverprofile=coverage.out $(GO_DIR)/...
 	go tool cover -html coverage.out
 
 gen:
-	wire ./cmd && sqlc generate && swag init -g cmd/main.go --parseDependency --parseInternal
+	wire $(GO_DIR)/cmd && sqlc generate && swag init -g $(GO_DIR)/cmd/main.go --parseDependency --parseInternal
 
 run:
-	go run ./cmd
+	go run $(GO_DIR)/cmd
 
 .DEFAULT_GOAL := run
 

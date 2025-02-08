@@ -23,9 +23,9 @@ jobs:
         run: curl -fsSL https://railway.app/install.sh | sh
 
       - name: Make migrate_sql.sh Executable
-        run: chmod +x ./db/migrate_sql.sh
+        run: chmod +x ${{ github.workspace }}/db/migrate_sql.sh
 
       - name: Run Migrations
-        run: railway run -s ${{ vars.RAILWAY_DATABASE_SVC_ID }} ./db/migrate_sql.sh
+        run: railway run -s ${{ vars.RAILWAY_DATABASE_SVC_ID }} ${{ github.workspace }}/db/migrate_sql.sh
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}

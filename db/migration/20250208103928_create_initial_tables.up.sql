@@ -1,9 +1,3 @@
-CREATE TABLE IF NOT EXISTS "migration_logs" (
-    "id" SERIAL,
-    "name" text NOT NULL,
-    "created_at" timestamptz NOT NULL DEFAULT NOW(),
-    PRIMARY KEY ("id")
-);
 CREATE TABLE IF NOT EXISTS "es_migration_logs" (
     "id" SERIAL,
     "name" text NOT NULL,

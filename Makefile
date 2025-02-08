@@ -19,6 +19,9 @@ start: ## start daemon on development mode
 dependencies: ## generate dependencies
 	go mod download
 
+add-migration: ## add migration
+	migrate create -ext sql -dir db/migration $(name)
+
 # TODO: Will be used later to communicate with other services
 prototool-generate: ## generate proto file
 	protoc --go_out=generated --go_opt=paths=source_relative --go-grpc_out=generated --go-grpc_opt=paths=source_relative resources/proto/products/products.proto

@@ -125,7 +125,7 @@ func TestCacheClient_GetKey(t *testing.T) {
 
 	tests := []testCase[struct {
 		key           string
-		expectedValue *string
+		expectedValue string
 	}]{
 		{
 			name: "get existing key",
@@ -134,10 +134,10 @@ func TestCacheClient_GetKey(t *testing.T) {
 			},
 			input: struct {
 				key           string
-				expectedValue *string
+				expectedValue string
 			}{
 				key:           "test-key",
-				expectedValue: strPtr("test-value"),
+				expectedValue: "test-value",
 			},
 			wantErr: false,
 		},
@@ -146,12 +146,12 @@ func TestCacheClient_GetKey(t *testing.T) {
 			setup: func(mr *miniredis.Miniredis) {},
 			input: struct {
 				key           string
-				expectedValue *string
+				expectedValue string
 			}{
 				key:           "non-existing-key",
-				expectedValue: nil,
+				expectedValue: "",
 			},
-			wantErr: false,
+			wantErr: true,
 		},
 	}
 
@@ -283,8 +283,4 @@ func TestCacheClient_DeleteKey(t *testing.T) {
 			}
 		})
 	}
-}
-
-func strPtr(s string) *string {
-	return &s
 }

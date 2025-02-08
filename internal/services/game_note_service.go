@@ -14,7 +14,7 @@ import (
 
 type GameNoteService interface {
 	GetById(ctx context.Context, id uuid.UUID) (*db.GameNote, error)
-	GetByReceiverId(ctx context.Context, userID uuid.UUID, sort *types.CursorSort) ([]*db.FindPaginatedGameNotesByUserIdRow, error)
+	GetFilteredSortedByReceiverId(ctx context.Context, userID uuid.UUID, sort *types.CursorSort, filters types.Filters) ([]*db.FindPaginatedGameNotesByUserIdRow, error)
 	CreateOrderedGameNote(ctx context.Context, userId uuid.UUID, initialOrder *db.Order, initialOrderer *db.Orderer, title string) (*db.GameNote, error)
 	CreateGameNote(ctx context.Context, userID, creatorID uuid.UUID, req *types.GameNoteReq) (*db.GameNote, error)
 	IndexGameNote(ctx context.Context, gameNote *db.GameNote, initialOrderer *db.Orderer) error
@@ -59,8 +59,8 @@ func (service *gameNoteService) GetById(ctx context.Context, id uuid.UUID) (*db.
 }
 
 // Fetches game notes by receiver ID or returns CustomError if error occurred
-func (service *gameNoteService) GetByReceiverId(ctx context.Context, userID uuid.UUID, sort *types.CursorSort) ([]*db.FindPaginatedGameNotesByUserIdRow, error) {
-	gameNotes, err := service.sqlDb.FindPaginatedGameNotesByUserId(ctx, userID, sort)
+func (service *gameNoteService) GetFilteredSortedByReceiverId(ctx context.Context, userID uuid.UUID, sort *types.CursorSort, filters types.Filters) ([]*db.FindPaginatedGameNotesByUserIdRow, error) {
+	gameNotes, err := service.sqlDb.FindPaginatedGameNotesByUserId(ctx, userID, sort, filters)
 	if err != nil {
 		return nil, errors.NewInternalServerError("Error occurred during game notes fetching", err)
 	}
@@ -257,7 +257,7 @@ func (service *gameNoteService) UpdateGameNoteById(ctx context.Context, id uuid.
 		return errors.NewForbiddenError("You are not allowed to update this game note", nil)
 	}
 
-	var posterKey *string
+	posterKey := gameNote.PosterKey
 
 	if req.Poster != nil && req.Poster.PreviewID != nil {
 		posterPreviewId := *req.Poster.PreviewID
@@ -284,7 +284,7 @@ func (service *gameNoteService) UpdateGameNoteById(ctx context.Context, id uuid.
 	}
 
 	// delete old poster key if it was updated
-	if gameNote.PosterKey != nil && *gameNote.PosterKey != *posterKey {
+	if gameNote.PosterKey != nil && posterKey != nil && *gameNote.PosterKey != *posterKey {
 		err = service.posterService.DeletePosterKey(ctx, "game-note", *gameNote.PosterKey)
 		if err != nil {
 			return err

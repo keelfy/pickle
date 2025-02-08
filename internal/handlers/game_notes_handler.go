@@ -95,6 +95,10 @@ func (h *gameNoteHandler) CreateGameNote(w http.ResponseWriter, r *http.Request)
 // @Accept json
 // @Produce json
 // @Param userId path string true "User ID"
+// @Param cursor query string false "Cursor"
+// @Param limit query int false "Limit"
+// @Param column query string false "Column"
+// @Param direction query string false "Direction"
 // @Success 200 {object} []types.GameNoteRes
 // @Failure 400 {object} string
 // @Failure 500 {object} string
@@ -113,13 +117,19 @@ func (handler *gameNoteHandler) GetSortedGameNotesByUserID(w http.ResponseWriter
 		return
 	}
 
+	filters, err := utils.GetFilters(r)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
 	receiver, err := handler.userService.GetProfileById(ctx, userId)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
 	}
 
-	gameNotes, err := handler.gameNoteService.GetByReceiverId(ctx, receiver.UserID, sort)
+	gameNotes, err := handler.gameNoteService.GetFilteredSortedByReceiverId(ctx, receiver.UserID, sort, filters)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
@@ -413,9 +423,14 @@ func (handler *gameNoteHandler) GetBatchGameNoteReactions(w http.ResponseWriter,
 	response := []types.BatchNoteReactionsRes{}
 
 	for _, noteId := range noteIds {
+		r, ok := reactionsMap[noteId]
+		if !ok {
+			r = []types.NoteReactionRes{}
+		}
+
 		response = append(response, types.BatchNoteReactionsRes{
 			NoteID:    noteId,
-			Reactions: reactionsMap[noteId],
+			Reactions: r,
 		})
 	}
 

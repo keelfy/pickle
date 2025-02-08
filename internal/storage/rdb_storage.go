@@ -18,7 +18,7 @@ type RelationalStorage interface {
 	Queries() *db.Queries
 	Begin(ctx context.Context) (pgx.Tx, error)
 	Ping(ctx context.Context) error
-	FindPaginatedGameNotesByUserId(ctx context.Context, userID uuid.UUID, sort *types.CursorSort) ([]*db.FindPaginatedGameNotesByUserIdRow, error)
+	FindPaginatedGameNotesByUserId(ctx context.Context, userID uuid.UUID, sort *types.CursorSort, filters types.Filters) ([]*db.FindPaginatedGameNotesByUserIdRow, error)
 	FindSortedOrdersByReceiverId(ctx context.Context, receiverID uuid.UUID, sort *types.CursorSort) ([]*db.Order, error)
 }
 
@@ -75,6 +75,7 @@ const findPaginatedGameNotesByUserIdQuery = `
 		gn."rate",
 		gn."comment",
 		gn."release_date",
+		gn."last_played_at",
 		o."username" AS "initial_orderer_username",
 		COALESCE(order_counts."count", 0) AS "orderer_count"
 	FROM "game_notes" gn
@@ -83,27 +84,75 @@ const findPaginatedGameNotesByUserIdQuery = `
        	 	SELECT "game_note_id", COUNT(*) as "count" 
         	FROM "game_note_orders" 
         	GROUP BY "game_note_id"
-    	) order_counts ON 
-		 	gn."id" = order_counts."game_note_id"
+    	) order_counts ON gn."id" = order_counts."game_note_id"
 	WHERE gn."user_id" = $1 
-		AND gn."%s" %s $2 
+		AND ($2::text IS NULL OR gn."%s" %s $2::%s)%s
+	ORDER BY gn."%s" %s 
+	LIMIT $3
+`
+
+const findPaginatedGameNotesByUserIdWithOrdererUsernameFilterQuery = `
+	SELECT 
+		gn."id",
+		gn."created_at",
+		gn."name",
+		gn."status",
+		gn."rate",
+		gn."comment",
+		gn."release_date",
+		gn."last_played_at",
+		o."username" AS "initial_orderer_username",
+		COALESCE(order_counts."count", 0) AS "orderer_count"
+	FROM "game_notes" gn
+		INNER JOIN "orderers" o ON gn."initial_orderer_id" = o."id"
+		INNER JOIN "game_note_orders" gno ON gn."id" = gno."game_note_id"
+		INNER JOIN "orders" o1 ON gno."order_id" = o1."id"
+		LEFT JOIN (
+       	 	SELECT "game_note_id", COUNT(*) as "count" 
+        	FROM "game_note_orders" 
+        	GROUP BY "game_note_id"
+    	) order_counts ON gn."id" = order_counts."game_note_id"
+	WHERE gn."user_id" = $1 
+		AND ($2::text IS NULL OR gn."%s" %s $2::%s)%s
 	ORDER BY gn."%s" %s 
 	LIMIT $3
 `
 
 // Queries game notes by receiver id with cursor pagination and dynamic sorting
-func (sqlDb *relationalStorage) FindPaginatedGameNotesByUserId(ctx context.Context, userID uuid.UUID, sort *types.CursorSort) ([]*db.FindPaginatedGameNotesByUserIdRow, error) {
-	comparisonOperator := "<"
+func (sqlDb *relationalStorage) FindPaginatedGameNotesByUserId(ctx context.Context, userID uuid.UUID, sort *types.CursorSort, filters types.Filters) ([]*db.FindPaginatedGameNotesByUserIdRow, error) {
+	comparisonOperator := ">"
 	if strings.ToUpper(sort.Direction) == "DESC" {
-		comparisonOperator = ">"
+		comparisonOperator = "<"
 	}
 
-	query := fmt.Sprintf(findPaginatedGameNotesByUserIdQuery, sort.Column, comparisonOperator, strings.ToLower(sort.Column), strings.ToUpper(sort.Direction))
-	rows, err := sqlDb.conn.Query(ctx, query, userID, sort.Cursor, sort.Limit)
+	columnType := getGameNoteColumnType(sort.Column)
+	conditionalFilters := getGameNoteFilterQuery(filters)
+
+	requesterFilter := filters["requester"]
+	queryTemplate := findPaginatedGameNotesByUserIdQuery
+	if requesterFilter != "" {
+		queryTemplate = findPaginatedGameNotesByUserIdWithOrdererUsernameFilterQuery
+	}
+
+	query := fmt.Sprintf(queryTemplate,
+		strings.ToLower(sort.Column),
+		comparisonOperator,
+		columnType,
+		conditionalFilters,
+		strings.ToLower(sort.Column),
+		strings.ToUpper(sort.Direction))
+
+	var (
+		rows pgx.Rows
+		err  error
+	)
+
+	rows, err = sqlDb.conn.Query(ctx, query, userID, sort.Cursor, sort.Limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
+
 	var items []*db.FindPaginatedGameNotesByUserIdRow
 	for rows.Next() {
 		var i db.FindPaginatedGameNotesByUserIdRow
@@ -115,6 +164,7 @@ func (sqlDb *relationalStorage) FindPaginatedGameNotesByUserId(ctx context.Conte
 			&i.Rate,
 			&i.Comment,
 			&i.ReleaseDate,
+			&i.LastPlayedAt,
 			&i.InitialOrdererUsername,
 			&i.OrdererCount,
 		); err != nil {
@@ -126,6 +176,32 @@ func (sqlDb *relationalStorage) FindPaginatedGameNotesByUserId(ctx context.Conte
 		return nil, err
 	}
 	return items, nil
+}
+
+func getGameNoteColumnType(column string) string {
+	switch column {
+	case "created_at", "last_played_at":
+		return "timestamptz"
+	case "name":
+		return "text"
+	case "rate":
+		return "smallint"
+	default:
+		return "text"
+	}
+}
+
+func getGameNoteFilterQuery(filters types.Filters) string {
+	query := ""
+	for key, value := range filters {
+		switch key {
+		case "status":
+			query += fmt.Sprintf(" AND gn.\"%s\" = '%s'", key, value)
+		case "requester":
+			query += fmt.Sprintf(" AND o1.\"orderer_username\" ILIKE '%s'", value)
+		}
+	}
+	return query
 }
 
 const findOrdersByReceiverIdQuery = `

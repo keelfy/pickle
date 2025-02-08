@@ -8,10 +8,10 @@ import (
 )
 
 type CursorSort struct {
-	Cursor    interface{}
-	Limit     int
-	Column    string
-	Direction string
+	Column    string `json:"column"`
+	Direction string `json:"direction"`
+	Cursor    any    `json:"cursor"`
+	Limit     int    `json:"limit"`
 }
 
 type Pagination struct {
@@ -19,6 +19,8 @@ type Pagination struct {
 	Size int
 	Page int
 }
+
+type Filters = map[string]string
 
 type SupabaseWebhookPayload struct {
 	Type      string                  `json:"type"`

@@ -80,6 +80,7 @@ SELECT
     gn."rate",
     gn."comment",
     gn."release_date",
+    gn."last_played_at",
     o."username" AS "initial_orderer_username",
     COALESCE(order_counts."count", 0) AS "orderer_count"
 FROM "game_notes" gn
@@ -109,6 +110,7 @@ type FindPaginatedGameNotesByUserIdRow struct {
 	Rate                   *int16         `json:"rate"`
 	Comment                *string        `json:"comment"`
 	ReleaseDate            *time.Time     `json:"release_date"`
+	LastPlayedAt           *time.Time     `json:"last_played_at"`
 	InitialOrdererUsername string         `json:"initial_orderer_username"`
 	OrdererCount           int64          `json:"orderer_count"`
 }
@@ -131,6 +133,7 @@ func (q *Queries) FindPaginatedGameNotesByUserId(ctx context.Context, arg FindPa
 			&i.Rate,
 			&i.Comment,
 			&i.ReleaseDate,
+			&i.LastPlayedAt,
 			&i.InitialOrdererUsername,
 			&i.OrdererCount,
 		); err != nil {

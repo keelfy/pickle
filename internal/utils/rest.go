@@ -110,7 +110,7 @@ func GetSortedPagination(r *http.Request) (*types.CursorSort, error) {
 
 	direction := r.URL.Query().Get("direction")
 	if direction == "" {
-		direction = "asc"
+		direction = "desc"
 	}
 
 	sort := &types.CursorSort{
@@ -120,6 +120,23 @@ func GetSortedPagination(r *http.Request) (*types.CursorSort, error) {
 		Direction: direction,
 	}
 	return sort, nil
+}
+
+func GetFilters(r *http.Request) (types.Filters, error) {
+	filters := make(types.Filters)
+	param := r.URL.Query().Get("filters")
+	if param == "" {
+		return filters, nil
+	}
+
+	for _, filter := range strings.Split(param, ",") {
+		parts := strings.Split(filter, ":")
+		if len(parts) == 2 {
+			filters[parts[0]] = parts[1]
+		}
+	}
+
+	return filters, nil
 }
 
 // ParseCursor parses the cursor value from query parameters based on the expected column type.

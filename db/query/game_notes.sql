@@ -47,6 +47,7 @@ SELECT
     gn."rate",
     gn."comment",
     gn."release_date",
+    gn."last_played_at",
     o."username" AS "initial_orderer_username",
     COALESCE(order_counts."count", 0) AS "orderer_count"
 FROM "game_notes" gn

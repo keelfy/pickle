@@ -1,5 +1,5 @@
 export type CreateOrderReq = {
-    receiverLink: string;
+	receiverLink: string;
 	paymentType: number;
 	amount: number
 	orderedBy: string;
@@ -21,4 +21,8 @@ export type CreateGameNoteReq = {
 	userLink: string;
 	gameNote: GameNoteReq;
 	initialOrderId: string;
+}
+
+export type CreateCollectionReq = {
+	name: string;
 }

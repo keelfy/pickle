@@ -8,7 +8,7 @@ import { Filter } from "@/query-params/filter";
 import { PopoverClose } from "@radix-ui/react-popover";
 import React from "react";
 import { GameNoteStatusIcon } from "./game-note-status-badge";
-
+import { GameNoteStatus } from "@/utils/api/types";
 type Props = {
     value: Filter[];
     onChange: (filters: Filter[]) => void;

@@ -1,8 +1,6 @@
 import { fetchProfileAvatar } from "@/hooks/api-endpoints-server";
+import { Profile } from "@/utils/api/types";
 import { AvatarProps } from "@radix-ui/react-avatar";
-import { User } from "lucide-react";
-import Image from "next/image";
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import ProfileAvatar from "./profile-avatar";
 
 type Props = AvatarProps & {

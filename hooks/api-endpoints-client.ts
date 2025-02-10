@@ -1,4 +1,8 @@
 import { fetchApi } from "@/utils/api/client";
+import { CreateCollectionReq } from "@/utils/api/request";
+import { ContentSearchHits, LinkValidation, Paginated } from "@/utils/api/response";
+import { Collection, GameNote, Image, ImagePreview, ImageSize, NoteReaction, Order, OrderUpdate, Profile, Reaction } from "@/utils/api/types";
+
 
 export async function uploadAvatarForPreview(formData: FormData) {
     return fetchApi<ImagePreview>(`/v1/users/me/avatar`, true, {
@@ -139,5 +143,18 @@ export async function deleteGameNoteReaction(profile: Profile | undefined, gameN
     return fetchApi(`/v1/users/${profile.id}/game-notes/${gameNoteId}/reactions`, true, {
         method: "DELETE",
         body: JSON.stringify(body),
+    });
+}
+
+export async function createCollection(profile: Profile, collection: CreateCollectionReq) {
+    return fetchApi<Collection>(`/v1/users/${profile.id}/collections`, true, {
+        method: "POST",
+        body: JSON.stringify(collection),
+    });
+}
+
+export async function deleteCollection(collectionId: string) {
+    return fetchApi(`/v1/collections/${collectionId}`, true, {
+        method: "DELETE",
     });
 }

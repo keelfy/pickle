@@ -1,11 +1,11 @@
-type ProfileCounts = {
+export type ProfileCounts = {
     played: number;
     watched: number;
     ordered: number;
     followers: number;
 }
 
-type Profile = {
+export type Profile = {
     id: string;
     createdAt: Date;
     username: string;
@@ -15,29 +15,29 @@ type Profile = {
     isFollowing: boolean;
 };
 
-type Image = {
+export type Image = {
     url: string | undefined;
 }
 
-type ImagePreview = {
+export type ImagePreview = {
     previewId: string;
     previewUrl: string;
 }
 
-type ImageSize = 'sm' | 'md' | 'lg';
+export type ImageSize = 'sm' | 'md' | 'lg';
 
-type ContentCategory = 'games' | 'movies' | 'video' | 'anime' | 'series' | 'custom';
+export type ContentCategory = 'games' | 'movies' | 'video' | 'anime' | 'series' | 'custom';
 
-type Content = {
+export type Content = {
     id: string;
     name: string;
     userId: string;
     category: ContentCategory;
 }
 
-type GameNoteStatus = 'planned' | 'playing' | 'paused' | 'dropped' | 'finished' | 'skipped';
+export type GameNoteStatus = 'planned' | 'playing' | 'paused' | 'dropped' | 'finished' | 'skipped';
 
-type GameNote = {
+export type GameNote = {
     id: string;
     createdAt: Date;
     name: string;
@@ -53,28 +53,28 @@ type GameNote = {
     ordererCount: number;
 };
 
-type Reaction = {
+export type Reaction = {
     emoteId: string;
     source: string;
     count: number;
     reactedByUser: boolean;
 }
 
-type NoteReaction = {
+export type NoteReaction = {
     noteId: string;
     reactions: Reaction[];
 }
 
-type Orderer = {
+export type Orderer = {
     id: string;
     userId: string;
     username: string;
     anonymous: boolean;
 }
 
-type OrderStatus = 'pending' | 'approved' | 'rejected';
+export type OrderStatus = 'pending' | 'approved' | 'rejected';
 
-type Order = {
+export type Order = {
     id: string;
     createdAt: Date;
     updatedAt: Date;
@@ -91,13 +91,32 @@ type Order = {
     updatedMessage: string;
 };
 
-type OrderUpdate = Order & Partial<{
+export type OrderUpdate = Order & Partial<{
     contentCreated: boolean;
     contentId: string;
 }>;
 
-type PosterPreview = {
+export type PosterPreview = {
     id: string;
     createdAt: Date;
     url: string;
+}
+
+export type Collection = {
+    id: string;
+    createdAt: Date;
+    name: string;
+    itemCount: number;
+}
+
+export type CollectionItem = {
+    id: string;
+    createdAt: Date;
+    collectionId: string;
+    posterUrl?: string;
+    content: {
+        id: string;
+        name: string;
+        category: ContentCategory;
+    }
 }

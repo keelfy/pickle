@@ -17,7 +17,7 @@ import React, { useState } from "react";
 import { useInView } from "react-intersection-observer";
 import GameNoteCard from "./game-note-card";
 import GameNoteFiltersContent from "./game-note-filters-content";
-
+import { GameNote, NoteReaction } from "@/utils/api/types";
 export type Props = {
     className?: string;
 }

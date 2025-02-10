@@ -49,6 +49,8 @@ import { useModalStore } from "@/providers/modal";
 import { useProfileStore } from "@/providers/profile-store";
 import { ModalType } from "@/stores/modal";
 import { contentCategoryLabels } from "@/utils/api/constants";
+import { ContentSearchHits } from "@/utils/api/response";
+import { ContentCategory, Order } from "@/utils/api/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PopoverClose } from "@radix-ui/react-popover";
 import { Check, ChevronsUpDown, CircleAlert, CircleOff, X } from "lucide-react";

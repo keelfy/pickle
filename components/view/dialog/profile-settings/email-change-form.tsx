@@ -1,6 +1,6 @@
 "use client";
 
-import { changeEmailAction, changePasswordAction } from "@/app/actions";
+import { changeEmailAction } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import {
     Form,
@@ -12,8 +12,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import LoadingSpinner from "@/components/ui/loading-spinner";
-import { PasswordInput } from "@/components/ui/password-input";
-import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Check } from "lucide-react";

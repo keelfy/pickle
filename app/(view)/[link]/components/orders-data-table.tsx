@@ -2,10 +2,11 @@
 
 import { fetchProfileOrders } from "@/hooks/api-endpoints-client";
 import { useAuthStore } from "@/providers/auth-store";
+import { useProfileStore } from "@/providers/profile-store";
+import { Order } from "@/utils/api/types";
 import React from "react";
 import { getOrderTableColumns } from "../columns";
 import { DataTable } from "../data-table";
-import { useProfileStore } from "@/providers/profile-store";
 
 type Props = {
     placeholder?: React.ReactNode;

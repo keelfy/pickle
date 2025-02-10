@@ -15,6 +15,7 @@ import { useModalStore } from "@/providers/modal";
 import { useProfileStore } from "@/providers/profile-store";
 import { ModalType } from "@/stores/modal";
 import { contentCategoryLabels } from "@/utils/api/constants";
+import { ContentSearchHits } from "@/utils/api/response";
 import React from "react";
 
 export default function ProfileSearchDialogContent() {

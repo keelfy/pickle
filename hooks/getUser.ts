@@ -12,3 +12,5 @@ export default async function getUser(supabase?: SupabaseClient): Promise<User |
 
     return user ?? undefined;
 }
+
+

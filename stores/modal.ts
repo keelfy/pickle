@@ -11,6 +11,8 @@ export enum ModalType {
     ProfileSearch = "profile-search",
     ProfileSettings = "profile-settings",
     DeleteContentAlert = "delete-content-alert",
+    CreateCollection = "create-collection",
+    DeleteCollectionAlert = "delete-collection-alert",
 }
 
 type Action = {

@@ -22,6 +22,7 @@ import { toast } from "@/hooks/use-toast";
 import { useModalStore } from "@/providers/modal";
 import { useProfileStore } from "@/providers/profile-store";
 import { contentCategoryLabels } from "@/utils/api/constants";
+import { ContentCategory } from "@/utils/api/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Check, Dice5, X } from "lucide-react";
 import { useEffect, useTransition } from "react";
@@ -39,11 +40,7 @@ const formSchema = z.object({
     message: z.string(),
 });
 
-type Props = {
-    link: string;
-};
-
-export default function CreateOrderDialogContent({ link }: Props) {
+export default function CreateOrderDialogContent() {
     const { closeModal } = useModalStore((state) => state);
     const profile = useProfileStore((state) => state.profile);
     const [isLoading, startTransition] = useTransition();
@@ -51,7 +48,7 @@ export default function CreateOrderDialogContent({ link }: Props) {
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            receiverLink: link,
+            receiverLink: profile?.link ?? "",
             paymentType: 0,
             amount: 0,
             ordererUsername: "",
@@ -61,12 +58,10 @@ export default function CreateOrderDialogContent({ link }: Props) {
     });
 
     useEffect(() => {
-        if (link) {
-            form.reset({
-                receiverLink: link,
-            });
-        }
-    }, [link]);
+        form.reset({
+            receiverLink: profile?.link ?? "",
+        });
+    }, [profile?.link]);
 
     const onSubmit = (data: z.infer<typeof formSchema>) => {
         startTransition(async () => {

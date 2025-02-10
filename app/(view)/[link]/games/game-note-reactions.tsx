@@ -10,6 +10,7 @@ import { useAuthStore } from "@/providers/auth-store";
 import { useProfileStore } from "@/providers/profile-store";
 import { EmojiPicker } from "@ferrucc-io/emoji-picker";
 import React from "react";
+import { GameNote, Reaction } from "@/utils/api/types";
 
 type Props = {
     note: GameNote;

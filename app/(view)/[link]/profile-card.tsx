@@ -17,6 +17,7 @@ import AuthorizedProfileElement from "./authorized-profile-element";
 import { FollowButton } from "./follow-button";
 import ManualCreationDropdownMenu from "./manual-creation-dropdown-menu";
 import SuggestionLinkCopyButton from "./suggestion-link-copy-button";
+import { Profile } from "@/utils/api/types";
 
 type Props = {
     profile: Profile;

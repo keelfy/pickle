@@ -1,4 +1,5 @@
 import { fetchApi } from "@/utils/api/server";
+import { Collection, Image, ImageSize, Profile } from "@/utils/api/types";
 import { User } from "@supabase/supabase-js";
 
 export async function fetchProfileByUser(user: User | null | undefined) {
@@ -21,4 +22,8 @@ export async function fetchProfileAvatar(profile: Profile | undefined, size: Ima
 
 export async function fetchMyAvatar(size: ImageSize = 'md') {
     return fetchApi<Image>(`/v1/users/me/avatar?size=${size}`);
+}
+
+export async function fetchCollections(profile: Profile) {
+    return fetchApi<Collection[]>(`/v1/users/${profile.id}/collections`);
 }

@@ -7,6 +7,7 @@ import { Upload } from "lucide-react";
 import Image from "next/image";
 import React from "react";
 import FileSelectPopover from "../file-select-popover";
+import { ImagePreview } from "@/utils/api/types";
 
 type Props = {
     value?: string;

@@ -15,6 +15,7 @@ import {
     contentCategoryLabels,
     orderStatusLabels,
 } from "@/utils/api/constants";
+import { ContentCategory, Order, OrderStatus } from "@/utils/api/types";
 import { SiYoutube } from "@icons-pack/react-simple-icons";
 import { ColumnDef } from "@tanstack/react-table";
 import {
@@ -111,8 +112,8 @@ const orderColumns: ColumnDef<Order>[] = [
                                     status == "rejected"
                                         ? "destructive"
                                         : status == "approved"
-                                          ? "default"
-                                          : "secondary"
+                                            ? "default"
+                                            : "secondary"
                                 }
                                 className="w-min h-min"
                             >

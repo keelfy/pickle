@@ -31,6 +31,7 @@ import { fetchGameNote, fetchGameNoteOrders, fetchGameNotePoster, fetchGameNoteR
 import { toast } from "@/hooks/use-toast";
 import { useModalStore } from "@/providers/modal";
 import { useProfileStore } from "@/providers/profile-store";
+import { GameNote, Order, Reaction } from "@/utils/api/types";
 import {
     Check,
     ChevronsUpDown,
@@ -41,6 +42,7 @@ import {
 import React from "react";
 import GameUrl from "../../../../app/(view)/[link]/components/game-url";
 import RatingRow from "../../../../app/(view)/[link]/components/rating-row";
+import { Paginated } from "@/utils/api/response";
 
 export default function GameNoteDialogContent() {
     const { id: gameNoteId } = useModalStore((state) => state.modalParams!);

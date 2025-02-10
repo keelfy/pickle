@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { gameNoteStatusLabels } from "@/utils/api/constants";
 import { ArrowDownAZIcon, CheckCheckIcon, FastForwardIcon, ImageOffIcon, LoaderIcon, PauseIcon, SkipBackIcon } from "lucide-react";
 import React from "react";
+import { GameNoteStatus } from "@/utils/api/types";
 
 type Props = {
     status: GameNoteStatus | undefined;

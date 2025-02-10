@@ -48,6 +48,7 @@ import { toast } from "@/hooks/use-toast";
 import { useModalStore } from "@/providers/modal";
 import { useProfileStore } from "@/providers/profile-store";
 import { gameNoteStatusLabels } from "@/utils/api/constants";
+import { GameNote, GameNoteStatus } from "@/utils/api/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PopoverClose } from "@radix-ui/react-popover";
 import { Check, ChevronsUpDown, CircleOff, Edit, X } from "lucide-react";

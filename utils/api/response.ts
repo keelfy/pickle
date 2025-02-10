@@ -1,9 +1,11 @@
-type SearchHit<T> = {
+import { Content, Order } from "./types";
+
+export type SearchHit<T> = {
     source: T;
     score: number;
 }
 
-type Paginated<T> = {
+export type Paginated<T> = {
     content: T[];
     page: number;
     size: number;
@@ -11,11 +13,11 @@ type Paginated<T> = {
     totalPages: number;
 }
 
-type PaginatedOrders = Paginated<Order>;
+export type PaginatedOrders = Paginated<Order>;
 
-type LinkValidation = {
+export type LinkValidation = {
     valid: boolean;
     message: string;
 }
 
-type ContentSearchHits = Paginated<SearchHit<Content>>;
+export type ContentSearchHits = Paginated<SearchHit<Content>>;

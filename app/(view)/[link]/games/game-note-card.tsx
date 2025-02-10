@@ -20,6 +20,9 @@ import React from "react";
 import GameNoteReactions from "./game-note-reactions";
 import GameNoteStatusBadge from "./game-note-status-badge";
 import NoteComment from "./note-comment";
+import { GameNote } from "@/utils/api/types";
+import { Reaction } from "@/utils/api/types";
+
 type Props = {
     note: GameNote;
     defaultReactions?: Reaction[];

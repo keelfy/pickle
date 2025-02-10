@@ -1,5 +1,8 @@
+import CreateCollectionDialog from "@/components/view/dialog/create-collection/create-collection-dialog";
+import DeleteCollectionAlertDialog from "@/components/view/dialog/delete-collection-alert/delete-collection-alert-dialog";
 import DeleteContentAlertDialog from "@/components/view/dialog/delete-content-alert/delete-content-alert-dialog";
 import GameNoteEditorDialog from "@/components/view/dialog/game-note-editor/game-note-editor-dialog";
+import GameNoteDialog from "@/components/view/dialog/game-note/game-note-dialog";
 import {
     fetchProfileByLink
 } from "@/hooks/api-endpoints-server";
@@ -13,7 +16,6 @@ import DenyOrderDialog from "../../../components/view/dialog/deny-order/deny-ord
 import ProfileSearchDialog from "../../../components/view/dialog/profile-search/profile-search-dialog";
 import NavMenu from "./navbar-menu";
 import ProfileCard from "./profile-card";
-import GameNoteDialog from "@/components/view/dialog/game-note/game-note-dialog";
 
 async function LayoutBody({
     children,
@@ -49,8 +51,10 @@ async function LayoutBody({
             <GameNoteDialog />
             <GameNoteEditorDialog />
             <ProfileSearchDialog />
-            <CreateOrderDialog link={link} />
+            <CreateOrderDialog />
+            <CreateCollectionDialog />
             <DeleteContentAlertDialog />
+            <DeleteCollectionAlertDialog />
         </ProfileStoreProvider>
     );
 }

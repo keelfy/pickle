@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { CommandItem } from "@/components/ui/command";
 import { useModalStore } from "@/providers/modal";
 import { contentCategoryLabels } from "@/utils/api/constants";
-import Link from "next/link";
+import { Content } from "@/utils/api/types";
 
 type Props = {
     source: Content;

@@ -2,23 +2,23 @@
 
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useModalStore } from "@/providers/modal";
+import { ModalType } from "@/stores/modal";
 import dynamic from "next/dynamic";
 import React from "react";
 import LoadingDialogContent from "../loading-dialog-content";
-import { ModalType } from "@/stores/modal";
 
-const DynamicCreateOrderDialogContent = dynamic(
-    () => import("./create-order-dialog-content"),
+const DynamicCreateCollectionDialogContent = dynamic(
+    () => import("./create-collection-dialog-content"),
     {
         loading: () => <LoadingDialogContent />,
     }
 );
 
-export default function CreateOrderDialog() {
+export default function CreateCollectionDialog() {
     const { currentModal, closeModal } = useModalStore((state) => state);
 
     const isOpen = React.useMemo(
-        () => currentModal === ModalType.CreateOrder,
+        () => currentModal === ModalType.CreateCollection,
         [currentModal]
     );
 
@@ -29,7 +29,7 @@ export default function CreateOrderDialog() {
     return (
         <Dialog open={isOpen} onOpenChange={closeModal}>
             <DialogContent className="overflow-y-auto max-h-screen">
-                {isOpen && <DynamicCreateOrderDialogContent />}
+                {isOpen && <DynamicCreateCollectionDialogContent />}
             </DialogContent>
         </Dialog>
     );

@@ -190,6 +190,25 @@ func (ns NullReactionSource) Value() (driver.Value, error) {
 	return string(ns.ReactionSource), nil
 }
 
+type Collection struct {
+	ID        uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	CreatedBy uuid.UUID `json:"created_by"`
+	UpdatedAt time.Time `json:"updated_at"`
+	UpdatedBy uuid.UUID `json:"updated_by"`
+	Name      string    `json:"name"`
+	UserID    uuid.UUID `json:"user_id"`
+}
+
+type CollectionItem struct {
+	ID           uuid.UUID       `json:"id"`
+	CollectionID uuid.UUID       `json:"collection_id"`
+	NoteID       uuid.UUID       `json:"note_id"`
+	Category     ContentCategory `json:"category"`
+	CreatedAt    time.Time       `json:"created_at"`
+	CreatedBy    uuid.UUID       `json:"created_by"`
+}
+
 type EsMigrationLog struct {
 	ID        int32     `json:"id"`
 	Name      string    `json:"name"`

@@ -22,11 +22,18 @@ type Querier interface {
 	CountOrdersByReceiverId(ctx context.Context, receiverID uuid.UUID) (int64, error)
 	// Author: Egor Kuzmin (keelfy)
 	CountPlayedGameNotesByUserId(ctx context.Context, userID uuid.UUID) (int64, error)
+	DeleteCollectionByID(ctx context.Context, id uuid.UUID) error
+	DeleteCollectionItemByID(ctx context.Context, id uuid.UUID) error
 	// Author: Egor Kuzmin (keelfy)
 	DeleteFollower(ctx context.Context, arg DeleteFollowerParams) error
 	// Author: Egor Kuzmin (keelfy)
 	DeleteGameNoteById(ctx context.Context, id uuid.UUID) error
 	DeletePosterPreview(ctx context.Context, id uuid.UUID) error
+	FindCollectionByID(ctx context.Context, id uuid.UUID) (*Collection, error)
+	FindCollectionItemByID(ctx context.Context, id uuid.UUID) (*CollectionItem, error)
+	FindCollectionItemsByCollectionID(ctx context.Context, collectionID uuid.UUID) ([]*CollectionItem, error)
+	FindCollectionItemsByUserID(ctx context.Context, userID uuid.UUID) ([]*CollectionItem, error)
+	FindCollectionsByUserID(ctx context.Context, userID uuid.UUID) ([]*Collection, error)
 	FindElasticsearchMigrationByName(ctx context.Context, name string) (*EsMigrationLog, error)
 	// Author: Egor Kuzmin (keelfy)
 	FindGameNoteById(ctx context.Context, id uuid.UUID) (*GameNote, error)
@@ -59,6 +66,8 @@ type Querier interface {
 	GetGameNoteReactionsByGameNoteIdInAndUserId(ctx context.Context, arg GetGameNoteReactionsByGameNoteIdInAndUserIdParams) ([]*GetGameNoteReactionsByGameNoteIdInAndUserIdRow, error)
 	// Author: Egor Kuzmin (keelfy)
 	GetUserFollows(ctx context.Context, followerID uuid.UUID) ([]*Profile, error)
+	InsertCollection(ctx context.Context, arg InsertCollectionParams) (*Collection, error)
+	InsertCollectionItem(ctx context.Context, arg InsertCollectionItemParams) (*CollectionItem, error)
 	InsertElasticsearchMigration(ctx context.Context, name string) error
 	// Author: Egor Kuzmin (keelfy)
 	InsertFollower(ctx context.Context, arg InsertFollowerParams) error

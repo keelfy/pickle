@@ -3,6 +3,8 @@ package types
 import (
 	"time"
 
+	validation "github.com/go-ozzo/ozzo-validation"
+	"github.com/go-ozzo/ozzo-validation/is"
 	"github.com/google/uuid"
 	db "github.com/pickle.pw/monolith/db/sqlc"
 )
@@ -20,6 +22,8 @@ type Pagination struct {
 	Page int
 }
 
+var isRFC3339Date = validation.Date(time.RFC3339)
+
 type Filters = map[string]string
 
 type SupabaseWebhookPayload struct {
@@ -36,6 +40,14 @@ type UpdateProfileReq struct {
 	Description string `json:"description"`
 }
 
+func (req *UpdateProfileReq) Validate() error {
+	return validation.ValidateStruct(req,
+		validation.Field(&req.Username, validation.Required, validation.Length(1, 50)),
+		validation.Field(&req.Link, validation.NilOrNotEmpty, validation.Length(0, 50)),
+		validation.Field(&req.Description, validation.NilOrNotEmpty, validation.Length(0, 1000)),
+	)
+}
+
 type GameNoteReq struct {
 	Name         string            `json:"name"`
 	Link         *string           `json:"link"`
@@ -47,13 +59,43 @@ type GameNoteReq struct {
 	Poster       *PosterReq        `json:"poster"`
 }
 
+var isGameNoteStatus = validation.In(db.GameNoteStatusDropped, db.GameNoteStatusFinished, db.GameNoteStatusPlaying, db.GameNoteStatusPlanned, db.GameNoteStatusSkipped, db.GameNoteStatusPaused)
+
+func (req *GameNoteReq) Validate() error {
+	return validation.ValidateStruct(req,
+		validation.Field(&req.Name, validation.Required, validation.Length(1, 100)),
+		validation.Field(&req.Link, validation.NilOrNotEmpty, is.URL),
+		validation.Field(&req.ReleaseDate, validation.NilOrNotEmpty, isRFC3339Date),
+		validation.Field(&req.Rate, validation.NilOrNotEmpty, validation.Min(0), validation.Max(10)),
+		validation.Field(&req.Comment, validation.NilOrNotEmpty, validation.Length(0, 1000)),
+		validation.Field(&req.Status, validation.Required, isGameNoteStatus),
+		validation.Field(&req.LastPlayedAt, validation.NilOrNotEmpty, isRFC3339Date),
+		validation.Field(&req.Poster, validation.NilOrNotEmpty, validation.NilOrNotEmpty),
+	)
+}
+
 type ReactionReq struct {
 	EmoteID string `json:"emoteId"`
 	Source  string `json:"source"`
 }
 
+var isReactionSource = validation.In(db.ReactionSource7tv, db.ReactionSourceCustom, db.ReactionSourceUnicodeEmoji)
+
+func (req *ReactionReq) Validate() error {
+	return validation.ValidateStruct(req,
+		validation.Field(&req.EmoteID, validation.Required, validation.Length(1, 100)),
+		validation.Field(&req.Source, validation.Required, isReactionSource),
+	)
+}
+
 type PosterReq struct {
 	PreviewID *uuid.UUID `json:"previewId"`
+}
+
+func (req *PosterReq) Validate() error {
+	return validation.ValidateStruct(req,
+		validation.Field(&req.PreviewID, validation.NilOrNotEmpty, is.UUID),
+	)
 }
 
 type CreateOrderReq struct {
@@ -70,4 +112,38 @@ type OrderReq struct {
 	Title     *string             `json:"title,omitempty"`
 	Category  *db.ContentCategory `json:"category,omitempty"`
 	ContentID *uuid.UUID          `json:"contentId,omitempty"`
+}
+
+var isOrderStatus = validation.In(db.OrderStatusApproved, db.OrderStatusRejected)
+var isContentCategory = validation.In(db.ContentCategoryGames, db.ContentCategoryMovies, db.ContentCategorySeries, db.ContentCategoryAnime, db.ContentCategoryVideo, db.ContentCategoryCustom)
+
+func (req *OrderReq) Validate() error {
+	return validation.ValidateStruct(req,
+		validation.Field(&req.Status, validation.Required, isOrderStatus),
+		validation.Field(&req.Title, validation.NilOrNotEmpty, validation.Length(1, 100)),
+		validation.Field(&req.Category, validation.NilOrNotEmpty, isContentCategory),
+		validation.Field(&req.ContentID, validation.NilOrNotEmpty, is.UUID),
+	)
+}
+
+type CreateCollectionReq struct {
+	Name string `json:"name"`
+}
+
+func (req *CreateCollectionReq) Validate() error {
+	return validation.ValidateStruct(req,
+		validation.Field(&req.Name, validation.Required, validation.Length(1, 50)),
+	)
+}
+
+type AddItemToCollectionReq struct {
+	NoteID   uuid.UUID          `json:"noteId"`
+	Category db.ContentCategory `json:"category"`
+}
+
+func (req *AddItemToCollectionReq) Validate() error {
+	return validation.ValidateStruct(req,
+		validation.Field(&req.NoteID, validation.Required, is.UUID),
+		validation.Field(&req.Category, validation.Required, isContentCategory),
+	)
 }

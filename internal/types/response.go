@@ -139,3 +139,17 @@ type PosterPreviewRes struct {
 	CreatedAt time.Time `json:"createdAt"`
 	URL       string    `json:"url"`
 }
+
+type CollectionRes struct {
+	ID        uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"createdAt"`
+	Name      string    `json:"name"`
+}
+
+type CollectionItemRes struct {
+	ID           uuid.UUID `json:"id"`
+	CreatedAt    time.Time `json:"createdAt"`
+	Category     string    `json:"category"`
+	NoteID       uuid.UUID `json:"noteId"`
+	CollectionID uuid.UUID `json:"collectionId"`
+}

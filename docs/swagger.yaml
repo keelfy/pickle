@@ -51,6 +51,28 @@ definitions:
           $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.NoteReactionRes'
         type: array
     type: object
+  github_com_pickle_pw_monolith_internal_types.CollectionItemRes:
+    properties:
+      category:
+        type: string
+      collectionId:
+        type: string
+      createdAt:
+        type: string
+      id:
+        type: string
+      noteId:
+        type: string
+    type: object
+  github_com_pickle_pw_monolith_internal_types.CollectionRes:
+    properties:
+      createdAt:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    type: object
   github_com_pickle_pw_monolith_internal_types.ContentRes:
     properties:
       category:
@@ -305,6 +327,109 @@ info:
   title: Pickle API
   version: "1.0"
 paths:
+  /v1/collections/{collectionId}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete collection
+      parameters:
+      - description: Collection ID
+        in: path
+        name: collectionId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Delete collection
+      tags:
+      - collections
+  /v1/collections/{collectionId}/items:
+    post:
+      consumes:
+      - application/json
+      description: Add item to collection
+      parameters:
+      - description: Collection ID
+        in: path
+        name: collectionId
+        required: true
+        type: string
+      - description: Note ID
+        in: path
+        name: noteId
+        required: true
+        type: string
+      - description: Category
+        in: body
+        name: category
+        required: true
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.CollectionItemRes'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Add item to collection
+      tags:
+      - collections
+  /v1/collections/{collectionId}/items/{itemId}:
+    delete:
+      consumes:
+      - application/json
+      description: Remove item from collection
+      parameters:
+      - description: Collection ID
+        in: path
+        name: collectionId
+        required: true
+        type: string
+      - description: Item ID
+        in: path
+        name: itemId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Remove item from collection
+      tags:
+      - collections
   /v1/health:
     get:
       consumes:
@@ -475,6 +600,102 @@ paths:
       summary: Get profile avatar URL
       tags:
       - profiles
+  /v1/users/{userId}/collections:
+    get:
+      consumes:
+      - application/json
+      description: Get collections by user ID
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.CollectionRes'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get collections by user ID
+      tags:
+      - collections
+    post:
+      consumes:
+      - application/json
+      description: Create collection
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: Name
+        in: body
+        name: name
+        required: true
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.CollectionRes'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Create collection
+      tags:
+      - collections
+  /v1/users/{userId}/collections/items:
+    get:
+      consumes:
+      - application/json
+      description: Get items by user ID
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.CollectionItemRes'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get items by user ID
+      tags:
+      - collections
   /v1/users/{userId}/content/search:
     get:
       consumes:
@@ -566,6 +787,22 @@ paths:
         in: path
         name: userId
         required: true
+        type: string
+      - description: Cursor
+        in: query
+        name: cursor
+        type: string
+      - description: Limit
+        in: query
+        name: limit
+        type: integer
+      - description: Column
+        in: query
+        name: column
+        type: string
+      - description: Direction
+        in: query
+        name: direction
         type: string
       produces:
       - application/json

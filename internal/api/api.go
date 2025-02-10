@@ -22,30 +22,33 @@ type PickleAPI interface {
 }
 
 type pickleAPI struct {
-	profileHandler   handlers.ProfileHandler
-	statusHandler    handlers.StatusHandler
-	orderHandler     handlers.OrderHandler
-	gameNoteHandler  handlers.GameNoteHandler
-	posterHandler    handlers.PosterHandler
-	migrationService services.MigrationService
-	contentService   handlers.ContentHandler
-	tokenAuth        *jwtAuth.JWTAuth
+	profileHandler    handlers.ProfileHandler
+	statusHandler     handlers.StatusHandler
+	orderHandler      handlers.OrderHandler
+	gameNoteHandler   handlers.GameNoteHandler
+	posterHandler     handlers.PosterHandler
+	migrationService  services.MigrationService
+	contentService    handlers.ContentHandler
+	collectionHandler handlers.CollectionHandler
+	tokenAuth         *jwtAuth.JWTAuth
 }
 
 func NewPickleAPI(
 	profileHandler handlers.ProfileHandler, statusHandler handlers.StatusHandler, orderHandler handlers.OrderHandler,
 	gameNoteHandler handlers.GameNoteHandler, posterHandler handlers.PosterHandler,
 	migrationService services.MigrationService, contentService handlers.ContentHandler,
+	collectionHandler handlers.CollectionHandler,
 ) PickleAPI {
 	return &pickleAPI{
-		profileHandler:   profileHandler,
-		statusHandler:    statusHandler,
-		orderHandler:     orderHandler,
-		gameNoteHandler:  gameNoteHandler,
-		posterHandler:    posterHandler,
-		migrationService: migrationService,
-		contentService:   contentService,
-		tokenAuth:        jwtAuth.New("HS256", config.GetJWTSecret(), nil),
+		profileHandler:    profileHandler,
+		statusHandler:     statusHandler,
+		orderHandler:      orderHandler,
+		gameNoteHandler:   gameNoteHandler,
+		posterHandler:     posterHandler,
+		migrationService:  migrationService,
+		contentService:    contentService,
+		collectionHandler: collectionHandler,
+		tokenAuth:         jwtAuth.New("HS256", config.GetJWTSecret(), nil),
 	}
 }
 
@@ -123,6 +126,21 @@ func (api *pickleAPI) v1RouteHandler() http.Handler {
 
 		r.Get("/validate-link", api.profileHandler.ValidateProfileLink)
 		r.Get("/{link}", api.profileHandler.GetProfileByLink)
+	})
+
+	r.Route("/collections/{collectionId}", func(r chi.Router) {
+		r.Group(func(r chi.Router) {
+			api.useProtectedRoutes(r)
+
+			r.Delete("/", api.collectionHandler.DeleteCollection)
+		})
+
+		r.Route("/items", func(r chi.Router) {
+			api.useProtectedRoutes(r)
+
+			r.Post("/", api.collectionHandler.AddItemToCollection)
+			r.Delete("/", api.collectionHandler.RemoveItemFromCollection)
+		})
 	})
 
 	r.Route("/users", func(r chi.Router) {
@@ -221,6 +239,17 @@ func (api *pickleAPI) v1RouteHandler() http.Handler {
 
 			r.Route("/content", func(r chi.Router) {
 				r.Get("/", api.contentService.SearchContent)
+			})
+
+			r.Route("/collections", func(r chi.Router) {
+				r.Get("/", api.collectionHandler.GetCollectionsByUserID)
+				r.Get("/items", api.collectionHandler.GetItemsByUserID)
+
+				r.Group(func(r chi.Router) {
+					api.useProtectedRoutes(r)
+
+					r.Post("/", api.collectionHandler.CreateCollection)
+				})
 			})
 		})
 	})

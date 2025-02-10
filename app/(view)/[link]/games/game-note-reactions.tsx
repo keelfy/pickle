@@ -17,6 +17,8 @@ type Props = {
     className?: string;
 }
 
+const randomReactions = ['🔥', '🤮', '❤️', '👍', '👎', '🤔', '💩', '🤡', '👏', '😁', '☠️', '🙁', '👐', '❤️‍🔥', '💔', '💀', '💥', '💦', '💨', '💤', '💫', '💬', '💭', '💡', '💢', '💣', '💤', '💫', '💬', '💭', '💡', '💢', '💣', '💤', '💫', '💬', '💭', '💡', '💢', '💣'];
+
 export default function GameNoteReactions({ note, defaultReactions, className }: Props) {
     const user = useAuthStore((state) => state.user);
     const profile = useProfileStore((state) => state.profile);
@@ -128,7 +130,11 @@ export default function GameNoteReactions({ note, defaultReactions, className }:
                 <Popover>
                     <PopoverTrigger disabled={!canReact()}>
                         <div className="border rounded-xl px-2 py-1 h-7 flex items-center justify-center">
-                            +
+                            {reactions.length === 0 ? (
+                                <p className="text-sm font-semibold">
+                                    +&nbsp;{randomReactions[Math.floor(Math.random() * randomReactions.length)]}
+                                </p>
+                            ) : "+"}
                         </div>
                     </PopoverTrigger>
                     <PopoverContent className="w-fit p-0">

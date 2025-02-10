@@ -111,7 +111,7 @@ export default function GameNoteEditorDialogContent() {
     }, [currentModal]);
 
     React.useEffect(() => {
-        if (gameNoteId) {
+        if (gameNoteId && profile?.id) {
             fetchGameNote(profile, gameNoteId).then(setGameNote).catch(err => {
                 console.error(err);
                 toast({
@@ -131,9 +131,11 @@ export default function GameNoteEditorDialogContent() {
                     });
                 });
         }
-    }, [gameNoteId]);
+    }, [gameNoteId, profile?.id]);
 
     const onSubmit = form.handleSubmit((values) => {
+        if (!gameNoteId || !profile?.id) return;
+
         startTransition(async () => {
             try {
                 const res = await updateGameNote(profile, gameNoteId, values);
@@ -170,7 +172,9 @@ export default function GameNoteEditorDialogContent() {
                                 value={form.watch("poster.previewId")}
                                 defaultImageUrl={posterUrl}
                                 onChange={(value) => {
-                                    form.setValue("poster.previewId", value);
+                                    form.setValue("poster.previewId", value, {
+                                        shouldDirty: true,
+                                    });
                                 }}
                             />
                             <table className="w-full">

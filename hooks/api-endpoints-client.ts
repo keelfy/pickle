@@ -42,18 +42,15 @@ export async function fetchProfileGameNotes(profile: Profile, params: URLSearchP
     return fetchApi<GameNote[]>(`/v1/users/${profile.id}/game-notes?${params.toString()}`);
 }
 
-export async function fetchGameNotePoster(profile: Profile | undefined, gameNoteId: string, size: ImageSize = 'sm') {
-    if (!profile) return undefined;
+export async function fetchGameNotePoster(profile: Profile, gameNoteId: string, size: ImageSize = 'sm') {
     return fetchApi<Image>(`/v1/users/${profile.id}/game-notes/${gameNoteId}/posters?size=${size}`);
 }
 
-export async function fetchGameNote(profile: Profile | undefined, gameNoteId: string) {
-    if (!profile) return undefined;
+export async function fetchGameNote(profile: Profile, gameNoteId: string) {
     return fetchApi<GameNote>(`/v1/users/${profile.id}/game-notes/${gameNoteId}`);
 }
 
-export async function updateGameNote(profile: Profile | undefined, gameNoteId: string, gameNote: Partial<GameNote>) {
-    if (!profile) return undefined;
+export async function updateGameNote(profile: Profile, gameNoteId: string, gameNote: Partial<GameNote>) {
     return fetchApi<GameNote>(`/v1/users/${profile.id}/game-notes/${gameNoteId}`, true, {
         method: "PATCH",
         body: JSON.stringify(gameNote),
@@ -112,13 +109,11 @@ export async function unfollowProfile(profile: Profile | undefined) {
     });
 }
 
-export async function fetchGameNoteReactions(profile: Profile | undefined, gameNoteId: string) {
-    if (!profile) return undefined;
+export async function fetchGameNoteReactions(profile: Profile, gameNoteId: string) {
     return fetchApi<Reaction[]>(`/v1/users/${profile.id}/game-notes/${gameNoteId}/reactions`);
 }
 
-export async function fetchBatchGameNoteReactions(profile: Profile | undefined, gameNoteIds: string[]) {
-    if (!profile) return undefined;
+export async function fetchBatchGameNoteReactions(profile: Profile, gameNoteIds: string[]) {
     if (gameNoteIds.length === 0) return [];
     return fetchApi<NoteReaction[]>(`/v1/users/${profile.id}/game-notes/reactions?noteIds=${gameNoteIds.join(',')}`);
 }

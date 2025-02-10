@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import ContentPoster from "@/components/ui/content-poster";
 import { DeleteContentType } from "@/components/view/dialog/delete-content-alert/delete-content-alert-dialog";
 import { fetchGameNotePoster } from "@/hooks/api-endpoints-client";
 import { cn } from "@/lib/utils";
@@ -11,17 +12,14 @@ import { ModalType } from "@/stores/modal";
 import {
     EditIcon,
     History,
-    ImageOff,
     TextIcon,
     UserPlus2,
     X
 } from "lucide-react";
-import Image from "next/image";
 import React from "react";
 import GameNoteReactions from "./game-note-reactions";
 import GameNoteStatusBadge from "./game-note-status-badge";
 import NoteComment from "./note-comment";
-
 type Props = {
     note: GameNote;
     defaultReactions?: Reaction[];
@@ -32,20 +30,22 @@ export default function GameNoteCard({ note, defaultReactions }: Props) {
     const profile = useProfileStore((state) => state.profile);
     const openModal = useModalStore((state) => state.openModal);
     const [posterUrl, setPosterUrl] = React.useState<string>();
-    const [isCommentExpanded, setCommentIsExpanded] = React.useState(false);
+    const [isPosterLoading, startTransition] = React.useTransition();
 
     React.useEffect(() => {
-        if (note) {
-            (async () => {
-                try {
-                    const res = await fetchGameNotePoster(profile, note.id, 'sm');
-                    setPosterUrl(res?.url ?? undefined);
-                } catch (error: any) {
-                    console.error(error);
-                    setPosterUrl(undefined);
-                }
-            })();
+        if (!note || !profile?.id) {
+            return;
         }
+
+        startTransition(async () => {
+            try {
+                const res = await fetchGameNotePoster(profile, note.id, 'sm');
+                setPosterUrl(res?.url ?? undefined);
+            } catch (error: any) {
+                console.error(error);
+                setPosterUrl(undefined);
+            }
+        });
     }, []);
 
     const openGameNote = () => {
@@ -83,21 +83,7 @@ export default function GameNoteCard({ note, defaultReactions }: Props) {
         <div className="flex flex-col gap-4 shadow rounded-lg p-4 border text-start">
             <div className="flex justify-between gap-4">
                 <div className="flex gap-4">
-                    <div className="w-[100px] h-[150px]">
-                        {posterUrl ? (
-                            <Image
-                                src={posterUrl}
-                                alt="Poster"
-                                width={100}
-                                height={150}
-                                className="rounded-md"
-                            />
-                        ) : (
-                            <label className="flex flex-col items-center justify-center bg-gray-500 dark:bg-gray-800 w-full h-full rounded-md">
-                                <ImageOff />
-                            </label>
-                        )}
-                    </div>
+                    <ContentPoster posterUrl={posterUrl} size="sm" loading={isPosterLoading} />
                     <div className="flex-1 flex flex-col gap-1 w-full justify-between">
                         <div className="space-y-1">
                             <div>

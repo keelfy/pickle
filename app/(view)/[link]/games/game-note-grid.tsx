@@ -9,8 +9,10 @@ import { fetchBatchGameNoteReactions, fetchProfileGameNotes } from "@/hooks/api-
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useProfileStore } from "@/providers/profile-store";
+import useFilterQueryState, { Filter } from "@/query-params/filter";
+import useSortQueryState from "@/query-params/sort";
 import { SelectTrigger } from "@radix-ui/react-select";
-import { Filter, FilterIcon, SortAsc, SortAscIcon, SortDescIcon } from "lucide-react";
+import { FilterIcon, SortAscIcon, SortDescIcon } from "lucide-react";
 import React, { useState } from "react";
 import { useInView } from "react-intersection-observer";
 import GameNoteCard from "./game-note-card";
@@ -73,18 +75,18 @@ export default function GameNoteGrid({ className }: Props) {
     const [reactions, setReactions] = React.useState<NoteReaction[]>();
 
     const [isLoading, setIsLoading] = useState(false);
-    const [sort, setSort] = React.useState<string>('created_at.desc');
+    const { sort, setSort, isInitialized: isSortInitialized } = useSortQueryState("created_at.desc")
+    const { filters, setFilters, isInitialized: isFilterInitialized } = useFilterQueryState();
     const [hasMore, setHasMore] = useState(true);
     const [cursor, setCursor] = useState<string>();
-    const [filters, setFilters] = React.useState<string>();
 
     const { ref, inView } = useInView();
 
-    async function fetchGameNotes(sort: string, cursor: string | undefined, hasMore: boolean, filters: string | undefined, resetList = false) {
-        if (isLoading || (!hasMore && !resetList) || !profile) return;
+    async function fetchGameNotes(sort: string, cursor: string | undefined, hasMore: boolean, filters: Filter[] | undefined, resetList = false) {
+        if (isLoading || (!hasMore && !resetList) || !profile?.id) return;
 
-        const sortColumn = sort.split(".")[0];
-        const sortDirection = sort.split(".")[1];
+        const sortColumn = sort.split(".")[0] ?? "created_at";
+        const sortDirection = sort.split(".")[1] ?? "desc";
 
         setIsLoading(true);
         try {
@@ -99,13 +101,17 @@ export default function GameNoteGrid({ className }: Props) {
                 params.append('cursor', cursor);
             }
 
-            if (filters) {
-                params.append('filters', filters);
+            if (filters && filters.length > 0) {
+                params.append('filters', filters.map(filter => `${filter.name}:${filter.value}`).join(','));
             }
 
             const notes = await fetchProfileGameNotes(profile, params);
             if (notes?.length === 0) {
                 setHasMore(false);
+
+                if (resetList) {
+                    setNotes([]);
+                }
                 return;
             }
 
@@ -126,16 +132,10 @@ export default function GameNoteGrid({ className }: Props) {
 
     const handleSortChange = (newSort: string) => {
         setSort(newSort);
-        setCursor(undefined);
-        setHasMore(true);
-        fetchGameNotes(newSort, undefined, true, filters, true);
     };
 
-    const handleFiltersChange = (newFilters: string) => {
+    const handleFiltersChange = (newFilters: Filter[]) => {
         setFilters(newFilters);
-        setCursor(undefined);
-        setHasMore(true);
-        fetchGameNotes(sort, undefined, true, newFilters, true);
     }
 
     React.useEffect(() => {
@@ -145,11 +145,15 @@ export default function GameNoteGrid({ className }: Props) {
     }, [inView]);
 
     React.useEffect(() => {
-        fetchGameNotes(sort, cursor, hasMore, filters, true);
-    }, [profile?.id]);
+        if (!profile?.id || !isSortInitialized || !isFilterInitialized) return;
+
+        setCursor(undefined);
+        setHasMore(true);
+        fetchGameNotes(sort, undefined, true, filters, true);
+    }, [profile?.id, sort, filters, isSortInitialized, isFilterInitialized]);
 
     React.useEffect(() => {
-        if (!notes || notes.length === 0) return;
+        if (!notes || notes.length === 0 || !profile?.id) return;
         const fetchReactions = async () => {
             try {
                 const reactions = await fetchBatchGameNoteReactions(profile, notes.map((note) => note.id));
@@ -198,7 +202,7 @@ export default function GameNoteGrid({ className }: Props) {
                             </Button>
                         </PopoverTrigger>
                         <PopoverContent align='end'>
-                            <GameNoteFiltersContent onChange={handleFiltersChange} />
+                            <GameNoteFiltersContent value={filters} onChange={handleFiltersChange} />
                         </PopoverContent>
                     </Popover>
                 </div>

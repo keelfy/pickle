@@ -9,6 +9,7 @@ import {
     CollapsibleContent,
     CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import ContentPoster from "@/components/ui/content-poster";
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import LoadingSpinner from "@/components/ui/loading-spinner";
@@ -34,14 +35,13 @@ import {
     Check,
     ChevronsUpDown,
     History,
-    ImageOff,
     Link,
-    Rocket,
+    Rocket
 } from "lucide-react";
-import Image from "next/image";
 import React from "react";
 import GameUrl from "../../../../app/(view)/[link]/components/game-url";
 import RatingRow from "../../../../app/(view)/[link]/components/rating-row";
+
 export default function GameNoteDialogContent() {
     const { id: gameNoteId } = useModalStore((state) => state.modalParams!);
     const [gameNote, setGameNote] = React.useState<GameNote>();
@@ -53,13 +53,16 @@ export default function GameNoteDialogContent() {
     const [detailsOpen, setDetailsOpen] = React.useState(false);
     const [isLoading, startTransition] = React.useTransition();
     const [areOrdersLoading, startOrdersTransition] = React.useTransition();
+    const [isPosterLoading, startPosterTransition] = React.useTransition();
 
     const [posterUrl, setPosterUrl] = React.useState<string>();
 
     const [reactions, setReactions] = React.useState<Reaction[]>();
 
     React.useEffect(() => {
-        (async () => {
+        if (!profile?.id) return;
+
+        startPosterTransition(async () => {
             try {
                 const res = await fetchGameNotePoster(profile, gameNoteId, 'md');
                 setPosterUrl(res?.url);
@@ -67,10 +70,12 @@ export default function GameNoteDialogContent() {
                 console.error(error);
                 setPosterUrl(undefined);
             }
-        })();
+        });
     }, []);
 
     React.useEffect(() => {
+        if (!profile?.id) return;
+
         (async () => {
             try {
                 const res = await fetchGameNoteReactions(profile, gameNoteId);
@@ -91,6 +96,7 @@ export default function GameNoteDialogContent() {
     }, [gameNoteId]);
 
     React.useEffect(() => {
+        if (!profile?.id) return;
         startTransition(async () => {
             try {
                 const response = await fetchGameNote(profile, gameNoteId);
@@ -164,21 +170,7 @@ export default function GameNoteDialogContent() {
 
             <div className="grid gap-4">
                 <div className="flex items-start gap-4">
-                    <div className="max-w-[150px] max-h-[225px] min-w-max min-h-max w-[150%] h-[225px]">
-                        {posterUrl ? (
-                            <Image
-                                src={posterUrl}
-                                alt="Poster"
-                                width={150}
-                                height={225}
-                                className="rounded-lg"
-                            />
-                        ) : (
-                            <label className="flex flex-col items-center justify-center bg-gray-500 dark:bg-gray-800 w-full h-full rounded-lg">
-                                <ImageOff />
-                            </label>
-                        )}
-                    </div>
+                    <ContentPoster posterUrl={posterUrl} size="md" loading={isPosterLoading} />
                     <div className="flex-1 flex flex-col gap-3 w-full justify-between">
                         <div className="font-bold text-lg">
                             {gameNote?.name}
@@ -186,7 +178,7 @@ export default function GameNoteDialogContent() {
                         <table className="w-full">
                             <tbody>
                                 <tr>
-                                    <td className="text-sm w-1/2 font-semibold flex items-center gap-2">
+                                    <td className="text-sm w-1/2 py-1 font-semibold flex items-center gap-2 align-top">
                                         <div>
                                             <Rocket size={12} />
                                         </div>
@@ -195,7 +187,7 @@ export default function GameNoteDialogContent() {
                                         </div>
                                     </td>
                                     <td>
-                                        <div className="text-sm w-1/2 p-1 whitespace-nowrap">
+                                        <div className="text-sm w-1/2 py-1 whitespace-nowrap">
                                             {gameNote?.releaseDate
                                                 ? new Date(
                                                     gameNote?.releaseDate
@@ -212,11 +204,11 @@ export default function GameNoteDialogContent() {
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td className="text-sm w-1/2 font-semibold flex items-center gap-2">
+                                    <td className="text-sm w-1/2 py-1 font-semibold flex items-center gap-2">
                                         <Link size={12} />
                                         Link
                                     </td>
-                                    <td className="w-1/2 text-sm p-1">
+                                    <td className="w-1/2 text-sm py-1">
                                         {gameNote?.link ? (
                                             <GameUrl url={gameNote.link} />
                                         ) : (
@@ -225,18 +217,18 @@ export default function GameNoteDialogContent() {
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td className="text-sm w-1/2 pt-3 font-semibold flex items-center gap-2">
+                                    <td className="text-sm w-1/2 pb-1 pt-3 font-semibold flex items-center gap-2">
                                         <Check size={12} />
                                         Status
                                     </td>
-                                    <td className="w-1/2 text-sm p-1 pt-3">
+                                    <td className="w-1/2 text-sm pb-1 pt-3">
                                         <GameNoteStatusBadge
                                             status={gameNote?.status}
                                         />
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td className="text-sm w-1/2 font-semibold flex items-center gap-2">
+                                    <td className="text-sm w-1/2 py-1 font-semibold flex items-center gap-2">
                                         <div>
                                             <History size={12} />
                                         </div>
@@ -245,7 +237,7 @@ export default function GameNoteDialogContent() {
                                         </div>
                                     </td>
                                     <td>
-                                        <div className="text-sm w-1/2 p-1 whitespace-nowrap">
+                                        <div className="text-sm w-1/2 py-1 whitespace-nowrap">
                                             {gameNote?.lastPlayedAt
                                                 ? new Date(
                                                     gameNote?.lastPlayedAt

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -23,7 +24,13 @@ func GetRequiredQueryParam(r *http.Request, key string) (string, error) {
 	if value == "" {
 		return "", errors.NewBadRequestError(fmt.Sprintf("Query parameter %v is required", key), nil)
 	}
-	return value, nil
+
+	decodedValue, err := url.QueryUnescape(value)
+	if err != nil {
+		return "", errors.NewBadRequestError(fmt.Sprintf("Query parameter %v is invalid", key), err)
+	}
+
+	return decodedValue, nil
 }
 
 func GetQueryParam(r *http.Request, key, defaultValue string) string {
@@ -31,11 +38,16 @@ func GetQueryParam(r *http.Request, key, defaultValue string) string {
 	if value == "" {
 		return defaultValue
 	}
-	return value
+
+	decodedValue, err := url.QueryUnescape(value)
+	if err != nil {
+		return defaultValue
+	}
+	return decodedValue
 }
 
 func GetQueryParamAsUUIDs(r *http.Request, key string) ([]uuid.UUID, error) {
-	value := r.URL.Query().Get(key)
+	value := GetQueryParam(r, key, "")
 	uuids := []uuid.UUID{}
 
 	if value == "" {
@@ -53,12 +65,12 @@ func GetQueryParamAsUUIDs(r *http.Request, key string) ([]uuid.UUID, error) {
 }
 
 func GetPagination(r *http.Request) (*types.Pagination, error) {
-	page, err := strconv.Atoi(r.URL.Query().Get("page"))
+	page, err := strconv.Atoi(GetQueryParam(r, "page", "0"))
 	if err != nil {
 		page = 0
 	}
 
-	size, err := strconv.Atoi(r.URL.Query().Get("size"))
+	size, err := strconv.Atoi(GetQueryParam(r, "size", "20"))
 	if err != nil {
 		size = 20
 	}
@@ -87,7 +99,7 @@ func CalculateTotalPages(totalElements int64, size int) int64 {
 }
 
 func GetSortedPagination(r *http.Request) (*types.CursorSort, error) {
-	limit, err := strconv.Atoi(r.URL.Query().Get("limit"))
+	limit, err := strconv.Atoi(GetQueryParam(r, "limit", "20"))
 	if err != nil {
 		limit = 20
 	}
@@ -103,15 +115,8 @@ func GetSortedPagination(r *http.Request) (*types.CursorSort, error) {
 		return nil, err
 	}
 
-	column := r.URL.Query().Get("column")
-	if column == "" {
-		column = "created_at"
-	}
-
-	direction := r.URL.Query().Get("direction")
-	if direction == "" {
-		direction = "desc"
-	}
+	column := GetQueryParam(r, "column", "created_at")
+	direction := GetQueryParam(r, "direction", "desc")
 
 	sort := &types.CursorSort{
 		Cursor:    cursor,
@@ -124,12 +129,17 @@ func GetSortedPagination(r *http.Request) (*types.CursorSort, error) {
 
 func GetFilters(r *http.Request) (types.Filters, error) {
 	filters := make(types.Filters)
-	param := r.URL.Query().Get("filters")
+	param := GetQueryParam(r, "filters", "")
 	if param == "" {
 		return filters, nil
 	}
 
-	for _, filter := range strings.Split(param, ",") {
+	decodedParam, err := url.QueryUnescape(param)
+	if err != nil {
+		return nil, errors.NewBadRequestError("invalid filters: expected a valid URL-encoded string", err)
+	}
+
+	for _, filter := range strings.Split(decodedParam, ",") {
 		parts := strings.Split(filter, ":")
 		if len(parts) == 2 {
 			filters[parts[0]] = parts[1]
@@ -141,28 +151,33 @@ func GetFilters(r *http.Request) (types.Filters, error) {
 
 // ParseCursor parses the cursor value from query parameters based on the expected column type.
 func ParseCursor(r *http.Request, columnType string) (interface{}, error) {
-	cursorParam := r.URL.Query().Get("cursor")
+	cursorParam := GetQueryParam(r, "cursor", "")
 	if cursorParam == "" {
 		return nil, nil // No cursor provided; handle this as the "first page" case
 	}
 
+	decodedCursorParam, err := url.QueryUnescape(cursorParam)
+	if err != nil {
+		return nil, errors.NewBadRequestError("invalid cursor: expected a valid URL-encoded string", err)
+	}
+
 	switch columnType {
 	case "string":
-		return cursorParam, nil
+		return decodedCursorParam, nil
 	case "int":
-		cursor, err := strconv.Atoi(cursorParam)
+		cursor, err := strconv.Atoi(decodedCursorParam)
 		if err != nil {
 			return nil, errors.NewBadRequestError("invalid cursor: expected an integer", err)
 		}
 		return cursor, nil
 	case "float":
-		cursor, err := strconv.ParseFloat(cursorParam, 64)
+		cursor, err := strconv.ParseFloat(decodedCursorParam, 64)
 		if err != nil {
 			return nil, errors.NewBadRequestError("invalid cursor: expected a float", err)
 		}
 		return cursor, nil
 	case "datetime":
-		cursor, err := time.Parse(time.RFC3339, cursorParam)
+		cursor, err := time.Parse(time.RFC3339, decodedCursorParam)
 		if err != nil {
 			return nil, errors.NewBadRequestError("invalid cursor: expected a datetime in RFC3339 format", err)
 		}

@@ -67,7 +67,7 @@ func (sqlDb *relationalStorage) Ping(ctx context.Context) error {
 }
 
 const findPaginatedGameNotesByUserIdQuery = `
-	SELECT 
+	SELECT DISTINCT 
 		gn."id",
 		gn."created_at",
 		gn."name",
@@ -92,7 +92,7 @@ const findPaginatedGameNotesByUserIdQuery = `
 `
 
 const findPaginatedGameNotesByUserIdWithOrdererUsernameFilterQuery = `
-	SELECT 
+	SELECT DISTINCT 
 		gn."id",
 		gn."created_at",
 		gn."name",
@@ -127,6 +127,7 @@ func (sqlDb *relationalStorage) FindPaginatedGameNotesByUserId(ctx context.Conte
 
 	columnType := getGameNoteColumnType(sort.Column)
 	conditionalFilters := getGameNoteFilterQuery(filters)
+	logger.Debugf(ctx, "conditionalFilters: %v", conditionalFilters)
 
 	requesterFilter := filters["requester"]
 	queryTemplate := findPaginatedGameNotesByUserIdQuery

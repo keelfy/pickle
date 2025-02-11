@@ -19,7 +19,7 @@ export default async function CollectionsSection({ params }: Props) {
 
     const profile = await fetchProfileByLink(link);
     const user = await getUser();
-    const isUserAuthorized = profile?.id === user?.id;
+    const isUserAuthorized = user?.id !== undefined && profile?.id === user?.id;
 
     const [collections, collectionsItems] = await Promise.all([
         fetchCollections(profile),

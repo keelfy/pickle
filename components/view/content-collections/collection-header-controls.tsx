@@ -42,7 +42,7 @@ export default function CollectionHeaderControls({ toggleCollapsed, collapsed, c
             <Button variant="ghost" size="icon" onClick={toggleCollapsed}>
                 <ChevronDownIcon className={cn("transition-transform duration-300", collapsed && "rotate-90")} />
             </Button>
-            {user?.id === profile?.id && (
+            {user?.id !== undefined && user?.id === profile?.id && (
                 <>
                     <Button variant="ghost" size="icon" onClick={handleEditClick}>
                         <PencilIcon />

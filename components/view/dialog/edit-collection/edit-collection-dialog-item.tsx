@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import ContentCategoryIcon from "@/components/ui/content-category-icon";
+import LoadingSpinner from "@/components/ui/loading-spinner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { fetchDeleteCollectionItem } from "@/hooks/api-endpoints-client";
 import { toast } from "@/hooks/use-toast";
@@ -19,16 +20,15 @@ export default function EditCollectionDialogItem({ item }: Props) {
     const [isDeleting, startTransition] = React.useTransition();
     const { states, deleteItemFromCollection, addItemToCollection } = useCollectionContext();
 
-    const onDeleteItem = (itemId: string) => {
-        if (!states.length) return;
-
+    const onDeleteItem = () => {
+        if (!states) return;
         startTransition(async () => {
-            const deletedItem = states.find((state) => state.collection.id === item.collectionId)?.content.find((item) => item.id === itemId);
+            const deletedItem = states.find((state) => state.collection.id === item.collectionId)?.content.find((i) => i.id === item.id);
             if (!deletedItem) return;
             deleteItemFromCollection(item.collectionId, deletedItem.id);
 
             try {
-                await fetchDeleteCollectionItem(item.collectionId, itemId);
+                await fetchDeleteCollectionItem(item.collectionId, item.id);
             } catch (error: any) {
                 addItemToCollection(item.collectionId, deletedItem);
                 toast({
@@ -58,11 +58,11 @@ export default function EditCollectionDialogItem({ item }: Props) {
                     variant="destructive"
                     size="icon"
                     className="rounded-l-none"
-                    onClick={() => onDeleteItem(item.id)}
+                    onClick={onDeleteItem}
                     disabled={isDeleting}
                     type="button"
                 >
-                    <TrashIcon />
+                    {isDeleting ? <LoadingSpinner /> : <TrashIcon />}
                     <span className="sr-only">Delete item</span>
                 </Button>
             </div>

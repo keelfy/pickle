@@ -25,7 +25,7 @@ export default function ContentCollection({ collection, items, hasMoreItems }: P
     const profile = useAuthStore((state) => state.profile);
 
     const isUserAuthorized = React.useMemo(() => {
-        return profile?.id === user?.id;
+        return user?.id !== undefined && profile?.id === user?.id;
     }, [profile?.id, user?.id]);
 
     return (

@@ -53,7 +53,7 @@ export function FollowButton({ className }: Props) {
     });
 
     const handleUnfollow = () => startTransition(async () => {
-        if (user?.id === profile?.id) {
+        if (user?.id === undefined || user?.id !== profile?.id) {
             return;
         }
 

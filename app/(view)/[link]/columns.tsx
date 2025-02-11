@@ -2,6 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import ContentCategoryIcon from "@/components/ui/content-category-icon";
 import { Label } from "@/components/ui/label";
 import {
     Tooltip,
@@ -16,18 +17,12 @@ import {
     orderStatusLabels,
 } from "@/utils/api/constants";
 import { ContentCategory, Order, OrderStatus } from "@/utils/api/types";
-import { SiYoutube } from "@icons-pack/react-simple-icons";
 import { ColumnDef } from "@tanstack/react-table";
 import {
     Check,
-    Clapperboard,
     DollarSign,
-    Gamepad,
-    ListVideo,
     Loader,
-    MonitorPlay,
-    Squirrel,
-    X,
+    X
 } from "lucide-react";
 
 const orderColumns: ColumnDef<Order>[] = [
@@ -53,24 +48,9 @@ const orderColumns: ColumnDef<Order>[] = [
                 (cat) => cat.value === category
             )?.label;
 
-            const CategoryIcon = ({ className }: { className?: string }) => {
-                if (category === "games") {
-                    return <Gamepad className={className} />;
-                } else if (category === "video") {
-                    return <SiYoutube className={className} />;
-                } else if (category === "movies") {
-                    return <Clapperboard className={className} />;
-                } else if (category === "anime") {
-                    return <Squirrel className={className} />;
-                } else if (category === "series") {
-                    return <MonitorPlay className={className} />;
-                }
-                return <ListVideo className={className} />;
-            };
-
             return (
                 <div className="flex items-center gap-1">
-                    <CategoryIcon className="w-4 h-4" />
+                    <ContentCategoryIcon category={category} className="w-4 h-4" />
                     {label}
                 </div>
             );

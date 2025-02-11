@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import LoadingSpinner from "@/components/ui/loading-spinner";
-import { createCollection } from "@/hooks/api-endpoints-client";
+import { fetchCreateCollection } from "@/hooks/api-endpoints-client";
 import { toast } from "@/hooks/use-toast";
 import { useModalStore } from "@/providers/modal";
 import { useProfileStore } from "@/providers/profile-store";
@@ -26,6 +26,7 @@ import { Check, X } from "lucide-react";
 import { useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { useCollectionContext } from "../../content-collections/collections-context";
 
 const formSchema = z.object({
     name: z.string()
@@ -37,6 +38,7 @@ export default function CreateCollectionDialogContent() {
     const { closeModal } = useModalStore((state) => state);
     const profile = useProfileStore((state) => state.profile);
     const [isLoading, startTransition] = useTransition();
+    const { addCollection, updateCollection, deleteCollection } = useCollectionContext();
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -47,14 +49,23 @@ export default function CreateCollectionDialogContent() {
 
     const onSubmit = (data: z.infer<typeof formSchema>) => {
         startTransition(async () => {
+            const optimisticCollection = {
+                id: crypto.randomUUID(),
+                name: data.name,
+                itemCount: 0,
+                createdAt: new Date(),
+            };
+            addCollection(optimisticCollection);
             try {
-                await createCollection(profile, data);
+                const newCollection = await fetchCreateCollection(profile, data);
+                updateCollection(optimisticCollection.id, newCollection);
                 closeModal();
                 toast({
                     title: data.name,
                     description: "Collection created successfully",
                 });
             } catch (error: any) {
+                deleteCollection(optimisticCollection.id);
                 toast({
                     title: "Error while creating collection",
                     description: error.message ?? "Please try again",

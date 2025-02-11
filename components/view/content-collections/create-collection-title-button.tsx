@@ -10,7 +10,7 @@ type Props = {
     className?: string;
 }
 
-export default function CreateCollectionButton({ className }: Props) {
+export default function CreateCollectionTitleButton({ className }: Props) {
     const openModal = useModalStore(state => state.openModal);
 
     return (
@@ -20,7 +20,7 @@ export default function CreateCollectionButton({ className }: Props) {
             onClick={() => openModal(ModalType.CreateCollection)}
         >
             <PlusIcon />
-            <h2 className="text-lg">Add collection of content</h2>
+            <h2 className="text-lg">Untitled collection</h2>
         </Button>
     )
 }

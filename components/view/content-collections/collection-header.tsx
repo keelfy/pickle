@@ -7,7 +7,7 @@ type Props = {
     className?: string;
 }
 
-export default function CollectionLine({ leftSide, rightSide, className }: Props) {
+export default function CollectionHeader({ leftSide, rightSide, className }: Props) {
     return (
         <div className={cn("flex items-center", className)}>
             {leftSide}

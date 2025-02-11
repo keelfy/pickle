@@ -4,6 +4,7 @@ import Image from "next/image";
 
 type Props = {
     posterUrl: string | undefined;
+    alt?: string;
     size?: "sm" | "md" | "lg";
     className?: string;
     loading?: boolean;
@@ -21,13 +22,13 @@ const rounded = {
     lg: "rounded-xl",
 }
 
-export default function ContentPoster({ posterUrl, size = "md", className, loading = false }: Props) {
+export default function ContentPoster({ posterUrl, size = "md", className, loading = false, alt }: Props) {
     const [width, height] = sizes[size];
 
     return (posterUrl ? (
         <Image
             src={posterUrl}
-            alt="Poster"
+            alt={alt ?? "Poster"}
             width={width}
             height={height}
             className={cn("object-cover", rounded[size], className)}
@@ -39,7 +40,12 @@ export default function ContentPoster({ posterUrl, size = "md", className, loadi
             className={cn("flex flex-col items-center justify-center bg-gray-200 dark:bg-gray-900", loading ? "animate-pulse" : "", rounded[size], className)}
             style={{ width: `${width}px`, height: `${height}px` }}
         >
-            {!loading && <ImageOffIcon />}
+            {!loading && (
+                <div className="flex flex-col items-center gap-1 p-2 text-muted-foreground">
+                    <ImageOffIcon />
+                    {alt && <span className="text-xs line-clamp-4 whitespace-normal">{alt}</span>}
+                </div>
+            )}
         </label>
     )
     )

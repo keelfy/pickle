@@ -14,6 +14,10 @@ const DynamicGameNoteDialogContent = dynamic(
     }
 );
 
+export type GameNoteDialogParams = {
+    id: string;
+}
+
 export default function GameNoteDialog() {
     const { currentModal, modalParams, closeModal } = useModalStore(
         (state) => state

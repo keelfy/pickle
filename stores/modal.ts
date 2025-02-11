@@ -13,6 +13,8 @@ export enum ModalType {
     DeleteContentAlert = "delete-content-alert",
     CreateCollection = "create-collection",
     DeleteCollectionAlert = "delete-collection-alert",
+    EditCollection = "edit-collection",
+    AddCollectionItem = "add-collection-item",
 }
 
 type Action = {

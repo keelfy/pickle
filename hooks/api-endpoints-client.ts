@@ -1,7 +1,7 @@
 import { fetchApi } from "@/utils/api/client";
-import { CreateCollectionReq } from "@/utils/api/request";
+import { AddItemToCollectionReq, CreateCollectionReq, UpdateCollectionReq } from "@/utils/api/request";
 import { ContentSearchHits, LinkValidation, Paginated } from "@/utils/api/response";
-import { Collection, GameNote, Image, ImagePreview, ImageSize, NoteReaction, Order, OrderUpdate, Profile, Reaction } from "@/utils/api/types";
+import { Collection, CollectionItem, Content, GameNote, Image, ImagePreview, ImageSize, NoteReaction, Order, OrderUpdate, Profile, Reaction } from "@/utils/api/types";
 
 
 export async function uploadAvatarForPreview(formData: FormData) {
@@ -146,15 +146,40 @@ export async function deleteGameNoteReaction(profile: Profile | undefined, gameN
     });
 }
 
-export async function createCollection(profile: Profile, collection: CreateCollectionReq) {
+export async function fetchCreateCollection(profile: Profile, collection: CreateCollectionReq) {
     return fetchApi<Collection>(`/v1/users/${profile.id}/collections`, true, {
         method: "POST",
         body: JSON.stringify(collection),
     });
 }
 
-export async function deleteCollection(collectionId: string) {
+export async function fetchUpdateCollection(collectionId: string, collection: UpdateCollectionReq) {
+    return fetchApi<Collection>(`/v1/collections/${collectionId}`, true, {
+        method: "PATCH",
+        body: JSON.stringify(collection),
+    });
+}
+
+export async function fetchDeleteCollection(collectionId: string) {
     return fetchApi(`/v1/collections/${collectionId}`, true, {
         method: "DELETE",
     });
 }
+
+export async function fetchAddCollectionItem(collectionId: string, req: AddItemToCollectionReq) {
+    return fetchApi<CollectionItem>(`/v1/collections/${collectionId}/items`, true, {
+        method: "POST",
+        body: JSON.stringify(req),
+    });
+}
+
+export async function fetchDeleteCollectionItem(collectionId: string, itemId: string) {
+    return fetchApi(`/v1/collections/${collectionId}/items/${itemId}`, true, {
+        method: "DELETE",
+    });
+}
+
+export async function fetchCollectionItems(collectionId: string, page: number, size: number = 10) {
+    return fetchApi<Paginated<CollectionItem>>(`/v1/collections/${collectionId}/items?page=${page}&size=${size}`);
+}
+

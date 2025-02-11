@@ -1,3 +1,5 @@
+import { Paginated } from "./response";
+
 export type ProfileCounts = {
     played: number;
     watched: number;
@@ -109,14 +111,14 @@ export type Collection = {
     itemCount: number;
 }
 
+export type BatchCollectionItems = Paginated<CollectionItem> & {
+    collectionId: string;
+}
+
 export type CollectionItem = {
     id: string;
     createdAt: Date;
     collectionId: string;
     posterUrl?: string;
-    content: {
-        id: string;
-        name: string;
-        category: ContentCategory;
-    }
+    content: Content;
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import ContentCategoryIcon from "@/components/ui/content-category-icon";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
@@ -8,8 +9,9 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/providers/auth-store";
+import { ContentCategory, Profile } from "@/utils/api/types";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ClapperboardIcon, GamepadIcon, SendIcon, SquirrelIcon, TvIcon, VideoIcon } from "lucide-react";
+import { SendIcon } from "lucide-react";
 import Link from "next/link";
 import React from "react";
 import { useForm } from "react-hook-form";
@@ -185,26 +187,12 @@ export default function OrderForm({ profile, myAvatarUrl, className }: Props) {
                                         defaultValue={field.value}
                                     >
                                         <TabsList className="grid grid-cols-5">
-                                            <TabsTrigger value="game">
-                                                <GamepadIcon className="w-4 h-4 mr-2" />
-                                                Game
-                                            </TabsTrigger>
-                                            <TabsTrigger value="movie">
-                                                <ClapperboardIcon className="w-4 h-4 mr-2" />
-                                                Movie
-                                            </TabsTrigger>
-                                            <TabsTrigger value="series">
-                                                <TvIcon className="w-4 h-4 mr-2" />
-                                                Series
-                                            </TabsTrigger>
-                                            <TabsTrigger value="anime">
-                                                <SquirrelIcon className="w-4 h-4 mr-2" />
-                                                Anime
-                                            </TabsTrigger>
-                                            <TabsTrigger value="video">
-                                                <VideoIcon className="w-4 h-4 mr-2" />
-                                                Video
-                                            </TabsTrigger>
+                                            {['games', 'movies', 'series', 'anime', 'video'].map((type) => (
+                                                <TabsTrigger key={type} value={type}>
+                                                    <ContentCategoryIcon category={type as ContentCategory} className="w-4 h-4 mr-2" />
+                                                    {type}
+                                                </TabsTrigger>
+                                            ))}
                                         </TabsList>
                                     </Tabs>
                                 </FormControl>

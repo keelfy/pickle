@@ -4,7 +4,7 @@ import LoadingSpinner from "@/components/ui/loading-spinner";
 import { Separator } from "@/components/ui/separator";
 import { Filter, SortAsc, UserPlusIcon } from "lucide-react";
 import { Suspense } from "react";
-import CollectionsSection from "./collections-section";
+import CollectionsSection from "../../../components/view/content-collections/collections-section";
 import CreateOrderButton from "./components/create-order-button";
 import OrdersDataTable from "./components/orders-data-table";
 

@@ -9,19 +9,18 @@ import { useAuthStore } from "@/providers/auth-store";
 import { useModalStore } from "@/providers/modal";
 import { useProfileStore } from "@/providers/profile-store";
 import { ModalType } from "@/stores/modal";
+import { GameNote, Reaction } from "@/utils/api/types";
 import {
-    EditIcon,
     History,
+    PencilIcon,
     TextIcon,
-    UserPlus2,
-    X
+    TrashIcon,
+    UserPlus2
 } from "lucide-react";
 import React from "react";
 import GameNoteReactions from "./game-note-reactions";
 import GameNoteStatusBadge from "./game-note-status-badge";
 import NoteComment from "./note-comment";
-import { GameNote } from "@/utils/api/types";
-import { Reaction } from "@/utils/api/types";
 
 type Props = {
     note: GameNote;
@@ -144,11 +143,11 @@ export default function GameNoteCard({ note, defaultReactions }: Props) {
                             {profile?.id === user?.id && user?.id && (
                                 <>
                                     <Button variant="ghost" onClick={openGameNoteEditor}>
-                                        <EditIcon />
+                                        <PencilIcon />
                                         Edit
                                     </Button>
                                     <Button variant="ghost" onClick={onDelete}>
-                                        <X className="text-destructive" />
+                                        <TrashIcon className="text-destructive" />
                                         Delete
                                     </Button>
                                 </>

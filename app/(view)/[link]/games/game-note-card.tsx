@@ -21,6 +21,7 @@ import React from "react";
 import GameNoteReactions from "./game-note-reactions";
 import GameNoteStatusBadge from "./game-note-status-badge";
 import NoteComment from "./note-comment";
+import ClickableContentPoster from "@/components/ui/clickable-content-poster";
 
 type Props = {
     note: GameNote;
@@ -85,7 +86,15 @@ export default function GameNoteCard({ note, defaultReactions }: Props) {
         <div className="flex flex-col gap-4 shadow rounded-lg p-4 border text-start">
             <div className="flex justify-between gap-4">
                 <div className="flex gap-4">
-                    <ContentPoster posterUrl={posterUrl} size="sm" loading={isPosterLoading} />
+                    <ClickableContentPoster
+                        posterUrl={posterUrl}
+                        loading={isPosterLoading}
+                        content={{
+                            id: note.id,
+                            name: note.name,
+                            category: 'games',
+                        }}
+                    />
                     <div className="flex-1 flex flex-col gap-1 w-full justify-between">
                         <div className="space-y-1">
                             <div>

@@ -35,7 +35,7 @@ export default function CollectionElement({ item, className }: Props) {
                         onClick={handleClick}
                         className={cn("border-none p-0 hover:shadow-2xl hover:scale-105 transition-all duration-300 rounded-md", className)}
                     >
-                        <ContentPoster
+                        <ContentPoster 
                             posterUrl={item.posterUrl}
                             size="sm"
                             className="cursor-pointer"

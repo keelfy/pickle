@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { SmileIcon } from "lucide-react";
 
 type Props = React.ButtonHTMLAttributes<HTMLButtonElement> & {
     name: string;

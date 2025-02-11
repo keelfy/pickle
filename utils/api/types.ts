@@ -33,7 +33,6 @@ export type ContentCategory = 'games' | 'movies' | 'video' | 'anime' | 'series' 
 export type Content = {
     id: string;
     name: string;
-    userId: string;
     category: ContentCategory;
 }
 

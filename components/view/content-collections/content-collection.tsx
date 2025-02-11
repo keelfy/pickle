@@ -35,6 +35,7 @@ export default function ContentCollection({ collection, items, hasMoreItems }: P
                 leftSide={
                     <CollectionHeaderTitleButton
                         name={collection.name}
+                        totalItems={items.length}
                         onClick={toggleCollapsed}
                     />
                 }

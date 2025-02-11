@@ -42,7 +42,9 @@ export default function Page({ params }: Props) {
                         </Button>
                     </div>
                 </div>
-                <OrdersDataTable />
+                <Suspense fallback={<LoadingSpinner />}>
+                    <OrdersDataTable />
+                </Suspense>
             </div>
             {/* <Pagination>
                 <PaginationContent>

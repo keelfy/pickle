@@ -313,7 +313,8 @@ func (h *collectionHandler) GetItemsByUserID(w http.ResponseWriter, r *http.Requ
 		}
 
 		groupedItems[item.CollectionID] = append(groupedItems[item.CollectionID], types.CollectionItemRes{
-			ID: item.ID,
+			ID:           item.ID,
+			CollectionID: item.CollectionID,
 			Content: types.ContentRes{
 				ID:       item.NoteID,
 				Name:     contentName,

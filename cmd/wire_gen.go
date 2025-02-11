@@ -65,7 +65,7 @@ func InitializeAPI(ctx context.Context) (api.PickleAPI, func(), error) {
 	posterHandler := handlers.NewPosterHandler(posterService)
 	migrationService := services.NewMigrationService(relationalStorage, elasticStorage)
 	contentHandler := handlers.NewContentHandler(elasticStorage, contentService)
-	collectionService := services.NewCollectionService(relationalStorage)
+	collectionService := services.NewCollectionService(relationalStorage, cacheStorage)
 	collectionHandler := handlers.NewCollectionHandler(collectionService, contentService)
 	pickleAPI := api.NewPickleAPI(profileHandler, statusHandler, orderHandler, gameNoteHandler, posterHandler, migrationService, contentHandler, collectionHandler)
 	return pickleAPI, func() {

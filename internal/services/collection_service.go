@@ -2,6 +2,8 @@ package services
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	db "github.com/pickle.pw/monolith/db/sqlc"
@@ -11,6 +13,7 @@ import (
 	"github.com/pickle.pw/monolith/internal/types"
 	"github.com/pickle.pw/monolith/internal/utils"
 	"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/singleflight"
 )
 
 type CollectionService interface {
@@ -28,11 +31,17 @@ type CollectionService interface {
 }
 
 type collectionService struct {
-	sqlDB storage.RelationalStorage
+	sqlDB             storage.RelationalStorage
+	cache             storage.CacheStorage
+	singleflightGroup singleflight.Group
 }
 
-func NewCollectionService(sqlDB storage.RelationalStorage) CollectionService {
-	return &collectionService{sqlDB: sqlDB}
+func NewCollectionService(sqlDB storage.RelationalStorage, cache storage.CacheStorage) CollectionService {
+	return &collectionService{
+		sqlDB:             sqlDB,
+		cache:             cache,
+		singleflightGroup: singleflight.Group{},
+	}
 }
 
 func (service *collectionService) CreateCollection(ctx context.Context, userID uuid.UUID, req *types.CreateCollectionReq) (*db.Collection, error) {
@@ -99,6 +108,7 @@ func (service *collectionService) DeleteCollection(ctx context.Context, collecti
 		return errors.NewInternalServerError("failed to commit transaction", err)
 	}
 
+	service.clearItemsCountCache(ctx, collectionID)
 	return nil
 }
 
@@ -163,6 +173,7 @@ func (service *collectionService) AddItemToCollection(ctx context.Context, colle
 		return nil, errors.NewInternalServerError("failed to add item to collection", err)
 	}
 
+	service.clearItemsCountCache(ctx, collectionID)
 	return collectionItem, nil
 }
 
@@ -206,6 +217,8 @@ func (service *collectionService) RemoveItemFromCollection(ctx context.Context, 
 	if err != nil {
 		return errors.NewInternalServerError("failed to remove item from collection", err)
 	}
+
+	service.clearItemsCountCache(ctx, collectionID)
 	return nil
 }
 
@@ -261,10 +274,36 @@ func (service *collectionService) GetItemsByUserID(ctx context.Context, userID u
 	return collectionItems, nil
 }
 
+func (service *collectionService) clearItemsCountCache(ctx context.Context, collectionID uuid.UUID) {
+	cacheKey := fmt.Sprintf("collection:%s:items:count", collectionID)
+	_ = service.cache.DeleteKey(ctx, cacheKey)
+	service.singleflightGroup.Forget(cacheKey)
+}
+
 func (service *collectionService) CountCollectionItemsByCollectionID(ctx context.Context, collectionID uuid.UUID) (int64, error) {
-	count, err := service.sqlDB.Queries().CountCollectionItemsByCollectionID(ctx, collectionID)
-	if err != nil {
-		return 0, errors.NewInternalServerError("failed to count collection items by collection ID", err)
+	cacheKey := fmt.Sprintf("collection:%s:items:count", collectionID)
+	count, err := service.cache.GetInt64(ctx, cacheKey)
+	if err == nil {
+		return count, nil
 	}
+
+	value, err, _ := service.singleflightGroup.Do(cacheKey, func() (interface{}, error) {
+		count, err = service.sqlDB.Queries().CountCollectionItemsByCollectionID(ctx, collectionID)
+		if err != nil {
+			return 0, errors.NewInternalServerError("failed to count collection items by collection ID", err)
+		}
+
+		err = service.cache.SetKey(ctx, cacheKey, count, 24*time.Hour)
+		if err != nil {
+			return 0, errors.NewInternalServerError("failed to set collection items count to cache", err)
+		}
+
+		return count, nil
+	})
+	if err != nil {
+		return 0, err
+	}
+
+	count = value.(int64)
 	return count, nil
 }

@@ -70,9 +70,9 @@ func GetPagination(r *http.Request) (*types.Pagination, error) {
 		page = 0
 	}
 
-	size, err := strconv.Atoi(GetQueryParam(r, "size", "20"))
-	if err != nil {
-		size = 20
+	size, err := strconv.Atoi(GetQueryParam(r, "size", "10"))
+	if err != nil || size <= 0 {
+		size = 10
 	}
 
 	if size > 100 {
@@ -96,6 +96,17 @@ func CalculateTotalPages(totalElements int64, size int) int64 {
 		totalPages++
 	}
 	return totalPages
+}
+
+func FillPaginatedResponse[T any](res []T, totalElements int64, pagination *types.Pagination) *types.PaginatedRes[T] {
+	totalPages := CalculateTotalPages(totalElements, pagination.Size)
+	return &types.PaginatedRes[T]{
+		Content:       res,
+		Page:          pagination.Page,
+		Size:          pagination.Size,
+		TotalPages:    totalPages,
+		TotalElements: totalElements,
+	}
 }
 
 func GetSortedPagination(r *http.Request) (*types.CursorSort, error) {

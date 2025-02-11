@@ -7,9 +7,25 @@ package db
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
+
+const countCollectionItemsByCollectionID = `-- name: CountCollectionItemsByCollectionID :one
+SELECT COUNT(*)
+FROM "collection_items" ci
+INNER JOIN "collections" c ON ci."collection_id" = c."id"
+WHERE c."id" = $1
+`
+
+func (q *Queries) CountCollectionItemsByCollectionID(ctx context.Context, id uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countCollectionItemsByCollectionID, id)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
 
 const deleteCollectionByID = `-- name: DeleteCollectionByID :exec
 DELETE 
@@ -30,6 +46,17 @@ WHERE "id" = $1
 
 func (q *Queries) DeleteCollectionItemByID(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.Exec(ctx, deleteCollectionItemByID, id)
+	return err
+}
+
+const deleteCollectionItemsByCollectionID = `-- name: DeleteCollectionItemsByCollectionID :exec
+DELETE 
+FROM "collection_items" 
+WHERE "collection_id" = $1
+`
+
+func (q *Queries) DeleteCollectionItemsByCollectionID(ctx context.Context, collectionID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteCollectionItemsByCollectionID, collectionID)
 	return err
 }
 
@@ -86,7 +113,7 @@ func (q *Queries) FindCollectionItemsByCollectionID(ctx context.Context, collect
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*CollectionItem
+	items := []*CollectionItem{}
 	for rows.Next() {
 		var i CollectionItem
 		if err := rows.Scan(
@@ -96,6 +123,128 @@ func (q *Queries) FindCollectionItemsByCollectionID(ctx context.Context, collect
 			&i.Category,
 			&i.CreatedAt,
 			&i.CreatedBy,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, &i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const findCollectionItemsByCollectionIDWithContent = `-- name: FindCollectionItemsByCollectionIDWithContent :many
+
+SELECT
+    ci.id, ci.collection_id, ci.note_id, ci.category, ci.created_at, ci.created_by,
+    CASE
+        WHEN ci."category" = 'games' THEN g."name"
+        -- WHEN ci."category" = 'movie' THEN m."name"
+        -- WHEN ci."category" = 'anime' THEN a."name"
+        -- WHEN ci."category" = 'book' THEN b."name"
+        -- WHEN ci."category" = 'song' THEN s."name"
+        ELSE NULL
+    END AS "content_name",
+    CASE 
+        WHEN ci."category" = 'games' THEN g."poster_key"
+        ELSE NULL
+    END AS "poster_key",
+    CASE 
+        WHEN ci."category" = 'games' THEN g."poster_updated_at"
+        ELSE NULL
+    END AS "poster_updated_at"
+FROM "collection_items" ci
+INNER JOIN "collections" c ON ci."collection_id" = c."id"
+LEFT JOIN "game_notes" g ON ci."category" = 'games' AND ci."note_id" = g."id"
+WHERE c."id" = $1::uuid
+ORDER BY ci."created_at" DESC
+LIMIT $3::int
+OFFSET $2::int
+`
+
+type FindCollectionItemsByCollectionIDWithContentParams struct {
+	CollectionID uuid.UUID `json:"collection_id"`
+	Offset       int32     `json:"offset"`
+	Limit        int32     `json:"limit"`
+}
+
+type FindCollectionItemsByCollectionIDWithContentRow struct {
+	ID              uuid.UUID          `json:"id"`
+	CollectionID    uuid.UUID          `json:"collection_id"`
+	NoteID          uuid.UUID          `json:"note_id"`
+	Category        ContentCategory    `json:"category"`
+	CreatedAt       time.Time          `json:"created_at"`
+	CreatedBy       uuid.UUID          `json:"created_by"`
+	ContentName     *string            `json:"content_name"`
+	PosterKey       *string            `json:"poster_key"`
+	PosterUpdatedAt pgtype.Timestamptz `json:"poster_updated_at"`
+}
+
+// SELECT
+//
+//	ci.*,
+//	CASE
+//	    WHEN ci."category" = 'games' THEN g."name"
+//	    -- WHEN ci."category" = 'movie' THEN m."name"
+//	    -- WHEN ci."category" = 'anime' THEN a."name"
+//	    -- WHEN ci."category" = 'book' THEN b."name"
+//	    -- WHEN ci."category" = 'song' THEN s."name"
+//	    ELSE NULL
+//	END AS "content_name",
+//	CASE
+//	    WHEN ci."category" = 'games' THEN g."poster_key"
+//	    ELSE NULL
+//	END AS "poster_key",
+//	CASE
+//	    WHEN ci."category" = 'games' THEN g."poster_updated_at"
+//	    ELSE NULL
+//	END AS "poster_updated_at"
+//
+// FROM "collection_items" ci
+// INNER JOIN "collections" c ON ci."collection_id" = c."id"
+// LEFT JOIN "game_notes" g ON ci."category" = 'games' AND ci."note_id" = g."id"
+// WHERE c."user_id" = $1
+// ORDER BY ci."created_at" DESC
+// LIMIT $2;
+// LEFT JOIN
+//
+//	MovieNote m ON ci."category" = 'movie' AND ci."note_id" = m."id"
+//
+// LEFT JOIN
+//
+//	AnimeNote a ON ci."category" = 'anime' AND ci."note_id" = a."id"
+//
+// LEFT JOIN
+//
+//	BookNote b ON ci."category" = 'book' AND ci."note_id" = b."id"
+//
+// LEFT JOIN
+//
+//	SongNote s ON ci."category" = 'song' AND ci."note_id" = s."id"
+//
+// LEFT JOIN
+//
+//	ArticleNote ar ON ci."category" = 'article' AND ci."note_id" = ar."id";
+func (q *Queries) FindCollectionItemsByCollectionIDWithContent(ctx context.Context, arg FindCollectionItemsByCollectionIDWithContentParams) ([]*FindCollectionItemsByCollectionIDWithContentRow, error) {
+	rows, err := q.db.Query(ctx, findCollectionItemsByCollectionIDWithContent, arg.CollectionID, arg.Offset, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []*FindCollectionItemsByCollectionIDWithContentRow{}
+	for rows.Next() {
+		var i FindCollectionItemsByCollectionIDWithContentRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.CollectionID,
+			&i.NoteID,
+			&i.Category,
+			&i.CreatedAt,
+			&i.CreatedBy,
+			&i.ContentName,
+			&i.PosterKey,
+			&i.PosterUpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -120,7 +269,7 @@ func (q *Queries) FindCollectionItemsByUserID(ctx context.Context, userID uuid.U
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*CollectionItem
+	items := []*CollectionItem{}
 	for rows.Next() {
 		var i CollectionItem
 		if err := rows.Scan(
@@ -130,6 +279,83 @@ func (q *Queries) FindCollectionItemsByUserID(ctx context.Context, userID uuid.U
 			&i.Category,
 			&i.CreatedAt,
 			&i.CreatedBy,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, &i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const findCollectionItemsByUserIDWithContentLimitPerCollection = `-- name: FindCollectionItemsByUserIDWithContentLimitPerCollection :many
+WITH "ranked_items" AS (
+    SELECT 
+        ci.id, ci.collection_id, ci.note_id, ci.category, ci.created_at, ci.created_by,
+        CASE
+            WHEN ci."category" = 'games' THEN g."name"
+            ELSE NULL
+        END AS "content_name",
+        CASE 
+            WHEN ci."category" = 'games' THEN g."poster_key"
+            ELSE NULL
+        END AS "poster_key",
+        CASE 
+            WHEN ci."category" = 'games' THEN g."poster_updated_at"
+            ELSE NULL
+        END AS "poster_updated_at",
+        ROW_NUMBER() OVER (PARTITION BY ci."collection_id" ORDER BY ci."created_at" DESC) AS "rn"
+    FROM "collection_items" ci
+    INNER JOIN "collections" c ON ci."collection_id" = c."id"
+    LEFT JOIN "game_notes" g ON ci."category" = 'games' AND ci."note_id" = g."id"
+    WHERE c."user_id" = $2::uuid
+)
+SELECT ri.id, ri.collection_id, ri.note_id, ri.category, ri.created_at, ri.created_by, ri.content_name, ri.poster_key, ri.poster_updated_at, ri.rn
+FROM "ranked_items" ri
+WHERE ri."rn" <= $1::smallint
+ORDER BY ri."created_at" DESC
+`
+
+type FindCollectionItemsByUserIDWithContentLimitPerCollectionParams struct {
+	Limit  int16     `json:"limit"`
+	UserID uuid.UUID `json:"user_id"`
+}
+
+type FindCollectionItemsByUserIDWithContentLimitPerCollectionRow struct {
+	ID              uuid.UUID          `json:"id"`
+	CollectionID    uuid.UUID          `json:"collection_id"`
+	NoteID          uuid.UUID          `json:"note_id"`
+	Category        ContentCategory    `json:"category"`
+	CreatedAt       time.Time          `json:"created_at"`
+	CreatedBy       uuid.UUID          `json:"created_by"`
+	ContentName     *string            `json:"content_name"`
+	PosterKey       *string            `json:"poster_key"`
+	PosterUpdatedAt pgtype.Timestamptz `json:"poster_updated_at"`
+	Rn              int64              `json:"rn"`
+}
+
+func (q *Queries) FindCollectionItemsByUserIDWithContentLimitPerCollection(ctx context.Context, arg FindCollectionItemsByUserIDWithContentLimitPerCollectionParams) ([]*FindCollectionItemsByUserIDWithContentLimitPerCollectionRow, error) {
+	rows, err := q.db.Query(ctx, findCollectionItemsByUserIDWithContentLimitPerCollection, arg.Limit, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []*FindCollectionItemsByUserIDWithContentLimitPerCollectionRow{}
+	for rows.Next() {
+		var i FindCollectionItemsByUserIDWithContentLimitPerCollectionRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.CollectionID,
+			&i.NoteID,
+			&i.Category,
+			&i.CreatedAt,
+			&i.CreatedBy,
+			&i.ContentName,
+			&i.PosterKey,
+			&i.PosterUpdatedAt,
+			&i.Rn,
 		); err != nil {
 			return nil, err
 		}
@@ -153,7 +379,7 @@ func (q *Queries) FindCollectionsByUserID(ctx context.Context, userID uuid.UUID)
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*Collection
+	items := []*Collection{}
 	for rows.Next() {
 		var i Collection
 		if err := rows.Scan(
@@ -244,6 +470,36 @@ func (q *Queries) InsertCollectionItem(ctx context.Context, arg InsertCollection
 		&i.Category,
 		&i.CreatedAt,
 		&i.CreatedBy,
+	)
+	return &i, err
+}
+
+const updateCollectionByID = `-- name: UpdateCollectionByID :one
+UPDATE "collections" 
+SET "name" = $2,
+    "updated_by" = $3,
+    "updated_at" = now()
+WHERE "id" = $1
+RETURNING id, created_at, created_by, updated_at, updated_by, name, user_id
+`
+
+type UpdateCollectionByIDParams struct {
+	ID        uuid.UUID `json:"id"`
+	Name      string    `json:"name"`
+	UpdatedBy uuid.UUID `json:"updated_by"`
+}
+
+func (q *Queries) UpdateCollectionByID(ctx context.Context, arg UpdateCollectionByIDParams) (*Collection, error) {
+	row := q.db.QueryRow(ctx, updateCollectionByID, arg.ID, arg.Name, arg.UpdatedBy)
+	var i Collection
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.CreatedBy,
+		&i.UpdatedAt,
+		&i.UpdatedBy,
+		&i.Name,
+		&i.UserID,
 	)
 	return &i, err
 }

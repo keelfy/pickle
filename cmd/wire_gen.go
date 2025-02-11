@@ -48,7 +48,7 @@ func InitializeAPI(ctx context.Context) (api.PickleAPI, func(), error) {
 	gameNoteOrderService := services.NewGameNoteOrderService(relationalStorage)
 	posterService := services.NewPosterService(relationalStorage, fileStorage, cacheStorage, imageService, profileService)
 	gameNoteService := services.NewGameNoteService(relationalStorage, elasticStorage, cacheStorage, profileService, ordererService, gameNoteOrderService, posterService)
-	contentService := services.NewContentService(elasticStorage, gameNoteService, gameNoteOrderService)
+	contentService := services.NewContentService(elasticStorage, gameNoteService, gameNoteOrderService, posterService)
 	orderService := services.NewOrderService(relationalStorage, profileService, ordererService, contentService)
 	followerService := services.NewFollowerService(relationalStorage, cacheStorage)
 	profileHandler := handlers.NewUserHandler(profileService, avatarService, gameNoteService, orderService, followerService)
@@ -66,7 +66,7 @@ func InitializeAPI(ctx context.Context) (api.PickleAPI, func(), error) {
 	migrationService := services.NewMigrationService(relationalStorage, elasticStorage)
 	contentHandler := handlers.NewContentHandler(elasticStorage, contentService)
 	collectionService := services.NewCollectionService(relationalStorage)
-	collectionHandler := handlers.NewCollectionHandler(collectionService)
+	collectionHandler := handlers.NewCollectionHandler(collectionService, contentService)
 	pickleAPI := api.NewPickleAPI(profileHandler, statusHandler, orderHandler, gameNoteHandler, posterHandler, migrationService, contentHandler, collectionHandler)
 	return pickleAPI, func() {
 		cleanup()

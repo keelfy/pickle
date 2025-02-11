@@ -15,7 +15,7 @@ import (
 const countPlayedGameNotesByUserId = `-- name: CountPlayedGameNotesByUserId :one
 SELECT COUNT(*) AS "count"
 FROM "game_notes"
-WHERE "user_id" = $1
+WHERE "user_id" = $1::uuid
     AND "status" IN ('playing', 'finished', 'dropped')
 GROUP BY "user_id"
 `
@@ -30,7 +30,7 @@ func (q *Queries) CountPlayedGameNotesByUserId(ctx context.Context, userID uuid.
 
 const deleteGameNoteById = `-- name: DeleteGameNoteById :exec
 DELETE FROM "game_notes"
-WHERE "id" = $1
+WHERE "id" = $1::uuid
 `
 
 // Author: Egor Kuzmin (keelfy)
@@ -42,7 +42,7 @@ func (q *Queries) DeleteGameNoteById(ctx context.Context, id uuid.UUID) error {
 const findGameNoteById = `-- name: FindGameNoteById :one
 SELECT id, created_at, created_by, updated_at, updated_by, user_id, game_id, name, link, release_date, rate, comment, initial_orderer_id, status, last_played_at, poster_key, poster_updated_at
 FROM "game_notes"
-WHERE "id" = $1
+WHERE "id" = $1::uuid
 `
 
 // Author: Egor Kuzmin (keelfy)
@@ -90,10 +90,10 @@ FROM "game_notes" gn
         FROM "game_note_orders" 
         GROUP BY "game_note_id"
     ) order_counts ON gn."id" = order_counts."game_note_id"
-WHERE gn."user_id" = $1
-    AND gn."updated_at" < $2
+WHERE gn."user_id" = $1::uuid
+    AND gn."updated_at" < $2::timestamptz
 ORDER BY gn."updated_at" DESC
-LIMIT $3
+LIMIT $3::int
 `
 
 type FindPaginatedGameNotesByUserIdParams struct {
@@ -122,7 +122,7 @@ func (q *Queries) FindPaginatedGameNotesByUserId(ctx context.Context, arg FindPa
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*FindPaginatedGameNotesByUserIdRow
+	items := []*FindPaginatedGameNotesByUserIdRow{}
 	for rows.Next() {
 		var i FindPaginatedGameNotesByUserIdRow
 		if err := rows.Scan(
@@ -163,19 +163,19 @@ INSERT INTO "game_notes" (
     "last_played_at",
     "poster_key"
 ) VALUES (
-    $1,
-    $2,
-    $3,
-    $4,
-    $5,
-    $6,
-    $7,
-    $8,
-    $9,
-    $10,
-    $11,
-    $12,
-    $13
+    $1::uuid,
+    $2::uuid,
+    $3::text,
+    $4::text,
+    $5::timestamptz,
+    $6::uuid,
+    $7::uuid,
+    $8::smallint,
+    $9::text,
+    $10::uuid,
+    $11::game_note_status,
+    $12::timestamptz,
+    $13::text
 )
 RETURNING id, created_at, created_by, updated_at, updated_by, user_id, game_id, name, link, release_date, rate, comment, initial_orderer_id, status, last_played_at, poster_key, poster_updated_at
 `
@@ -186,7 +186,7 @@ type InsertGameNoteParams struct {
 	Name             string         `json:"name"`
 	Link             *string        `json:"link"`
 	ReleaseDate      *time.Time     `json:"release_date"`
-	GameID           *uuid.UUID     `json:"game_id"`
+	GameID           uuid.UUID      `json:"game_id"`
 	UserID           uuid.UUID      `json:"user_id"`
 	Rate             *int16         `json:"rate"`
 	Comment          *string        `json:"comment"`
@@ -238,21 +238,20 @@ func (q *Queries) InsertGameNote(ctx context.Context, arg InsertGameNoteParams) 
 
 const updateGameNoteById = `-- name: UpdateGameNoteById :exec
 UPDATE "game_notes"
-SET "updated_by" = $2, 
-    "updated_at" = NOW(),
-    "name" = $3,
-    "link" = $4,
-    "release_date" = $5,
-    "rate" = $6,
-    "comment" = $7,
-    "status" = $8,
-    "last_played_at" = $9,
-    "poster_key" = $10
-WHERE "id" = $1
+SET "updated_by" = $1::uuid, 
+    "updated_at" = now(),
+    "name" = $2::text,
+    "link" = $3::text,
+    "release_date" = $4::timestamptz,
+    "rate" = $5::smallint,
+    "comment" = $6::text,
+    "status" = $7::game_note_status,
+    "last_played_at" = $8::timestamptz,
+    "poster_key" = $9::text
+WHERE "id" = $10::uuid
 `
 
 type UpdateGameNoteByIdParams struct {
-	ID           uuid.UUID      `json:"id"`
 	UpdatedBy    uuid.UUID      `json:"updated_by"`
 	Name         string         `json:"name"`
 	Link         *string        `json:"link"`
@@ -262,12 +261,12 @@ type UpdateGameNoteByIdParams struct {
 	Status       GameNoteStatus `json:"status"`
 	LastPlayedAt *time.Time     `json:"last_played_at"`
 	PosterKey    *string        `json:"poster_key"`
+	ID           uuid.UUID      `json:"id"`
 }
 
 // Author: Egor Kuzmin (keelfy)
 func (q *Queries) UpdateGameNoteById(ctx context.Context, arg UpdateGameNoteByIdParams) error {
 	_, err := q.db.Exec(ctx, updateGameNoteById,
-		arg.ID,
 		arg.UpdatedBy,
 		arg.Name,
 		arg.Link,
@@ -277,6 +276,7 @@ func (q *Queries) UpdateGameNoteById(ctx context.Context, arg UpdateGameNoteById
 		arg.Status,
 		arg.LastPlayedAt,
 		arg.PosterKey,
+		arg.ID,
 	)
 	return err
 }

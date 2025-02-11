@@ -43,7 +43,7 @@ LIMIT $2
 
 type FindLastOrdersByReceiverIdParams struct {
 	ReceiverID uuid.UUID `json:"receiver_id"`
-	Limit      int32     `json:"limit"`
+	Limit      int64     `json:"limit"`
 }
 
 type FindLastOrdersByReceiverIdRow struct {
@@ -65,7 +65,7 @@ func (q *Queries) FindLastOrdersByReceiverId(ctx context.Context, arg FindLastOr
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*FindLastOrdersByReceiverIdRow
+	items := []*FindLastOrdersByReceiverIdRow{}
 	for rows.Next() {
 		var i FindLastOrdersByReceiverIdRow
 		if err := rows.Scan(
@@ -131,7 +131,7 @@ func (q *Queries) FindOrdersByReceiverId(ctx context.Context, receiverID uuid.UU
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*Order
+	items := []*Order{}
 	for rows.Next() {
 		var i Order
 		if err := rows.Scan(
@@ -174,8 +174,8 @@ OFFSET $3
 
 type FindPaginatedOrdersByGameNoteIdParams struct {
 	GameNoteID uuid.UUID `json:"game_note_id"`
-	Limit      int32     `json:"limit"`
-	Offset     int32     `json:"offset"`
+	Limit      int64     `json:"limit"`
+	Offset     int64     `json:"offset"`
 }
 
 // Author: Egor Kuzmin (keelfy)
@@ -185,7 +185,7 @@ func (q *Queries) FindPaginatedOrdersByGameNoteId(ctx context.Context, arg FindP
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*Order
+	items := []*Order{}
 	for rows.Next() {
 		var i Order
 		if err := rows.Scan(

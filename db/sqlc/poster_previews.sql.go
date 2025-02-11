@@ -13,7 +13,7 @@ import (
 )
 
 const deletePosterPreview = `-- name: DeletePosterPreview :exec
-DELETE FROM "poster_previews" WHERE "id" = $1
+DELETE FROM "poster_previews" WHERE "id" = $1::uuid
 `
 
 func (q *Queries) DeletePosterPreview(ctx context.Context, id uuid.UUID) error {
@@ -24,24 +24,25 @@ func (q *Queries) DeletePosterPreview(ctx context.Context, id uuid.UUID) error {
 const findPosterPreviewByCreatedAtAfterAndCreatedBy = `-- name: FindPosterPreviewByCreatedAtAfterAndCreatedBy :many
 SELECT id, created_at, created_by, object_key 
 FROM "poster_previews" 
-WHERE "created_at" > $1 
-    AND "created_by" = $2
+WHERE "created_at" > $1::timestamptz
+    AND "created_by" = $2::uuid
 ORDER BY "created_at" DESC
-LIMIT 5
+LIMIT $3::int
 `
 
 type FindPosterPreviewByCreatedAtAfterAndCreatedByParams struct {
 	CreatedAt time.Time `json:"created_at"`
 	CreatedBy uuid.UUID `json:"created_by"`
+	Limit     int32     `json:"limit"`
 }
 
 func (q *Queries) FindPosterPreviewByCreatedAtAfterAndCreatedBy(ctx context.Context, arg FindPosterPreviewByCreatedAtAfterAndCreatedByParams) ([]*PosterPreview, error) {
-	rows, err := q.db.Query(ctx, findPosterPreviewByCreatedAtAfterAndCreatedBy, arg.CreatedAt, arg.CreatedBy)
+	rows, err := q.db.Query(ctx, findPosterPreviewByCreatedAtAfterAndCreatedBy, arg.CreatedAt, arg.CreatedBy, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*PosterPreview
+	items := []*PosterPreview{}
 	for rows.Next() {
 		var i PosterPreview
 		if err := rows.Scan(
@@ -63,7 +64,7 @@ func (q *Queries) FindPosterPreviewByCreatedAtAfterAndCreatedBy(ctx context.Cont
 const findPosterPreviewByCreatedBy = `-- name: FindPosterPreviewByCreatedBy :many
 SELECT id, created_at, created_by, object_key 
 FROM "poster_previews" 
-WHERE "created_by" = $1
+WHERE "created_by" = $1::uuid
 ORDER BY "created_at" DESC
 `
 
@@ -73,7 +74,7 @@ func (q *Queries) FindPosterPreviewByCreatedBy(ctx context.Context, createdBy uu
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*PosterPreview
+	items := []*PosterPreview{}
 	for rows.Next() {
 		var i PosterPreview
 		if err := rows.Scan(
@@ -93,7 +94,7 @@ func (q *Queries) FindPosterPreviewByCreatedBy(ctx context.Context, createdBy uu
 }
 
 const findPosterPreviewById = `-- name: FindPosterPreviewById :one
-SELECT id, created_at, created_by, object_key FROM "poster_previews" WHERE "id" = $1
+SELECT id, created_at, created_by, object_key FROM "poster_previews" WHERE "id" = $1::uuid
 `
 
 func (q *Queries) FindPosterPreviewById(ctx context.Context, id uuid.UUID) (*PosterPreview, error) {
@@ -114,9 +115,9 @@ INSERT INTO "poster_previews" (
     "created_by",
     "object_key"
 ) VALUES (
-    $1,
-    $2,
-    $3
+    $1::uuid,
+    $2::uuid,
+    $3::text
 )
 RETURNING id, created_at, created_by, object_key
 `

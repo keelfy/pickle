@@ -416,7 +416,7 @@ func (handler *gameNoteHandler) GetBatchGameNoteReactions(w http.ResponseWriter,
 			EmoteID:       reaction.EmoteID,
 			Source:        string(reaction.Source),
 			Count:         reaction.Count,
-			ReactedByUser: reaction.ReactedByUser.(int32) == 1,
+			ReactedByUser: reaction.ReactedByUser != nil && *reaction.ReactedByUser == 1,
 		})
 	}
 

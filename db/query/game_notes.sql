@@ -15,19 +15,19 @@ INSERT INTO "game_notes" (
     "last_played_at",
     "poster_key"
 ) VALUES (
-    $1,
-    $2,
-    $3,
-    $4,
-    $5,
-    $6,
-    $7,
-    $8,
-    $9,
-    $10,
-    $11,
-    $12,
-    $13
+    @created_by::uuid,
+    @updated_by::uuid,
+    @name::text,
+    sqlc.narg('link')::text,
+    sqlc.narg('release_date')::timestamptz,
+    @game_id::uuid,
+    @user_id::uuid,
+    sqlc.narg('rate')::smallint,
+    sqlc.narg('comment')::text,
+    @initial_orderer_id::uuid,
+    @status::game_note_status,
+    sqlc.narg('last_played_at')::timestamptz,
+    sqlc.narg('poster_key')::text
 )
 RETURNING *;
 
@@ -35,7 +35,7 @@ RETURNING *;
 -- name: FindGameNoteById :one
 SELECT *
 FROM "game_notes"
-WHERE "id" = $1;
+WHERE "id" = @id::uuid;
 
 -- Author: Egor Kuzmin (keelfy)
 -- name: FindPaginatedGameNotesByUserId :many
@@ -57,35 +57,35 @@ FROM "game_notes" gn
         FROM "game_note_orders" 
         GROUP BY "game_note_id"
     ) order_counts ON gn."id" = order_counts."game_note_id"
-WHERE gn."user_id" = $1
-    AND gn."updated_at" < $2
+WHERE gn."user_id" = @user_id::uuid
+    AND gn."updated_at" < @updated_at::timestamptz
 ORDER BY gn."updated_at" DESC
-LIMIT $3;
+LIMIT sqlc.arg('limit')::int;
 
 -- Author: Egor Kuzmin (keelfy)
 -- name: CountPlayedGameNotesByUserId :one
 SELECT COUNT(*) AS "count"
 FROM "game_notes"
-WHERE "user_id" = $1
+WHERE "user_id" = @user_id::uuid
     AND "status" IN ('playing', 'finished', 'dropped')
 GROUP BY "user_id";
 
 -- Author: Egor Kuzmin (keelfy)
 -- name: DeleteGameNoteById :exec
 DELETE FROM "game_notes"
-WHERE "id" = $1;
+WHERE "id" = @id::uuid;
 
 -- Author: Egor Kuzmin (keelfy)
 -- name: UpdateGameNoteById :exec
 UPDATE "game_notes"
-SET "updated_by" = $2, 
-    "updated_at" = NOW(),
-    "name" = $3,
-    "link" = $4,
-    "release_date" = $5,
-    "rate" = $6,
-    "comment" = $7,
-    "status" = $8,
-    "last_played_at" = $9,
-    "poster_key" = $10
-WHERE "id" = $1;
+SET "updated_by" = @updated_by::uuid, 
+    "updated_at" = now(),
+    "name" = @name::text,
+    "link" = sqlc.narg('link')::text,
+    "release_date" = sqlc.narg('release_date')::timestamptz,
+    "rate" = sqlc.narg('rate')::smallint,
+    "comment" = sqlc.narg('comment')::text,
+    "status" = @status::game_note_status,
+    "last_played_at" = sqlc.narg('last_played_at')::timestamptz,
+    "poster_key" = sqlc.narg('poster_key')::text
+WHERE "id" = @id::uuid;

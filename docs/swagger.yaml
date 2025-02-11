@@ -53,15 +53,15 @@ definitions:
     type: object
   github_com_pickle_pw_monolith_internal_types.CollectionItemRes:
     properties:
-      category:
-        type: string
       collectionId:
         type: string
+      content:
+        $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.ContentRes'
       createdAt:
         type: string
       id:
         type: string
-      noteId:
+      posterUrl:
         type: string
     type: object
   github_com_pickle_pw_monolith_internal_types.CollectionRes:
@@ -356,7 +356,93 @@ paths:
       summary: Delete collection
       tags:
       - collections
+    get:
+      consumes:
+      - application/json
+      description: Get collection by ID
+      parameters:
+      - description: Collection ID
+        in: path
+        name: collectionId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.CollectionRes'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get collection by ID
+      tags:
+      - collections
+    patch:
+      consumes:
+      - application/json
+      description: Update collection
+      parameters:
+      - description: Collection ID
+        in: path
+        name: collectionId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.CollectionRes'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Update collection
+      tags:
+      - collections
   /v1/collections/{collectionId}/items:
+    get:
+      consumes:
+      - application/json
+      description: Get items by collection ID
+      parameters:
+      - description: Collection ID
+        in: path
+        name: collectionId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.CollectionItemRes'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get items by collection ID
+      tags:
+      - collections
     post:
       consumes:
       - application/json

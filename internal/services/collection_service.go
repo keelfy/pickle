@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	db "github.com/pickle.pw/monolith/db/sqlc"
 	"github.com/pickle.pw/monolith/internal/errors"
+	"github.com/pickle.pw/monolith/internal/models"
 	"github.com/pickle.pw/monolith/internal/storage"
 	"github.com/pickle.pw/monolith/internal/types"
 	"github.com/pickle.pw/monolith/internal/utils"
@@ -15,12 +16,15 @@ import (
 type CollectionService interface {
 	CreateCollection(ctx context.Context, userID uuid.UUID, req *types.CreateCollectionReq) (*db.Collection, error)
 	DeleteCollection(ctx context.Context, collectionID uuid.UUID) error
-	AddItemToCollection(ctx context.Context, collectionID uuid.UUID, req *types.AddItemToCollectionReq) (*db.CollectionItem, error)
+	UpdateCollection(ctx context.Context, collectionID uuid.UUID, req *types.UpdateCollectionReq) (*db.Collection, error)
+	AddItemToCollection(ctx context.Context, collectionID uuid.UUID, content models.Content) (*db.CollectionItem, error)
 	RemoveItemFromCollection(ctx context.Context, collectionID uuid.UUID, itemID uuid.UUID) error
 	GetByID(ctx context.Context, collectionID uuid.UUID) (*db.Collection, error)
 	GetByUserID(ctx context.Context, userID uuid.UUID) ([]*db.Collection, error)
 	GetItemByID(ctx context.Context, itemID uuid.UUID) (*db.CollectionItem, error)
-	GetItemsByUserID(ctx context.Context, userID uuid.UUID) ([]*db.CollectionItem, error)
+	GetItemsByCollectionID(ctx context.Context, collectionID uuid.UUID, pagination *types.Pagination) ([]*db.FindCollectionItemsByCollectionIDWithContentRow, error)
+	GetItemsByUserID(ctx context.Context, userID uuid.UUID, pagination *types.Pagination) ([]*db.FindCollectionItemsByUserIDWithContentLimitPerCollectionRow, error)
+	CountCollectionItemsByCollectionID(ctx context.Context, collectionID uuid.UUID) (int64, error)
 }
 
 type collectionService struct {
@@ -73,19 +77,68 @@ func (service *collectionService) DeleteCollection(ctx context.Context, collecti
 		return errors.NewForbiddenError("you are not allowed to delete this collection", nil)
 	}
 
-	err = service.sqlDB.Queries().DeleteCollectionByID(ctx, collectionID)
+	tx, err := service.sqlDB.Begin(ctx)
+	if err != nil {
+		return errors.NewInternalServerError("failed to begin transaction", err)
+	}
+	defer tx.Rollback(ctx)
+	qtx := service.sqlDB.Queries().WithTx(tx)
+
+	err = qtx.DeleteCollectionItemsByCollectionID(ctx, collectionID)
+	if err != nil {
+		return errors.NewInternalServerError("failed to delete collection items", err)
+	}
+
+	err = qtx.DeleteCollectionByID(ctx, collectionID)
 	if err != nil {
 		return errors.NewInternalServerError("failed to delete collection", err)
+	}
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		return errors.NewInternalServerError("failed to commit transaction", err)
 	}
 
 	return nil
 }
 
-func (service *collectionService) AddItemToCollection(ctx context.Context, collectionID uuid.UUID, req *types.AddItemToCollectionReq) (*db.CollectionItem, error) {
-	if err := req.Validate(); err != nil {
-		return nil, errors.NewBadRequestError("invalid request", err)
+func (service *collectionService) UpdateCollection(ctx context.Context, collectionID uuid.UUID, req *types.UpdateCollectionReq) (*db.Collection, error) {
+	collection, err := service.GetByID(ctx, collectionID)
+	if err != nil {
+		return nil, err
 	}
 
+	authUserID, err := utils.UserIdFromContext(ctx)
+	if err != nil {
+		return nil, errors.NewInternalServerError("failed to get user ID from context", err)
+	}
+
+	if collection.UserID != authUserID {
+		return nil, errors.NewForbiddenError("you are not allowed to update this collection", nil)
+	}
+
+	newName := collection.Name
+	if req.Name != nil {
+		newName = *req.Name
+	}
+
+	if newName == collection.Name {
+		return collection, nil
+	}
+
+	collection, err = service.sqlDB.Queries().UpdateCollectionByID(ctx, db.UpdateCollectionByIDParams{
+		ID:        collectionID,
+		Name:      newName,
+		UpdatedBy: authUserID,
+	})
+	if err != nil {
+		return nil, errors.NewInternalServerError("failed to update collection", err)
+	}
+
+	return collection, nil
+}
+
+func (service *collectionService) AddItemToCollection(ctx context.Context, collectionID uuid.UUID, content models.Content) (*db.CollectionItem, error) {
 	authUserID, err := utils.UserIdFromContext(ctx)
 	if err != nil {
 		return nil, errors.NewInternalServerError("failed to get user ID from context", err)
@@ -103,8 +156,8 @@ func (service *collectionService) AddItemToCollection(ctx context.Context, colle
 	collectionItem, err := service.sqlDB.Queries().InsertCollectionItem(ctx, db.InsertCollectionItemParams{
 		CreatedBy:    authUserID,
 		CollectionID: collectionID,
-		NoteID:       req.NoteID,
-		Category:     req.Category,
+		NoteID:       content.GetID(),
+		Category:     content.GetCategory(),
 	})
 	if err != nil {
 		return nil, errors.NewInternalServerError("failed to add item to collection", err)
@@ -120,13 +173,12 @@ func (service *collectionService) RemoveItemFromCollection(ctx context.Context, 
 	}
 
 	var (
-		group          errgroup.Group
-		collection     *db.Collection
-		collectionItem *db.CollectionItem
+		group      errgroup.Group
+		collection *db.Collection
 	)
 
 	group.Go(func() error {
-		collectionItem, err = service.GetItemByID(ctx, itemID)
+		_, err = service.GetItemByID(ctx, itemID)
 		if err != nil {
 			return err
 		}
@@ -134,7 +186,7 @@ func (service *collectionService) RemoveItemFromCollection(ctx context.Context, 
 	})
 
 	group.Go(func() error {
-		collection, err = service.GetByID(ctx, collectionItem.CollectionID)
+		collection, err = service.GetByID(ctx, collectionID)
 		if err != nil {
 			return err
 		}
@@ -184,11 +236,35 @@ func (service *collectionService) GetItemByID(ctx context.Context, itemID uuid.U
 	return collectionItem, nil
 }
 
-func (service *collectionService) GetItemsByUserID(ctx context.Context, userID uuid.UUID) ([]*db.CollectionItem, error) {
-	collectionItems, err := service.sqlDB.Queries().FindCollectionItemsByUserID(ctx, userID)
+func (service *collectionService) GetItemsByCollectionID(ctx context.Context, collectionID uuid.UUID, pagination *types.Pagination) ([]*db.FindCollectionItemsByCollectionIDWithContentRow, error) {
+	collectionItems, err := service.sqlDB.Queries().FindCollectionItemsByCollectionIDWithContent(ctx, db.FindCollectionItemsByCollectionIDWithContentParams{
+		CollectionID: collectionID,
+		Limit:        int32(pagination.Size),
+		Offset:       int32(pagination.From),
+	})
+	if err != nil {
+		return nil, errors.NewInternalServerError("failed to get items by collection ID", err)
+	}
+
+	return collectionItems, nil
+}
+
+func (service *collectionService) GetItemsByUserID(ctx context.Context, userID uuid.UUID, pagination *types.Pagination) ([]*db.FindCollectionItemsByUserIDWithContentLimitPerCollectionRow, error) {
+	collectionItems, err := service.sqlDB.Queries().FindCollectionItemsByUserIDWithContentLimitPerCollection(ctx, db.FindCollectionItemsByUserIDWithContentLimitPerCollectionParams{
+		UserID: userID,
+		Limit:  int16(pagination.Size),
+	})
 	if err != nil {
 		return nil, errors.NewInternalServerError("failed to get items by user ID", err)
 	}
 
 	return collectionItems, nil
+}
+
+func (service *collectionService) CountCollectionItemsByCollectionID(ctx context.Context, collectionID uuid.UUID) (int64, error) {
+	count, err := service.sqlDB.Queries().CountCollectionItemsByCollectionID(ctx, collectionID)
+	if err != nil {
+		return 0, errors.NewInternalServerError("failed to count collection items by collection ID", err)
+	}
+	return count, nil
 }

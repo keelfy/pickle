@@ -129,17 +129,24 @@ func (api *pickleAPI) v1RouteHandler() http.Handler {
 	})
 
 	r.Route("/collections/{collectionId}", func(r chi.Router) {
+		r.Get("/", api.collectionHandler.GetCollectionByID)
+
 		r.Group(func(r chi.Router) {
 			api.useProtectedRoutes(r)
 
-			r.Delete("/", api.collectionHandler.DeleteCollection)
+			r.Patch("/", api.collectionHandler.UpdateCollectionByID)
+			r.Delete("/", api.collectionHandler.DeleteCollectionByID)
 		})
 
 		r.Route("/items", func(r chi.Router) {
-			api.useProtectedRoutes(r)
+			r.Get("/", api.collectionHandler.GetItemsByCollectionID)
 
-			r.Post("/", api.collectionHandler.AddItemToCollection)
-			r.Delete("/", api.collectionHandler.RemoveItemFromCollection)
+			r.Group(func(r chi.Router) {
+				api.useProtectedRoutes(r)
+
+				r.Post("/", api.collectionHandler.AddItemToCollection)
+				r.Delete("/{itemId}", api.collectionHandler.RemoveItemFromCollection)
+			})
 		})
 	})
 

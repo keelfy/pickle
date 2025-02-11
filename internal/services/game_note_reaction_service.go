@@ -80,8 +80,8 @@ func (s *gameNoteReactionService) RemoveGameNoteReaction(ctx context.Context, ga
 
 func (s *gameNoteReactionService) GetGameNoteReactionsByGameNoteIdsAndUserId(ctx context.Context, gameNoteIDs []uuid.UUID, userID uuid.UUID) ([]*db.GetGameNoteReactionsByGameNoteIdInAndUserIdRow, error) {
 	rows, err := s.sqlDB.Queries().GetGameNoteReactionsByGameNoteIdInAndUserId(ctx, db.GetGameNoteReactionsByGameNoteIdInAndUserIdParams{
-		Column1: gameNoteIDs,
-		UserID:  userID,
+		GameNoteIds: gameNoteIDs,
+		UserID:      userID,
 	})
 	if err != nil {
 		return nil, errors.NewInternalServerError("failed to get game note reactions by game note id and user id", err)

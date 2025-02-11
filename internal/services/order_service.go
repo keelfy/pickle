@@ -211,8 +211,8 @@ func (service *orderService) rejectOrderByID(ctx context.Context, order *db.Orde
 func (service *orderService) GetPaginatedByGameNoteId(ctx context.Context, id uuid.UUID, pagination *types.Pagination) ([]*db.Order, error) {
 	orders, err := service.sqlDb.Queries().FindPaginatedOrdersByGameNoteId(ctx, db.FindPaginatedOrdersByGameNoteIdParams{
 		GameNoteID: id,
-		Limit:      int32(pagination.Size),
-		Offset:     int32(pagination.From),
+		Limit:      int64(pagination.Size),
+		Offset:     int64(pagination.From),
 	})
 	if err != nil {
 		return nil, errors.NewInternalServerError("Error occurred during orders fetching", err)

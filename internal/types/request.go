@@ -136,6 +136,16 @@ func (req *CreateCollectionReq) Validate() error {
 	)
 }
 
+type UpdateCollectionReq struct {
+	Name *string `json:"name"`
+}
+
+func (req *UpdateCollectionReq) Validate() error {
+	return validation.ValidateStruct(req,
+		validation.Field(&req.Name, validation.NilOrNotEmpty, validation.Length(1, 50)),
+	)
+}
+
 type AddItemToCollectionReq struct {
 	NoteID   uuid.UUID          `json:"noteId"`
 	Category db.ContentCategory `json:"category"`

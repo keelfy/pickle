@@ -58,7 +58,7 @@ type ProfileRes struct {
 type ContentRes struct {
 	ID       uuid.UUID          `json:"id"`
 	Name     string             `json:"name"`
-	UserID   uuid.UUID          `json:"userId"`
+	UserID   uuid.UUID          `json:"userId,omitempty"`
 	Category db.ContentCategory `json:"category"`
 }
 
@@ -147,9 +147,14 @@ type CollectionRes struct {
 }
 
 type CollectionItemRes struct {
-	ID           uuid.UUID `json:"id"`
-	CreatedAt    time.Time `json:"createdAt"`
-	Category     string    `json:"category"`
-	NoteID       uuid.UUID `json:"noteId"`
+	ID           uuid.UUID  `json:"id"`
+	CreatedAt    time.Time  `json:"createdAt"`
+	CollectionID uuid.UUID  `json:"collectionId"`
+	PosterURL    string     `json:"posterUrl,omitempty"`
+	Content      ContentRes `json:"content"`
+}
+
+type BatchCollectionItemsRes struct {
+	PaginatedRes[CollectionItemRes]
 	CollectionID uuid.UUID `json:"collectionId"`
 }

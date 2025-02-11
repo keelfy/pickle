@@ -70,7 +70,7 @@ func (q *Queries) GetUserFollows(ctx context.Context, followerID uuid.UUID) ([]*
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*Profile
+	items := []*Profile{}
 	for rows.Next() {
 		var i Profile
 		if err := rows.Scan(

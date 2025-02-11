@@ -12,6 +12,7 @@ import (
 
 type Querier interface {
 	AddGameNoteReaction(ctx context.Context, arg AddGameNoteReactionParams) error
+	CountCollectionItemsByCollectionID(ctx context.Context, id uuid.UUID) (int64, error)
 	// Author: Egor Kuzmin (keelfy)
 	CountFollowers(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountGameNoteReactionsByGameNoteIdAndUserId(ctx context.Context, arg CountGameNoteReactionsByGameNoteIdAndUserIdParams) (int64, error)
@@ -24,6 +25,7 @@ type Querier interface {
 	CountPlayedGameNotesByUserId(ctx context.Context, userID uuid.UUID) (int64, error)
 	DeleteCollectionByID(ctx context.Context, id uuid.UUID) error
 	DeleteCollectionItemByID(ctx context.Context, id uuid.UUID) error
+	DeleteCollectionItemsByCollectionID(ctx context.Context, collectionID uuid.UUID) error
 	// Author: Egor Kuzmin (keelfy)
 	DeleteFollower(ctx context.Context, arg DeleteFollowerParams) error
 	// Author: Egor Kuzmin (keelfy)
@@ -32,7 +34,43 @@ type Querier interface {
 	FindCollectionByID(ctx context.Context, id uuid.UUID) (*Collection, error)
 	FindCollectionItemByID(ctx context.Context, id uuid.UUID) (*CollectionItem, error)
 	FindCollectionItemsByCollectionID(ctx context.Context, collectionID uuid.UUID) ([]*CollectionItem, error)
+	// SELECT
+	//     ci.*,
+	//     CASE
+	//         WHEN ci."category" = 'games' THEN g."name"
+	//         -- WHEN ci."category" = 'movie' THEN m."name"
+	//         -- WHEN ci."category" = 'anime' THEN a."name"
+	//         -- WHEN ci."category" = 'book' THEN b."name"
+	//         -- WHEN ci."category" = 'song' THEN s."name"
+	//         ELSE NULL
+	//     END AS "content_name",
+	//     CASE
+	//         WHEN ci."category" = 'games' THEN g."poster_key"
+	//         ELSE NULL
+	//     END AS "poster_key",
+	//     CASE
+	//         WHEN ci."category" = 'games' THEN g."poster_updated_at"
+	//         ELSE NULL
+	//     END AS "poster_updated_at"
+	// FROM "collection_items" ci
+	// INNER JOIN "collections" c ON ci."collection_id" = c."id"
+	// LEFT JOIN "game_notes" g ON ci."category" = 'games' AND ci."note_id" = g."id"
+	// WHERE c."user_id" = $1
+	// ORDER BY ci."created_at" DESC
+	// LIMIT $2;
+	// LEFT JOIN
+	//     MovieNote m ON ci."category" = 'movie' AND ci."note_id" = m."id"
+	// LEFT JOIN
+	//     AnimeNote a ON ci."category" = 'anime' AND ci."note_id" = a."id"
+	// LEFT JOIN
+	//     BookNote b ON ci."category" = 'book' AND ci."note_id" = b."id"
+	// LEFT JOIN
+	//     SongNote s ON ci."category" = 'song' AND ci."note_id" = s."id"
+	// LEFT JOIN
+	//     ArticleNote ar ON ci."category" = 'article' AND ci."note_id" = ar."id";
+	FindCollectionItemsByCollectionIDWithContent(ctx context.Context, arg FindCollectionItemsByCollectionIDWithContentParams) ([]*FindCollectionItemsByCollectionIDWithContentRow, error)
 	FindCollectionItemsByUserID(ctx context.Context, userID uuid.UUID) ([]*CollectionItem, error)
+	FindCollectionItemsByUserIDWithContentLimitPerCollection(ctx context.Context, arg FindCollectionItemsByUserIDWithContentLimitPerCollectionParams) ([]*FindCollectionItemsByUserIDWithContentLimitPerCollectionRow, error)
 	FindCollectionsByUserID(ctx context.Context, userID uuid.UUID) ([]*Collection, error)
 	FindElasticsearchMigrationByName(ctx context.Context, name string) (*EsMigrationLog, error)
 	// Author: Egor Kuzmin (keelfy)
@@ -90,6 +128,7 @@ type Querier interface {
 	RemoveGameNoteReaction(ctx context.Context, arg RemoveGameNoteReactionParams) error
 	// Author: Egor Kuzmin (keelfy)
 	ResetApprovedOrdersByGameNoteId(ctx context.Context, gameNoteID uuid.UUID) error
+	UpdateCollectionByID(ctx context.Context, arg UpdateCollectionByIDParams) (*Collection, error)
 	// Author: Egor Kuzmin (keelfy)
 	UpdateGameNoteById(ctx context.Context, arg UpdateGameNoteByIdParams) error
 	// Author: Egor Kuzmin (keelfy)

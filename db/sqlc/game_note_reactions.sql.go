@@ -19,7 +19,11 @@ INSERT INTO "game_note_reactions" (
     "source",
     "created_by"
 ) VALUES (
-    $1, $2, $3, $4, $5
+    $1::uuid,
+    $2::uuid,
+    $3::text,
+    $4::reaction_source,
+    $5::uuid
 )
 `
 
@@ -44,8 +48,8 @@ func (q *Queries) AddGameNoteReaction(ctx context.Context, arg AddGameNoteReacti
 
 const countGameNoteReactionsByGameNoteIdAndUserId = `-- name: CountGameNoteReactionsByGameNoteIdAndUserId :one
 SELECT COUNT(*) FROM "game_note_reactions"
-WHERE "game_note_id" = $1
-    AND "user_id" = $2
+WHERE "game_note_id" = $1::uuid
+    AND "user_id" = $2::uuid
 `
 
 type CountGameNoteReactionsByGameNoteIdAndUserIdParams struct {
@@ -71,19 +75,19 @@ SELECT
             SELECT 1 
             FROM "game_note_reactions" r2 
             WHERE r2."game_note_id" = gnr."game_note_id" 
-                AND r2."user_id" = $2 
+                AND r2."user_id" = $1::uuid
                 AND r2."emote_id" = gnr."emote_id"
                 AND r2."source" = gnr."source"
         ), 0) AS "reacted_by_user"
 FROM "game_note_reactions" gnr
-WHERE gnr."game_note_id" = ANY($1::uuid[])
+WHERE gnr."game_note_id" = ANY($2::uuid[])
 GROUP BY gnr."game_note_id", gnr."emote_id", gnr."source"
 ORDER BY "count" DESC
 `
 
 type GetGameNoteReactionsByGameNoteIdInAndUserIdParams struct {
-	Column1 []uuid.UUID `json:"column_1"`
-	UserID  uuid.UUID   `json:"user_id"`
+	UserID      uuid.UUID   `json:"user_id"`
+	GameNoteIds []uuid.UUID `json:"game_note_ids"`
 }
 
 type GetGameNoteReactionsByGameNoteIdInAndUserIdRow struct {
@@ -91,16 +95,16 @@ type GetGameNoteReactionsByGameNoteIdInAndUserIdRow struct {
 	EmoteID       string         `json:"emote_id"`
 	Source        ReactionSource `json:"source"`
 	Count         int64          `json:"count"`
-	ReactedByUser interface{}    `json:"reacted_by_user"`
+	ReactedByUser *int32         `json:"reacted_by_user"`
 }
 
 func (q *Queries) GetGameNoteReactionsByGameNoteIdInAndUserId(ctx context.Context, arg GetGameNoteReactionsByGameNoteIdInAndUserIdParams) ([]*GetGameNoteReactionsByGameNoteIdInAndUserIdRow, error) {
-	rows, err := q.db.Query(ctx, getGameNoteReactionsByGameNoteIdInAndUserId, arg.Column1, arg.UserID)
+	rows, err := q.db.Query(ctx, getGameNoteReactionsByGameNoteIdInAndUserId, arg.UserID, arg.GameNoteIds)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*GetGameNoteReactionsByGameNoteIdInAndUserIdRow
+	items := []*GetGameNoteReactionsByGameNoteIdInAndUserIdRow{}
 	for rows.Next() {
 		var i GetGameNoteReactionsByGameNoteIdInAndUserIdRow
 		if err := rows.Scan(
@@ -122,10 +126,10 @@ func (q *Queries) GetGameNoteReactionsByGameNoteIdInAndUserId(ctx context.Contex
 
 const removeGameNoteReaction = `-- name: RemoveGameNoteReaction :exec
 DELETE FROM "game_note_reactions"
-WHERE "game_note_id" = $1 
-    AND "user_id" = $2 
-    AND "emote_id" = $3
-    AND "source" = $4
+WHERE "game_note_id" = $1::uuid
+    AND "user_id" = $2::uuid
+    AND "emote_id" = $3::text
+    AND "source" = $4::reaction_source
 `
 
 type RemoveGameNoteReactionParams struct {

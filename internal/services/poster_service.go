@@ -72,6 +72,7 @@ func (s *posterService) GetPosterPreviews(ctx context.Context, userId uuid.UUID)
 	posterPreviews, err := s.sqlDB.Queries().FindPosterPreviewByCreatedAtAfterAndCreatedBy(ctx, db.FindPosterPreviewByCreatedAtAfterAndCreatedByParams{
 		CreatedBy: userId,
 		CreatedAt: time.Now().Add(-config.GetPosterPreviewStoreTime()),
+		Limit:     int32(5),
 	})
 	if err != nil {
 		return nil, errors.NewInternalServerError("Error occurred getting poster previews", err)

@@ -11,6 +11,7 @@ import CollectionHeaderLine from "./collection-header";
 import CollectionHeaderControls from "./collection-header-controls";
 import CollectionHeaderTitleButton from "./collection-header-title-button";
 import LoadMoreCollectionElement from "./load-more-collection-element";
+import { useProfileStore } from "@/providers/profile-store";
 
 type Props = {
     collection: Collection;
@@ -22,7 +23,7 @@ export default function ContentCollection({ collection, items, hasMoreItems }: P
     const [collapsed, setCollapsed] = React.useState(false);
     const toggleCollapsed = () => setCollapsed(!collapsed);
     const user = useAuthStore((state) => state.user);
-    const profile = useAuthStore((state) => state.profile);
+    const profile = useProfileStore((state) => state.profile);
 
     const isUserAuthorized = React.useMemo(() => {
         return user?.id !== undefined && profile?.id === user?.id;
@@ -45,8 +46,8 @@ export default function ContentCollection({ collection, items, hasMoreItems }: P
                     />
                 }
             />
-            <ScrollArea className={cn("w-[856px] whitespace-nowrap", collapsed && "hidden")}>
-                <div className="flex items-center gap-2 pb-3 pt-1">
+            <ScrollArea className={cn("w-[848px] whitespace-nowrap", collapsed && "hidden")}>
+                <div className="flex items-center gap-2 pb-3 pt-1 px-1">
                     {isUserAuthorized && <AddCollectionElement collection={collection} className="flex-shrink-0" />}
                     {items.map((item) => (
                         <CollectionElement key={item.id} item={item} className="flex-shrink-0" />

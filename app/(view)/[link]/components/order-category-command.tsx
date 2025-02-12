@@ -2,6 +2,7 @@
 
 import ApiTypeCommand from "@/components/ui/api-type-command";
 import { ApiType, contentCategoryLabels } from "@/utils/api/constants";
+import { ContentCategory } from "@/utils/api/types";
 
 type Props = {
     value: ContentCategory;

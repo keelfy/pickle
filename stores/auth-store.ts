@@ -1,3 +1,4 @@
+import { Profile } from '@/utils/api/types';
 import { User } from '@supabase/supabase-js';
 import { createStore } from 'zustand';
 import { devtools } from 'zustand/middleware';
@@ -5,14 +6,12 @@ import { devtools } from 'zustand/middleware';
 type Actions = {
     updateProfile: (profile: Profile) => void
     updateUser: (user: User) => void
-    updateAvatarUrl: (avatarUrl: string) => void
     clearUser: () => void
 }
 
 type State = {
     profile: Profile | undefined;
     user: User | undefined;
-    avatarUrl?: string;
 };
 
 export type AuthStore = Actions & State;
@@ -28,7 +27,6 @@ const createAuthStore = (initialState: State = defaultInitialState) => {
         ...initialState,
         updateProfile: (profile) => set(() => ({ profile: profile })),
         updateUser: (user) => set(() => ({ user: user })),
-        updateAvatarUrl: (avatarUrl) => set(() => ({ avatarUrl: avatarUrl })),
         clearUser: () => set(() => ({ ...initialState })),
     })))
 }

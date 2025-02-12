@@ -1,7 +1,9 @@
 "use client";
 
+import ContentCategoryIcon from "@/components/ui/content-category-icon";
 import ContentPoster from "@/components/ui/content-poster";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { localizeContentCategory } from "@/lib/localize-types";
 import { cn } from "@/lib/utils";
 import { useModalStore } from "@/providers/modal";
 import { ModalType } from "@/stores/modal";
@@ -29,22 +31,36 @@ export default function CollectionElement({ item, className }: Props) {
 
     return (
         <TooltipProvider>
-            <Tooltip delayDuration={0}>
+            <Tooltip>
                 <TooltipTrigger asChild>
                     <button
                         onClick={handleClick}
-                        className={cn("border-none p-0 hover:shadow-2xl hover:scale-105 transition-all duration-300 rounded-md", className)}
+                        className={cn("border-none p-0", className)}
                     >
-                        <ContentPoster 
-                            posterUrl={item.posterUrl}
-                            size="sm"
-                            className="cursor-pointer"
-                            alt={item.content.name}
-                        />
+                        <div className="flex flex-col gap-1">
+                            <ContentPoster
+                                posterUrl={item.posterUrl}
+                                size="sm"
+                                className="cursor-pointer hover:shadow-2xl hover:scale-105 transition-all duration-300"
+                            />
+                            <div className="flex flex-col text-start whitespace-normal">
+                                <p className="text-xs max-w-[100px] line-clamp-2 whitespace-normal hover:underline underline-offset-2">
+                                    {item.content.name}
+                                </p>
+                                <p className="text-[0.7rem] text-muted-foreground">
+                                    {localizeContentCategory(item.content.category)}
+                                </p>
+                            </div>
+                        </div>
                     </button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom">
-                    <p>{item.content.name}</p>
+                    <div className="flex items-center gap-1">
+                        <ContentCategoryIcon category={item.content.category} className="w-4 h-4" />
+                        <p>
+                            {item.content.name}
+                        </p>
+                    </div>
                 </TooltipContent>
             </Tooltip>
         </TooltipProvider>

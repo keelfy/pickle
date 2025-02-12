@@ -1,7 +1,8 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import ContentPoster from "@/components/ui/content-poster";
+import ClickableContentPoster from "@/components/ui/clickable-content-poster";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { DeleteContentType } from "@/components/view/dialog/delete-content-alert/delete-content-alert-dialog";
 import { fetchGameNotePoster } from "@/hooks/api-endpoints-client";
 import { cn } from "@/lib/utils";
@@ -11,6 +12,7 @@ import { useProfileStore } from "@/providers/profile-store";
 import { ModalType } from "@/stores/modal";
 import { GameNote, Reaction } from "@/utils/api/types";
 import {
+    EllipsisIcon,
     History,
     PencilIcon,
     TextIcon,
@@ -21,7 +23,6 @@ import React from "react";
 import GameNoteReactions from "./game-note-reactions";
 import GameNoteStatusBadge from "./game-note-status-badge";
 import NoteComment from "./note-comment";
-import ClickableContentPoster from "@/components/ui/clickable-content-poster";
 
 type Props = {
     note: GameNote;
@@ -150,16 +151,29 @@ export default function GameNoteCard({ note, defaultReactions }: Props) {
                                 Details
                             </Button>
                             {profile?.id === user?.id && user?.id && (
-                                <>
-                                    <Button variant="ghost" onClick={openGameNoteEditor}>
-                                        <PencilIcon />
-                                        Edit
-                                    </Button>
-                                    <Button variant="ghost" onClick={onDelete}>
-                                        <TrashIcon className="text-destructive" />
-                                        Delete
-                                    </Button>
-                                </>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost">
+                                            <EllipsisIcon />
+                                            Options
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="start">
+                                        <DropdownMenuItem className="cursor-pointer" onClick={openGameNoteEditor}>
+                                            <PencilIcon />
+                                            Edit
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem disabled className="cursor-not-allowed text-muted-foreground">
+                                            <TextIcon />
+                                            Add to collection
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem className="cursor-pointer" onClick={onDelete}>
+                                            <TrashIcon className="text-destructive" />
+                                            Delete
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                             )}
                         </div>
                     </div>
@@ -169,8 +183,12 @@ export default function GameNoteCard({ note, defaultReactions }: Props) {
                         <GameNoteStatusBadge status={note.status} />
                     </div>
                     <div className="inline-flex flex-col items-center justify-center px-8 py-6 bg-secondary rounded-lg">
-                        <div className={cn("text-3xl font-bold", ratingColor)}>
-                            {note.rate ?? "N/A"}
+                        <div className="text-3xl font-bold text-muted-foreground">
+                            {note.rate ? (
+                                <p>
+                                    <span className={cn("text-3xl font-bold", ratingColor)}>{note.rate}</span>/10
+                                </p>
+                            ) : "N/A"}
                         </div>
                         <div className="font-semibold whitespace-nowrap">
                             rating

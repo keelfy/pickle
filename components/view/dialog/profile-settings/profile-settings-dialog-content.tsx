@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import React from "react";
 import GeneralSettingsTab from "./general-settings-tab";
+import ModerationTab from "./moderation-tab";
 import SecuritySettingsTab from "./security-settings-tab";
 
 type SettingsTab =
@@ -41,10 +42,6 @@ function TabContent({ tab }: { tab: SettingsTab }) {
 
 function ConnectionsTab() {
     return <div>Connections tab</div>;
-}
-
-function ModerationTab() {
-    return <div>Moderation tab</div>;
 }
 
 function NotificationsTab() {

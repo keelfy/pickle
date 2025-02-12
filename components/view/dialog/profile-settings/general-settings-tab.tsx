@@ -14,7 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import { Textarea } from "@/components/ui/textarea";
-import { updateMyProfile, uploadAvatarForPreview, validateProfileLink } from "@/hooks/api-endpoints-client";
+import { fetchMyAvatar, updateMyProfile, uploadAvatarForPreview, validateProfileLink } from "@/hooks/api-endpoints-client";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/providers/auth-store";
@@ -38,11 +38,14 @@ const formSchema = z.object({
 });
 
 export default function GeneralSettingsTab() {
-    const { profile, avatarUrl, updateProfile } = useAuthStore(
+    const { profile, updateProfile } = useAuthStore(
         (state) => state
     );
     const [isLoading, startTransition] = React.useTransition();
     const [isLinkValidating, setLinkValidating] = React.useState(false);
+
+    const [avatarUrl, setAvatarUrl] = React.useState<string>("");
+    const [isAvatarLoading, startAvatarLoading] = React.useTransition();
 
     const [isAvatarUploading, startAvatarUpload] = React.useTransition();
     const avatarInputRef = React.useRef<HTMLInputElement>(null);
@@ -87,7 +90,25 @@ export default function GeneralSettingsTab() {
 
     React.useEffect(() => {
         resetForm();
+
+        if (profile?.id) {
+            startAvatarLoading(async () => {
+                try {
+                    const res = await fetchMyAvatar('lg');
+                    setAvatarUrl(res?.url ?? "");
+                } catch (error: any) {
+                    setAvatarUrl("");
+                }
+            });
+        }
     }, [profile?.id]);
+
+    React.useEffect(() => {
+        form.reset({
+            ...form.getValues(),
+            avatarUrl,
+        });
+    }, [avatarUrl]);
 
     const onSubmit = async (data: z.infer<typeof formSchema>) =>
         startTransition(async () => {
@@ -95,8 +116,8 @@ export default function GeneralSettingsTab() {
                 const res = await updateMyProfile(data);
                 updateProfile(res);
                 form.reset({
-                    ...profile,
-                    description: profile?.description ?? "",
+                    ...res,
+                    description: res.description ?? "",
                     avatarUrl: data.avatarUrl,
                 });
             } catch (error: any) {

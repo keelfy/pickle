@@ -1,13 +1,12 @@
 import { Toaster } from "@/components/ui/toaster";
+import { cn } from "@/lib/utils";
 import ModalStoreProvider from "@/providers/modal";
 import { ModalQuerySync } from "@/query-params/modal";
 import { GeistSans } from "geist/font/sans";
 import { ThemeProvider } from "next-themes";
-import { SearchParams } from "nuqs";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Suspense } from "react";
 import "./globals.css";
-import { cn } from "@/lib/utils";
 
 const defaultUrl = process.env.VERCEL_URL
     ? `https://${process.env.VERCEL_URL}`
@@ -19,9 +18,7 @@ export const metadata = {
     description: "The pickle prototype",
 };
 
-export default async function RootLayout({
-    children,
-}: React.PropsWithChildren) {
+export default async function RootLayout({ children }: React.PropsWithChildren) {
     return (
         <html lang="en" suppressHydrationWarning>
             <body className={cn(GeistSans.className, "antialiased")}>
@@ -34,9 +31,7 @@ export default async function RootLayout({
                         <Suspense>
                             <ModalStoreProvider>
                                 <Suspense>{children}</Suspense>
-                                <Suspense>
-                                    <ModalQuerySync />
-                                </Suspense>
+                                <ModalQuerySync />
                             </ModalStoreProvider>
                         </Suspense>
                         <Toaster />

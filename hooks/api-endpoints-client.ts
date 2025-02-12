@@ -22,6 +22,10 @@ export async function updateMyProfile(data: Partial<Profile>) {
     });
 }
 
+export async function fetchMyAvatar(size: ImageSize = 'md') {
+    return fetchApi<Image>(`/v1/users/me/avatar?size=${size}`);
+}
+
 export async function fetchProfileOrders(profile: Profile | undefined, cursor: string, column: string, limit: number, direction: 'asc' | 'desc' = 'desc') {
     if (!profile) return undefined;
     return fetchApi<Order[]>(`/v1/users/${profile.id}/orders?cursor=${cursor}&column=${column}&limit=${limit}&direction=${direction}`);
@@ -61,9 +65,8 @@ export async function updateGameNote(profile: Profile, gameNoteId: string, gameN
     });
 }
 
-export async function fetchGameNoteOrders(profile: Profile | undefined, gameNoteId: string, cursor: string, limit: number, direction: 'asc' | 'desc' = 'desc') {
-    if (!profile) return undefined;
-    return fetchApi<Paginated<Order>>(`/v1/users/${profile.id}/game-notes/${gameNoteId}/orders?cursor=${cursor}&limit=${limit}&direction=${direction}`);
+export async function fetchGameNoteOrders(profile: Profile, gameNoteId: string, page: number, size: number) {
+    return fetchApi<Paginated<Order>>(`/v1/users/${profile.id}/game-notes/${gameNoteId}/orders?page=${page}&size=${size}`);
 }
 
 export async function fetchContentSearch(profile: Profile | undefined, query: string, page: number, size: number) {

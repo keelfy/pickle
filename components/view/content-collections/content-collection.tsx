@@ -47,8 +47,8 @@ export default function ContentCollection({ collection, items, hasMoreItems }: P
                     />
                 }
             />
-            <ScrollArea className={cn("w-[850px] whitespace-nowrap", collapsed && "hidden")}>
-                <div className="flex items-center gap-2 pb-3 pt-1 px-1">
+            <ScrollArea className={cn("max-w-[848px] w-full whitespace-nowrap", collapsed && "hidden")}>
+                <div className="flex items-start gap-2 pb-3 pt-1 pl-1">
                     {isUserAuthorized && <AddCollectionElement collection={collection} className="flex-shrink-0" />}
                     {items.map((item) => (
                         <CollectionElement key={item.id} item={item} className="flex-shrink-0" />

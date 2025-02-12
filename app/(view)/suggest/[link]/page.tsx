@@ -4,8 +4,12 @@ import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Card, CardDescription } from "@/components/ui/card";
 import { fetchMyAvatar, fetchProfileByLink } from "@/hooks/api-endpoints-server";
 import getUser from "@/hooks/getUser";
+import { cn } from "@/lib/utils";
+import { Profile } from "@/utils/api/types";
 import Link from "next/link";
+import { Suspense } from "react";
 import OrderForm from "./order-form";
+import OrderFormSkeleton from "./order-form-skeleton";
 
 export type Props = {
     params: Promise<{ link: string }>;
@@ -19,34 +23,48 @@ const getFollowersCountText = (count: number) => {
     return `${(count / 1000000).toFixed(1)}M`;
 }
 
+async function OrderFormCard({ profile, className }: { profile: Profile, className?: string }) {
+    const user = await getUser();
+    const myAvatarUrl = user ? await fetchMyAvatar().catch(() => undefined) : undefined;
+    return (
+        <Card className={cn("flex flex-col items-center gap-4 max-w-2xl shadow-lg", className)}>
+            <OrderForm profile={profile} myAvatarUrl={myAvatarUrl?.url} className="p-6 max-w-2xl" />
+        </Card>
+    )
+}
+
 export default async function SuggestPage({ params }: Props) {
     const { link } = await params;
-    const user = await getUser();
+
     const profile = await fetchProfileByLink(link).catch(() => {
         return undefined;
-    });
+    })
 
     if (!profile) {
-        return <div className="h-screen w-full px-4 flex items-center justify-center">
-            <div className="flex flex-col gap-4 items-center">
-                <div className="text-2xl font-medium">
-                    404 Profile not found
-                </div>
-                <div className="text-sm text-muted-foreground">
-                    The profile you are looking for does not exist.
+        return (
+            <div className="h-screen w-full px-4 flex items-center justify-center">
+                <div className="flex flex-col gap-4 items-center">
+                    <div className="text-2xl font-medium">
+                        404 Profile not found
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                        The profile you are looking for does not exist.
+                    </div>
                 </div>
             </div>
-        </div>
+        );
     }
-
-    const myAvatarUrl = user ? await fetchMyAvatar().catch(() => undefined) : undefined;
 
     return (
         <div className="h-screen w-full">
             <div className="flex flex-col gap-4 max-w-2xl min-w-max mx-auto py-16">
                 <Card className="flex items-center gap-4 p-4 max-w-2xl min-w-max shadow-lg">
                     <Link href={`/${profile.link}`} target="_blank">
-                        <ProfileAvatarServer profile={profile} size="lg" className="h-24 w-24 hover:opacity-80 transition-opacity" />
+                        <Suspense fallback={(
+                            <div className="h-24 w-24 rounded-full bg-muted-foreground/10 animate-pulse" />
+                        )}>
+                            <ProfileAvatarServer profile={profile} size="lg" className="h-24 w-24 hover:opacity-80 transition-opacity" />
+                        </Suspense>
                     </Link>
                     <div className="space-y-2">
                         <div className="space-y-0">
@@ -70,9 +88,13 @@ export default async function SuggestPage({ params }: Props) {
                         </CardDescription>
                     </div>
                 </Card>
-                <Card className="flex-1 h-full flex flex-col items-center gap-4 max-w-2xl shadow-lg">
-                    <OrderForm profile={profile} myAvatarUrl={myAvatarUrl?.url} className="p-6 max-w-2xl" />
-                </Card>
+                <Suspense fallback={(
+                    <Card className="flex-1 h-full flex flex-col items-center gap-4 max-w-2xl shadow-lg">
+                        <OrderFormSkeleton className="max-w-2xl w-full" />
+                    </Card>
+                )}>
+                    <OrderFormCard profile={profile} className="flex-1 h-full" />
+                </Suspense>
                 <div className="flex justify-between items-center gap-4">
                     <div className="flex flex-col">
                         <div className="text-xs">

@@ -3,38 +3,16 @@
 import GameNoteReactions from "@/app/(view)/[link]/games/game-note-reactions";
 import GameNoteStatusBadge from "@/app/(view)/[link]/games/game-note-status-badge";
 import NoteComment from "@/app/(view)/[link]/games/note-comment";
-import { Button } from "@/components/ui/button";
-import {
-    Collapsible,
-    CollapsibleContent,
-    CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import ContentPoster from "@/components/ui/content-poster";
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import LoadingSpinner from "@/components/ui/loading-spinner";
-import {
-    Pagination,
-    PaginationContent,
-    PaginationItem,
-    PaginationLink,
-    PaginationNext,
-    PaginationPrevious,
-} from "@/components/ui/pagination";
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { fetchGameNote, fetchGameNoteOrders, fetchGameNotePoster, fetchGameNoteReactions } from "@/hooks/api-endpoints-client";
 import { toast } from "@/hooks/use-toast";
 import { useModalStore } from "@/providers/modal";
 import { useProfileStore } from "@/providers/profile-store";
-import { GameNote, Order, Reaction } from "@/utils/api/types";
+import { GameNote, Reaction } from "@/utils/api/types";
 import {
     Check,
-    ChevronsUpDown,
     History,
     Link,
     Rocket
@@ -42,19 +20,14 @@ import {
 import React from "react";
 import GameUrl from "../../../../app/(view)/[link]/components/game-url";
 import RatingRow from "../../../../app/(view)/[link]/components/rating-row";
-import { Paginated } from "@/utils/api/response";
+import { NoteDialogOrdersSection } from "../note-dialog-orders-section";
 
 export default function GameNoteDialogContent() {
     const { id: gameNoteId } = useModalStore((state) => state.modalParams!);
     const [gameNote, setGameNote] = React.useState<GameNote>();
     const { profile } = useProfileStore((state) => state);
 
-    const [orders, setOrders] = React.useState<Paginated<Order>>();
-    const [ordersPage, setOrdersPage] = React.useState(0);
-
-    const [detailsOpen, setDetailsOpen] = React.useState(false);
     const [isLoading, startTransition] = React.useTransition();
-    const [areOrdersLoading, startOrdersTransition] = React.useTransition();
     const [isPosterLoading, startPosterTransition] = React.useTransition();
 
     const [posterUrl, setPosterUrl] = React.useState<string>();
@@ -91,10 +64,7 @@ export default function GameNoteDialogContent() {
     }, [gameNoteId]);
 
     React.useEffect(() => {
-        setDetailsOpen(false);
         setGameNote(undefined);
-        setOrders(undefined);
-        setOrdersPage(0);
     }, [gameNoteId]);
 
     React.useEffect(() => {
@@ -111,54 +81,6 @@ export default function GameNoteDialogContent() {
             }
         });
     }, [gameNoteId]);
-
-    React.useEffect(() => {
-        if (!areOrdersLoading && detailsOpen) {
-            startOrdersTransition(async () => {
-                try {
-                    const response = await fetchGameNoteOrders(profile, gameNoteId, ordersPage.toString(), 5);
-                    setOrders(response);
-                } catch (error: any) {
-                    toast({
-                        title: "Failed to load orders",
-                        description: error.message ?? "An error occurred",
-                    });
-                }
-            });
-        }
-    }, [detailsOpen, ordersPage]);
-
-    const getTimeAgoText = (date: Date) => {
-        const diff = new Date().getTime() - date.getTime();
-        const seconds = Math.floor(diff / 1000);
-        const minutes = Math.floor(seconds / 60);
-        const hours = Math.floor(minutes / 60);
-        const days = Math.floor(hours / 24);
-        const months = Math.floor(days / 30);
-        const years = Math.floor(months / 12);
-
-        if (years > 0) {
-            return `${years} year${years > 1 ? "s" : ""} ago`;
-        }
-
-        if (months > 0) {
-            return `${months} month${months > 1 ? "s" : ""} ago`;
-        }
-
-        if (days > 0) {
-            return `${days} day${days > 1 ? "s" : ""} ago`;
-        }
-
-        if (hours > 0) {
-            return `${hours} hour${hours > 1 ? "s" : ""} ago`;
-        }
-
-        if (minutes > 0) {
-            return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
-        }
-
-        return `${seconds} second${seconds > 1 ? "s" : ""} ago`;
-    };
 
     return (
         <>
@@ -273,167 +195,10 @@ export default function GameNoteDialogContent() {
                     <GameNoteReactions note={gameNote} defaultReactions={reactions} />
                 )}
 
-                <Collapsible
-                    open={detailsOpen}
-                    onOpenChange={() => setDetailsOpen(!detailsOpen)}
-                    className="space-y-2"
-                >
-                    <div className="flex items-center space-x-4">
-                        <Label className="text-md font-semibold">
-                            Suggesters
-                        </Label>
-                        <CollapsibleTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                                <ChevronsUpDown className="h-4 w-4" />
-                                <span className="sr-only">Toggle</span>
-                            </Button>
-                        </CollapsibleTrigger>
-                        {areOrdersLoading && <LoadingSpinner />}
-                    </div>
-                    <CollapsibleContent>
-                        <div className="flex flex-col gap-3 pl-2 border p-2 rounded-md">
-                            <TooltipProvider>
-                                <table className="w-fit border-separate border-spacing-y-0.5 border-spacing-x-2">
-                                    <tbody>
-                                        {orders?.content.map((order) => (
-                                            <tr key={order.id}>
-                                                <td className="text-muted-foreground">
-                                                    <Tooltip>
-                                                        <TooltipTrigger>
-                                                            {getTimeAgoText(
-                                                                new Date(
-                                                                    order.createdAt
-                                                                )
-                                                            )}
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>
-                                                            {new Date(
-                                                                order.createdAt
-                                                            ).toLocaleString(
-                                                                undefined,
-                                                                {
-                                                                    year: "numeric",
-                                                                    month: "numeric",
-                                                                    day: "numeric",
-                                                                    hour: "numeric",
-                                                                    minute: "numeric",
-                                                                }
-                                                            )}
-                                                        </TooltipContent>
-                                                    </Tooltip>
-                                                </td>
-                                                <td>{order.ordererUsername}</td>
-                                                {/* {order.amount && (
-                                        <>
-                                            <span className="text-muted-foreground">
-                                                &mdash;
-                                            </span>
-                                            <span>{order.amount}</span>
-                                        </>
-                                    )} */}
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </TooltipProvider>
-                            {orders && (
-                                <Pagination>
-                                    <PaginationContent>
-                                        <PaginationItem>
-                                            <PaginationPrevious
-                                                href=""
-                                                aria-disabled={ordersPage <= 0}
-                                                tabIndex={
-                                                    ordersPage <= 0
-                                                        ? -1
-                                                        : undefined
-                                                }
-                                                className={
-                                                    ordersPage <= 0
-                                                        ? "pointer-events-none opacity-50"
-                                                        : undefined
-                                                }
-                                                onClick={() =>
-                                                    setOrdersPage(
-                                                        ordersPage - 1
-                                                    )
-                                                }
-                                            />
-                                        </PaginationItem>
-                                        <PaginationItem
-                                            className={
-                                                ordersPage === 0
-                                                    ? "invisible"
-                                                    : ""
-                                            }
-                                        >
-                                            <PaginationLink
-                                                href="#"
-                                                onClick={() =>
-                                                    setOrdersPage(
-                                                        ordersPage - 1
-                                                    )
-                                                }
-                                            >
-                                                {ordersPage}
-                                            </PaginationLink>
-                                        </PaginationItem>
-                                        <PaginationItem>
-                                            <PaginationLink href="#" isActive>
-                                                {ordersPage + 1}
-                                            </PaginationLink>
-                                        </PaginationItem>
-                                        <PaginationItem
-                                            className={
-                                                ordersPage ===
-                                                    orders.totalPages - 1
-                                                    ? "invisible"
-                                                    : ""
-                                            }
-                                        >
-                                            <PaginationLink
-                                                href="#"
-                                                onClick={() =>
-                                                    setOrdersPage(
-                                                        ordersPage + 1
-                                                    )
-                                                }
-                                            >
-                                                {ordersPage + 2}
-                                            </PaginationLink>
-                                        </PaginationItem>
-                                        <PaginationItem>
-                                            <PaginationNext
-                                                href="#"
-                                                aria-disabled={
-                                                    ordersPage ===
-                                                    orders.totalPages - 1
-                                                }
-                                                tabIndex={
-                                                    ordersPage ===
-                                                        orders.totalPages - 1
-                                                        ? -1
-                                                        : undefined
-                                                }
-                                                className={
-                                                    ordersPage ===
-                                                        orders.totalPages - 1
-                                                        ? "pointer-events-none opacity-50"
-                                                        : undefined
-                                                }
-                                                onClick={() =>
-                                                    setOrdersPage(
-                                                        ordersPage + 1
-                                                    )
-                                                }
-                                            />
-                                        </PaginationItem>
-                                    </PaginationContent>
-                                </Pagination>
-                            )}
-                        </div>
-                    </CollapsibleContent>
-                </Collapsible>
+                <NoteDialogOrdersSection
+                    noteId={gameNoteId}
+                    fetchOrders={fetchGameNoteOrders}
+                />
             </div>
         </>
     );

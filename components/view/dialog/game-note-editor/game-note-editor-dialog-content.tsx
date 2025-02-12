@@ -7,11 +7,6 @@ import GameUrl from "@/app/(view)/[link]/components/game-url";
 import RatingRowInput from "@/app/(view)/[link]/components/rating-row-input";
 import ApiTypeCommand from "@/components/ui/api-type-command";
 import { Button } from "@/components/ui/button";
-import {
-    Collapsible,
-    CollapsibleContent,
-    CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
 import {
     DialogDescription,
@@ -43,7 +38,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { fetchGameNote, fetchGameNotePoster, updateGameNote } from "@/hooks/api-endpoints-client";
+import { fetchGameNote, fetchGameNoteOrders, fetchGameNotePoster, updateGameNote } from "@/hooks/api-endpoints-client";
 import { toast } from "@/hooks/use-toast";
 import { useModalStore } from "@/providers/modal";
 import { useProfileStore } from "@/providers/profile-store";
@@ -51,10 +46,11 @@ import { gameNoteStatusLabels } from "@/utils/api/constants";
 import { GameNote, GameNoteStatus } from "@/utils/api/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PopoverClose } from "@radix-ui/react-popover";
-import { Check, ChevronsUpDown, CircleOff, Edit, X } from "lucide-react";
+import { Check, CircleOff, Edit, X } from "lucide-react";
 import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { NoteDialogOrdersSection } from "../note-dialog-orders-section";
 
 const formSchema = z.object({
     name: z.string(),
@@ -78,7 +74,6 @@ export default function GameNoteEditorDialogContent() {
 
     const [gameNote, setGameNote] = React.useState<GameNote>();
     const [posterUrl, setPosterUrl] = React.useState<string>();
-    const [detailsOpen, setDetailsOpen] = React.useState(false);
     const [isLoading, startTransition] = React.useTransition();
 
     const form = useForm<z.infer<typeof formSchema>>({
@@ -106,10 +101,6 @@ export default function GameNoteEditorDialogContent() {
             form.reset();
         }
     }, [gameNote?.id]);
-
-    React.useEffect(() => {
-        setDetailsOpen(false);
-    }, [currentModal]);
 
     React.useEffect(() => {
         if (gameNoteId && profile?.id) {
@@ -438,35 +429,10 @@ export default function GameNoteEditorDialogContent() {
                             </ScrollArea>
                         </div>
 
-                        <Collapsible
-                            open={detailsOpen}
-                            onOpenChange={setDetailsOpen}
-                            className="space-y-2"
-                        >
-                            <div className="flex items-center justify-between space-x-4">
-                                <Label className="text-md font-semibold">
-                                    Requesters (1)
-                                </Label>
-                                <CollapsibleTrigger asChild>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        type="button"
-                                    >
-                                        <ChevronsUpDown className="h-4 w-4" />
-                                        <span className="sr-only">Toggle</span>
-                                    </Button>
-                                </CollapsibleTrigger>
-                            </div>
-                            <CollapsibleContent>
-                                <div className="flex gap-2 items-center space-x-2">
-                                    <span className="text-muted-foreground">
-                                        22 min ago
-                                    </span>
-                                    <span>{gameNote?.initialOrdererUsername}</span>
-                                </div>
-                            </CollapsibleContent>
-                        </Collapsible>
+                        <NoteDialogOrdersSection
+                            noteId={gameNoteId}
+                            fetchOrders={fetchGameNoteOrders}
+                        />
                     </div>
                     <DialogFooter className="mt-4">
                         <Button

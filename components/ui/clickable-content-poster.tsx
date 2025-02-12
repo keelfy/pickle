@@ -17,7 +17,7 @@ type Props = {
     ref?: React.RefObject<HTMLButtonElement>;
 }
 
-export default function ClickableContentPoster({ posterUrl, size = "sm", className, loading = false, content, alt = content.name, ref }: Props) {
+export default function ClickableContentPoster({ posterUrl, size = "sm", className, loading = false, content, alt, ref }: Props) {
     const openModal = useModalStore(state => state.openModal);
 
     const handleClick = () => {

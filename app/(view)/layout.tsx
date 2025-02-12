@@ -1,33 +1,26 @@
-import { fetchMyAvatar, fetchMyProfile } from "@/hooks/api-endpoints-server";
+import LoadingSpinner from "@/components/ui/loading-spinner";
+import { fetchMyProfile } from "@/hooks/api-endpoints-server";
 import getUser from "@/hooks/getUser";
 import AuthStoreProvider from "@/providers/auth-store";
 import React, { Suspense } from "react";
 
 async function getAuth() {
-    let user, profile, avatarUrl;
-
     try {
-        user = await getUser();
-        if (user !== undefined) {
-            profile = await fetchMyProfile();
-            avatarUrl = await fetchMyAvatar("lg").then(
-                (res) => res?.url ?? undefined
-            );
-        }
+        return await Promise.all([
+            getUser(),
+            fetchMyProfile()
+        ]);
     } catch (error) {
-        user = undefined;
-        profile = undefined;
-        avatarUrl = undefined;
+        return [undefined, undefined];
     }
-    return { user, profile, avatarUrl };
 }
 
 async function AuthorizedProvider({ children }: { children: React.ReactNode }) {
-    const { user, profile, avatarUrl } = await getAuth();
+    const [user, profile] = await getAuth();
 
     return (
-        <AuthStoreProvider profile={profile} user={user} avatarUrl={avatarUrl}>
-            <Suspense>{children}</Suspense>
+        <AuthStoreProvider profile={profile} user={user}>
+            <Suspense fallback={<LoadingSpinner />}>{children}</Suspense>
         </AuthStoreProvider>
     );
 }

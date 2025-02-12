@@ -99,12 +99,18 @@ func (req *PosterReq) Validate() error {
 }
 
 type CreateOrderReq struct {
-	ReceiverLink    string             `json:"receiverLink"`
-	PaymentType     int16              `json:"paymentType"`
-	Amount          float32            `json:"amount"`
 	OrdererUsername string             `json:"ordererUsername"`
+	IsAnonymously   bool               `json:"isAnonymously"`
 	Category        db.ContentCategory `json:"category"`
 	Message         string             `json:"message"`
+}
+
+func (req *CreateOrderReq) Validate() error {
+	return validation.ValidateStruct(req,
+		validation.Field(&req.OrdererUsername, validation.NilOrNotEmpty, validation.Length(0, 50)),
+		validation.Field(&req.Category, validation.Required, isContentCategory),
+		validation.Field(&req.Message, validation.NilOrNotEmpty, validation.Length(0, 150)),
+	)
 }
 
 type OrderReq struct {

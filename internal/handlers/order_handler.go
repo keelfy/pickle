@@ -115,33 +115,37 @@ func (handler *orderHandler) GetSortedOrdersByUserID(w http.ResponseWriter, r *h
 // @Produce json
 // @Param createOrderReq body types.CreateOrderReq true "Create order request"
 // @Param userId path string true "User ID"
-// @Success 200 {object} types.OrderRes
+// @Success 201
 // @Failure 400 {object} string
 // @Failure 500 {object} string
 // @Router /v1/users/{userId}/orders [post]
 func (handler *orderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	// Unmarshal request body
 	req := &types.CreateOrderReq{}
-	json.NewDecoder(r.Body).Decode(req)
+	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
 
-	// Extract JWT token from the request
-	userId, err := utils.UserIdFromContext(ctx)
+	if err := req.Validate(); err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
+	userId, err := utils.ReadPathUUIDVariable("userId", r)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
 	}
 
-	createdOrder, err := handler.orderService.CreateOrder(ctx, userId, req)
+	_, err = handler.orderService.CreateOrder(ctx, userId, req)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
 	}
 
-	orderResponse := &types.OrderRes{}
-	copier.Copy(orderResponse, createdOrder)
-	utils.WriteHttpJsonResponse(ctx, w, orderResponse)
+	w.WriteHeader(http.StatusCreated)
 }
 
 // @Summary Update an order

@@ -15,3 +15,11 @@ func UserIdFromContext(ctx context.Context) (uuid.UUID, error) {
 	}
 	return userId, nil
 }
+
+func UserIdFromContextOrNil(ctx context.Context) uuid.UUID {
+	userId, ok := ctx.Value(middleware.UserIDKey).(uuid.UUID)
+	if !ok {
+		return uuid.Nil
+	}
+	return userId
+}

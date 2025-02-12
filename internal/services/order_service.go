@@ -9,6 +9,7 @@ import (
 	"github.com/pickle.pw/monolith/internal/errors"
 	"github.com/pickle.pw/monolith/internal/storage"
 	"github.com/pickle.pw/monolith/internal/types"
+	"github.com/pickle.pw/monolith/internal/utils"
 )
 
 type OrderService interface {
@@ -76,17 +77,26 @@ func (service *orderService) UpdateOrderStatus(ctx context.Context, order *db.Or
 }
 
 func (service *orderService) CreateOrder(ctx context.Context, userId uuid.UUID, req *types.CreateOrderReq) (*db.Order, error) {
-	creator, err := service.userService.GetProfileById(ctx, userId)
+	authUserId := utils.UserIdFromContextOrNil(ctx)
+
+	var (
+		creator *db.Profile
+		err     error
+	)
+
+	if authUserId != uuid.Nil {
+		creator, err = service.userService.GetProfileById(ctx, authUserId)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	receiver, err := service.userService.GetProfileById(ctx, userId)
 	if err != nil {
 		return nil, err
 	}
 
-	receiver, err := service.userService.GetProfileByLink(ctx, req.ReceiverLink)
-	if err != nil {
-		return nil, err
-	}
-
-	orderer, err := service.ordererService.CreateOrderer(ctx, req.OrdererUsername, creator)
+	orderer, err := service.ordererService.CreateOrderer(ctx, req.OrdererUsername, creator, req.IsAnonymously)
 	if err != nil {
 		return nil, err
 	}
@@ -95,8 +105,6 @@ func (service *orderService) CreateOrder(ctx context.Context, userId uuid.UUID, 
 		CreatedBy:       creator.UserID,
 		UpdatedBy:       creator.UserID,
 		ReceiverID:      receiver.UserID,
-		PaymentType:     req.PaymentType,
-		Amount:          req.Amount,
 		OrdererID:       orderer.ID,
 		OrdererUsername: orderer.Username,
 		Category:        req.Category,

@@ -11,7 +11,7 @@ import (
 
 type OrdererService interface {
 	GetOrdererById(ctx context.Context, id uuid.UUID) (*db.Orderer, error)
-	CreateOrderer(ctx context.Context, username string, creator *db.Profile) (*db.Orderer, error)
+	CreateOrderer(ctx context.Context, username string, creator *db.Profile, isAnonymous bool) (*db.Orderer, error)
 }
 
 type ordererService struct {
@@ -32,7 +32,7 @@ func (service *ordererService) GetOrdererById(ctx context.Context, id uuid.UUID)
 	return orderer, nil
 }
 
-func (service *ordererService) CreateOrderer(ctx context.Context, username string, creator *db.Profile) (*db.Orderer, error) {
+func (service *ordererService) CreateOrderer(ctx context.Context, username string, creator *db.Profile, isAnonymous bool) (*db.Orderer, error) {
 	var creatorUuid *uuid.UUID
 	if creator != nil {
 		creatorUuid = &creator.UserID
@@ -42,8 +42,8 @@ func (service *ordererService) CreateOrderer(ctx context.Context, username strin
 		CreatedBy: creatorUuid,
 		UpdatedBy: creatorUuid,
 		Username:  username,
-		UserID:    nil,
-		Anonymous: true,
+		UserID:    creatorUuid,
+		Anonymous: isAnonymous,
 	})
 	if err != nil {
 		return nil, err

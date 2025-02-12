@@ -1,5 +1,5 @@
 import { fetchApi } from "@/utils/api/client";
-import { AddItemToCollectionReq, CreateCollectionReq, UpdateCollectionReq } from "@/utils/api/request";
+import { AddItemToCollectionReq, CreateCollectionReq, CreateOrderReq, UpdateCollectionReq } from "@/utils/api/request";
 import { ContentSearchHits, LinkValidation, Paginated } from "@/utils/api/response";
 import { Collection, CollectionItem, Content, GameNote, Image, ImagePreview, ImageSize, NoteReaction, Order, OrderUpdate, Profile, Reaction } from "@/utils/api/types";
 
@@ -76,8 +76,7 @@ export async function fetchOrderById(profile: Profile | undefined, orderId: stri
     return fetchApi<Order>(`/v1/users/${profile.id}/orders/${orderId}`);
 }
 
-export async function createOrder(profile: Profile | undefined, order: Partial<Order>) {
-    if (!profile) return undefined;
+export async function createOrder(profile: Profile, order: CreateOrderReq) {
     return fetchApi<Order>(`/v1/users/${profile.id}/orders`, true, {
         method: "POST",
         body: JSON.stringify(order),
@@ -182,4 +181,3 @@ export async function fetchDeleteCollectionItem(collectionId: string, itemId: st
 export async function fetchCollectionItems(collectionId: string, page: number, size: number = 10) {
     return fetchApi<Paginated<CollectionItem>>(`/v1/collections/${collectionId}/items?page=${page}&size=${size}`);
 }
-

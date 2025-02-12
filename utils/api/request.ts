@@ -1,14 +1,5 @@
 import { Collection, ContentCategory } from "./types";
 
-export type CreateOrderReq = {
-	receiverLink: string;
-	paymentType: number;
-	amount: number
-	orderedBy: string;
-	categoryType: number;
-	message: string;
-}
-
 export type GameNoteReq = {
 	name: string
 	link: string
@@ -34,4 +25,11 @@ export type UpdateCollectionReq = Partial<Collection>;
 export type AddItemToCollectionReq = {
 	noteId: string;
 	category: ContentCategory;
+}
+
+export type CreateOrderReq = {
+	ordererUsername: string;
+	isAnonymously: boolean;
+	category: ContentCategory;
+	message: string;
 }

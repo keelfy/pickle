@@ -1,10 +1,12 @@
+import { ContentCategory, GameNoteStatus, OrderStatus } from "./types";
+
 export type ApiType<T extends string> = {
     value: T;
     label: string;
 }
 
 export const contentCategoryLabels: ApiType<ContentCategory>[] = [
-    { value: "custom", label: "Custom" },
+    // { value: "custom", label: "Custom" },
     { value: "games", label: "Game" },
     { value: "anime", label: "Anime" },
     { value: "movies", label: "Movie" },

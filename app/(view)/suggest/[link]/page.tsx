@@ -70,8 +70,8 @@ export default async function SuggestPage({ params }: Props) {
                         </CardDescription>
                     </div>
                 </Card>
-                <Card className="flex-1 h-full flex flex-col items-center gap-4 max-w-2xl min-w-max shadow-lg">
-                    <OrderForm profile={profile} myAvatarUrl={myAvatarUrl?.url} className="w-full p-6" />
+                <Card className="flex-1 h-full flex flex-col items-center gap-4 max-w-2xl shadow-lg">
+                    <OrderForm profile={profile} myAvatarUrl={myAvatarUrl?.url} className="p-6 max-w-2xl" />
                 </Card>
                 <div className="flex justify-between items-center gap-4">
                     <div className="flex flex-col">

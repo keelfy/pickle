@@ -125,7 +125,7 @@ func (s *moderatorService) AddModeratorByUserLink(ctx context.Context, userId uu
 		UserID:      userId,
 		ModeratorID: moderator.UserID,
 	})
-	if err != nil {
+	if err != nil && err != pgx.ErrNoRows {
 		return nil, errors.NewInternalServerError("Error getting moderator relation", err)
 	}
 

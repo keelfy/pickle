@@ -35,7 +35,7 @@ export default function CollectionElement({ item, className }: Props) {
                 <TooltipTrigger asChild>
                     <button
                         onClick={handleClick}
-                        className={cn("border-none p-0", className)}
+                        className={cn("border-none p-0 shadow-sm rounded-md", className)}
                     >
                         <div className="flex flex-col gap-1">
                             <ContentPoster

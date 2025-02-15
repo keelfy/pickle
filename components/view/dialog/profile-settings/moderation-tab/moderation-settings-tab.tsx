@@ -12,6 +12,7 @@ import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import ModeratorElement from "./moderator-element";
+import LoadingSpinner from "@/components/ui/loading-spinner";
 
 const formSchema = z.object({
     link: z.string().min(3, {
@@ -104,7 +105,13 @@ export default function ModerationSettingsTab() {
                     Moderators
                 </h2>
                 {moderatorProfiles.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No moderators added yet.</p>
+                    isFetchingModerators ? (
+                        <div className="flex items-center justify-center w-full">
+                            <LoadingSpinner />
+                        </div>
+                    ) : (
+                        <p className="text-sm text-muted-foreground">No moderators added yet.</p>
+                    )
                 ) : (
                     moderatorProfiles.map((moderator) => (
                         <ModeratorElement

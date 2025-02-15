@@ -35,13 +35,13 @@ export default function CollectionElement({ item, className }: Props) {
                 <TooltipTrigger asChild>
                     <button
                         onClick={handleClick}
-                        className={cn("border-none p-0 shadow-sm rounded-md", className)}
+                        className={cn("border-none p-0", className)}
                     >
                         <div className="flex flex-col gap-1">
                             <ContentPoster
                                 posterUrl={item.posterUrl}
                                 size="sm"
-                                className="cursor-pointer hover:shadow-2xl hover:scale-105 transition-all duration-300"
+                                className="cursor-pointer shadow-sm hover:shadow-2xl hover:scale-105 transition-all duration-300"
                             />
                             <div className="flex flex-col text-start whitespace-normal">
                                 <p className="text-xs max-w-[100px] line-clamp-2 whitespace-normal hover:underline underline-offset-2">

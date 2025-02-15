@@ -163,3 +163,11 @@ func (req *AddItemToCollectionReq) Validate() error {
 		validation.Field(&req.Category, validation.Required, isContentCategory),
 	)
 }
+
+type AddModeratorReq struct {
+	UserLink string `json:"userLink"`
+}
+
+func (req *AddModeratorReq) Validate() error {
+	return validation.ValidateStruct(req, validation.Field(&req.UserLink, validation.Required, validation.Min(1)))
+}

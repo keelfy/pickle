@@ -34,13 +34,15 @@ type collectionService struct {
 	sqlDB             storage.RelationalStorage
 	cache             storage.CacheStorage
 	singleflightGroup singleflight.Group
+	permissionService PermissionService
 }
 
-func NewCollectionService(sqlDB storage.RelationalStorage, cache storage.CacheStorage) CollectionService {
+func NewCollectionService(sqlDB storage.RelationalStorage, cache storage.CacheStorage, permissionService PermissionService) CollectionService {
 	return &collectionService{
 		sqlDB:             sqlDB,
 		cache:             cache,
 		singleflightGroup: singleflight.Group{},
+		permissionService: permissionService,
 	}
 }
 
@@ -54,7 +56,12 @@ func (service *collectionService) CreateCollection(ctx context.Context, userID u
 		return nil, errors.NewInternalServerError("failed to get user ID from context", err)
 	}
 
-	if userID != authUserID {
+	hasPermission, err := service.permissionService.HasPermission(ctx, userID, authUserID, types.ModeratorPermission)
+	if err != nil {
+		return nil, errors.NewInternalServerError("failed to check permission", err)
+	}
+
+	if !hasPermission {
 		return nil, errors.NewForbiddenError("you are not allowed to create collection for this user", nil)
 	}
 
@@ -82,7 +89,12 @@ func (service *collectionService) DeleteCollection(ctx context.Context, collecti
 		return errors.NewInternalServerError("failed to get user ID from context", err)
 	}
 
-	if collection.UserID != authUserID {
+	hasPermission, err := service.permissionService.HasPermission(ctx, collection.UserID, authUserID, types.ModeratorPermission)
+	if err != nil {
+		return errors.NewInternalServerError("failed to check permission", err)
+	}
+
+	if !hasPermission {
 		return errors.NewForbiddenError("you are not allowed to delete this collection", nil)
 	}
 
@@ -123,7 +135,12 @@ func (service *collectionService) UpdateCollection(ctx context.Context, collecti
 		return nil, errors.NewInternalServerError("failed to get user ID from context", err)
 	}
 
-	if collection.UserID != authUserID {
+	hasPermission, err := service.permissionService.HasPermission(ctx, collection.UserID, authUserID, types.ModeratorPermission)
+	if err != nil {
+		return nil, errors.NewInternalServerError("failed to check permission", err)
+	}
+
+	if !hasPermission {
 		return nil, errors.NewForbiddenError("you are not allowed to update this collection", nil)
 	}
 
@@ -159,7 +176,12 @@ func (service *collectionService) AddItemToCollection(ctx context.Context, colle
 		return nil, err
 	}
 
-	if collection.UserID != authUserID {
+	hasPermission, err := service.permissionService.HasPermission(ctx, collection.UserID, authUserID, types.ModeratorPermission)
+	if err != nil {
+		return nil, errors.NewInternalServerError("failed to check permission", err)
+	}
+
+	if !hasPermission {
 		return nil, errors.NewForbiddenError("you are not allowed to add item to collection for this user", nil)
 	}
 
@@ -209,7 +231,12 @@ func (service *collectionService) RemoveItemFromCollection(ctx context.Context, 
 		return err
 	}
 
-	if collection.UserID != authUserID {
+	hasPermission, err := service.permissionService.HasPermission(ctx, collection.UserID, authUserID, types.ModeratorPermission)
+	if err != nil {
+		return errors.NewInternalServerError("failed to check permission", err)
+	}
+
+	if !hasPermission {
 		return errors.NewForbiddenError("you are not allowed to remove item from this collection", nil)
 	}
 

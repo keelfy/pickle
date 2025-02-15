@@ -259,6 +259,16 @@ type GameNoteReaction struct {
 	CreatedBy  uuid.UUID      `json:"created_by"`
 }
 
+type Moderator struct {
+	ID          uuid.UUID  `json:"id"`
+	CreatedAt   time.Time  `json:"created_at"`
+	CreatedBy   uuid.UUID  `json:"created_by"`
+	DeletedAt   *time.Time `json:"deleted_at"`
+	DeletedBy   *uuid.UUID `json:"deleted_by"`
+	UserID      uuid.UUID  `json:"user_id"`
+	ModeratorID uuid.UUID  `json:"moderator_id"`
+}
+
 type Order struct {
 	ID              uuid.UUID           `json:"id"`
 	CreatedAt       time.Time           `json:"created_at"`

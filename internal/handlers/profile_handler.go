@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"sync"
 
 	"github.com/google/uuid"
 	"github.com/jinzhu/copier"
@@ -29,23 +28,26 @@ type ProfileHandler interface {
 }
 
 type profileHandler struct {
-	profileService  services.ProfileService
-	avatarService   services.AvatarService
-	gameNoteService services.GameNoteService
-	orderService    services.OrderService
-	followerService services.FollowerService
+	profileService       services.ProfileService
+	avatarService        services.AvatarService
+	gameNoteService      services.GameNoteService
+	orderService         services.OrderService
+	followerService      services.FollowerService
+	publicProfileService services.PublicProfileService
 }
 
 func NewUserHandler(
 	profileService services.ProfileService, avatarService services.AvatarService, gameNoteService services.GameNoteService,
 	orderService services.OrderService, followerService services.FollowerService,
+	publicProfileService services.PublicProfileService,
 ) ProfileHandler {
 	return &profileHandler{
-		profileService:  profileService,
-		avatarService:   avatarService,
-		gameNoteService: gameNoteService,
-		orderService:    orderService,
-		followerService: followerService,
+		profileService:       profileService,
+		avatarService:        avatarService,
+		gameNoteService:      gameNoteService,
+		orderService:         orderService,
+		followerService:      followerService,
+		publicProfileService: publicProfileService,
 	}
 }
 
@@ -89,6 +91,7 @@ func (h *profileHandler) GetProfileById(w http.ResponseWriter, r *http.Request) 
 // @Accept json
 // @Produce json
 // @Param link path string true "Link"
+// @Param avatarSize query string false "Avatar size"
 // @Success 200 {object} types.ProfileRes
 // @Failure 400 {object} string
 // @Failure 500 {object} string
@@ -101,75 +104,15 @@ func (h *profileHandler) GetProfileByLink(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	authUserId, _ := utils.UserIdFromContext(ctx)
+	avatarSize := utils.GetQueryParam(r, "avatarSize", "md")
 
-	profile, err := h.profileService.GetProfileByLink(ctx, link)
+	profile, err := h.publicProfileService.GetPublicProfileByLink(ctx, link, avatarSize)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
 	}
 
-	var (
-		playedCount, orderedCount, followerCount           int64
-		playedErr, orderedErr, followerErr, isFollowingErr error
-		isFollowing                                        bool
-		wg                                                 sync.WaitGroup
-	)
-
-	wg.Add(3)
-
-	go func() {
-		defer wg.Done()
-		playedCount, playedErr = h.gameNoteService.CountPlayedByUserId(ctx, profile.UserID)
-	}()
-
-	go func() {
-		defer wg.Done()
-		orderedCount, orderedErr = h.orderService.CountOrdersByReceiverId(ctx, profile.UserID)
-	}()
-
-	go func() {
-		defer wg.Done()
-		followerCount, followerErr = h.followerService.CountFollowers(ctx, profile.UserID)
-	}()
-
-	if authUserId != uuid.Nil {
-		wg.Add(1)
-
-		go func() {
-			defer wg.Done()
-			isFollowing, isFollowingErr = h.followerService.IsFollowing(ctx, profile.UserID, authUserId)
-		}()
-	}
-
-	wg.Wait()
-
-	if playedErr != nil {
-		logger.Errorf(ctx, "Error occurred during played count: %v", playedErr)
-	}
-
-	if orderedErr != nil {
-		logger.Errorf(ctx, "Error occurred during ordered count: %v", orderedErr)
-	}
-
-	if followerErr != nil {
-		logger.Errorf(ctx, "Error occurred during follower count: %v", followerErr)
-	}
-
-	if isFollowingErr != nil {
-		logger.Errorf(ctx, "Error occurred during is following: %v", isFollowingErr)
-	}
-
-	response := &types.ProfileRes{}
-	copier.Copy(response, profile)
-	response.Counts = &types.CountsRes{
-		Played:    playedCount,
-		Watched:   0,
-		Ordered:   orderedCount,
-		Followers: followerCount,
-	}
-	response.IsFollowing = isFollowing
-	utils.WriteHttpJsonResponse(ctx, w, response)
+	utils.WriteHttpJsonResponse(ctx, w, profile)
 }
 
 // @Summary Get my profile
@@ -177,27 +120,22 @@ func (h *profileHandler) GetProfileByLink(w http.ResponseWriter, r *http.Request
 // @Tags profiles
 // @Accept json
 // @Produce json
-// @Success 200 {object} types.ProfileRes
+// @Param avatarSize query string false "Avatar size"
+// @Success 200 {object} types.PublicProfile
 // @Failure 400 {object} string
 // @Failure 500 {object} string
 // @Router /v1/users/me [get]
 func (handler *profileHandler) GetMyProfile(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userId, err := utils.UserIdFromContext(ctx)
+	avatarSize := utils.GetQueryParam(r, "avatarSize", "md")
+
+	user, err := handler.profileService.GetMyProfile(ctx, avatarSize)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
 	}
 
-	user, err := handler.profileService.GetProfileById(ctx, userId)
-	if err != nil {
-		utils.HttpError(ctx, err, w)
-		return
-	}
-
-	response := &types.ProfileRes{}
-	copier.Copy(response, user)
-	utils.WriteHttpJsonResponse(ctx, w, response)
+	utils.WriteHttpJsonResponse(ctx, w, user)
 }
 
 // @Summary Update my profile

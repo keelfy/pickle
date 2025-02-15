@@ -6,11 +6,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jinzhu/copier"
-	db "github.com/pickle.pw/monolith/db/sqlc"
 	"github.com/pickle.pw/monolith/internal/services"
 	"github.com/pickle.pw/monolith/internal/types"
 	"github.com/pickle.pw/monolith/internal/utils"
-	"golang.org/x/sync/errgroup"
 )
 
 type OrderHandler interface {
@@ -161,12 +159,6 @@ func (handler *orderHandler) CreateOrder(w http.ResponseWriter, r *http.Request)
 // @Router /v1/users/{userId}/orders/{orderId} [put]
 func (handler *orderHandler) UpdateOrderByID(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	authUserId, err := utils.UserIdFromContext(ctx)
-	if err != nil {
-		utils.HttpError(ctx, err, w)
-		return
-	}
-
 	userId, err := utils.ReadPathUUIDVariable("userId", r)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
@@ -186,29 +178,7 @@ func (handler *orderHandler) UpdateOrderByID(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	var (
-		g         errgroup.Group
-		receiver  *db.Profile
-		initiator *db.Profile
-	)
-
-	g.Go(func() error {
-		receiver, err = handler.userService.GetProfileById(ctx, userId)
-		return nil
-	})
-
-	g.Go(func() error {
-		initiator, err = handler.userService.GetProfileById(ctx, authUserId)
-		return nil
-	})
-
-	err = g.Wait()
-	if err != nil {
-		utils.HttpError(ctx, err, w)
-		return
-	}
-
-	updatedOrder, relatedContentID, err := handler.orderService.UpdateOrderByID(ctx, orderId, initiator, receiver, req)
+	updatedOrder, relatedContentID, err := handler.orderService.UpdateOrderByID(ctx, orderId, userId, req)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return

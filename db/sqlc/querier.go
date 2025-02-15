@@ -30,6 +30,7 @@ type Querier interface {
 	DeleteFollower(ctx context.Context, arg DeleteFollowerParams) error
 	// Author: Egor Kuzmin (keelfy)
 	DeleteGameNoteById(ctx context.Context, id uuid.UUID) error
+	DeleteModeratorByUserIDAndModeratorID(ctx context.Context, arg DeleteModeratorByUserIDAndModeratorIDParams) error
 	DeletePosterPreview(ctx context.Context, id uuid.UUID) error
 	FindCollectionByID(ctx context.Context, id uuid.UUID) (*Collection, error)
 	FindCollectionItemByID(ctx context.Context, id uuid.UUID) (*CollectionItem, error)
@@ -78,6 +79,11 @@ type Querier interface {
 	// Author: Egor Kuzmin (keelfy)
 	// Queries last orders by receiver id
 	FindLastOrdersByReceiverId(ctx context.Context, arg FindLastOrdersByReceiverIdParams) ([]*FindLastOrdersByReceiverIdRow, error)
+	FindModeratorByUserIDAndModeratorID(ctx context.Context, arg FindModeratorByUserIDAndModeratorIDParams) (*Moderator, error)
+	FindModeratorByUserIDAndModeratorIDAndNotDeleted(ctx context.Context, arg FindModeratorByUserIDAndModeratorIDAndNotDeletedParams) (*Moderator, error)
+	FindModeratorProfileByUserIDAndModeratorID(ctx context.Context, arg FindModeratorProfileByUserIDAndModeratorIDParams) (*FindModeratorProfileByUserIDAndModeratorIDRow, error)
+	FindModeratorProfilesByUserID(ctx context.Context, userID uuid.UUID) ([]*FindModeratorProfilesByUserIDRow, error)
+	FindModeratorsByUserID(ctx context.Context, userID uuid.UUID) ([]*Moderator, error)
 	// Author: Egor Kuzmin (keelfy)
 	// Queries order by id
 	FindOrderById(ctx context.Context, id uuid.UUID) (*Order, error)
@@ -101,6 +107,7 @@ type Querier interface {
 	FindProfileById(ctx context.Context, userID uuid.UUID) (*Profile, error)
 	// Author: Egor Kuzmin (keelfy)
 	FindProfileByLink(ctx context.Context, link string) (*Profile, error)
+	FindProfilesByModeratorID(ctx context.Context, moderatorID uuid.UUID) ([]*FindProfilesByModeratorIDRow, error)
 	GetGameNoteReactionsByGameNoteIdInAndUserId(ctx context.Context, arg GetGameNoteReactionsByGameNoteIdInAndUserIdParams) ([]*GetGameNoteReactionsByGameNoteIdInAndUserIdRow, error)
 	// Author: Egor Kuzmin (keelfy)
 	GetUserFollows(ctx context.Context, followerID uuid.UUID) ([]*Profile, error)
@@ -113,6 +120,7 @@ type Querier interface {
 	InsertGameNote(ctx context.Context, arg InsertGameNoteParams) (*GameNote, error)
 	// Author: Egor Kuzmin (keelfy)
 	InsertGameNoteOrder(ctx context.Context, arg InsertGameNoteOrderParams) (*GameNoteOrder, error)
+	InsertModerator(ctx context.Context, arg InsertModeratorParams) (*Moderator, error)
 	// Author: Egor Kuzmin (keelfy)
 	// Inserts a new order
 	InsertOrder(ctx context.Context, arg InsertOrderParams) (*Order, error)
@@ -128,6 +136,7 @@ type Querier interface {
 	RemoveGameNoteReaction(ctx context.Context, arg RemoveGameNoteReactionParams) error
 	// Author: Egor Kuzmin (keelfy)
 	ResetApprovedOrdersByGameNoteId(ctx context.Context, gameNoteID uuid.UUID) error
+	RevertModeratorByUserIDAndModeratorID(ctx context.Context, arg RevertModeratorByUserIDAndModeratorIDParams) error
 	UpdateCollectionByID(ctx context.Context, arg UpdateCollectionByIDParams) (*Collection, error)
 	// Author: Egor Kuzmin (keelfy)
 	UpdateGameNoteById(ctx context.Context, arg UpdateGameNoteByIdParams) error

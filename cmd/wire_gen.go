@@ -38,7 +38,8 @@ func InitializeAPI(ctx context.Context) (api.PickleAPI, func(), error) {
 	}
 	imageService := services.NewImageService()
 	avatarService := services.NewAvatarService(relationalStorage, cacheStorage, fileStorage, imageService)
-	profileService := services.NewProfileService(relationalStorage, fileStorage, cacheStorage, avatarService)
+	followerService := services.NewFollowerService(relationalStorage, cacheStorage)
+	profileService := services.NewProfileService(relationalStorage, fileStorage, cacheStorage, avatarService, followerService)
 	elasticStorage, err := storage.NewElasticStorage(ctx)
 	if err != nil {
 		cleanup()
@@ -47,16 +48,18 @@ func InitializeAPI(ctx context.Context) (api.PickleAPI, func(), error) {
 	ordererService := services.NewOrdererService(relationalStorage)
 	gameNoteOrderService := services.NewGameNoteOrderService(relationalStorage)
 	posterService := services.NewPosterService(relationalStorage, fileStorage, cacheStorage, imageService, profileService)
-	gameNoteService := services.NewGameNoteService(relationalStorage, elasticStorage, cacheStorage, profileService, ordererService, gameNoteOrderService, posterService)
-	contentService := services.NewContentService(elasticStorage, gameNoteService, gameNoteOrderService, posterService)
-	orderService := services.NewOrderService(relationalStorage, profileService, ordererService, contentService)
-	followerService := services.NewFollowerService(relationalStorage, cacheStorage)
-	profileHandler := handlers.NewUserHandler(profileService, avatarService, gameNoteService, orderService, followerService)
 	supabaseClient, err := storage.NewSupabaseClient(ctx)
 	if err != nil {
 		cleanup()
 		return nil, nil, err
 	}
+	moderatorService := services.NewModeratorService(relationalStorage, cacheStorage, supabaseClient, avatarService, profileService)
+	permissionService := services.NewPermissionService(moderatorService)
+	gameNoteService := services.NewGameNoteService(relationalStorage, elasticStorage, cacheStorage, profileService, ordererService, gameNoteOrderService, posterService, permissionService)
+	contentService := services.NewContentService(elasticStorage, gameNoteService, gameNoteOrderService, posterService)
+	orderService := services.NewOrderService(relationalStorage, profileService, ordererService, contentService, permissionService)
+	publicProfileService := services.NewPublicProfileService(avatarService, followerService, moderatorService, gameNoteService, orderService, profileService)
+	profileHandler := handlers.NewUserHandler(profileService, avatarService, gameNoteService, orderService, followerService, publicProfileService)
 	statusService := services.NewStatusService(supabaseClient, fileStorage)
 	statusHandler := handlers.NewStatusHandler(relationalStorage, elasticStorage, cacheStorage, statusService)
 	orderHandler := handlers.NewOrdersHandler(orderService, profileService, contentService)
@@ -65,9 +68,10 @@ func InitializeAPI(ctx context.Context) (api.PickleAPI, func(), error) {
 	posterHandler := handlers.NewPosterHandler(posterService)
 	migrationService := services.NewMigrationService(relationalStorage, elasticStorage)
 	contentHandler := handlers.NewContentHandler(elasticStorage, contentService)
-	collectionService := services.NewCollectionService(relationalStorage, cacheStorage)
+	collectionService := services.NewCollectionService(relationalStorage, cacheStorage, permissionService)
 	collectionHandler := handlers.NewCollectionHandler(collectionService, contentService)
-	pickleAPI := api.NewPickleAPI(profileHandler, statusHandler, orderHandler, gameNoteHandler, posterHandler, migrationService, contentHandler, collectionHandler)
+	moderatorHandler := handlers.NewModeratorHandler(moderatorService, profileService)
+	pickleAPI := api.NewPickleAPI(profileHandler, statusHandler, orderHandler, gameNoteHandler, posterHandler, migrationService, contentHandler, collectionHandler, moderatorHandler)
 	return pickleAPI, func() {
 		cleanup()
 	}, nil

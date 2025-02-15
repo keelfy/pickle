@@ -9,34 +9,42 @@ import (
 	"github.com/jackc/pgx/v5"
 	db "github.com/pickle.pw/monolith/db/sqlc"
 	"github.com/pickle.pw/monolith/internal/errors"
+	"github.com/pickle.pw/monolith/internal/logger"
+	"github.com/pickle.pw/monolith/internal/models"
 	"github.com/pickle.pw/monolith/internal/storage"
 	"github.com/pickle.pw/monolith/internal/types"
+	"github.com/pickle.pw/monolith/internal/utils"
 	"golang.org/x/sync/singleflight"
 )
 
 type ProfileService interface {
 	GetProfileById(ctx context.Context, userId uuid.UUID) (*db.Profile, error)
 	GetProfileByLink(ctx context.Context, userLink string) (*db.Profile, error)
+	GetMyProfile(ctx context.Context, avatarSize string) (*models.PublicProfile, error)
 	ValidateLink(ctx context.Context, link string) error
 	UpdateProfile(ctx context.Context, userId uuid.UUID, req *types.UpdateProfileReq) (*db.Profile, error)
 	CreateProfileWebhook(ctx context.Context, req *types.SupabaseWebhookPayload) (*db.Profile, error)
 }
 
 type profileService struct {
-	sqlDb         storage.RelationalStorage
-	s3Client      storage.FileStorage
-	cache         storage.CacheStorage
-	avatarService AvatarService
-	group         singleflight.Group
+	sqlDb           storage.RelationalStorage
+	s3Client        storage.FileStorage
+	cache           storage.CacheStorage
+	avatarService   AvatarService
+	group           singleflight.Group
+	followerService FollowerService
 }
 
-func NewProfileService(sqlDb storage.RelationalStorage, s3Client storage.FileStorage, cache storage.CacheStorage, avatarService AvatarService) ProfileService {
+func NewProfileService(sqlDb storage.RelationalStorage, s3Client storage.FileStorage, cache storage.CacheStorage,
+	avatarService AvatarService, followerService FollowerService,
+) ProfileService {
 	return &profileService{
-		sqlDb:         sqlDb,
-		s3Client:      s3Client,
-		cache:         cache,
-		avatarService: avatarService,
-		group:         singleflight.Group{},
+		sqlDb:           sqlDb,
+		s3Client:        s3Client,
+		cache:           cache,
+		avatarService:   avatarService,
+		group:           singleflight.Group{},
+		followerService: followerService,
 	}
 }
 
@@ -47,7 +55,6 @@ func (service *profileService) GetProfileById(ctx context.Context, userId uuid.U
 	} else if err != nil {
 		return nil, errors.NewInternalServerError("Error occurred during looking for a profile by id", err)
 	}
-
 	return user, nil
 }
 
@@ -60,6 +67,34 @@ func (service *profileService) GetProfileByLink(ctx context.Context, userLink st
 	}
 
 	return user, nil
+}
+
+func (service *profileService) GetMyProfile(ctx context.Context, avatarSize string) (*models.PublicProfile, error) {
+	authUserID, err := utils.UserIdFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	profile, err := service.GetProfileById(ctx, authUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	publicProfile := &models.PublicProfile{
+		ID:           profile.UserID,
+		Username:     profile.Username,
+		Link:         profile.Link,
+		Description:  profile.Description,
+		IsFollowing:  authUserID == profile.UserID,
+		IsAuthorized: authUserID == profile.UserID,
+	}
+
+	avatarUrl, err := service.avatarService.GetAvatarUrlById(ctx, profile.UserID, avatarSize)
+	if err != nil {
+		logger.Errorf(ctx, "Error occurred during avatar url: %v", err)
+	}
+	publicProfile.AvatarURL = avatarUrl
+	return publicProfile, nil
 }
 
 var restrictedLinks = []string{

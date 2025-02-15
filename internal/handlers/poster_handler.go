@@ -196,7 +196,7 @@ func (h *posterHandler) GetPosterPreviewImageURL(w http.ResponseWriter, r *http.
 	}
 
 	res := &types.ImageRes{
-		URL: &imageURL,
+		URL: imageURL,
 	}
 	utils.WriteHttpJsonResponse(ctx, w, res)
 }

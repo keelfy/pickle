@@ -14,12 +14,13 @@ import (
 	"github.com/pickle.pw/monolith/internal/errors"
 	"github.com/pickle.pw/monolith/internal/logger"
 	"github.com/pickle.pw/monolith/internal/storage"
+	"golang.org/x/sync/singleflight"
 )
 
 type AvatarService interface {
 	GetProfileAvatarByUserID(ctx context.Context, userID uuid.UUID) (*db.ProfileAvatar, error)
 	CreateProfileAvatarForUser(ctx context.Context, userID uuid.UUID, creatorID *uuid.UUID, avatarUrl *string) (*db.ProfileAvatar, error)
-	GetAvatarUrlById(ctx context.Context, userID uuid.UUID, size string) (*string, error)
+	GetAvatarUrlById(ctx context.Context, userID uuid.UUID, size string) (string, error)
 	UploadAvatarForPreviewById(ctx context.Context, userID uuid.UUID, file multipart.File, fileHeader *multipart.FileHeader, size string) (string, error)
 	ConfirmProfileAvatar(ctx context.Context, userID uuid.UUID) error
 }
@@ -29,6 +30,7 @@ type avatarService struct {
 	cache        storage.CacheStorage
 	s3Client     storage.FileStorage
 	imageService ImageService
+	sfGroup      singleflight.Group
 }
 
 func NewAvatarService(sqlDb storage.RelationalStorage, cache storage.CacheStorage, s3Client storage.FileStorage, imageService ImageService) AvatarService {
@@ -37,6 +39,7 @@ func NewAvatarService(sqlDb storage.RelationalStorage, cache storage.CacheStorag
 		cache:        cache,
 		s3Client:     s3Client,
 		imageService: imageService,
+		sfGroup:      singleflight.Group{},
 	}
 }
 
@@ -65,34 +68,45 @@ func (service *avatarService) CreateProfileAvatarForUser(ctx context.Context, us
 	return avatar, nil
 }
 
-func (service *avatarService) GetAvatarUrlById(ctx context.Context, userID uuid.UUID, size string) (*string, error) {
+func (service *avatarService) GetAvatarUrlById(ctx context.Context, userID uuid.UUID, size string) (string, error) {
 	if _, ok := avatarSizes[size]; !ok {
-		return nil, errors.NewBadRequestError("Invalid avatar size", nil)
+		return "", errors.NewBadRequestError("Invalid avatar size", nil)
 	}
 
-	avatar, err := service.GetProfileAvatarByUserID(ctx, userID)
-	if err != nil {
-		return nil, err
-	}
-
-	cacheKey := fmt.Sprintf("avatar:%s:%s", avatar.UserID, size)
+	cacheKey := fmt.Sprintf("avatar:%s:%s", userID, size)
 	cachedUrl, err := service.cache.GetKey(ctx, cacheKey)
 	if err == nil {
-		return &cachedUrl, nil
+		return cachedUrl, nil
 	}
 
-	if avatar.AvatarUrl == nil {
-		return nil, nil
-	}
+	value, err, _ := service.sfGroup.Do(cacheKey, func() (interface{}, error) {
+		url := ""
+		defer func() {
+			_ = service.cache.SetKey(ctx, cacheKey, url, time.Hour*24*30)
+		}()
 
-	dimensions := avatarSizes[size]
-	url, err := service.imageService.GetResizedImageUrl(*avatar.AvatarUrl, dimensions, dimensions, &avatar.UpdatedAt)
+		avatar, err := service.GetProfileAvatarByUserID(ctx, userID)
+		if err != nil {
+			return url, err
+		}
+
+		if avatar.AvatarUrl == nil {
+			return url, nil
+		}
+
+		dimensions := avatarSizes[size]
+		url, err = service.imageService.GetResizedImageUrl(*avatar.AvatarUrl, dimensions, dimensions, &avatar.UpdatedAt)
+		if err != nil {
+			return url, err
+		}
+		return url, nil
+	})
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	_ = service.cache.SetKey(ctx, cacheKey, url, time.Hour*24*30)
-	return &url, nil
+	url := value.(string)
+	return url, nil
 }
 
 // Saves the avatar of the user with the given id to S3

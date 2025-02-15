@@ -30,7 +30,7 @@ type StatusRes struct {
 }
 
 type ImageRes struct {
-	URL *string `json:"url"`
+	URL string `json:"url"`
 }
 
 type ImagePreviewRes struct {
@@ -46,13 +46,23 @@ type CountsRes struct {
 }
 
 type ProfileRes struct {
-	UserID      string     `json:"id"`
-	CreatedAt   time.Time  `json:"createdAt"`
-	Username    string     `json:"username"`
-	Link        string     `json:"link"`
-	Description *string    `json:"description,omitempty"`
-	Counts      *CountsRes `json:"counts,omitempty"`
-	IsFollowing bool       `json:"isFollowing"`
+	UserID       string     `json:"id"`
+	CreatedAt    time.Time  `json:"createdAt"`
+	Username     string     `json:"username"`
+	Link         string     `json:"link"`
+	Description  *string    `json:"description,omitempty"`
+	Counts       *CountsRes `json:"counts,omitempty"`
+	IsFollowing  bool       `json:"isFollowing"`
+	IsAuthorized bool       `json:"isAuthorized"`
+	AvatarURL    string     `json:"avatarUrl,omitempty"`
+}
+
+type ModeratorProfileRes struct {
+	UserID    string    `json:"id"`
+	AddedAt   time.Time `json:"addedAt"`
+	Username  string    `json:"username"`
+	Link      string    `json:"link"`
+	AvatarURL string    `json:"avatarUrl,omitempty"`
 }
 
 type ContentRes struct {

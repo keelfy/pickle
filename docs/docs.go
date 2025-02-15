@@ -401,6 +401,12 @@ const docTemplate = `{
                         "name": "link",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Avatar size",
+                        "name": "avatarSize",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -484,6 +490,14 @@ const docTemplate = `{
                     "profiles"
                 ],
                 "summary": "Get my profile",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Avatar size",
+                        "name": "avatarSize",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -1634,11 +1648,8 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.OrderRes"
-                        }
+                    "201": {
+                        "description": "Created"
                     },
                     "400": {
                         "description": "Bad Request",
@@ -2140,22 +2151,16 @@ const docTemplate = `{
         "github_com_pickle_pw_monolith_internal_types.CreateOrderReq": {
             "type": "object",
             "properties": {
-                "amount": {
-                    "type": "number"
-                },
                 "category": {
                     "$ref": "#/definitions/github_com_pickle_pw_monolith_db_sqlc.ContentCategory"
+                },
+                "isAnonymously": {
+                    "type": "boolean"
                 },
                 "message": {
                     "type": "string"
                 },
                 "ordererUsername": {
-                    "type": "string"
-                },
-                "paymentType": {
-                    "type": "integer"
-                },
-                "receiverLink": {
                     "type": "string"
                 }
             }
@@ -2379,6 +2384,9 @@ const docTemplate = `{
         "github_com_pickle_pw_monolith_internal_types.ProfileRes": {
             "type": "object",
             "properties": {
+                "avatarUrl": {
+                    "type": "string"
+                },
                 "counts": {
                     "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.CountsRes"
                 },
@@ -2390,6 +2398,9 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "string"
+                },
+                "isAuthorized": {
+                    "type": "boolean"
                 },
                 "isFollowing": {
                     "type": "boolean"

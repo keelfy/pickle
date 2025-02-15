@@ -17,25 +17,27 @@ type OrderService interface {
 	GetSortedByReceiverId(ctx context.Context, receiverId uuid.UUID, sort *types.CursorSort) ([]*db.Order, error)
 	UpdateOrderStatus(ctx context.Context, order *db.Order, status db.OrderStatus, initiatorUserID uuid.UUID) (*db.Order, error)
 	CreateOrder(ctx context.Context, userId uuid.UUID, req *types.CreateOrderReq) (*db.Order, error)
-	UpdateOrderByID(ctx context.Context, orderId uuid.UUID, initiator, receiver *db.Profile, req *types.OrderReq) (*db.Order, uuid.UUID, error)
+	UpdateOrderByID(ctx context.Context, orderID, userID uuid.UUID, req *types.OrderReq) (*db.Order, uuid.UUID, error)
 	GetPaginatedByGameNoteId(ctx context.Context, id uuid.UUID, pagination *types.Pagination) ([]*db.Order, error)
 	CountGameNotesById(ctx context.Context, id uuid.UUID) (int64, error)
 	CountOrdersByReceiverId(ctx context.Context, receiverId uuid.UUID) (int64, error)
 }
 
 type orderService struct {
-	sqlDb          storage.RelationalStorage
-	userService    ProfileService
-	ordererService OrdererService
-	contentService ContentService
+	sqlDb             storage.RelationalStorage
+	userService       ProfileService
+	ordererService    OrdererService
+	contentService    ContentService
+	permissionService PermissionService
 }
 
-func NewOrderService(sqlDb storage.RelationalStorage, userService ProfileService, ordererService OrdererService, contentService ContentService) OrderService {
+func NewOrderService(sqlDb storage.RelationalStorage, userService ProfileService, ordererService OrdererService, contentService ContentService, permissionService PermissionService) OrderService {
 	return &orderService{
-		sqlDb:          sqlDb,
-		userService:    userService,
-		ordererService: ordererService,
-		contentService: contentService,
+		sqlDb:             sqlDb,
+		userService:       userService,
+		ordererService:    ordererService,
+		contentService:    contentService,
+		permissionService: permissionService,
 	}
 }
 
@@ -118,14 +120,29 @@ func (service *orderService) CreateOrder(ctx context.Context, userId uuid.UUID, 
 	return createdOrder, nil
 }
 
-func (service *orderService) UpdateOrderByID(ctx context.Context, orderId uuid.UUID, initiator, receiver *db.Profile, req *types.OrderReq) (*db.Order, uuid.UUID, error) {
-	order, err := service.GetOrderById(ctx, orderId)
+func (service *orderService) UpdateOrderByID(ctx context.Context, orderID, userID uuid.UUID, req *types.OrderReq) (*db.Order, uuid.UUID, error) {
+	authUserID, err := utils.UserIdFromContext(ctx)
+	if err != nil {
+		return nil, uuid.Nil, errors.NewInternalServerError("failed to get user ID from context", err)
+	}
+
+	hasPermission, err := service.permissionService.HasPermission(ctx, userID, authUserID, types.ModeratorPermission)
+	if err != nil {
+		return nil, uuid.Nil, errors.NewInternalServerError("failed to check permission", err)
+	}
+
+	if !hasPermission {
+		return nil, uuid.Nil, errors.NewForbiddenError("User is not allowed to update the order", nil)
+	}
+
+	initiator, err := service.userService.GetProfileById(ctx, authUserID)
 	if err != nil {
 		return nil, uuid.Nil, err
 	}
 
-	if order.ReceiverID != receiver.UserID {
-		return nil, uuid.Nil, errors.NewForbiddenError("User is not allowed to update the order", nil)
+	order, err := service.GetOrderById(ctx, orderID)
+	if err != nil {
+		return nil, uuid.Nil, err
 	}
 
 	if order.Status != req.Status {

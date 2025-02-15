@@ -32,12 +32,14 @@ type gameNoteService struct {
 	ordererService       OrdererService
 	gameNoteOrderService GameNoteOrderService
 	posterService        PosterService
+	permissionService    PermissionService
 }
 
 func NewGameNoteService(
 	sqlDb storage.RelationalStorage, elastic storage.ElasticStorage, cache storage.CacheStorage,
 	userService ProfileService, ordererService OrdererService,
 	gameNoteOrderService GameNoteOrderService, posterService PosterService,
+	permissionService PermissionService,
 ) GameNoteService {
 	return &gameNoteService{
 		sqlDb:                sqlDb,
@@ -47,6 +49,7 @@ func NewGameNoteService(
 		ordererService:       ordererService,
 		gameNoteOrderService: gameNoteOrderService,
 		posterService:        posterService,
+		permissionService:    permissionService,
 	}
 }
 
@@ -108,16 +111,16 @@ func (service *gameNoteService) CreateOrderedGameNote(ctx context.Context, userI
 }
 
 func (service *gameNoteService) CreateGameNote(ctx context.Context, userID, creatorID uuid.UUID, req *types.GameNoteReq) (*db.GameNote, error) {
-	// TODO: moderators should be able to create game notes for other users
-	if userID != creatorID {
-		return nil, errors.NewForbiddenError("You are not allowed to create a game note for another user", nil)
+	hasPermission, err := service.permissionService.HasPermission(ctx, userID, creatorID, types.ModeratorPermission)
+	if err != nil {
+		return nil, errors.NewInternalServerError("Error occurred during permission check", err)
 	}
 
-	var (
-		posterKey *string
-		err       error
-	)
+	if !hasPermission {
+		return nil, errors.NewForbiddenError("You are not allowed to create a game note for this user", nil)
+	}
 
+	var posterKey *string
 	if req.Poster != nil && req.Poster.PreviewID != nil {
 		posterPreviewId := *req.Poster.PreviewID
 		posterKey, err = service.posterService.ConfirmS3PosterPreviewByID(ctx, posterPreviewId, "game-note")
@@ -199,7 +202,12 @@ func (service *gameNoteService) DeleteGameNoteById(ctx context.Context, id uuid.
 		return err
 	}
 
-	if gameNote.UserID != initiatorID {
+	hasPermission, err := service.permissionService.HasPermission(ctx, gameNote.UserID, initiatorID, types.ModeratorPermission)
+	if err != nil {
+		return errors.NewInternalServerError("Error occurred during permission check", err)
+	}
+
+	if !hasPermission {
 		return errors.NewForbiddenError("You are not allowed to delete this game note", nil)
 	}
 
@@ -253,7 +261,12 @@ func (service *gameNoteService) UpdateGameNoteById(ctx context.Context, id uuid.
 		return err
 	}
 
-	if gameNote.UserID != initiatorID {
+	hasPermission, err := service.permissionService.HasPermission(ctx, gameNote.UserID, initiatorID, types.ModeratorPermission)
+	if err != nil {
+		return errors.NewInternalServerError("Error occurred during permission check", err)
+	}
+
+	if !hasPermission {
 		return errors.NewForbiddenError("You are not allowed to update this game note", nil)
 	}
 

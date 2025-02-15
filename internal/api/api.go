@@ -31,13 +31,14 @@ type pickleAPI struct {
 	contentService    handlers.ContentHandler
 	collectionHandler handlers.CollectionHandler
 	tokenAuth         *jwtAuth.JWTAuth
+	moderatorHandler  handlers.ModeratorHandler
 }
 
 func NewPickleAPI(
 	profileHandler handlers.ProfileHandler, statusHandler handlers.StatusHandler, orderHandler handlers.OrderHandler,
 	gameNoteHandler handlers.GameNoteHandler, posterHandler handlers.PosterHandler,
 	migrationService services.MigrationService, contentService handlers.ContentHandler,
-	collectionHandler handlers.CollectionHandler,
+	collectionHandler handlers.CollectionHandler, moderatorHandler handlers.ModeratorHandler,
 ) PickleAPI {
 	return &pickleAPI{
 		profileHandler:    profileHandler,
@@ -48,6 +49,7 @@ func NewPickleAPI(
 		migrationService:  migrationService,
 		contentService:    contentService,
 		collectionHandler: collectionHandler,
+		moderatorHandler:  moderatorHandler,
 		tokenAuth:         jwtAuth.New("HS256", config.GetJWTSecret(), nil),
 	}
 }
@@ -257,6 +259,14 @@ func (api *pickleAPI) v1RouteHandler() http.Handler {
 
 					r.Post("/", api.collectionHandler.CreateCollection)
 				})
+			})
+
+			r.Route("/moderators", func(r chi.Router) {
+				api.useProtectedRoutes(r)
+
+				r.Post("/", api.moderatorHandler.AddModerator)
+				r.Get("/", api.moderatorHandler.GetModerators)
+				r.Delete("/{moderatorId}", api.moderatorHandler.DeleteModerator)
 			})
 		})
 	})

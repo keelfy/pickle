@@ -246,19 +246,18 @@ func (handler *gameNoteHandler) GetPosterImageURL(w http.ResponseWriter, r *http
 		return
 	}
 
-	var url *string
+	var imageUrl string
 
 	if note.PosterKey != nil && len(*note.PosterKey) > 0 {
-		imageUrl, err := handler.posterService.GetPosterImageURL(ctx, "game-note", size, *note.PosterKey, note.PosterUpdatedAt)
+		imageUrl, err = handler.posterService.GetPosterImageURL(ctx, "game-note", size, *note.PosterKey, note.PosterUpdatedAt)
 		if err != nil {
 			utils.HttpError(ctx, err, w)
 			return
 		}
-		url = &imageUrl
 	}
 
 	res := &types.ImageRes{
-		URL: url,
+		URL: imageUrl,
 	}
 	utils.WriteHttpJsonResponse(ctx, w, res)
 }

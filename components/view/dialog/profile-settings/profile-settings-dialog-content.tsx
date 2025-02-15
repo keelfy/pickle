@@ -1,48 +1,69 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { useModalStore } from "@/providers/modal";
 import {
     HandshakeIcon,
     LayoutGrid,
+    LightbulbIcon,
     MessageCircle,
     Settings,
     Shield
 } from "lucide-react";
 import React from "react";
+import { default as ProfileSettingsTabButton } from "./tab-button";
 import TabContent, { ProfileSettingsDialogTab } from "./tab-content";
+
+type Tab = {
+    value: ProfileSettingsDialogTab;
+    icon: React.ReactNode;
+    label: string;
+}
+
+const tabs: Tab[] = [
+    {
+        value: "general",
+        icon: <Settings />,
+        label: "General"
+    },
+    {
+        value: "security",
+        icon: <Shield />,
+        label: "Security"
+    },
+    {
+        value: "connections",
+        icon: <LayoutGrid />,
+        label: "Integrations"
+    },
+    {
+        value: "suggestions",
+        icon: <LightbulbIcon />,
+        label: "Suggestions"
+    },
+    {
+        value: "moderation",
+        icon: <HandshakeIcon />,
+        label: "Moderation"
+    },
+    {
+        value: "notifications",
+        icon: <MessageCircle />,
+        label: "Notifications"
+    }
+];
 
 export default function ProfileSettingsDialogContent() {
     const { modalParams, setModalParams } = useModalStore((state) => state);
-    const [tab, setTab] = React.useState<ProfileSettingsDialogTab>(
+    const [currentTab, setTab] = React.useState<ProfileSettingsDialogTab>(
         modalParams?.tab ?? "general"
     );
 
-    function TabButton({
-        forTab,
-        icon,
-        label,
-    }: {
-        forTab: ProfileSettingsDialogTab;
-        icon: React.ReactNode;
-        label: string;
-    }) {
-        return (
-            <Button
-                variant={forTab == tab ? "default" : "ghost"}
-                onClick={() => {
-                    setTab(forTab);
-                    setModalParams({ tab: forTab });
-                }}
-                className="w-full flex items-center justify-start gap-1 text-sm"
-            >
-                {icon}
-                {label}
-            </Button>
-        );
-    }
+    const handleTabClick = (tab: ProfileSettingsDialogTab) => {
+        setTab(tab);
+        setModalParams({ tab });
+    };
 
     return (
         <>
@@ -54,33 +75,18 @@ export default function ProfileSettingsDialogContent() {
             <Separator />
             <div className="flex space-x-6 p-6">
                 <div className="flex flex-col space-y-2">
-                    <TabButton
-                        forTab="general"
-                        icon={<Settings />}
-                        label="General"
-                    />
-                    <TabButton
-                        forTab="security"
-                        icon={<Shield />}
-                        label="Security"
-                    />
-                    <TabButton
-                        forTab="connections"
-                        icon={<LayoutGrid />}
-                        label="Integrations"
-                    />
-                    <TabButton
-                        forTab="moderation"
-                        icon={<HandshakeIcon />}
-                        label="Moderation"
-                    />
-                    <TabButton
-                        forTab="notifications"
-                        icon={<MessageCircle />}
-                        label="Notifications"
-                    />
+                    {tabs.map((tab) => (
+                        <ProfileSettingsTabButton
+                            key={tab.value}
+                            tab={tab.value}
+                            active={tab.value == currentTab}
+                            onClick={() => handleTabClick(tab.value)}
+                            icon={tab.icon}
+                            label={tab.label}
+                        />
+                    ))}
                 </div>
-                <TabContent tab={tab} />
+                <TabContent tab={currentTab} />
             </div>
         </>
     );

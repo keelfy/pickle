@@ -199,7 +199,6 @@ export default function OrderForm({ profile, myAvatarUrl, className }: Props) {
                                     <Checkbox
                                         checked={field.value}
                                         onCheckedChange={field.onChange}
-                                        disabled
                                     />
                                 </FormControl>
                                 <div className="space-y-1 leading-none">

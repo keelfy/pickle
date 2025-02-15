@@ -2,21 +2,25 @@ import LoadingSpinner from "@/components/ui/loading-spinner";
 import { fetchMyProfile } from "@/hooks/api-endpoints-server";
 import getUser from "@/hooks/getUser";
 import AuthStoreProvider from "@/providers/auth-store";
+import { PublicProfile } from "@/utils/api/types";
+import { User } from "@supabase/supabase-js";
 import React, { Suspense } from "react";
 
 async function getAuth() {
+    let user: User | undefined;
+    let profile: PublicProfile | undefined;
+
     try {
-        return await Promise.all([
-            getUser(),
-            fetchMyProfile()
-        ]);
+        user = await getUser();
+        if (user) profile = await fetchMyProfile();
+        return { user, profile };
     } catch (error) {
-        return [undefined, undefined];
+        return { user: undefined, profile: undefined };
     }
 }
 
 async function AuthorizedProvider({ children }: { children: React.ReactNode }) {
-    const [user, profile] = await getAuth();
+    const { user, profile } = await getAuth();
 
     return (
         <AuthStoreProvider profile={profile} user={user}>

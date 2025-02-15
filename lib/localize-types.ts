@@ -18,7 +18,7 @@ export const localizeContentCategory = (category: ContentCategory, multiple: boo
 }
 
 export const getTimeAgoText = (date: Date) => {
-    const diff = new Date().getTime() - date.getTime();
+    const diff = new Date().getTime() - new Date(date).getTime();
     const seconds = Math.floor(diff / 1000);
     const minutes = Math.floor(seconds / 60);
     const hours = Math.floor(minutes / 60);
@@ -27,24 +27,24 @@ export const getTimeAgoText = (date: Date) => {
     const years = Math.floor(months / 12);
 
     if (years > 0) {
-        return `${years} year${years > 1 ? "s" : ""} ago`;
+        return `${years} year${years > 1 ? "s" : ""}`;
     }
 
     if (months > 0) {
-        return `${months} month${months > 1 ? "s" : ""} ago`;
+        return `${months} month${months > 1 ? "s" : ""}`;
     }
 
     if (days > 0) {
-        return `${days} day${days > 1 ? "s" : ""} ago`;
+        return `${days} day${days > 1 ? "s" : ""}`;
     }
 
     if (hours > 0) {
-        return `${hours} hour${hours > 1 ? "s" : ""} ago`;
+        return `${hours} hour${hours > 1 ? "s" : ""}`;
     }
 
     if (minutes > 0) {
-        return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
+        return `${minutes} minute${minutes > 1 ? "s" : ""}`;
     }
 
-    return `${seconds} second${seconds > 1 ? "s" : ""} ago`;
+    return `${seconds} second${seconds > 1 ? "s" : ""}`;
 };

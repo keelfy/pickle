@@ -9,12 +9,20 @@ export type ProfileCounts = {
 
 export type Profile = {
     id: string;
-    createdAt: Date;
     username: string;
     link: string;
+    avatarUrl: string;
+}
+
+export type PublicProfile = Profile & {
     description: string | undefined;
-    counts?: ProfileCounts;
+    counts: ProfileCounts;
     isFollowing: boolean;
+    isAuthorized: boolean;
+}
+
+export type ModeratorProfile = Profile & {
+    addedAt: Date;
 };
 
 export type Image = {

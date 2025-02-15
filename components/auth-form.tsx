@@ -157,6 +157,7 @@ const AuthForm = ({ message, registration, className }: Props) => {
                                                 required
                                                 placeholder="mail@example.com"
                                                 type="email"
+                                                autoComplete="email"
                                                 {...field}
                                             />
                                         </FormControl>
@@ -188,6 +189,7 @@ const AuthForm = ({ message, registration, className }: Props) => {
                                                 required
                                                 placeholder="*****"
                                                 type="password"
+                                                autoComplete={registration ? "new-password" : "current-password"}
                                                 {...field}
                                             />
                                         </FormControl>

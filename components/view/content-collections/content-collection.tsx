@@ -1,8 +1,8 @@
 "use client";
 
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
-import { useAuthStore } from "@/providers/auth-store";
+import { useProfileStore } from "@/providers/profile-store";
 import { Collection, CollectionItem } from "@/utils/api/types";
 import React from "react";
 import AddCollectionElement from "./add-collection-element";
@@ -11,7 +11,6 @@ import CollectionHeaderLine from "./collection-header";
 import CollectionHeaderControls from "./collection-header-controls";
 import CollectionHeaderTitleButton from "./collection-header-title-button";
 import LoadMoreCollectionElement from "./load-more-collection-element";
-import { useProfileStore } from "@/providers/profile-store";
 
 type Props = {
     collection: Collection;
@@ -22,22 +21,19 @@ type Props = {
 export default function ContentCollection({ collection, items, hasMoreItems }: Props) {
     const [collapsed, setCollapsed] = React.useState(false);
     const toggleCollapsed = () => setCollapsed(!collapsed);
-    const user = useAuthStore((state) => state.user);
     const profile = useProfileStore((state) => state.profile);
 
-    const isUserAuthorized = React.useMemo(() => {
-        return user?.id !== undefined && profile?.id === user?.id;
-    }, [profile?.id, user?.id]);
-
     return (
-        <div className="flex flex-col">
+        <Collapsible open={!collapsed}>
             <CollectionHeaderLine
                 leftSide={
-                    <CollectionHeaderTitleButton
-                        name={collection.name}
-                        totalItems={items.length}
-                        onClick={toggleCollapsed}
-                    />
+                    <div className="flex items-center gap-1">
+                        <CollectionHeaderTitleButton
+                            name={collection.name}
+                            onClick={toggleCollapsed}
+                        />
+                        <span className="text-sm text-muted-foreground">({items.length})</span>
+                    </div>
                 }
                 rightSide={
                     <CollectionHeaderControls
@@ -47,16 +43,18 @@ export default function ContentCollection({ collection, items, hasMoreItems }: P
                     />
                 }
             />
-            <ScrollArea className={cn("max-w-[848px] w-full whitespace-nowrap", collapsed && "hidden")}>
-                <div className="flex items-start gap-2 pb-3 pt-1 pl-1">
-                    {isUserAuthorized && <AddCollectionElement collection={collection} className="flex-shrink-0" />}
-                    {items.map((item) => (
-                        <CollectionElement key={item.id} item={item} className="flex-shrink-0" />
-                    ))}
-                    {hasMoreItems && <LoadMoreCollectionElement collectionId={collection.id} className="flex-shrink-0" />}
-                </div>
-                <ScrollBar orientation="horizontal" />
-            </ScrollArea>
-        </div>
+            <CollapsibleContent>
+                <ScrollArea className="max-w-[848px] w-full whitespace-nowrap">
+                    <div className="flex items-start gap-2 pb-3 pt-1 pl-1">
+                        {profile.isAuthorized && <AddCollectionElement collection={collection} className="flex-shrink-0" />}
+                        {items.map((item) => (
+                            <CollectionElement key={item.id} item={item} className="flex-shrink-0" />
+                        ))}
+                        {hasMoreItems && <LoadMoreCollectionElement collectionId={collection.id} className="flex-shrink-0" />}
+                    </div>
+                    <ScrollBar orientation="horizontal" />
+                </ScrollArea>
+            </CollapsibleContent>
+        </Collapsible>
     )
 }

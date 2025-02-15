@@ -44,8 +44,7 @@ export default function GeneralSettingsTab() {
     const [isLoading, startTransition] = React.useTransition();
     const [isLinkValidating, setLinkValidating] = React.useState(false);
 
-    const [avatarUrl, setAvatarUrl] = React.useState<string>("");
-    const [isAvatarLoading, startAvatarLoading] = React.useTransition();
+    const [avatarUrl, setAvatarUrl] = React.useState<string>(profile?.avatarUrl ?? "");
 
     const [isAvatarUploading, startAvatarUpload] = React.useTransition();
     const avatarInputRef = React.useRef<HTMLInputElement>(null);
@@ -90,17 +89,16 @@ export default function GeneralSettingsTab() {
 
     React.useEffect(() => {
         resetForm();
+        if (!profile?.id) return;
 
-        if (profile?.id) {
-            startAvatarLoading(async () => {
-                try {
-                    const res = await fetchMyAvatar('lg');
-                    setAvatarUrl(res?.url ?? "");
-                } catch (error: any) {
-                    setAvatarUrl("");
-                }
-            });
-        }
+        (async () => {
+            try {
+                const res = await fetchMyAvatar('lg');
+                setAvatarUrl(res?.url ?? "");
+            } catch (error: any) {
+                setAvatarUrl("");
+            }
+        })();
     }, [profile?.id]);
 
     React.useEffect(() => {
@@ -141,7 +139,6 @@ export default function GeneralSettingsTab() {
             const file = files[0];
 
             startAvatarUpload(async () => {
-                // Create FormData
                 const formData = new FormData();
                 formData.append("file", file);
 

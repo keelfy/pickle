@@ -21,7 +21,7 @@ async function LayoutBody({
 }: React.PropsWithChildren<Props>) {
     const { link } = await params;
 
-    const ownerProfile = await fetchProfileByLink(link).catch(
+    const ownerProfile = await fetchProfileByLink(link, 'lg').catch(
         (error: any) => error.message
     );
 

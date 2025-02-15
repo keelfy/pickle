@@ -1,7 +1,6 @@
 "use client";
 
 import { fetchProfileOrders } from "@/hooks/api-endpoints-client";
-import { useAuthStore } from "@/providers/auth-store";
 import { useProfileStore } from "@/providers/profile-store";
 import { Order } from "@/utils/api/types";
 import React from "react";
@@ -13,10 +12,7 @@ type Props = {
 };
 
 export default function OrdersDataTable({ placeholder }: Props) {
-    const { user } = useAuthStore((state) => state);
     const profile = useProfileStore((state) => state.profile);
-    const isUserAuthorized: boolean =
-        user?.id !== null && user?.id !== undefined && user?.id === profile?.id;
 
     const [orders, setOrders] = React.useState<Order[]>([]);
     const [cursor, setCursor] = React.useState<string>(
@@ -25,23 +21,19 @@ export default function OrdersDataTable({ placeholder }: Props) {
 
     React.useEffect(() => {
         if (!profile) return
-
-        const fetchOrders = async () => {
+        (async () => {
             try {
                 const orders = await fetchProfileOrders(profile, cursor, 'created_at', 10, 'desc');
                 setOrders(orders ?? []);
             } catch (error: any) {
                 console.log(error);
             }
-        };
-        fetchOrders();
-        const intervalId = setInterval(fetchOrders, 5000);
-        return () => clearInterval(intervalId);
+        })();
     }, [profile?.id]);
 
     return (
         <DataTable
-            columns={getOrderTableColumns(isUserAuthorized)}
+            columns={getOrderTableColumns(profile?.isAuthorized ?? false)}
             data={orders}
             placeholder={placeholder}
         />

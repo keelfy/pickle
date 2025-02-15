@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/popover";
 import { useDebounce } from "@/hooks/use-debounce";
 import { cn } from "@/lib/utils";
+import { ImagePreview } from "@/utils/api/types";
 import { PopoverClose } from "@radix-ui/react-popover";
 import { cva, VariantProps } from "class-variance-authority";
 import { ImageIcon, TrashIcon, X } from "lucide-react";

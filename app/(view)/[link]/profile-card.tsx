@@ -5,31 +5,21 @@ import { SiX } from "@icons-pack/react-simple-icons";
 
 import { SiYoutube } from "@icons-pack/react-simple-icons";
 
-import ProfileAvatarServer from "@/components/profile-avatar-server";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import ProfileAvatar from "@/components/profile-avatar";
 import { Button } from "@/components/ui/button";
+import { getShortenedCount } from "@/lib/count-shortener";
 import { cn } from "@/lib/utils";
+import { PublicProfile } from "@/utils/api/types";
 import { SiTwitch } from "@icons-pack/react-simple-icons";
 import { Gamepad } from "lucide-react";
 import Link from "next/link";
-import { Suspense } from "react";
-import AuthorizedProfileElement from "./authorized-profile-element";
 import { FollowButton } from "./follow-button";
 import ManualCreationDropdownMenu from "./manual-creation-dropdown-menu";
 import SuggestionLinkCopyButton from "./suggestion-link-copy-button";
-import { Profile } from "@/utils/api/types";
 
 type Props = {
-    profile: Profile;
+    profile: PublicProfile;
     className?: string;
-}
-
-const getFollowersCountText = (count: number) => {
-    if (count === 0) return "0";
-    if (count < 1000) return count;
-    if (count < 10000) return `${(count / 1000).toFixed(1)}k`;
-    if (count < 1000000) return `${(count / 1000).toFixed(0)}k`;
-    return `${(count / 1000000).toFixed(1)}M`;
 }
 
 export default function ProfileCard({ profile, className }: Props) {
@@ -38,7 +28,7 @@ export default function ProfileCard({ profile, className }: Props) {
             <div className="space-y-4">
                 <div className="space-y-0.5">
                     <div className="text-3xl font-bold">
-                        {profile?.username}
+                        {profile.username}
                     </div>
                     <div className="flex items-center gap-2 text-sm">
                         <div>
@@ -48,22 +38,12 @@ export default function ProfileCard({ profile, className }: Props) {
                             &bull;
                         </div>
                         <div>
-                            {getFollowersCountText(profile?.counts?.followers ?? 0)} followers
+                            {getShortenedCount(profile.counts?.followers ?? 0)} followers
                         </div>
                     </div>
                 </div>
                 <div className="flex items-center gap-6 pl-4">
-                    <Suspense
-                        fallback={
-                            <Avatar className="h-32 w-32">
-                                <AvatarFallback>
-                                    {profile?.link.substring(0, 1)}
-                                </AvatarFallback>
-                            </Avatar>
-                        }
-                    >
-                        <ProfileAvatarServer profile={profile} className="h-36 w-36" />
-                    </Suspense>
+                    <ProfileAvatar avatarUrl={profile.avatarUrl} size="lg" className="h-36 w-36" />
                     <div className="flex flex-col gap-3 w-full">
                         <table className="w-min border-separate border-spacing-x-2">
                             <tbody>
@@ -118,13 +98,13 @@ export default function ProfileCard({ profile, className }: Props) {
                     </Link>
                     <SuggestionLinkCopyButton className="rounded-l-none" />
                 </div>
-                <AuthorizedProfileElement className="flex items-center">
+                <div className={cn("flex items-center", !profile.isAuthorized && "hidden")}>
                     <Button variant="secondary" className="w-full rounded-r-none">
                         <ShieldPlusIcon />
                         Add a title manually
                     </Button>
                     <ManualCreationDropdownMenu className="rounded-l-none" />
-                </AuthorizedProfileElement>
+                </div>
             </div>
             <div className="rounded-xl bg-primary-foreground p-6 text-sm text-muted-foreground">
                 {(profile?.description ?? "").length > 0 ? (

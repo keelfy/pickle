@@ -12,45 +12,11 @@ import {
     Shield
 } from "lucide-react";
 import React from "react";
-import GeneralSettingsTab from "./general-settings-tab";
-import ModerationTab from "./moderation-tab";
-import SecuritySettingsTab from "./security-settings-tab";
-
-type SettingsTab =
-    | "general"
-    | "security"
-    | "notifications"
-    | "moderation"
-    | "connections";
-
-function TabContent({ tab }: { tab: SettingsTab }) {
-    switch (tab) {
-        case "general":
-            return <GeneralSettingsTab />;
-        case "security":
-            return <SecuritySettingsTab />;
-        case "connections":
-            return <ConnectionsTab />;
-        case "moderation":
-            return <ModerationTab />;
-        case "notifications":
-            return <NotificationsTab />;
-    }
-
-    return <div>Tab content</div>;
-}
-
-function ConnectionsTab() {
-    return <div>Connections tab</div>;
-}
-
-function NotificationsTab() {
-    return <div>Notifications tab</div>;
-}
+import TabContent, { ProfileSettingsDialogTab } from "./tab-content";
 
 export default function ProfileSettingsDialogContent() {
     const { modalParams, setModalParams } = useModalStore((state) => state);
-    const [tab, setTab] = React.useState<SettingsTab>(
+    const [tab, setTab] = React.useState<ProfileSettingsDialogTab>(
         modalParams?.tab ?? "general"
     );
 
@@ -59,7 +25,7 @@ export default function ProfileSettingsDialogContent() {
         icon,
         label,
     }: {
-        forTab: SettingsTab;
+        forTab: ProfileSettingsDialogTab;
         icon: React.ReactNode;
         label: string;
     }) {

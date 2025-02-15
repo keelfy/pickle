@@ -11,13 +11,13 @@ import { getTimeAgoText } from "@/lib/localize-types";
 import { cn } from "@/lib/utils";
 import { useProfileStore } from "@/providers/profile-store";
 import { Paginated } from "@/utils/api/response";
-import { Order, Profile } from "@/utils/api/types";
+import { Order, PublicProfile } from "@/utils/api/types";
 import { ChevronLeftIcon } from "lucide-react";
 import React from "react";
 
 type Props = {
     noteId: string;
-    fetchOrders: (profile: Profile, noteId: string, page: number, size: number) => Promise<Paginated<Order>>;
+    fetchOrders: (profile: PublicProfile, noteId: string, page: number, size: number) => Promise<Paginated<Order>>;
     className?: string;
 }
 
@@ -82,11 +82,13 @@ export const NoteDialogOrdersSection = ({ noteId, fetchOrders, className }: Prop
                                         <td className="text-muted-foreground">
                                             <Tooltip>
                                                 <TooltipTrigger>
-                                                    {getTimeAgoText(
-                                                        new Date(
-                                                            order.createdAt
-                                                        )
-                                                    )}
+                                                    <p>
+                                                        {getTimeAgoText(
+                                                            new Date(
+                                                                order.createdAt
+                                                            )
+                                                        )} ago
+                                                    </p>
                                                 </TooltipTrigger>
                                                 <TooltipContent>
                                                     {new Date(

@@ -1,11 +1,12 @@
 import LanguageDropdownMenu from "@/components/language-dropdown-menu";
-import ProfileAvatarServer from "@/components/profile-avatar-server";
+import ProfileAvatar from "@/components/profile-avatar";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Card, CardDescription } from "@/components/ui/card";
 import { fetchMyAvatar, fetchProfileByLink } from "@/hooks/api-endpoints-server";
 import getUser from "@/hooks/getUser";
+import { getShortenedCount } from "@/lib/count-shortener";
 import { cn } from "@/lib/utils";
-import { Profile } from "@/utils/api/types";
+import { PublicProfile } from "@/utils/api/types";
 import Link from "next/link";
 import { Suspense } from "react";
 import OrderForm from "./order-form";
@@ -15,17 +16,9 @@ export type Props = {
     params: Promise<{ link: string }>;
 }
 
-const getFollowersCountText = (count: number) => {
-    if (count === 0) return "0";
-    if (count < 1000) return count;
-    if (count < 10000) return `${(count / 1000).toFixed(1)}k`;
-    if (count < 1000000) return `${(count / 1000).toFixed(0)}k`;
-    return `${(count / 1000000).toFixed(1)}M`;
-}
-
-async function OrderFormCard({ profile, className }: { profile: Profile, className?: string }) {
+async function OrderFormCard({ profile, className }: { profile: PublicProfile, className?: string }) {
     const user = await getUser();
-    const myAvatarUrl = user ? await fetchMyAvatar().catch(() => undefined) : undefined;
+    const myAvatarUrl = user ? await fetchMyAvatar('sm').catch(() => undefined) : undefined;
     return (
         <Card className={cn("flex flex-col items-center gap-4 max-w-2xl shadow-lg", className)}>
             <OrderForm profile={profile} myAvatarUrl={myAvatarUrl?.url} className="p-6 max-w-2xl" />
@@ -63,7 +56,11 @@ export default async function SuggestPage({ params }: Props) {
                         <Suspense fallback={(
                             <div className="h-24 w-24 rounded-full bg-muted-foreground/10 animate-pulse" />
                         )}>
-                            <ProfileAvatarServer profile={profile} size="lg" className="h-24 w-24 hover:opacity-80 transition-opacity" />
+                            <ProfileAvatar
+                                avatarUrl={profile.avatarUrl}
+                                size="lg"
+                                className="h-24 w-24 hover:opacity-80 transition-opacity"
+                            />
                         </Suspense>
                     </Link>
                     <div className="space-y-2">
@@ -79,7 +76,7 @@ export default async function SuggestPage({ params }: Props) {
                                     &bull;
                                 </div>
                                 <div>
-                                    {getFollowersCountText(profile?.counts?.followers ?? 0)} followers
+                                    {getShortenedCount(profile?.counts?.followers ?? 0)} followers
                                 </div>
                             </div>
                         </div>

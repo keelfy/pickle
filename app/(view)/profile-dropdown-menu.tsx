@@ -1,4 +1,4 @@
-import ProfileAvatarServer from "@/components/profile-avatar-server";
+import ProfileAvatar from "@/components/profile-avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +18,7 @@ import DropdownMenuDialogWrapper from "@/components/view/dialog/dropdown-menu-di
 import ProfileSettingsDialog from "@/components/view/dialog/profile-settings/profile-settings-dialog";
 import { fetchMyProfile } from "@/hooks/api-endpoints-server";
 import getUser from "@/hooks/getUser";
+import { cn } from "@/lib/utils";
 import { ModalType } from "@/stores/modal";
 import { MessageCircle, Moon, Settings, User } from "lucide-react";
 import Link from "next/link";
@@ -25,7 +26,6 @@ import OpenModalDropdownMenuItem from "./[link]/open-modal-dropdown-menu-item";
 import LoggedOutProfileNavSection from "./logged-out-nav-menu-button";
 import ProfileDropdownThemeRadioGroup from "./profile-dropdown-theme-radio-group";
 import DropdownMenuSignOutItem from "./sign-out-button";
-import { cn } from "@/lib/utils";
 
 type Props = {
     className?: string;
@@ -39,7 +39,7 @@ export default async function ProfileDropdownMenu({ className, avatarSize = "md"
         return <LoggedOutProfileNavSection />;
     }
 
-    const profile = await fetchMyProfile().catch(() => undefined);
+    const profile = await fetchMyProfile(avatarSize).catch(() => undefined);
 
     return (
         <DropdownMenuDialogWrapper>
@@ -47,7 +47,7 @@ export default async function ProfileDropdownMenu({ className, avatarSize = "md"
                 <DropdownMenuTrigger
                     className="hover:opacity-80 transition-opacity cursor-pointer"
                 >
-                    <ProfileAvatarServer profile={profile} size={avatarSize} className={cn("w-12 h-12", className)} />
+                    <ProfileAvatar avatarUrl={profile?.avatarUrl} size={avatarSize} className={cn("w-12 h-12", className)} />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                     <DropdownMenuLabel className="flex flex-col gap-4">

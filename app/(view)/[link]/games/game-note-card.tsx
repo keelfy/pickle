@@ -14,7 +14,8 @@ import { GameNote, Reaction } from "@/utils/api/types";
 import {
     EllipsisIcon,
     History,
-    PencilIcon,
+    PencilLineIcon,
+    Settings2Icon,
     TextIcon,
     TrashIcon,
     UserPlus2
@@ -150,7 +151,7 @@ export default function GameNoteCard({ note, defaultReactions }: Props) {
                                 <TextIcon />
                                 Details
                             </Button>
-                            {profile?.id === user?.id && user?.id && (
+                            {profile.isAuthorized && (
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <Button variant="ghost">
@@ -159,9 +160,13 @@ export default function GameNoteCard({ note, defaultReactions }: Props) {
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="start">
+                                        <DropdownMenuItem className="cursor-pointer">
+                                            <PencilLineIcon />
+                                            Rename
+                                        </DropdownMenuItem>
                                         <DropdownMenuItem className="cursor-pointer" onClick={openGameNoteEditor}>
-                                            <PencilIcon />
-                                            Edit
+                                            <Settings2Icon />
+                                            Edit details
                                         </DropdownMenuItem>
                                         <DropdownMenuItem disabled className="cursor-not-allowed text-muted-foreground">
                                             <TextIcon />

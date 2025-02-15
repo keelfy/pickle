@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/providers/auth-store";
 import { contentCategoryLabels } from "@/utils/api/constants";
 import { CreateOrderReq } from "@/utils/api/request";
-import { ContentCategory, Profile } from "@/utils/api/types";
+import { ContentCategory, PublicProfile } from "@/utils/api/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DollarSignIcon, SendIcon } from "lucide-react";
 import Link from "next/link";
@@ -29,7 +29,7 @@ import AuthSuggestSection from "./auth-section";
 import OrderSenderName from "./order-sender-name";
 
 type Props = {
-    profile: Profile;
+    profile: PublicProfile;
     myAvatarUrl?: string;
     className?: string;
 }

@@ -18,7 +18,6 @@ type Props = {
 }
 
 export default function CollectionHeaderControls({ toggleCollapsed, collapsed, collection }: Props) {
-    const user = useAuthStore((state) => state.user);
     const profile = useProfileStore((state) => state.profile);
     const openModal = useModalStore((state) => state.openModal);
 
@@ -42,7 +41,7 @@ export default function CollectionHeaderControls({ toggleCollapsed, collapsed, c
             <Button variant="ghost" size="icon" onClick={toggleCollapsed}>
                 <ChevronDownIcon className={cn("transition-transform duration-300", collapsed && "rotate-90")} />
             </Button>
-            {user?.id !== undefined && user?.id === profile?.id && (
+            {profile.isAuthorized && (
                 <>
                     <Button variant="ghost" size="icon" onClick={handleEditClick}>
                         <PencilIcon />

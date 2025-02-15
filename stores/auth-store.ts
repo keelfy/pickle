@@ -1,16 +1,16 @@
-import { Profile } from '@/utils/api/types';
+import { PublicProfile } from '@/utils/api/types';
 import { User } from '@supabase/supabase-js';
 import { createStore } from 'zustand';
 import { devtools } from 'zustand/middleware';
 
 type Actions = {
-    updateProfile: (profile: Profile) => void
+    updateProfile: (profile: PublicProfile) => void
     updateUser: (user: User) => void
     clearUser: () => void
 }
 
 type State = {
-    profile: Profile | undefined;
+    profile: PublicProfile | undefined;
     user: User | undefined;
 };
 

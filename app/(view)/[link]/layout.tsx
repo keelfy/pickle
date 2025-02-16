@@ -14,45 +14,35 @@ import DenyOrderDialog from "../../../components/view/dialog/deny-order/deny-ord
 import ProfileSearchDialog from "../../../components/view/dialog/profile-search/profile-search-dialog";
 import NavMenu from "./navbar-menu";
 import ProfileCard from "./profile-card";
+import { Metadata } from "next";
 
-async function LayoutBody({
-    children,
-    params,
-}: React.PropsWithChildren<Props>) {
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { link } = await params;
 
-    const ownerProfile = await fetchProfileByLink(link, 'lg').catch(
+    const profile = await fetchProfileByLink(link, 'lg').catch(
         (error: any) => error.message
     );
 
-    if (!ownerProfile || typeof ownerProfile === "string") {
-        return (
-            <div className="flex flex-col space-y-2 items-center justify-center h-full text-center">
-                <p className="font-semibold text-lg">Profile not found.</p>
-                <p className="text-red-300">{ownerProfile}</p>
-            </div>
-        );
+    if (!profile || typeof profile === "string") {
+        return {
+            title: 'Profile not found - pickle'
+        };
     }
 
-    return (
-        <ProfileStoreProvider profile={ownerProfile}>
-            <div className="flex gap-10">
-                <ProfileCard profile={ownerProfile} className="w-min h-fit hidden md:block" />
-
-                <div className="flex-0 w-full">
-                    <Suspense>{children}</Suspense>
-                </div>
-            </div>
-
-            <DenyOrderDialog />
-            <ApproveOrderDialog />
-            <GameNoteDialog />
-            <GameNoteEditorDialog />
-            <ProfileSearchDialog />
-            <CreateOrderDialog />
-            <DeleteContentAlertDialog />
-        </ProfileStoreProvider>
-    );
+    return {
+        title: `${profile.username} - pickle`,
+        description: `${profile.username} on pickle.pw with the content they want to share`,
+        openGraph: {
+            type: 'profile',
+            title: `${profile.username} - pickle`,
+            url: `https://pickle.pw/${profile.link}`,
+            description: `${profile.username} on pickle.pw with the content they want to share`,
+            siteName: 'pickle',
+            images: [
+                { url: profile.avatarUrl }
+            ]
+        }
+    };
 }
 
 export type Props = {
@@ -61,7 +51,28 @@ export type Props = {
     }>;
 };
 
-function RootLayout({ children, params }: React.PropsWithChildren<Props>) {
+export default async function RootLayout({ children, params }: React.PropsWithChildren<Props>) {
+    const { link } = await params;
+
+    const ownerProfile = await fetchProfileByLink(link, 'lg').catch(
+        (error: any) => error.message
+    );
+
+    if (!ownerProfile || typeof ownerProfile === "string") {
+        return (
+            <div className="h-screen w-full px-4 flex items-center justify-center">
+                <div className="flex flex-col gap-4 items-center">
+                    <p className="text-xl font-medium">
+                        The profile you are looking for does not exist.
+                    </p>
+                    <p className="text-destructive">
+                        {ownerProfile ?? "Unknown error"}
+                    </p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <main className="min-h-screen bg-background grid gap-10">
             <div className="container max-w-7xl flex flex-col gap-10">
@@ -71,11 +82,25 @@ function RootLayout({ children, params }: React.PropsWithChildren<Props>) {
                     </Suspense>
                 </nav>
 
-                <Suspense>
-                    <OrderStoreProvider>
-                        <LayoutBody params={params}>{children}</LayoutBody>
-                    </OrderStoreProvider>
-                </Suspense>
+                <OrderStoreProvider>
+                    <ProfileStoreProvider profile={ownerProfile}>
+                        <div className="flex gap-10">
+                            <ProfileCard profile={ownerProfile} className="w-min h-fit hidden md:block" />
+
+                            <div className="flex-0 w-full">
+                                <Suspense>{children}</Suspense>
+                            </div>
+                        </div>
+
+                        <DenyOrderDialog />
+                        <ApproveOrderDialog />
+                        <GameNoteDialog />
+                        <GameNoteEditorDialog />
+                        <ProfileSearchDialog />
+                        <CreateOrderDialog />
+                        <DeleteContentAlertDialog />
+                    </ProfileStoreProvider>
+                </OrderStoreProvider>
             </div>
             <footer className="flex items-center justify-center border-t text-center text-xs py-6 h-fit">
                 <div className="flex flex-col items-center gap-2">
@@ -104,5 +129,3 @@ function RootLayout({ children, params }: React.PropsWithChildren<Props>) {
         </main>
     );
 }
-
-export default RootLayout;

@@ -4,9 +4,39 @@ import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Card, CardDescription } from "@/components/ui/card";
 import { fetchProfileByLink } from "@/hooks/api-endpoints-server";
 import { getShortenedCount } from "@/lib/count-shortener";
+import { Metadata } from "next";
 import Link from "next/link";
 import OrderForm from "./order-form";
 import OrdersDisabledSection from "./orders-disabled-section";
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+    const { link } = await params;
+
+    const profile = await fetchProfileByLink(link, 'lg').catch(
+        (error: any) => error.message
+    );
+
+    if (!profile || typeof profile === "string") {
+        return {
+            title: 'Profile not found - pickle'
+        };
+    }
+
+    return {
+        title: `Suggest for ${profile.username} - pickle`,
+        description: `Suggest content for ${profile.username} on pickle.pw`,
+        openGraph: {
+            type: 'website',
+            title: `Suggest for ${profile.username} - pickle`,
+            url: `https://pickle.pw/suggest/${profile.link}`,
+            description: `Suggest content for ${profile.username} on pickle.pw`,
+            siteName: 'pickle',
+            images: [
+                { url: profile.avatarUrl }
+            ]
+        }
+    };
+}
 
 export type Props = {
     params: Promise<{ link: string }>;
@@ -19,16 +49,16 @@ export default async function SuggestPage({ params }: Props) {
         return undefined;
     })
 
-    if (!profile) {
+    if (!profile || typeof profile === "string") {
         return (
             <div className="h-screen w-full px-4 flex items-center justify-center">
                 <div className="flex flex-col gap-4 items-center">
-                    <div className="text-2xl font-medium">
-                        404 Profile not found
-                    </div>
-                    <div className="text-sm text-muted-foreground">
+                    <p className="text-xl font-medium">
                         The profile you are looking for does not exist.
-                    </div>
+                    </p>
+                    <p className="text-destructive">
+                        {profile ?? "Unknown error"}
+                    </p>
                 </div>
             </div>
         );

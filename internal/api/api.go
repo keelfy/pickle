@@ -199,6 +199,7 @@ func (api *pickleAPI) v1RouteHandler() http.Handler {
 
 						r.Delete("/", api.gameNoteHandler.DeleteGameNote)
 						r.Patch("/", api.gameNoteHandler.UpdateGameNote)
+						r.Patch("/name", api.gameNoteHandler.UpdateGameNoteName)
 					})
 
 					r.Route("/reactions", func(r chi.Router) {

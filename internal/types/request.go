@@ -48,6 +48,16 @@ func (req *UpdateProfileReq) Validate() error {
 	)
 }
 
+type GameNoteNameReq struct {
+	Name string `json:"name"`
+}
+
+func (req *GameNoteNameReq) Validate() error {
+	return validation.ValidateStruct(req,
+		validation.Field(&req.Name, validation.Required, validation.Length(1, 100)),
+	)
+}
+
 type GameNoteReq struct {
 	Name         string            `json:"name"`
 	Link         *string           `json:"link"`

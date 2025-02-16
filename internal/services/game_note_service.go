@@ -9,6 +9,7 @@ import (
 	"github.com/pickle.pw/monolith/internal/logger"
 	"github.com/pickle.pw/monolith/internal/storage"
 	"github.com/pickle.pw/monolith/internal/types"
+	"github.com/pickle.pw/monolith/internal/utils"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -21,7 +22,7 @@ type GameNoteService interface {
 	CountPlayedByUserId(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountOrdersByGameNoteId(ctx context.Context, gameNoteId uuid.UUID) (int64, error)
 	DeleteGameNoteById(ctx context.Context, id uuid.UUID, initiatorID uuid.UUID, resetApprovedOrders bool) error
-	UpdateGameNoteById(ctx context.Context, id uuid.UUID, req *types.GameNoteReq, initiatorID uuid.UUID) error
+	UpdateGameNoteByID(ctx context.Context, gameNote *db.GameNote, req *types.GameNoteReq) error
 }
 
 type gameNoteService struct {
@@ -255,13 +256,13 @@ func (service *gameNoteService) DeleteGameNoteById(ctx context.Context, id uuid.
 	return nil
 }
 
-func (service *gameNoteService) UpdateGameNoteById(ctx context.Context, id uuid.UUID, req *types.GameNoteReq, initiatorID uuid.UUID) error {
-	gameNote, err := service.GetById(ctx, id)
+func (service *gameNoteService) UpdateGameNoteByID(ctx context.Context, gameNote *db.GameNote, req *types.GameNoteReq) error {
+	authUserID, err := utils.UserIdFromContext(ctx)
 	if err != nil {
-		return err
+		return errors.NewInternalServerError("Error occurred during user ID extraction", err)
 	}
 
-	hasPermission, err := service.permissionService.HasPermission(ctx, gameNote.UserID, initiatorID, types.ModeratorPermission)
+	hasPermission, err := service.permissionService.HasPermission(ctx, gameNote.UserID, authUserID, types.ModeratorPermission)
 	if err != nil {
 		return errors.NewInternalServerError("Error occurred during permission check", err)
 	}
@@ -281,8 +282,8 @@ func (service *gameNoteService) UpdateGameNoteById(ctx context.Context, id uuid.
 	}
 
 	err = service.sqlDb.Queries().UpdateGameNoteById(ctx, db.UpdateGameNoteByIdParams{
-		ID:           id,
-		UpdatedBy:    initiatorID,
+		ID:           gameNote.ID,
+		UpdatedBy:    authUserID,
 		Name:         req.Name,
 		Link:         req.Link,
 		ReleaseDate:  req.ReleaseDate,

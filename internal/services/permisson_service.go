@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"errors"
 
 	"github.com/google/uuid"
 	"github.com/pickle.pw/monolith/internal/types"
@@ -23,12 +22,13 @@ func NewPermissionService(moderatorService ModeratorService) PermissionService {
 func (s *permissionService) HasPermission(ctx context.Context, ownerID, userID uuid.UUID, permission types.Permission) (bool, error) {
 	switch permission {
 	case types.ModeratorPermission:
+		if ownerID == userID {
+			return true, nil
+		}
 		return s.moderatorService.IsModeratorOf(ctx, ownerID, userID)
-	case types.OnlyOwnerPermission:
-		return ownerID == userID, nil
 	case types.AnyonePermission:
 		return true, nil
+	default:
+		return ownerID == userID, nil
 	}
-
-	return false, errors.New("invalid permission")
 }

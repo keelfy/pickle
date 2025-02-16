@@ -15,10 +15,11 @@ type Props = {
     onUsernameChange: (username: string) => void;
     onAnonymouslyChange: (isAnonymously: boolean) => void;
     isAnonymously: boolean;
+    allowedAnonymously: boolean;
     username: string | undefined;
 }
 
-export default function OrderSenderName({ className, avatarUrl, onUsernameChange, onAnonymouslyChange, isAnonymously, username }: Props) {
+export default function OrderSenderName({ className, avatarUrl, onUsernameChange, onAnonymouslyChange, isAnonymously, allowedAnonymously, username }: Props) {
     const myProfile = useAuthStore(state => state.profile);
     const [isEditing, setIsEditing] = React.useState<boolean>(false);
     const [typedName, setTypedName] = React.useState<string>(myProfile?.username ?? "");
@@ -73,18 +74,21 @@ export default function OrderSenderName({ className, avatarUrl, onUsernameChange
                                     handleBlur();
                                 }
                             }}
-                            disabled={isAnonymously}
+                            disabled={!allowedAnonymously ? false : isAnonymously}
                         />
-                        <div className="absolute inset-y-0 right-3 flex items-center gap-2">
-                            <label htmlFor="anonymously" className="text-sm text-muted-foreground">
-                                Anonymously?
-                            </label>
-                            <Switch
-                                id="anonymously"
-                                checked={isAnonymously}
-                                onCheckedChange={onAnonymouslyChange}
-                            />
-                        </div>
+                        {allowedAnonymously && (
+                            <div className="absolute inset-y-0 right-3 flex items-center gap-2">
+                                <label htmlFor="anonymously" className="text-sm text-muted-foreground">
+                                    Anonymously?
+                                </label>
+                                <Switch
+                                    id="anonymously"
+                                    checked={!allowedAnonymously ? false : isAnonymously}
+                                    onCheckedChange={onAnonymouslyChange}
+                                    disabled={!allowedAnonymously}
+                                />
+                            </div>
+                        )}
                     </div>
                     <Button variant="ghost" size="icon" className="ml-2" onClick={handleBlur}>
                         <span className="sr-only">Save</span>
@@ -100,7 +104,7 @@ export default function OrderSenderName({ className, avatarUrl, onUsernameChange
                     onClick={handleClick}
                 >
                     <div className={cn(username !== myProfile?.username && !isAnonymously && "italic", "underline decoration-dashed decoration-muted-foreground")}>
-                        {isAnonymously ? "Send anonymously" : username}
+                        {isAnonymously ? "Send anonymously" : (username?.length == 0 ? "Someone" : username)}
                     </div>
                     <EditIcon size='1rem' />
                 </Button>

@@ -12,7 +12,7 @@ async function getAuth() {
 
     try {
         user = await getUser();
-        if (user) profile = await fetchMyProfile();
+        if (user) profile = await fetchMyProfile('md');
         return { user, profile };
     } catch (error) {
         return { user: undefined, profile: undefined };

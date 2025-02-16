@@ -94,9 +94,9 @@ export default function GeneralSettingsTab() {
         (async () => {
             try {
                 const res = await fetchMyAvatar('lg');
-                setAvatarUrl(res?.url ?? "");
+                setAvatarUrl(res?.url ?? profile?.avatarUrl ?? "");
             } catch (error: any) {
-                setAvatarUrl("");
+                setAvatarUrl(profile?.avatarUrl ?? "");
             }
         })();
     }, [profile?.id]);
@@ -110,12 +110,16 @@ export default function GeneralSettingsTab() {
 
     const onSubmit = async (data: z.infer<typeof formSchema>) =>
         startTransition(async () => {
+            if (!profile?.id) return;
             try {
-                const res = await updateMyProfile(data);
-                updateProfile(res);
+                await updateMyProfile(data);
+                updateProfile({
+                    ...profile,
+                    ...data,
+                });
                 form.reset({
-                    ...res,
-                    description: res.description ?? "",
+                    ...data,
+                    description: data.description ?? "",
                     avatarUrl: data.avatarUrl,
                 });
             } catch (error: any) {

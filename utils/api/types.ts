@@ -19,6 +19,14 @@ export type PublicProfile = Profile & {
     counts: ProfileCounts;
     isFollowing: boolean;
     isAuthorized: boolean;
+    suggestionPreferences: SuggestionPreferences;
+}
+
+export type SuggestionPreferences = {
+    enabled: boolean;
+    allowedFree: boolean;
+    allowedAnonymously: boolean;
+    categories: ContentCategory[];
 }
 
 export type ModeratorProfile = Profile & {
@@ -36,7 +44,17 @@ export type ImagePreview = {
 
 export type ImageSize = 'sm' | 'md' | 'lg';
 
-export type ContentCategory = 'games' | 'movies' | 'video' | 'anime' | 'series' | 'custom';
+export enum ContentCategoryEnum {
+    Games = 'games',
+    Anime = 'anime',
+    Movies = 'movies',
+    Series = 'series',
+    Video = 'video',
+}
+
+export type ContentCategory = `${ContentCategoryEnum}`;
+
+export const CONTENT_CATEGORIES: ContentCategory[] = Object.values(ContentCategoryEnum);
 
 export type Content = {
     id: string;

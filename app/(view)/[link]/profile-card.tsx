@@ -84,20 +84,22 @@ export default function ProfileCard({ profile, className }: Props) {
                 </div>
             </div>
             <div className="grid gap-2">
-                <div className="flex items-center">
-                    <Link
-                        href={`/suggest/${profile.link}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-full"
-                    >
-                        <Button className="w-full rounded-r-none">
-                            <SparklesIcon />
-                            Suggest a title
-                        </Button>
-                    </Link>
-                    <SuggestionLinkCopyButton className="rounded-l-none" />
-                </div>
+                {profile.suggestionPreferences.enabled && (
+                    <div className="flex items-center">
+                        <Link
+                            href={`/suggest/${profile.link}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-full"
+                        >
+                            <Button className="w-full rounded-r-none">
+                                <SparklesIcon />
+                                Suggest content
+                            </Button>
+                        </Link>
+                        <SuggestionLinkCopyButton className="rounded-l-none" />
+                    </div>
+                )}
                 <div className={cn("flex items-center", !profile.isAuthorized && "hidden")}>
                     <Button variant="secondary" className="w-full rounded-r-none">
                         <ShieldPlusIcon />

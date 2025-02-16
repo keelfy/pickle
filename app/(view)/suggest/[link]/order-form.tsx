@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/providers/auth-store";
 import { contentCategoryLabels } from "@/utils/api/constants";
 import { CreateOrderReq } from "@/utils/api/request";
-import { ContentCategory, PublicProfile } from "@/utils/api/types";
+import { CONTENT_CATEGORIES, ContentCategory, PublicProfile } from "@/utils/api/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DollarSignIcon, SendIcon } from "lucide-react";
 import Link from "next/link";
@@ -30,15 +30,12 @@ import OrderSenderName from "./order-sender-name";
 
 type Props = {
     profile: PublicProfile;
-    myAvatarUrl?: string;
     className?: string;
 }
 
 const orderFormSchema = z.object({
-    type: z.enum(["games", "movies", "series", "anime", "video"], {
-        message: "Type is required"
-    }),
-    username: z.string().optional(),
+    type: z.custom<ContentCategory>(),
+    username: z.string(),
     isAnonymously: z.boolean(),
     paid: z.boolean(),
     amount: z.number(),
@@ -48,13 +45,12 @@ const orderFormSchema = z.object({
     message: z.string()
         .min(1, { message: "Message is required" })
         .max(150, { message: "Message must be less than 150 characters" }),
-}).refine((data) => {
-    if (data.paid && data.amount === 0) {
-        return false;
-    }
-    return true;
-}, {
-    message: "Amount is required"
+}).refine((data) => data.paid && data.amount > 0, {
+    message: "Amount is required",
+    path: ["amount"]
+}).refine((data) => data.isAnonymously || (data.username && data.username.length > 0), {
+    message: "Username is required",
+    path: ["username"]
 });
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
@@ -77,22 +73,26 @@ const CURRENCY_NAMES: Record<string, string> = {
     PLN: "Polish Zloty"
 }
 
-export default function OrderForm({ profile, myAvatarUrl, className }: Props) {
+export default function OrderForm({ profile, className }: Props) {
     const myProfile = useAuthStore(state => state.profile)
     const [isLoading, startTransition] = React.useTransition()
     const router = useRouter()
 
+    const [selectedCurrency, setSelectedCurrency] = React.useState("USD");
+
+    const defaultValues: z.infer<typeof orderFormSchema> = {
+        type: profile.suggestionPreferences.categories[0],
+        message: "",
+        paid: true,
+        currency: "USD" as const,
+        amount: 1,
+        isAnonymously: profile.suggestionPreferences.allowedAnonymously && myProfile === undefined,
+        username: myProfile?.username ?? "",
+    }
+
     const form = useForm<z.infer<typeof orderFormSchema>>({
         resolver: zodResolver(orderFormSchema),
-        defaultValues: {
-            type: "games",
-            message: "",
-            paid: false,
-            currency: "USD",
-            amount: 0,
-            isAnonymously: myProfile === undefined,
-            username: myProfile?.username,
-        },
+        defaultValues,
     });
 
     const onSubmit = (data: z.infer<typeof orderFormSchema>) => {
@@ -117,31 +117,32 @@ export default function OrderForm({ profile, myAvatarUrl, className }: Props) {
         })
     }
 
-    const setAmount = (amount: number) => {
-        form.setValue("amount", amount);
-    };
-
-    const [selectedCurrency, setSelectedCurrency] = React.useState("USD");
-
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className={cn("flex flex-col gap-8 w-full h-full", className)}>
-                <div className="grid space-y-6">
-                    <div className="w-full space-y-2">
-                        <div className="flex justify-between gap-4 items-center w-full">
-                            <OrderSenderName
-                                avatarUrl={myAvatarUrl}
-                                username={form.watch("username")}
-                                isAnonymously={form.watch("isAnonymously")}
-                                onUsernameChange={(value) => form.setValue("username", value)}
-                                onAnonymouslyChange={(value) => form.setValue("isAnonymously", value)}
-                            />
-                            <AuthSuggestSection />
-                        </div>
-                        {/* <p className="text-sm text-muted-foreground max-w-[65ch]">
-                            Registered users can track the status changes of their suggestions even if sent anonymously.
-                        </p> */}
-                    </div>
+                <div className="grid gap-6">
+                    <FormField
+                        control={form.control}
+                        name="username"
+                        render={({ field }) => (
+                            <FormItem className="flex justify-between gap-4 items-start w-full">
+                                <div className="flex flex-col w-full">
+                                    <FormControl>
+                                        <OrderSenderName
+                                            avatarUrl={myProfile?.avatarUrl}
+                                            username={field.value}
+                                            allowedAnonymously={profile.suggestionPreferences.allowedAnonymously}
+                                            isAnonymously={form.watch("isAnonymously")}
+                                            onUsernameChange={field.onChange}
+                                            onAnonymouslyChange={(value) => form.setValue("isAnonymously", profile.suggestionPreferences.allowedAnonymously ? value : false)}
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </div>
+                                <AuthSuggestSection />
+                            </FormItem>
+                        )}
+                    />
                     <div className="grid gap-2">
                         <FormField
                             control={form.control}
@@ -157,7 +158,11 @@ export default function OrderForm({ profile, myAvatarUrl, className }: Props) {
                                         >
                                             <TabsList className="grid grid-cols-5">
                                                 {contentCategoryLabels.map(({ value }) => (
-                                                    <TabsTrigger key={value} value={value}>
+                                                    <TabsTrigger
+                                                        key={value}
+                                                        value={value}
+                                                        disabled={!profile.suggestionPreferences.categories.includes(value as ContentCategory)}
+                                                    >
                                                         <ContentCategoryIcon category={value as ContentCategory} className="w-4 h-4 mr-2" />
                                                         {localizeContentCategory(value)}
                                                     </TabsTrigger>
@@ -190,31 +195,33 @@ export default function OrderForm({ profile, myAvatarUrl, className }: Props) {
                             )}
                         />
                     </div>
-                    <FormField
-                        control={form.control}
-                        name="paid"
-                        render={({ field }) => (
-                            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow">
-                                <FormControl>
-                                    <Checkbox
-                                        checked={field.value}
-                                        onCheckedChange={field.onChange}
-                                    />
-                                </FormControl>
-                                <div className="space-y-1 leading-none">
-                                    <FormLabel>
-                                        I would like to make a donation
-                                    </FormLabel>
-                                    <FormDescription className="flex items-start gap-0.5">
-                                        <DollarSignIcon className="w-3 h-3 text-yellow-600" />
-                                        <span>
-                                            Donations are highly appreciated and will motivate <span className="font-semibold">{profile.username}</span> to consider your suggestion sooner.
-                                        </span>
-                                    </FormDescription>
-                                </div>
-                            </FormItem>
-                        )}
-                    />
+                    {profile.suggestionPreferences.allowedFree && (
+                        <FormField
+                            control={form.control}
+                            name="paid"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow">
+                                    <FormControl>
+                                        <Checkbox
+                                            checked={field.value}
+                                            onCheckedChange={field.onChange}
+                                        />
+                                    </FormControl>
+                                    <div className="space-y-1 leading-none">
+                                        <FormLabel>
+                                            I would like to make a donation
+                                        </FormLabel>
+                                        <FormDescription className="flex items-start gap-0.5">
+                                            <DollarSignIcon className="w-3 h-3 text-yellow-600" />
+                                            <span>
+                                                Donations are highly appreciated and will motivate <span className="font-semibold">{profile.username}</span> to consider your suggestion sooner.
+                                            </span>
+                                        </FormDescription>
+                                    </div>
+                                </FormItem>
+                            )}
+                        />
+                    )}
                     <Collapsible open={form.watch("paid")}>
                         <CollapsibleContent>
                             <FormField
@@ -274,7 +281,7 @@ export default function OrderForm({ profile, myAvatarUrl, className }: Props) {
                                                                     variant='ghost'
                                                                     className="underline underline-offset-4 decoration-dashed decoration-muted-foreground"
                                                                     size='sm'
-                                                                    onClick={() => setAmount(amount)}
+                                                                    onClick={() => form.setValue("amount", amount)}
                                                                     disabled={!isPaid}
                                                                 >
                                                                     {CURRENCY_SYMBOLS[selectedCurrency]}{amount}

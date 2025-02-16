@@ -2,34 +2,20 @@ import LanguageDropdownMenu from "@/components/language-dropdown-menu";
 import ProfileAvatar from "@/components/profile-avatar";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Card, CardDescription } from "@/components/ui/card";
-import { fetchMyAvatar, fetchProfileByLink } from "@/hooks/api-endpoints-server";
-import getUser from "@/hooks/getUser";
+import { fetchProfileByLink } from "@/hooks/api-endpoints-server";
 import { getShortenedCount } from "@/lib/count-shortener";
-import { cn } from "@/lib/utils";
-import { PublicProfile } from "@/utils/api/types";
 import Link from "next/link";
-import { Suspense } from "react";
 import OrderForm from "./order-form";
-import OrderFormSkeleton from "./order-form-skeleton";
+import OrdersDisabledSection from "./orders-disabled-section";
 
 export type Props = {
     params: Promise<{ link: string }>;
 }
 
-async function OrderFormCard({ profile, className }: { profile: PublicProfile, className?: string }) {
-    const user = await getUser();
-    const myAvatarUrl = user ? await fetchMyAvatar('sm').catch(() => undefined) : undefined;
-    return (
-        <Card className={cn("flex flex-col items-center gap-4 max-w-2xl shadow-lg", className)}>
-            <OrderForm profile={profile} myAvatarUrl={myAvatarUrl?.url} className="p-6 max-w-2xl" />
-        </Card>
-    )
-}
-
 export default async function SuggestPage({ params }: Props) {
     const { link } = await params;
 
-    const profile = await fetchProfileByLink(link).catch(() => {
+    const profile = await fetchProfileByLink(link, 'lg').catch(() => {
         return undefined;
     })
 
@@ -53,15 +39,11 @@ export default async function SuggestPage({ params }: Props) {
             <div className="flex flex-col gap-4 max-w-2xl min-w-max mx-auto py-16">
                 <Card className="flex items-center gap-4 p-4 max-w-2xl min-w-max shadow-lg">
                     <Link href={`/${profile.link}`} target="_blank">
-                        <Suspense fallback={(
-                            <div className="h-24 w-24 rounded-full bg-muted-foreground/10 animate-pulse" />
-                        )}>
-                            <ProfileAvatar
-                                avatarUrl={profile.avatarUrl}
-                                size="lg"
-                                className="h-24 w-24 hover:opacity-80 transition-opacity"
-                            />
-                        </Suspense>
+                        <ProfileAvatar
+                            avatarUrl={profile.avatarUrl}
+                            size="lg"
+                            className="h-24 w-24 hover:opacity-80 transition-opacity"
+                        />
                     </Link>
                     <div className="space-y-2">
                         <div className="space-y-0">
@@ -85,13 +67,16 @@ export default async function SuggestPage({ params }: Props) {
                         </CardDescription>
                     </div>
                 </Card>
-                <Suspense fallback={(
-                    <Card className="flex-1 h-full flex flex-col items-center gap-4 max-w-2xl shadow-lg">
-                        <OrderFormSkeleton className="max-w-2xl w-full" />
-                    </Card>
-                )}>
-                    <OrderFormCard profile={profile} className="flex-1 h-full" />
-                </Suspense>
+                <Card className="flex-1 flex flex-col items-center gap-4 max-w-2xl shadow-lg">
+                    <div className="relative">
+                        <OrderForm profile={profile} className="p-6 max-w-2xl" />
+                        {!profile.suggestionPreferences.enabled && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm">
+                                <OrdersDisabledSection profile={profile} />
+                            </div>
+                        )}
+                    </div>
+                </Card>
                 <div className="flex justify-between items-center gap-4">
                     <div className="flex flex-col">
                         <div className="text-xs">

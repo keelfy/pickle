@@ -1,7 +1,7 @@
 import { fetchApi } from "@/utils/api/client";
 import { AddItemToCollectionReq, CreateCollectionReq, CreateOrderReq, UpdateCollectionReq } from "@/utils/api/request";
 import { ContentSearchHits, LinkValidation, Paginated } from "@/utils/api/response";
-import { Collection, CollectionItem, GameNote, Image, ImagePreview, ImageSize, ModeratorProfile, NoteReaction, Order, OrderUpdate, Profile, PublicProfile, Reaction } from "@/utils/api/types";
+import { Collection, CollectionItem, GameNote, Image, ImagePreview, ImageSize, ModeratorProfile, NoteReaction, Order, OrderUpdate, Profile, PublicProfile, Reaction, SuggestionPreferences } from "@/utils/api/types";
 
 
 export async function uploadAvatarForPreview(formData: FormData) {
@@ -16,7 +16,14 @@ export async function validateProfileLink(link: string) {
 }
 
 export async function updateMyProfile(data: Partial<PublicProfile>) {
-    return fetchApi<PublicProfile>(`/v1/users/me`, true, {
+    return fetchApi<void>(`/v1/users/me`, true, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+    });
+}
+
+export async function updateSuggestionPreferences(data: SuggestionPreferences) {
+    return fetchApi<void>(`/v1/users/me/suggestion-preferences`, true, {
         method: "PATCH",
         body: JSON.stringify(data),
     });

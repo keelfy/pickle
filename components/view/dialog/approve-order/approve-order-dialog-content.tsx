@@ -88,7 +88,7 @@ export default function ApproveOrderDialogContent() {
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            category: order?.category ?? "custom",
+            category: order?.category ?? "games",
             title: order?.message ?? "",
         },
     });

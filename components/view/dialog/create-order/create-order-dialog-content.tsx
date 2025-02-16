@@ -22,7 +22,7 @@ import { toast } from "@/hooks/use-toast";
 import { useModalStore } from "@/providers/modal";
 import { useProfileStore } from "@/providers/profile-store";
 import { contentCategoryLabels } from "@/utils/api/constants";
-import { ContentCategory } from "@/utils/api/types";
+import { CONTENT_CATEGORIES, ContentCategory } from "@/utils/api/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Check, Dice5, X } from "lucide-react";
 import { useEffect, useTransition } from "react";
@@ -52,7 +52,7 @@ export default function CreateOrderDialogContent() {
             paymentType: 0,
             amount: 0,
             ordererUsername: "",
-            category: "custom",
+            category: CONTENT_CATEGORIES[0],
             message: "",
         },
     });

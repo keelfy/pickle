@@ -22,21 +22,14 @@ const DynamicSuggestionsSettingsTab = dynamic(
     { loading: () => <LoadingSpinner /> }
 );
 
-function ConnectionsTab() {
-    return <div>Connections tab</div>;
-}
-
-function NotificationsTab() {
-    return <div>Notifications tab</div>;
-}
-
 export type ProfileSettingsDialogTab =
     | "general"
     | "security"
     | "notifications"
     | "moderation"
     | "connections"
-    | "suggestions";
+    | "suggestions"
+    | "payments";
 
 type Props = {
     tab: ProfileSettingsDialogTab;
@@ -52,13 +45,15 @@ export default function TabContent({ tab }: Props) {
         case "security":
             return <DynamicSecuritySettingsTab />;
         case "connections":
-            return <ConnectionsTab />;
+            return <div />;
         case "moderation":
             return <DynamicModerationSettingsTab />;
         case "notifications":
-            return <NotificationsTab />;
+            return <div />;
         case "suggestions":
             return <DynamicSuggestionsSettingsTab />;
+        case "payments":
+            return <div />;
     }
 
     return <div>Tab content</div>;

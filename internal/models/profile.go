@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	db "github.com/pickle.pw/monolith/db/sqlc"
 )
 
 type Profile interface {
@@ -44,14 +45,15 @@ type PublicProfileCounts struct {
 }
 
 type PublicProfile struct {
-	ID           uuid.UUID           `json:"id"`
-	Username     string              `json:"username"`
-	Link         string              `json:"link"`
-	AvatarURL    string              `json:"avatarUrl"`
-	Description  string              `json:"description"`
-	Counts       PublicProfileCounts `json:"counts"`
-	IsFollowing  bool                `json:"isFollowing"`
-	IsAuthorized bool                `json:"isAuthorized"`
+	ID                    uuid.UUID              `json:"id"`
+	Username              string                 `json:"username"`
+	Link                  string                 `json:"link"`
+	AvatarURL             string                 `json:"avatarUrl"`
+	Description           string                 `json:"description"`
+	Counts                PublicProfileCounts    `json:"counts"`
+	IsFollowing           bool                   `json:"isFollowing"`
+	IsAuthorized          bool                   `json:"isAuthorized"`
+	SuggestionPreferences *SuggestionPreferences `json:"suggestionPreferences,omitempty"`
 }
 
 func (p *PublicProfile) GetID() uuid.UUID {
@@ -92,4 +94,11 @@ func (p *ModeratorProfile) GetLink() string {
 
 func (p *ModeratorProfile) GetAvatarURL() string {
 	return p.AvatarURL
+}
+
+type SuggestionPreferences struct {
+	Enabled            bool                 `json:"enabled"`
+	AllowedFree        bool                 `json:"allowedFree"`
+	AllowedAnonymously bool                 `json:"allowedAnonymously"`
+	Categories         []db.ContentCategory `json:"categories"`
 }

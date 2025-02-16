@@ -8,6 +8,7 @@ import (
 	"github.com/jinzhu/copier"
 	"github.com/pickle.pw/monolith/internal/config"
 	"github.com/pickle.pw/monolith/internal/logger"
+	"github.com/pickle.pw/monolith/internal/models"
 	"github.com/pickle.pw/monolith/internal/services"
 	"github.com/pickle.pw/monolith/internal/types"
 	"github.com/pickle.pw/monolith/internal/utils"
@@ -18,6 +19,7 @@ type ProfileHandler interface {
 	GetProfileByLink(w http.ResponseWriter, r *http.Request)
 	GetMyProfile(w http.ResponseWriter, r *http.Request)
 	UpdateSettings(w http.ResponseWriter, r *http.Request)
+	UpdateSuggestionPreferences(w http.ResponseWriter, r *http.Request)
 	ValidateProfileLink(w http.ResponseWriter, r *http.Request)
 	GetProfileAvatarUrl(w http.ResponseWriter, r *http.Request)
 	GetMyProfileAvatarUrl(w http.ResponseWriter, r *http.Request)
@@ -92,7 +94,7 @@ func (h *profileHandler) GetProfileById(w http.ResponseWriter, r *http.Request) 
 // @Produce json
 // @Param link path string true "Link"
 // @Param avatarSize query string false "Avatar size"
-// @Success 200 {object} types.ProfileRes
+// @Success 200 {object} models.PublicProfile
 // @Failure 400 {object} string
 // @Failure 500 {object} string
 // @Router /v1/profiles/{link} [get]
@@ -121,7 +123,7 @@ func (h *profileHandler) GetProfileByLink(w http.ResponseWriter, r *http.Request
 // @Accept json
 // @Produce json
 // @Param avatarSize query string false "Avatar size"
-// @Success 200 {object} types.PublicProfile
+// @Success 200 {object} models.PublicProfile
 // @Failure 400 {object} string
 // @Failure 500 {object} string
 // @Router /v1/users/me [get]
@@ -144,7 +146,7 @@ func (handler *profileHandler) GetMyProfile(w http.ResponseWriter, r *http.Reque
 // @Accept json
 // @Produce json
 // @Param updateProfileReq body types.UpdateProfileReq true "Update profile request"
-// @Success 200 {object} types.ProfileRes
+// @Success 204
 // @Failure 400 {object} string
 // @Failure 500 {object} string
 // @Router /v1/users/me [patch]
@@ -160,15 +162,46 @@ func (handler *profileHandler) UpdateSettings(w http.ResponseWriter, r *http.Req
 	req := &types.UpdateProfileReq{}
 	json.NewDecoder(r.Body).Decode(req)
 
-	profile, err := handler.profileService.UpdateProfile(ctx, userId, req)
+	err = handler.profileService.UpdateProfile(ctx, userId, req)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
 	}
 
-	response := &types.ProfileRes{}
-	copier.Copy(response, profile)
-	utils.WriteHttpJsonResponse(ctx, w, response)
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// @Summary Update suggestion preferences
+// @Description Update suggestion preferences
+// @Tags profiles
+// @Accept json
+// @Produce json
+// @Param suggestionPreferences body models.SuggestionPreferences true "Suggestion preferences"
+// @Success 204
+// @Failure 400 {object} string
+// @Failure 500 {object} string
+// @Router /v1/users/me/suggestion-preferences [patch]
+func (handler *profileHandler) UpdateSuggestionPreferences(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userId, err := utils.UserIdFromContext(ctx)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
+	req := &models.SuggestionPreferences{}
+	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
+	err = handler.profileService.UpdateSuggestionPreferences(ctx, userId, req)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // @Summary Validate profile link
@@ -325,7 +358,7 @@ func (handler *profileHandler) UploadAvatar(w http.ResponseWriter, r *http.Reque
 // @Accept json
 // @Produce json
 // @Param body body types.SupabaseWebhookPayload true "Webhook payload"
-// @Success 200 {object} types.ProfileRes
+// @Success 204
 // @Failure 400 {object} string
 // @Failure 500 {object} string
 // @Router /v1/supabase-webhooks/users [post]
@@ -342,7 +375,7 @@ func (handler *profileHandler) CreateProfileWebhook(w http.ResponseWriter, r *ht
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // @Summary Follow profile

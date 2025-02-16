@@ -72,8 +72,17 @@ func (s *publicProfileService) GetPublicProfile(ctx context.Context, profile *db
 		IsAuthorized: authUserId == profile.UserID,
 	}
 
-	wg.Add(4)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		suggestionPreferences, err := s.profileService.ParseSuggestionPreferences(ctx, profile)
+		if err != nil {
+			logger.Errorf(ctx, "Error occurred during parsing suggestion preferences: %v", err)
+		}
+		publicProfile.SuggestionPreferences = suggestionPreferences
+	}()
 
+	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		playedCount, playedErr := s.gameNoteService.CountPlayedByUserId(ctx, profile.UserID)
@@ -84,6 +93,7 @@ func (s *publicProfileService) GetPublicProfile(ctx context.Context, profile *db
 		counts.Played = playedCount
 	}()
 
+	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		orderedCount, orderedErr := s.orderService.CountOrdersByReceiverId(ctx, profile.UserID)
@@ -94,6 +104,7 @@ func (s *publicProfileService) GetPublicProfile(ctx context.Context, profile *db
 		counts.Ordered = orderedCount
 	}()
 
+	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		followerCount, followerErr := s.followerService.CountFollowers(ctx, profile.UserID)
@@ -104,6 +115,7 @@ func (s *publicProfileService) GetPublicProfile(ctx context.Context, profile *db
 		counts.Followers = followerCount
 	}()
 
+	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		avatarUrl, avatarErr := s.avatarService.GetAvatarUrlById(ctx, profile.UserID, avatarSize)
@@ -115,8 +127,7 @@ func (s *publicProfileService) GetPublicProfile(ctx context.Context, profile *db
 	}()
 
 	if authUserId != uuid.Nil {
-		wg.Add(2)
-
+		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			isFollowing, isFollowingErr := s.followerService.IsFollowing(ctx, profile.UserID, authUserId)
@@ -127,6 +138,7 @@ func (s *publicProfileService) GetPublicProfile(ctx context.Context, profile *db
 			publicProfile.IsFollowing = isFollowing
 		}()
 
+		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			isModerator, isModeratorErr := s.moderatorService.IsModeratorOf(ctx, profile.UserID, authUserId)

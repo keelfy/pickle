@@ -306,13 +306,14 @@ type PosterPreview struct {
 }
 
 type Profile struct {
-	UserID      uuid.UUID  `json:"user_id"`
-	CreatedAt   time.Time  `json:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at"`
-	UpdatedBy   *uuid.UUID `json:"updated_by"`
-	Username    string     `json:"username"`
-	Link        string     `json:"link"`
-	Description string     `json:"description"`
+	UserID                uuid.UUID  `json:"user_id"`
+	CreatedAt             time.Time  `json:"created_at"`
+	UpdatedAt             time.Time  `json:"updated_at"`
+	UpdatedBy             *uuid.UUID `json:"updated_by"`
+	Username              string     `json:"username"`
+	Link                  string     `json:"link"`
+	Description           string     `json:"description"`
+	SuggestionPreferences []byte     `json:"suggestion_preferences"`
 }
 
 type ProfileAvatar struct {

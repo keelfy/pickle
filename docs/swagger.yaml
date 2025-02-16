@@ -42,6 +42,51 @@ definitions:
     - OrderStatusPending
     - OrderStatusApproved
     - OrderStatusRejected
+  github_com_pickle_pw_monolith_internal_models.PublicProfile:
+    properties:
+      avatarUrl:
+        type: string
+      counts:
+        $ref: '#/definitions/github_com_pickle_pw_monolith_internal_models.PublicProfileCounts'
+      description:
+        type: string
+      id:
+        type: string
+      isAuthorized:
+        type: boolean
+      isFollowing:
+        type: boolean
+      link:
+        type: string
+      suggestionPreferences:
+        $ref: '#/definitions/github_com_pickle_pw_monolith_internal_models.SuggestionPreferences'
+      username:
+        type: string
+    type: object
+  github_com_pickle_pw_monolith_internal_models.PublicProfileCounts:
+    properties:
+      followers:
+        type: integer
+      ordered:
+        type: integer
+      played:
+        type: integer
+      watched:
+        type: integer
+    type: object
+  github_com_pickle_pw_monolith_internal_models.SuggestionPreferences:
+    properties:
+      allowedAnonymously:
+        type: boolean
+      allowedFree:
+        type: boolean
+      categories:
+        items:
+          $ref: '#/definitions/github_com_pickle_pw_monolith_db_sqlc.ContentCategory'
+        type: array
+      enabled:
+        type: boolean
+    type: object
   github_com_pickle_pw_monolith_internal_types.BatchNoteReactionsRes:
     properties:
       noteId:
@@ -557,7 +602,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.ProfileRes'
+            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_models.PublicProfile'
         "400":
           description: Bad Request
           schema:
@@ -613,10 +658,8 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.ProfileRes'
+        "204":
+          description: No Content
         "400":
           description: Bad Request
           schema:
@@ -1548,7 +1591,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.ProfileRes'
+            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_models.PublicProfile'
         "400":
           description: Bad Request
           schema:
@@ -1574,10 +1617,8 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.ProfileRes'
+        "204":
+          description: No Content
         "400":
           description: Bad Request
           schema:
@@ -1647,6 +1688,34 @@ paths:
           schema:
             type: string
       summary: Upload avatar
+      tags:
+      - profiles
+  /v1/users/me/suggestion-preferences:
+    patch:
+      consumes:
+      - application/json
+      description: Update suggestion preferences
+      parameters:
+      - description: Suggestion preferences
+        in: body
+        name: suggestionPreferences
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_pickle_pw_monolith_internal_models.SuggestionPreferences'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Update suggestion preferences
       tags:
       - profiles
 swagger: "2.0"

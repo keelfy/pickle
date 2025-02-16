@@ -148,7 +148,9 @@ type Querier interface {
 	// Author: Egor Kuzmin (keelfy)
 	UpdateProfileAvatarByUserId(ctx context.Context, arg UpdateProfileAvatarByUserIdParams) (*ProfileAvatar, error)
 	// Author: Egor Kuzmin (keelfy)
-	UpdateProfileByUserId(ctx context.Context, arg UpdateProfileByUserIdParams) (*Profile, error)
+	UpdateProfileByUserId(ctx context.Context, arg UpdateProfileByUserIdParams) error
+	// Author: Egor Kuzmin (keelfy)
+	UpdateProfileSuggestionPreferences(ctx context.Context, arg UpdateProfileSuggestionPreferencesParams) error
 }
 
 var _ Querier = (*Queries)(nil)

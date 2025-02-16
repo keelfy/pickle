@@ -160,6 +160,7 @@ func (api *pickleAPI) v1RouteHandler() http.Handler {
 			r.Patch("/", api.profileHandler.UpdateSettings)
 			r.Post("/avatar", api.profileHandler.UploadAvatar)
 			r.Get("/avatar", api.profileHandler.GetMyProfileAvatarUrl)
+			r.Patch("/suggestion-preferences", api.profileHandler.UpdateSuggestionPreferences)
 		})
 
 		r.Route("/{userId}", func(r chi.Router) {

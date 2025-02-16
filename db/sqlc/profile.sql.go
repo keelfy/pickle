@@ -12,9 +12,9 @@ import (
 )
 
 const findProfileById = `-- name: FindProfileById :one
-SELECT user_id, created_at, updated_at, updated_by, username, link, description
+SELECT user_id, created_at, updated_at, updated_by, username, link, description, suggestion_preferences
 FROM "profiles"
-WHERE "user_id" = $1
+WHERE "user_id" = $1::uuid
 `
 
 // Author: Egor Kuzmin (keelfy)
@@ -29,14 +29,15 @@ func (q *Queries) FindProfileById(ctx context.Context, userID uuid.UUID) (*Profi
 		&i.Username,
 		&i.Link,
 		&i.Description,
+		&i.SuggestionPreferences,
 	)
 	return &i, err
 }
 
 const findProfileByLink = `-- name: FindProfileByLink :one
-SELECT user_id, created_at, updated_at, updated_by, username, link, description
+SELECT user_id, created_at, updated_at, updated_by, username, link, description, suggestion_preferences
 FROM "profiles"
-WHERE "link" = $1
+WHERE "link" = $1::text
 `
 
 // Author: Egor Kuzmin (keelfy)
@@ -51,15 +52,16 @@ func (q *Queries) FindProfileByLink(ctx context.Context, link string) (*Profile,
 		&i.Username,
 		&i.Link,
 		&i.Description,
+		&i.SuggestionPreferences,
 	)
 	return &i, err
 }
 
 const getUserFollows = `-- name: GetUserFollows :many
-SELECT p.user_id, p.created_at, p.updated_at, p.updated_by, p.username, p.link, p.description 
+SELECT p.user_id, p.created_at, p.updated_at, p.updated_by, p.username, p.link, p.description, p.suggestion_preferences 
 FROM "profiles" p
 JOIN "followers" f ON p."user_id" = f."user_id"
-WHERE f."follower_id" = $1
+WHERE f."follower_id" = $1::uuid
 ORDER BY f."created_at" DESC
 `
 
@@ -81,6 +83,7 @@ func (q *Queries) GetUserFollows(ctx context.Context, followerID uuid.UUID) ([]*
 			&i.Username,
 			&i.Link,
 			&i.Description,
+			&i.SuggestionPreferences,
 		); err != nil {
 			return nil, err
 		}
@@ -94,20 +97,26 @@ func (q *Queries) GetUserFollows(ctx context.Context, followerID uuid.UUID) ([]*
 
 const insertProfile = `-- name: InsertProfile :one
 INSERT INTO "profiles" (
-        "user_id",
-        "username",
-        "link",
-        "description"
-    )
-VALUES ($1, $2, $3, $4)
-RETURNING user_id, created_at, updated_at, updated_by, username, link, description
+    "user_id",
+    "username",
+    "link",
+    "description",
+    "suggestion_preferences"
+) VALUES (
+    $1::uuid, 
+    $2::text, 
+    $3::text, 
+    $4::text, 
+    $5::jsonb
+) RETURNING user_id, created_at, updated_at, updated_by, username, link, description, suggestion_preferences
 `
 
 type InsertProfileParams struct {
-	UserID      uuid.UUID `json:"user_id"`
-	Username    string    `json:"username"`
-	Link        string    `json:"link"`
-	Description string    `json:"description"`
+	UserID                uuid.UUID `json:"user_id"`
+	Username              string    `json:"username"`
+	Link                  string    `json:"link"`
+	Description           string    `json:"description"`
+	SuggestionPreferences []byte    `json:"suggestion_preferences"`
 }
 
 // Author: Egor Kuzmin (keelfy)
@@ -117,6 +126,7 @@ func (q *Queries) InsertProfile(ctx context.Context, arg InsertProfileParams) (*
 		arg.Username,
 		arg.Link,
 		arg.Description,
+		arg.SuggestionPreferences,
 	)
 	var i Profile
 	err := row.Scan(
@@ -127,47 +137,57 @@ func (q *Queries) InsertProfile(ctx context.Context, arg InsertProfileParams) (*
 		&i.Username,
 		&i.Link,
 		&i.Description,
+		&i.SuggestionPreferences,
 	)
 	return &i, err
 }
 
-const updateProfileByUserId = `-- name: UpdateProfileByUserId :one
+const updateProfileByUserId = `-- name: UpdateProfileByUserId :exec
 UPDATE "profiles"
 SET "updated_at" = now(),
-    "updated_by" = $2,
-    "username" = $3,
-    "link" = $4,
-    "description" = $5
-WHERE "user_id" = $1
-RETURNING user_id, created_at, updated_at, updated_by, username, link, description
+    "updated_by" = $1::uuid,
+    "username" = $2::text,
+    "link" = $3::text,
+    "description" = $4::text
+WHERE "user_id" = $5::uuid
 `
 
 type UpdateProfileByUserIdParams struct {
-	UserID      uuid.UUID  `json:"user_id"`
-	UpdatedBy   *uuid.UUID `json:"updated_by"`
-	Username    string     `json:"username"`
-	Link        string     `json:"link"`
-	Description string     `json:"description"`
+	UpdatedBy   uuid.UUID `json:"updated_by"`
+	Username    string    `json:"username"`
+	Link        string    `json:"link"`
+	Description string    `json:"description"`
+	UserID      uuid.UUID `json:"user_id"`
 }
 
 // Author: Egor Kuzmin (keelfy)
-func (q *Queries) UpdateProfileByUserId(ctx context.Context, arg UpdateProfileByUserIdParams) (*Profile, error) {
-	row := q.db.QueryRow(ctx, updateProfileByUserId,
-		arg.UserID,
+func (q *Queries) UpdateProfileByUserId(ctx context.Context, arg UpdateProfileByUserIdParams) error {
+	_, err := q.db.Exec(ctx, updateProfileByUserId,
 		arg.UpdatedBy,
 		arg.Username,
 		arg.Link,
 		arg.Description,
+		arg.UserID,
 	)
-	var i Profile
-	err := row.Scan(
-		&i.UserID,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.UpdatedBy,
-		&i.Username,
-		&i.Link,
-		&i.Description,
-	)
-	return &i, err
+	return err
+}
+
+const updateProfileSuggestionPreferences = `-- name: UpdateProfileSuggestionPreferences :exec
+UPDATE "profiles"
+SET "suggestion_preferences" = $1::jsonb,
+    "updated_at" = now(),
+    "updated_by" = $2::uuid
+WHERE "user_id" = $3::uuid
+`
+
+type UpdateProfileSuggestionPreferencesParams struct {
+	SuggestionPreferences []byte    `json:"suggestion_preferences"`
+	UpdatedBy             uuid.UUID `json:"updated_by"`
+	UserID                uuid.UUID `json:"user_id"`
+}
+
+// Author: Egor Kuzmin (keelfy)
+func (q *Queries) UpdateProfileSuggestionPreferences(ctx context.Context, arg UpdateProfileSuggestionPreferencesParams) error {
+	_, err := q.db.Exec(ctx, updateProfileSuggestionPreferences, arg.SuggestionPreferences, arg.UpdatedBy, arg.UserID)
+	return err
 }

@@ -2,7 +2,9 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
+	"sync"
 
 	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/google/uuid"
@@ -22,7 +24,9 @@ type ProfileService interface {
 	GetProfileByLink(ctx context.Context, userLink string) (*db.Profile, error)
 	GetMyProfile(ctx context.Context, avatarSize string) (*models.PublicProfile, error)
 	ValidateLink(ctx context.Context, link string) error
-	UpdateProfile(ctx context.Context, userId uuid.UUID, req *types.UpdateProfileReq) (*db.Profile, error)
+	UpdateProfile(ctx context.Context, userId uuid.UUID, req *types.UpdateProfileReq) error
+	UpdateSuggestionPreferences(ctx context.Context, userID uuid.UUID, req *models.SuggestionPreferences) error
+	ParseSuggestionPreferences(ctx context.Context, profile *db.Profile) (*models.SuggestionPreferences, error)
 	CreateProfileWebhook(ctx context.Context, req *types.SupabaseWebhookPayload) (*db.Profile, error)
 }
 
@@ -89,11 +93,30 @@ func (service *profileService) GetMyProfile(ctx context.Context, avatarSize stri
 		IsAuthorized: authUserID == profile.UserID,
 	}
 
-	avatarUrl, err := service.avatarService.GetAvatarUrlById(ctx, profile.UserID, avatarSize)
-	if err != nil {
-		logger.Errorf(ctx, "Error occurred during avatar url: %v", err)
-	}
-	publicProfile.AvatarURL = avatarUrl
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		suggestionPreferences, err := service.ParseSuggestionPreferences(ctx, profile)
+		if err != nil {
+			logger.Errorf(ctx, "Error occurred during parsing suggestion preferences: %v", err)
+		}
+		publicProfile.SuggestionPreferences = suggestionPreferences
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		avatarUrl, err := service.avatarService.GetAvatarUrlById(ctx, profile.UserID, avatarSize)
+		if err != nil {
+			logger.Errorf(ctx, "Error occurred during avatar url: %v", err)
+		}
+		publicProfile.AvatarURL = avatarUrl
+	}()
+
+	wg.Wait()
+
 	return publicProfile, nil
 }
 
@@ -145,33 +168,33 @@ func (service *profileService) ValidateLink(ctx context.Context, link string) er
 	return nil
 }
 
-func (service *profileService) UpdateProfile(ctx context.Context, userId uuid.UUID, req *types.UpdateProfileReq) (*db.Profile, error) {
+func (service *profileService) UpdateProfile(ctx context.Context, userId uuid.UUID, req *types.UpdateProfileReq) error {
 	profile, err := service.GetProfileById(ctx, userId)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if profile.Username != req.Username {
 		// validate username
 		if len(req.Username) < 1 {
-			return nil, errors.NewBadRequestError("Username is required", nil)
+			return errors.NewBadRequestError("Username is required", nil)
 		} else if len(req.Username) < 3 {
-			return nil, errors.NewBadRequestError("Username is too short", nil)
+			return errors.NewBadRequestError("Username is too short", nil)
 		} else if len(req.Username) > 100 {
-			return nil, errors.NewBadRequestError("Username is too long", nil)
+			return errors.NewBadRequestError("Username is too long", nil)
 		}
 	}
 
 	if profile.Link != req.Link {
 		err = service.ValidateLink(ctx, req.Link)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 
 	err = service.avatarService.ConfirmProfileAvatar(ctx, userId)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// lower the link
@@ -183,20 +206,78 @@ func (service *profileService) UpdateProfile(ctx context.Context, userId uuid.UU
 	}
 
 	// update profile
-	updatedProfile, err := service.sqlDb.Queries().UpdateProfileByUserId(ctx, db.UpdateProfileByUserIdParams{
+	err = service.sqlDb.Queries().UpdateProfileByUserId(ctx, db.UpdateProfileByUserIdParams{
 		UserID:      profile.UserID,
-		UpdatedBy:   &profile.UserID,
+		UpdatedBy:   profile.UserID,
 		Username:    req.Username,
 		Link:        strings.ToLower(req.Link),
 		Description: description,
 	})
 	if err == pgx.ErrNoRows {
-		return nil, errors.NewNotFoundError("Profile not found", err)
+		return errors.NewNotFoundError("Profile not found", err)
 	} else if err != nil {
-		return nil, errors.NewInternalServerError("Error occurred updating profile", err)
+		return errors.NewInternalServerError("Error occurred updating profile", err)
 	}
 
-	return updatedProfile, nil
+	return nil
+}
+
+func (service *profileService) ParseSuggestionPreferences(ctx context.Context, profile *db.Profile) (*models.SuggestionPreferences, error) {
+	suggestionPreferences := &models.SuggestionPreferences{
+		Enabled:            false,
+		AllowedFree:        true,
+		AllowedAnonymously: true,
+		Categories: []db.ContentCategory{
+			db.ContentCategoryGames,
+			db.ContentCategoryMovies,
+			db.ContentCategoryAnime,
+			db.ContentCategoryVideo,
+			db.ContentCategorySeries,
+		},
+	}
+	if profile.SuggestionPreferences != nil {
+		err := json.Unmarshal(profile.SuggestionPreferences, suggestionPreferences)
+		if err != nil {
+			logger.Errorf(ctx, "Error occurred during unmarshalling suggestion preferences: %v", err)
+		}
+	}
+	return suggestionPreferences, nil
+}
+
+func (service *profileService) UpdateSuggestionPreferences(ctx context.Context, userID uuid.UUID, req *models.SuggestionPreferences) error {
+	authUserID, err := utils.UserIdFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	jsonb, err := json.Marshal(req)
+	if err != nil {
+		return errors.NewInternalServerError("Error occurred marshalling suggestion preferences", err)
+	}
+
+	// validate suggestion preferences
+	if req.Enabled && len(req.Categories) == 0 {
+		return errors.NewBadRequestError("At least one category is required", nil)
+	}
+
+	if authUserID != userID {
+		return errors.NewBadRequestError("You are not allowed to update suggestion preferences for this profile", nil)
+	}
+
+	profile, err := service.GetProfileById(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	err = service.sqlDb.Queries().UpdateProfileSuggestionPreferences(ctx, db.UpdateProfileSuggestionPreferencesParams{
+		UserID:                profile.UserID,
+		UpdatedBy:             authUserID,
+		SuggestionPreferences: jsonb,
+	})
+	if err != nil {
+		return errors.NewInternalServerError("Error occurred updating suggestion preferences", err)
+	}
+	return nil
 }
 
 func (service *profileService) CreateProfileWebhook(ctx context.Context, req *types.SupabaseWebhookPayload) (*db.Profile, error) {

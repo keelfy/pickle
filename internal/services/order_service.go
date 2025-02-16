@@ -2,11 +2,14 @@ package services
 
 import (
 	"context"
+	"encoding/json"
+	"slices"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	db "github.com/pickle.pw/monolith/db/sqlc"
 	"github.com/pickle.pw/monolith/internal/errors"
+	"github.com/pickle.pw/monolith/internal/models"
 	"github.com/pickle.pw/monolith/internal/storage"
 	"github.com/pickle.pw/monolith/internal/types"
 	"github.com/pickle.pw/monolith/internal/utils"
@@ -96,6 +99,24 @@ func (service *orderService) CreateOrder(ctx context.Context, userId uuid.UUID, 
 	receiver, err := service.userService.GetProfileById(ctx, userId)
 	if err != nil {
 		return nil, err
+	}
+
+	if receiver.SuggestionPreferences == nil {
+		return nil, errors.NewBadRequestError("Receiver does not have suggestion preferences enabled", nil)
+	}
+
+	preferences := &models.SuggestionPreferences{}
+	err = json.Unmarshal(receiver.SuggestionPreferences, preferences)
+	if err != nil {
+		return nil, errors.NewInternalServerError("Error occurred during unmarshalling suggestion preferences", err)
+	}
+
+	if !preferences.Enabled {
+		return nil, errors.NewBadRequestError("Receiver does not have suggestion preferences enabled", nil)
+	} else if !preferences.AllowedAnonymously && (req.IsAnonymously || req.OrdererUsername == "") {
+		return nil, errors.NewBadRequestError("You are not allowed to create an anonymous order for this profile", nil)
+	} else if !slices.Contains(preferences.Categories, req.Category) {
+		return nil, errors.NewBadRequestError("You are not allowed to create an order for this category", nil)
 	}
 
 	orderer, err := service.ordererService.CreateOrderer(ctx, req.OrdererUsername, creator, req.IsAnonymously)

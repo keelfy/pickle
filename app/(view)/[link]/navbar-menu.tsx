@@ -1,27 +1,24 @@
+import LanguageDropdownMenu from "@/components/language-dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import { NavigationMenu, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, navigationMenuTriggerStyle } from "@/components/ui/navigation-menu";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { ModalType } from "@/stores/modal";
-import { Bell, EarthIcon, Menu, Search } from "lucide-react";
+import { Bell, Menu, Search } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import ProfileDropdownMenu from "../profile-dropdown-menu";
 import CurrentDate from "./current-date";
 import MenuItemUnderline from "./menu-item-underline";
 import OpenModalButton from "./open-modal-button";
-import LanguageDropdownMenu from "@/components/language-dropdown-menu";
+
 type Props = {
-    params: Promise<{
-        link: string;
-    }>;
+    link: string;
     className?: string;
 };
 
-export default async function NavMenu({ params, className }: Props) {
-    const { link } = await params;
+export default function NavMenu({ link, className }: Props) {
     return (
         <div className={cn("flex items-center justify-between pt-2", className)}>
             <NavigationMenu>

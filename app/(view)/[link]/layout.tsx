@@ -6,6 +6,7 @@ import {
 } from "@/hooks/api-endpoints-server";
 import OrderStoreProvider from "@/providers/order";
 import ProfileStoreProvider from "@/providers/profile-store";
+import { Metadata } from "next";
 import Link from "next/link";
 import React, { Suspense } from "react";
 import ApproveOrderDialog from "../../../components/view/dialog/approve-order/approve-order-dialog";
@@ -14,7 +15,6 @@ import DenyOrderDialog from "../../../components/view/dialog/deny-order/deny-ord
 import ProfileSearchDialog from "../../../components/view/dialog/profile-search/profile-search-dialog";
 import NavMenu from "./navbar-menu";
 import ProfileCard from "./profile-card";
-import { Metadata } from "next";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { link } = await params;
@@ -77,9 +77,7 @@ export default async function RootLayout({ children, params }: React.PropsWithCh
         <main className="min-h-screen bg-background grid gap-10">
             <div className="container max-w-7xl flex flex-col gap-10">
                 <nav className="mt-2">
-                    <Suspense>
-                        <NavMenu params={params} className="max-md:hidden" />
-                    </Suspense>
+                    <NavMenu link={link} className="max-md:hidden" />
                 </nav>
 
                 <OrderStoreProvider>

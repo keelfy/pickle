@@ -1,7 +1,7 @@
 import { fetchApi } from "@/utils/api/client";
 import { AddItemToCollectionReq, CreateCollectionReq, CreateOrderReq, UpdateCollectionReq } from "@/utils/api/request";
 import { ContentSearchHits, LinkValidation, Paginated } from "@/utils/api/response";
-import { Collection, CollectionItem, GameNote, Image, ImagePreview, ImageSize, ModeratorProfile, NoteReaction, Order, OrderUpdate, Profile, PublicProfile, Reaction, SuggestionPreferences } from "@/utils/api/types";
+import { Collection, CollectionItem, ContentCategory, GameNote, Image, ImagePreview, ImageSize, ModeratorProfile, NoteReaction, Order, OrderUpdate, Profile, PublicProfile, Reaction, SuggestionPreferences } from "@/utils/api/types";
 
 
 export async function uploadAvatarForPreview(formData: FormData) {
@@ -205,5 +205,33 @@ export async function fetchAddModerator(profile: PublicProfile, userLink: string
 export async function fetchDeleteModerator(profile: PublicProfile, moderatorId: string) {
     return fetchApi<void>(`/v1/users/${profile.id}/moderators/${moderatorId}`, true, {
         method: "DELETE",
+    });
+}
+
+export async function fetchRenameNote(profile: Profile, category: ContentCategory, id: string, name: string) {
+    let path: string;
+    switch (category) {
+        case "games":
+            path = `game-notes`;
+            break;
+        case "anime":
+            path = `anime-notes`;
+            break;
+        case "movies":
+            path = `movie-notes`;
+            break;
+        case "series":
+            path = `series-notes`;
+            break;
+        case "video":
+            path = `video-notes`;
+            break;
+        default:
+            return;
+    }
+
+    return fetchApi<void>(`/v1/users/${profile.id}/${path}/${id}/name`, true, {
+        method: "PATCH",
+        body: JSON.stringify({ name }),
     });
 }

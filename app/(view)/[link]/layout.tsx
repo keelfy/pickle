@@ -85,15 +85,14 @@ export default async function RootLayout({ children, params }: React.PropsWithCh
                         <div className="flex gap-10">
                             <ProfileCard profile={ownerProfile} className="w-min h-fit hidden md:block" />
 
-                            <div className="flex-0 w-full">
-                                <Suspense>{children}</Suspense>
+                            <div className="flex-1 w-full">
+                                {children}
                             </div>
                         </div>
 
                         <DenyOrderDialog />
                         <ApproveOrderDialog />
                         <GameNoteDialog />
-                        <GameNoteEditorDialog />
                         <ProfileSearchDialog />
                         <CreateOrderDialog />
                         <DeleteContentAlertDialog />

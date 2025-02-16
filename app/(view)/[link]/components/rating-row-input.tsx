@@ -1,50 +1,36 @@
 "use client";
 
-import { cn } from "@/utils/cn";
-import { StarIcon } from "lucide-react";
 import React from "react";
-import RateStarIcon from "./rate-star-icon";
+import RatingStar from "./rating-star";
+import { cn } from "@/lib/utils";
 
 type Props = {
-    value: number | undefined;
+    value: number;
     onChange: (value: number | undefined) => void;
 };
 
 const RatingRowInput = ({ value, onChange }: Props) => {
-    const [hoveredStar, setHoveredStar] = React.useState<number>();
+    const [hoveredStar, setHoveredStar] = React.useState<number>(0);
+
+    const handleStarClick = (starIndex: number) => {
+        onChange(value === starIndex + 1 ? undefined : starIndex + 1);
+    };
 
     return (
-        <div className="flex items-center gap-1">
+        <div className="flex items-center">
             {[...Array(10)].map((_, i) => (
                 <button
                     key={i}
-                    className={cn(
-                        "relative w-9 h-9 flex items-center justify-center transition-colors",
-                        (value && i < value) ||
-                            (hoveredStar !== undefined && hoveredStar >= i)
-                            ? "text-yellow-400"
-                            : "text-accent-foreground"
-                    )}
-                    onMouseEnter={() => setHoveredStar(i)}
-                    onMouseLeave={() => setHoveredStar(undefined)}
-                    onClick={() =>
-                        value == i + 1 ? onChange(undefined) : onChange(i + 1)
-                    }
+                    onClick={() => handleStarClick(i)}
                     type="button"
+                    onMouseEnter={() => setHoveredStar(i + 1)}
+                    onMouseLeave={() => setHoveredStar(0)}
+                    className={cn("px-0.5 transition-all duration-300", hoveredStar > i && "scale-110")}
                 >
-                    <label
-                        className={cn(
-                            "flex items-center justify-center text-xs absolute w-4 h-4 translate-y-0.5 cursor-pointer",
-                            value && i < value && "text-accent"
-                        )}
-                    >
-                        {i + 1}
-                    </label>
-                    <RateStarIcon
-                        className={cn(
-                            "cursor-pointer w-9 h-9 transition-colors fill-none",
-                            value && i < value && "fill-current"
-                        )}
+                    <RatingStar
+                        active={i < value || hoveredStar > i}
+                        number={i + 1}
+                        pointer
                     />
                 </button>
             ))}

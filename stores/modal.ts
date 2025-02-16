@@ -8,6 +8,7 @@ export enum ModalType {
     CreateOrder = "create-order",
     GameNote = "game-note",
     GameNoteEditor = "game-note-editor",
+    RenameGameNote = "rename-game-note",
     ProfileSearch = "profile-search",
     ProfileSettings = "profile-settings",
     DeleteContentAlert = "delete-content-alert",

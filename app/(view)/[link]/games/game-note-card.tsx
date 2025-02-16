@@ -77,6 +77,10 @@ export default function GameNoteCard({ note, defaultReactions }: Props) {
         openModal(ModalType.GameNoteEditor, { id: note.id });
     };
 
+    const handleRename = () => {
+        openModal(ModalType.RenameGameNote, { id: note.id, name: note.name });
+    };
+
     const onDelete = () =>
         openModal(ModalType.DeleteContentAlert, {
             type: DeleteContentType.GameNote,
@@ -160,7 +164,7 @@ export default function GameNoteCard({ note, defaultReactions }: Props) {
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="start">
-                                        <DropdownMenuItem className="cursor-pointer">
+                                        <DropdownMenuItem className="cursor-pointer" onClick={handleRename}>
                                             <PencilLineIcon />
                                             Rename
                                         </DropdownMenuItem>

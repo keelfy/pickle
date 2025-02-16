@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { useProfileStore } from "@/providers/profile-store";
 import { Paginated } from "@/utils/api/response";
 import { Order, PublicProfile } from "@/utils/api/types";
-import { ChevronLeftIcon } from "lucide-react";
+import { ChevronLeftIcon, UserPlusIcon } from "lucide-react";
 import React from "react";
 
 type Props = {
@@ -60,6 +60,7 @@ export const NoteDialogOrdersSection = ({ noteId, fetchOrders, className }: Prop
             <div className="flex items-center justify-between space-x-4">
                 <CollapsibleTrigger asChild>
                     <Button variant="link" size="sm" className="text-md font-semibold p-0">
+                        <UserPlusIcon className="w-4 h-4" />
                         Suggesters
                     </Button>
                 </CollapsibleTrigger>

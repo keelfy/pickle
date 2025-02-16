@@ -6,6 +6,7 @@ import { useStore } from "zustand";
 import createModalStore, { ModalStore, ModalType } from "@/stores/modal";
 import { parseAsString, parseAsStringEnum, useQueryState } from "nuqs";
 import qs from "querystring";
+import { ModalQuerySync } from "@/query-params/modal";
 
 export type ModalStoreApi = ReturnType<typeof createModalStore>;
 
@@ -42,6 +43,7 @@ export default function ModalStoreProvider({
     return (
         <ModalStoreContext.Provider value={storeRef.current}>
             {children}
+            <ModalQuerySync />
         </ModalStoreContext.Provider>
     );
 }

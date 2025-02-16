@@ -1,9 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import LoadingSpinner from "@/components/ui/loading-spinner";
 import { Separator } from "@/components/ui/separator";
 import { Filter, SortAsc, UserPlusIcon } from "lucide-react";
-import { Suspense } from "react";
 import CollectionsSection from "../../../components/view/content-collections/collections-section";
 import OrdersDataTable from "./components/orders-data-table";
 
@@ -11,12 +9,11 @@ type Props = {
     params: Promise<{ link: string }>;
 }
 
-export default function Page({ params }: Props) {
+export default async function Page({ params }: Props) {
+    const { link } = await params;
     return (
         <div className="flex flex-col gap-4">
-            <Suspense fallback={<LoadingSpinner />}>
-                <CollectionsSection params={params} />
-            </Suspense>
+            <CollectionsSection link={link} />
             <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -40,9 +37,7 @@ export default function Page({ params }: Props) {
                         </Button>
                     </div>
                 </div>
-                <Suspense fallback={<LoadingSpinner />}>
-                    <OrdersDataTable />
-                </Suspense>
+                <OrdersDataTable />
             </div>
             {/* <Pagination>
                 <PaginationContent>

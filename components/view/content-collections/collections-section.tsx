@@ -10,12 +10,10 @@ import { CollectionsProvider } from "./collections-context";
 import CollectionsList from "./collections-list";
 
 type Props = {
-    params: Promise<{ link: string }>;
+    link: string;
 }
 
-export default async function CollectionsSection({ params }: Props) {
-    const { link } = await params;
-
+export default async function CollectionsSection({ link }: Props) {
     const profile = await fetchProfileByLink(link).catch(() => {
         return undefined;
     });

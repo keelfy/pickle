@@ -16,8 +16,11 @@ const SelectTrigger = ({
     className,
     children,
     ref,
+    isArrow = true,
     ...props
-}: React.ComponentProps<typeof SelectPrimitive.Trigger>) => (
+}: React.ComponentProps<typeof SelectPrimitive.Trigger> & {
+    isArrow?: boolean;
+}) => (
     <SelectPrimitive.Trigger
         ref={ref}
         className={cn(
@@ -27,9 +30,11 @@ const SelectTrigger = ({
         {...props}
     >
         {children}
-        <SelectPrimitive.Icon asChild>
-            <ChevronDown className="h-4 w-4 opacity-50" />
-        </SelectPrimitive.Icon>
+        {isArrow && (
+            <SelectPrimitive.Icon asChild>
+                <ChevronDown className="h-4 w-4 opacity-50" />
+            </SelectPrimitive.Icon>
+        )}
     </SelectPrimitive.Trigger>
 );
 SelectTrigger.displayName = SelectPrimitive.Trigger.displayName;

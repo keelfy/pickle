@@ -1,36 +1,15 @@
-import LoadingSpinner from "@/components/ui/loading-spinner";
 import { fetchMyProfile } from "@/hooks/api-endpoints-server";
 import getUser from "@/hooks/getUser";
 import AuthStoreProvider from "@/providers/auth-store";
-import { PublicProfile } from "@/utils/api/types";
-import { User } from "@supabase/supabase-js";
-import React, { Suspense } from "react";
+import React from "react";
 
-async function getAuth() {
-    let user: User | undefined;
-    let profile: PublicProfile | undefined;
-
-    try {
-        user = await getUser();
-        if (user) profile = await fetchMyProfile('md');
-        return { user, profile };
-    } catch (error) {
-        return { user: undefined, profile: undefined };
-    }
-}
-
-async function AuthorizedProvider({ children }: { children: React.ReactNode }) {
-    const { user, profile } = await getAuth();
+export default async function RootLayout({ children }: React.PropsWithChildren) {
+    const user = await getUser().catch(() => undefined);
+    const profile = user?.id ? await fetchMyProfile('md').catch(() => undefined) : undefined;
 
     return (
         <AuthStoreProvider profile={profile} user={user}>
-            <Suspense fallback={<LoadingSpinner />}>{children}</Suspense>
+            {children}
         </AuthStoreProvider>
     );
 }
-
-function RootLayout({ children }: React.PropsWithChildren) {
-    return <AuthorizedProvider>{children}</AuthorizedProvider>;
-}
-
-export default RootLayout;

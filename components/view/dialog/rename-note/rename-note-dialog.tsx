@@ -6,25 +6,32 @@ import { ModalType } from "@/stores/modal";
 import dynamic from "next/dynamic";
 import React from "react";
 import LoadingDialogContent from "../loading-dialog-content";
+import { ContentCategory } from "@/utils/api/types";
 
-const DynamicEditCollectionDialogContent = dynamic(
-    () => import("./edit-collection-dialog-content"),
+const DynamicRenameGameNoteDialogContent = dynamic(
+    () => import("./rename-note-dialog-content"),
     {
         loading: () => <LoadingDialogContent />,
     }
 );
 
-export type EditCollectionModalParams = {
+export type RenameGameNoteModalParams = {
     id: string;
+    name: string;
 }
 
-export default function EditCollectionDialog() {
+type Props = {
+    category: ContentCategory;
+}
+
+export default function RenameGameNoteDialog({ category }: Props) {
     const { currentModal, closeModal, modalParams } = useModalStore((state) => state);
 
     const isOpen = React.useMemo(
-        () => currentModal === ModalType.EditCollection
-            && modalParams?.id !== undefined,
-        [currentModal, modalParams?.id]
+        () => currentModal === ModalType.RenameGameNote
+            && modalParams?.id !== undefined
+            && modalParams?.name !== undefined,
+        [currentModal, modalParams]
     );
 
     if (!isOpen) {
@@ -34,7 +41,7 @@ export default function EditCollectionDialog() {
     return (
         <Dialog open={isOpen} onOpenChange={closeModal}>
             <DialogContent className="overflow-y-auto max-h-screen">
-                {isOpen && <DynamicEditCollectionDialogContent />}
+                {isOpen && <DynamicRenameGameNoteDialogContent category={category} />}
             </DialogContent>
         </Dialog>
     );

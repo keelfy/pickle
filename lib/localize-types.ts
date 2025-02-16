@@ -1,4 +1,4 @@
-import { ContentCategory } from "@/utils/api/types";
+import { ContentCategory, GameNoteStatus } from "@/utils/api/types";
 
 export const localizeContentCategory = (category: ContentCategory, multiple: boolean = false) => {
     switch (category) {
@@ -14,6 +14,25 @@ export const localizeContentCategory = (category: ContentCategory, multiple: boo
             return multiple ? "Anime" : "Anime";
         default:
             return multiple ? "Content" : "Content";
+    }
+}
+
+export const localizeGameNoteStatus = (status: GameNoteStatus) => {
+    switch (status) {
+        case "playing":
+            return "Playing";
+        case "paused":
+            return "Paused";
+        case "dropped":
+            return "Dropped";
+        case "finished":
+            return "Finished";
+        case "skipped":
+            return "Skipped";
+        case "planned":
+            return "Planned";
+        default:
+            return "Unknown";
     }
 }
 

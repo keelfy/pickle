@@ -13,8 +13,10 @@ import { useProfileStore } from "@/providers/profile-store";
 import { GameNote, Reaction } from "@/utils/api/types";
 import {
     Check,
+    HeartIcon,
     History,
     Link,
+    MessageCircleIcon,
     Rocket
 } from "lucide-react";
 import React from "react";
@@ -54,11 +56,9 @@ export default function GameNoteDialogContent() {
         (async () => {
             try {
                 const res = await fetchGameNoteReactions(profile, gameNoteId);
-                if (res) {
-                    setReactions(res);
-                }
+                setReactions(res ?? []);
             } catch (error: any) {
-                console.error(error);
+                setReactions([]);
             }
         })();
     }, [gameNoteId]);
@@ -92,7 +92,7 @@ export default function GameNoteDialogContent() {
                 </DialogHeader>
             </div>
 
-            <div className="grid gap-4">
+            <div className="grid space-y-6">
                 <div className="flex items-start gap-4">
                     <ContentPoster posterUrl={posterUrl} size="md" loading={isPosterLoading} />
                     <div className="flex-1 flex flex-col gap-3 w-full justify-between">
@@ -182,18 +182,28 @@ export default function GameNoteDialogContent() {
                     </div>
                 </div>
 
-                <div className="grid gap-2">
-                    <Label className="text-md font-semibold">
-                        {profile?.username}`s review
-                    </Label>
+                <div className="grid gap-1">
+                    <div className="flex items-center gap-2">
+                        <HeartIcon className="w-4 h-4" />
+                        <Label className="text-md font-semibold">
+                            Rated
+                        </Label>
+                    </div>
                     <RatingRow value={gameNote?.rate ?? 0} />
                 </div>
 
-                <NoteComment comment={gameNote?.comment} className="rounded-lg" lengthLimit={180} />
-
-                {gameNote && reactions && (
-                    <GameNoteReactions note={gameNote} defaultReactions={reactions} />
-                )}
+                <div className="grid gap-1">
+                    <div className="flex items-center gap-2">
+                        <MessageCircleIcon className="w-4 h-4" />
+                        <Label className="text-md font-semibold">
+                            Review
+                        </Label>
+                    </div>
+                    <NoteComment comment={gameNote?.comment} className="rounded-lg" lengthLimit={180} />
+                    {gameNote && reactions && (
+                        <GameNoteReactions note={gameNote} defaultReactions={reactions} className="mt-2" />
+                    )}
+                </div>
 
                 <NoteDialogOrdersSection
                     noteId={gameNoteId}

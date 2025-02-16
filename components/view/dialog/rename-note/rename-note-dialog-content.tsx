@@ -2,80 +2,68 @@
 
 import { Button } from "@/components/ui/button";
 import {
-    DialogDescription,
     DialogFooter,
     DialogHeader,
-    DialogTitle,
+    DialogTitle
 } from "@/components/ui/dialog";
 import {
     Form,
     FormControl,
-    FormDescription,
     FormField,
     FormItem,
     FormLabel,
     FormMessage
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import LoadingSpinner from "@/components/ui/loading-spinner";
-import { fetchUpdateCollection } from "@/hooks/api-endpoints-client";
+import { fetchRenameNote } from "@/hooks/api-endpoints-client";
 import { toast } from "@/hooks/use-toast";
+import { localizeContentCategory } from "@/lib/localize-types";
 import { useModalStore } from "@/providers/modal";
+import { useProfileStore } from "@/providers/profile-store";
+import { ContentCategory } from "@/utils/api/types";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { BaselineIcon, Check, CircleOffIcon, LibraryIcon, X } from "lucide-react";
+import { BaselineIcon, Check, CircleOffIcon, X } from "lucide-react";
 import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { useCollectionContext } from "../../content-collections/collections-context";
-import EditCollectionDialogItem from "./edit-collection-dialog-item";
-import EditCollectionDialogLoadMoreItems from "./edit-collection-dialog-load-more-items";
 
 const formSchema = z.object({
     name: z.string()
         .min(1, { message: "Name is required" })
-        .max(50, { message: "Name must be less than 50 characters" }),
+        .max(100, { message: "Name must be less than 100 characters" }),
 });
 
-export default function EditCollectionDialogContent() {
+type Props = {
+    category: ContentCategory;
+}
+
+export default function EditCollectionDialogContent({ category }: Props) {
     const { modalParams, closeModal } = useModalStore((state) => state);
     const [isLoading, startTransition] = React.useTransition();
-    const { states: collectionStates, updateCollection } = useCollectionContext();
+    const profile = useProfileStore((state) => state.profile);
 
-    const collectionState = React.useMemo(() => {
-        return collectionStates.find((state) => state.collection.id === modalParams?.id);
-    }, [collectionStates, modalParams?.id]);
+    const { id, name } = modalParams!;
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            name: collectionState?.collection.name ?? "Untitled collection",
+            name: name ?? "Untitled collection",
         },
     });
 
     const onSubmit = (data: z.infer<typeof formSchema>) => {
-        const updatedCollection = collectionState?.collection;
-        if (!updatedCollection?.id) return;
-
         startTransition(async () => {
-            const optimisticCollection = {
-                ...updatedCollection,
-                name: data.name,
-            };
-            updateCollection(optimisticCollection.id, optimisticCollection);
-
             try {
-                const newCollection = await fetchUpdateCollection(updatedCollection.id, data);
-                updateCollection(optimisticCollection.id, newCollection);
+                await fetchRenameNote(profile, category, id, data.name);
                 closeModal();
                 toast({
                     title: data.name,
-                    description: "Collection updated successfully",
+                    description: "Content renamed successfully",
                 });
             } catch (error: any) {
-                updateCollection(optimisticCollection.id, updatedCollection);
                 toast({
-                    title: "Error while updating collection",
+                    title: "Error while renaming content",
                     description: error.message ?? "Please try again",
                     variant: "destructive",
                 });
@@ -83,15 +71,12 @@ export default function EditCollectionDialogContent() {
         });
     };
 
-    if (!collectionState) return null;
-
     return (
         <>
             <DialogHeader>
                 <DialogTitle>
-                    {collectionState?.collection.name}
+                    {name}
                 </DialogTitle>
-                <DialogDescription>You can use collections to organize your content the way you want.</DialogDescription>
             </DialogHeader>
 
             <Form {...form}>
@@ -106,31 +91,15 @@ export default function EditCollectionDialogContent() {
                             <FormItem>
                                 <FormLabel className="flex items-center gap-1">
                                     <BaselineIcon className="w-4 h-4" />
-                                    Name
+                                    Name of the {localizeContentCategory(category)}
                                 </FormLabel>
                                 <FormControl>
-                                    <Input placeholder="e.g. My favorite games" {...field} />
+                                    <Input placeholder="Far Cry 3" {...field} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
                     />
-
-                    <div className="flex flex-col gap-2 w-full mt-4">
-                        <div className="flex items-center gap-2">
-                            <LibraryIcon className="w-4 h-4" />
-                            <Label>Items</Label>
-                        </div>
-                        {collectionState.content.map((item) => (
-                            <EditCollectionDialogItem key={item.id} item={item} />
-                        ))}
-                        {(collectionState.page < collectionState.totalPages - 1) && (
-                            <EditCollectionDialogLoadMoreItems collectionId={collectionState.collection.id} />
-                        )}
-                        <FormDescription>
-                            Note that item deletion does not require confirmation and will be instantly applied.
-                        </FormDescription>
-                    </div>
 
                     <DialogFooter className="mt-4">
                         <Button

@@ -2,17 +2,14 @@
 
 import EditableDate from "@/app/(view)/[link]/components/editable-date";
 import EditablePoster from "@/app/(view)/[link]/components/editable-poster";
-import EditableStatusButton from "@/app/(view)/[link]/components/editable-status-button";
 import GameUrl from "@/app/(view)/[link]/components/game-url";
 import RatingRowInput from "@/app/(view)/[link]/components/rating-row-input";
-import ApiTypeCommand from "@/components/ui/api-type-command";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
 import {
-    DialogDescription,
     DialogFooter,
     DialogHeader,
-    DialogTitle,
+    DialogTitle
 } from "@/components/ui/dialog";
 import {
     Form,
@@ -31,6 +28,7 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
     Tooltip,
@@ -40,17 +38,19 @@ import {
 } from "@/components/ui/tooltip";
 import { fetchGameNote, fetchGameNoteOrders, fetchGameNotePoster, updateGameNote } from "@/hooks/api-endpoints-client";
 import { toast } from "@/hooks/use-toast";
+import { localizeGameNoteStatus } from "@/lib/localize-types";
 import { useModalStore } from "@/providers/modal";
 import { useProfileStore } from "@/providers/profile-store";
 import { gameNoteStatusLabels } from "@/utils/api/constants";
 import { GameNote, GameNoteStatus } from "@/utils/api/types";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PopoverClose } from "@radix-ui/react-popover";
-import { Check, CircleOff, Edit, X } from "lucide-react";
+import { Check, CircleOff, Edit, HeartIcon, MessageCircleIcon, X } from "lucide-react";
 import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { NoteDialogOrdersSection } from "../note-dialog-orders-section";
+import { cn } from "@/lib/utils";
+import { GameNoteStatusIcon } from "@/app/(view)/[link]/games/game-note-status-badge";
 
 const formSchema = z.object({
     name: z.string(),
@@ -149,12 +149,13 @@ export default function GameNoteEditorDialogContent() {
 
     return (
         <>
-            <DialogHeader>
-                <DialogTitle>{gameNote?.name}</DialogTitle>
-                <DialogDescription>
-                    Fill card with detailed info about the game.
-                </DialogDescription>
-            </DialogHeader>
+            <div className="hidden">
+                <DialogHeader>
+                    <DialogTitle>
+                        {gameNote?.name}
+                    </DialogTitle>
+                </DialogHeader>
+            </div>
 
             <Form {...form}>
                 <form onSubmit={onSubmit}>
@@ -169,22 +170,160 @@ export default function GameNoteEditorDialogContent() {
                                     });
                                 }}
                             />
-                            <table className="w-full">
-                                <tbody>
-                                    <tr>
-                                        <td className="w-1/2">
-                                            <Label className="text-sm">
-                                                Release Date
-                                            </Label>
-                                        </td>
-                                        <td>
-                                            <FormField
-                                                control={form.control}
-                                                name="releaseDate"
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormControl>
+                            <div className="flex-1 flex flex-col gap-2 w-full">
+                                <div className="font-bold text-lg">
+                                    {gameNote?.name}
+                                </div>
+                                <table>
+                                    <tbody>
+                                        <tr>
+                                            <td className="w-1/2">
+                                                <Label className="text-sm">
+                                                    Release Date
+                                                </Label>
+                                            </td>
+                                            <td>
+                                                <FormField
+                                                    control={form.control}
+                                                    name="releaseDate"
+                                                    render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormControl>
+                                                                <DateTimePicker
+                                                                    granularity="day"
+                                                                    {...field}
+                                                                    triggerButtonProps={{
+                                                                        size: "icon",
+                                                                        variant:
+                                                                            "ghost",
+                                                                        className:
+                                                                            "w-full h-8",
+                                                                    }}
+                                                                >
+                                                                    <EditableDate
+                                                                        value={
+                                                                            field.value
+                                                                        }
+                                                                    />
+                                                                </DateTimePicker>
+                                                            </FormControl>
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td className="w-1/2">
+                                                <Label className="text-sm">
+                                                    Link
+                                                </Label>
+                                            </td>
+                                            <td className="w-1/2">
+                                                <FormField
+                                                    control={form.control}
+                                                    name="link"
+                                                    render={({ field }) => (
+                                                        <FormItem>
+                                                            <Popover>
+                                                                <PopoverTrigger
+                                                                    asChild
+                                                                >
+                                                                    <FormControl>
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            className="w-full h-8 p-1"
+                                                                            size="icon"
+                                                                        >
+                                                                            <div className="w-full flex items-center justify-between space-x-1">
+                                                                                <GameUrl
+                                                                                    url={
+                                                                                        field.value
+                                                                                    }
+                                                                                />
+                                                                                <Edit />
+                                                                            </div>
+                                                                        </Button>
+                                                                    </FormControl>
+                                                                </PopoverTrigger>
+                                                                <PopoverContent className="w-80 p-0">
+                                                                    <Input
+                                                                        placeholder="Paste URL here..."
+                                                                        {...field}
+                                                                    />
+                                                                </PopoverContent>
+                                                            </Popover>
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td className="pt-4">
+                                                <TooltipProvider>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Label className="text-sm">
+                                                                Status
+                                                            </Label>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                            The status of your
+                                                            playthrough for this
+                                                            game.
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
+                                            </td>
+                                            <td className="pt-4">
+                                                <FormField
+                                                    control={form.control}
+                                                    name="status"
+                                                    render={({ field }) => (
+                                                        <FormItem>
+                                                            <Select value={field.value} onValueChange={field.onChange}>
+                                                                <FormControl>
+                                                                    <SelectTrigger className={cn(buttonVariants({ variant: "ghost" }), "w-full h-8 justify-between border-none p-1")} isArrow={false}>
+                                                                        <SelectValue placeholder="Select status">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <GameNoteStatusIcon status={field.value} classname="w-4 h-4" />
+                                                                                {localizeGameNoteStatus(field.value)}
+                                                                            </div>
+                                                                        </SelectValue>
+                                                                        <Edit className="w-4 h-4" />
+                                                                    </SelectTrigger>
+                                                                </FormControl>
+                                                                <SelectContent>
+                                                                    {gameNoteStatusLabels.map((status) => (
+                                                                        <SelectItem key={status.value} value={status.value} indicatorPosition="right">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <GameNoteStatusIcon status={status.value} classname="w-4 h-4" />
+                                                                                {status.label}
+                                                                            </div>
+                                                                        </SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <Label className="text-sm">
+                                                    Last Played
+                                                </Label>
+                                            </td>
+                                            <td>
+                                                <FormField
+                                                    control={form.control}
+                                                    name="lastPlayedAt"
+                                                    render={({ field }) => (
+                                                        <FormItem>
                                                             <DateTimePicker
+                                                                locale={{
+                                                                    code: navigator.language,
+                                                                }}
                                                                 granularity="day"
                                                                 {...field}
                                                                 triggerButtonProps={{
@@ -201,216 +340,52 @@ export default function GameNoteEditorDialogContent() {
                                                                     }
                                                                 />
                                                             </DateTimePicker>
-                                                        </FormControl>
-                                                    </FormItem>
-                                                )}
-                                            />
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td className="w-1/2">
-                                            <Label className="text-sm">
-                                                Link
-                                            </Label>
-                                        </td>
-                                        <td className="w-1/2">
-                                            <FormField
-                                                control={form.control}
-                                                name="link"
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <Popover>
-                                                            <PopoverTrigger
-                                                                asChild
-                                                            >
-                                                                <FormControl>
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        className="w-full h-8 p-1"
-                                                                        size="icon"
-                                                                    >
-                                                                        <div className="w-full flex items-center justify-between space-x-1">
-                                                                            <GameUrl
-                                                                                url={
-                                                                                    field.value
-                                                                                }
-                                                                            />
-                                                                            <Edit />
-                                                                        </div>
-                                                                    </Button>
-                                                                </FormControl>
-                                                            </PopoverTrigger>
-                                                            <PopoverContent className="w-80 p-0">
-                                                                <Input
-                                                                    placeholder="Paste URL here..."
-                                                                    {...field}
-                                                                />
-                                                            </PopoverContent>
-                                                        </Popover>
-                                                    </FormItem>
-                                                )}
-                                            />
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td className="pt-4">
-                                            <TooltipProvider>
-                                                <Tooltip>
-                                                    <TooltipTrigger>
-                                                        <Label className="text-sm">
-                                                            Status
-                                                        </Label>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent>
-                                                        <p>
-                                                            The status of your
-                                                            playthrough for this
-                                                            game.
-                                                        </p>
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            </TooltipProvider>
-                                        </td>
-                                        <td className="pt-4">
-                                            <FormField
-                                                control={form.control}
-                                                name="status"
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <Popover>
-                                                            <PopoverTrigger
-                                                                asChild
-                                                            >
-                                                                <FormControl>
-                                                                    <EditableStatusButton
-                                                                        value={gameNoteStatusLabels
-                                                                            .filter(
-                                                                                (
-                                                                                    s
-                                                                                ) =>
-                                                                                    s.value ==
-                                                                                    field.value
-                                                                            )
-                                                                            .map(
-                                                                                (
-                                                                                    s
-                                                                                ) =>
-                                                                                    s.label
-                                                                            )
-                                                                            .join()}
-                                                                        role="combobox"
-                                                                    />
-                                                                </FormControl>
-                                                            </PopoverTrigger>
-                                                            <PopoverContent className="w-[200px] p-0">
-                                                                <ApiTypeCommand
-                                                                    entries={
-                                                                        gameNoteStatusLabels
-                                                                    }
-                                                                    value={
-                                                                        field.value
-                                                                    }
-                                                                    onSelect={(
-                                                                        selectedValue
-                                                                    ) => {
-                                                                        form.setValue(
-                                                                            "status",
-                                                                            selectedValue
-                                                                        );
-                                                                    }}
-                                                                    getLabel={(
-                                                                        status
-                                                                    ) => (
-                                                                        <PopoverClose className="w-full text-start">
-                                                                            {
-                                                                                status.label
-                                                                            }
-                                                                        </PopoverClose>
-                                                                    )}
-                                                                />
-                                                            </PopoverContent>
-                                                        </Popover>
-                                                    </FormItem>
-                                                )}
-                                            />
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <Label className="text-sm">
-                                                Last Played
-                                            </Label>
-                                        </td>
-                                        <td>
-                                            <FormField
-                                                control={form.control}
-                                                name="lastPlayedAt"
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <DateTimePicker
-                                                            locale={{
-                                                                code: navigator.language,
-                                                            }}
-                                                            granularity="day"
-                                                            {...field}
-                                                            triggerButtonProps={{
-                                                                size: "icon",
-                                                                variant:
-                                                                    "ghost",
-                                                                className:
-                                                                    "w-full h-8",
-                                                            }}
-                                                        >
-                                                            <EditableDate
-                                                                value={
-                                                                    field.value
-                                                                }
-                                                            />
-                                                        </DateTimePicker>
-                                                    </FormItem>
-                                                )}
-                                            />
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
 
-                        <div className="mb-4">
-                            <FormField
-                                control={form.control}
-                                name="rate"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-md font-semibold">
-                                            Rate
-                                        </FormLabel>
-                                        <FormControl>
-                                            <RatingRowInput {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
+                        <FormField
+                            control={form.control}
+                            name="rate"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="text-md font-semibold flex items-center gap-2">
+                                        <HeartIcon className="w-4 h-4" />
+                                        Rate
+                                    </FormLabel>
+                                    <FormControl>
+                                        <RatingRowInput value={field.value ?? 0} onChange={field.onChange} />
+                                    </FormControl>
+                                </FormItem>
+                            )}
+                        />
 
-                        <div className="space-y-2">
-                            <Label className="text-md font-semibold">
-                                Comment
-                            </Label>
-                            <FormField
-                                control={form.control}
-                                name="comment"
-                                render={({ field }) => (
-                                    <Textarea
-                                        {...field}
-                                        placeholder="Type your comment here."
-                                    />
-                                )}
-                            />
-                        </div>
+                        <FormField
+                            control={form.control}
+                            name="comment"
+                            render={({ field }) => (
+                                <FormItem className="space-y-2">
+                                    <FormLabel className="text-md font-semibold flex items-center gap-2">
+                                        <MessageCircleIcon className="w-4 h-4" />
+                                        Comment
+                                    </FormLabel>
+                                    <FormControl>
+                                        <Textarea
+                                            {...field}
+                                            placeholder="Type your comment here."
+                                        />
+                                    </FormControl>
+                                </FormItem>
+                            )}
+                        />
 
-                        <div className="space-y-2">
+                        <div className="space-y-2 hidden">
                             <Label className="text-md font-semibold">
                                 Highlights
                             </Label>

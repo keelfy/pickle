@@ -7,12 +7,8 @@ import {
     DropdownMenuGroup,
     DropdownMenuItem,
     DropdownMenuLabel,
-    DropdownMenuPortal,
     DropdownMenuSeparator,
-    DropdownMenuSub,
-    DropdownMenuSubContent,
-    DropdownMenuSubTrigger,
-    DropdownMenuTrigger,
+    DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import DropdownMenuDialogWrapper from "@/components/view/dialog/dropdown-menu-dialog-wrapper";
 import ProfileSettingsDialog from "@/components/view/dialog/profile-settings/profile-settings-dialog";
@@ -20,11 +16,10 @@ import { fetchMyProfile } from "@/hooks/api-endpoints-server";
 import getUser from "@/hooks/getUser";
 import { cn } from "@/lib/utils";
 import { ModalType } from "@/stores/modal";
-import { MessageCircle, Moon, Settings, User } from "lucide-react";
+import { MessageCircle, Settings, User, UsersIcon } from "lucide-react";
 import Link from "next/link";
 import OpenModalDropdownMenuItem from "./[link]/open-modal-dropdown-menu-item";
 import LoggedOutProfileNavSection from "./logged-out-nav-menu-button";
-import ProfileDropdownThemeRadioGroup from "./profile-dropdown-theme-radio-group";
 import DropdownMenuSignOutItem from "./sign-out-button";
 
 type Props = {
@@ -72,7 +67,7 @@ export default async function ProfileDropdownMenu({ className, avatarSize = "md"
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuGroup>
-                        <DropdownMenuSub>
+                        {/* <DropdownMenuSub>
                             <DropdownMenuSubTrigger>
                                 <Moon />
                                 Dark mode
@@ -82,7 +77,11 @@ export default async function ProfileDropdownMenu({ className, avatarSize = "md"
                                     <ProfileDropdownThemeRadioGroup />
                                 </DropdownMenuSubContent>
                             </DropdownMenuPortal>
-                        </DropdownMenuSub>
+                        </DropdownMenuSub> */}
+                        <DropdownMenuItem className="cursor-pointer" disabled>
+                            <UsersIcon size={16} />
+                            My follows
+                        </DropdownMenuItem>
                         <OpenModalDropdownMenuItem
                             modal={ModalType.ProfileSettings}
                             className="cursor-pointer"

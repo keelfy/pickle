@@ -18,7 +18,7 @@ export default function EditableContentName<TFieldValues extends FieldValues, N 
         return (
             <Button
                 variant="link"
-                className="p-0 text-start font-bold text-lg cursor-text w-fit"
+                className="p-0 text-start font-bold text-lg cursor-text whitespace-normal w-fit h-fit"
                 type="button"
                 onClick={() => setIsEditingName(!isEditingName)}
             >

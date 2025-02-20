@@ -1,4 +1,5 @@
 import LanguageDropdownMenu from "@/components/language-dropdown-menu";
+import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Button } from "@/components/ui/button";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import { NavigationMenu, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, navigationMenuTriggerStyle } from "@/components/ui/navigation-menu";
@@ -11,7 +12,6 @@ import { Bell, Menu, Search } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import ProfileDropdownMenu from "../profile-dropdown-menu";
-import CurrentDate from "./current-date";
 import MenuItemUnderline from "./menu-item-underline";
 import OpenModalButton from "./open-modal-button";
 
@@ -78,15 +78,16 @@ export default function ProfileNavigationMenu({ link, className }: Props) {
                     </OpenModalButton>
                 </NavigationMenuList>
             </NavigationMenu>
-            <div className="flex items-center gap-10">
+            <div className="flex items-center gap-4">
                 <div className="flex items-center gap-4">
-                    <CurrentDate />
-                    <Separator orientation="vertical" className="h-8" />
+                    {/* <CurrentDate /> */}
+                    {/* <Separator orientation="vertical" className="h-8" /> */}
                     <div className="flex items-center gap-2">
                         <Button variant="secondary" size="icon">
                             <Bell />
                         </Button>
                         <LanguageDropdownMenu variant="short" />
+                        <ThemeSwitcher />
                     </div>
                 </div>
 

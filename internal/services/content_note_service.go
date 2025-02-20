@@ -57,6 +57,7 @@ type contentNoteService struct {
 	posterService     PosterService
 	permissionService PermissionService
 	ordererService    OrdererService
+	profileService    ProfileService
 	countPlayedSFG    singleflight.Group
 	countWatchedSFG   singleflight.Group
 }
@@ -64,6 +65,7 @@ type contentNoteService struct {
 func NewContentService(
 	sqlDB storage.RelationalStorage, elastic storage.ElasticStorage, cache storage.CacheStorage,
 	posterService PosterService, ordererService OrdererService, permissionService PermissionService,
+	profileService ProfileService,
 ) ContentNoteService {
 	return &contentNoteService{
 		sqlDB:             sqlDB,
@@ -72,6 +74,7 @@ func NewContentService(
 		posterService:     posterService,
 		permissionService: permissionService,
 		ordererService:    ordererService,
+		profileService:    profileService,
 		countPlayedSFG:    singleflight.Group{},
 		countWatchedSFG:   singleflight.Group{},
 	}
@@ -93,8 +96,8 @@ func (service *contentNoteService) getContentCategoryPrefix(contentType db.Conte
 	return "", errors.New("invalid content type")
 }
 
-func (service *contentNoteService) CreateContentNote(ctx context.Context, category db.ContentCategory, userID, creatorID uuid.UUID, req requests.CreateContentNoteReq) (models.ContentNote, error) {
-	hasPermission, err := service.permissionService.HasPermission(ctx, userID, creatorID, types.ModeratorPermission)
+func (s *contentNoteService) CreateContentNote(ctx context.Context, category db.ContentCategory, userID, creatorID uuid.UUID, req requests.CreateContentNoteReq) (models.ContentNote, error) {
+	hasPermission, err := s.permissionService.HasPermission(ctx, userID, creatorID, types.ModeratorPermission)
 	if err != nil {
 		return nil, cerrors.NewInternalServerError("Error occurred during permission check", err)
 	}
@@ -105,47 +108,66 @@ func (service *contentNoteService) CreateContentNote(ctx context.Context, catego
 
 	var posterKey *string
 	if req.GetPosterPreviewID() != nil && *req.GetPosterPreviewID() != uuid.Nil {
-		prefix, err := service.getContentCategoryPrefix(category)
+		prefix, err := s.getContentCategoryPrefix(category)
 		if err != nil {
 			return nil, err
 		}
 
-		posterKey, err = service.posterService.ConfirmS3PosterPreviewByID(ctx, *req.GetPosterPreviewID(), prefix)
+		posterKey, err = s.posterService.ConfirmS3PosterPreviewByID(ctx, *req.GetPosterPreviewID(), prefix)
 		if err != nil {
 			return nil, err
 		}
 	}
 
+	creator, err := s.profileService.GetProfileById(ctx, creatorID)
+	if err != nil {
+		return nil, cerrors.NewInternalServerError("Error occurred during creator fetching", err)
+	}
+
+	tx, err := s.sqlDB.Begin(ctx)
+	if err != nil {
+		return nil, cerrors.NewInternalServerError("Error occurred during transaction creation", err)
+	}
+	defer tx.Rollback(ctx)
+	qtx := s.sqlDB.Queries().WithTx(tx)
+
+	initialOrderer, err := s.ordererService.CreateOrdererWithTx(ctx, qtx, creator.Username, creator, false)
+	if err != nil {
+		return nil, cerrors.NewInternalServerError("Error occurred during initial orderer creation", err)
+	}
+
 	var contentNote models.ContentNote
 	switch v := req.(type) {
 	case *requests.CreateGameNoteReq:
-		gameNote, err := service.sqlDB.Queries().InsertGameNote(ctx, db.InsertGameNoteParams{
-			CreatedBy:    creatorID,
-			UserID:       userID,
-			Name:         v.Name,
-			Status:       v.Status,
-			Link:         v.Link,
-			ReleaseDate:  v.ReleaseDate,
-			Rate:         v.Rate,
-			Comment:      v.Comment,
-			LastPlayedAt: v.LastPlayedAt,
-			PosterKey:    posterKey,
+		gameNote, err := qtx.InsertGameNote(ctx, db.InsertGameNoteParams{
+			CreatedBy:        creatorID,
+			UserID:           userID,
+			Name:             v.Name,
+			Status:           v.Status,
+			Link:             v.Link,
+			ReleaseDate:      v.ReleaseDate,
+			Rate:             v.Rate,
+			Comment:          v.Comment,
+			LastPlayedAt:     v.LastPlayedAt,
+			PosterKey:        posterKey,
+			InitialOrdererID: initialOrderer.ID,
 		})
 		if err != nil {
 			return nil, cerrors.NewInternalServerError("Error occurred during game note creation", err)
 		}
 		contentNote = &models.GameNote{GameNote: *gameNote}
 	case *requests.CreateMovieNoteReq:
-		movieNote, err := service.sqlDB.Queries().InsertMovieNote(ctx, db.InsertMovieNoteParams{
-			CreatedBy:   creatorID,
-			UserID:      userID,
-			Name:        v.Name,
-			ReleaseDate: v.ReleaseDate,
-			Rate:        v.Rate,
-			Comment:     v.Comment,
-			Status:      v.Status,
-			WatchedAt:   v.WatchedAt,
-			PosterKey:   posterKey,
+		movieNote, err := qtx.InsertMovieNote(ctx, db.InsertMovieNoteParams{
+			CreatedBy:        creatorID,
+			UserID:           userID,
+			Name:             v.Name,
+			ReleaseDate:      v.ReleaseDate,
+			Rate:             v.Rate,
+			Comment:          v.Comment,
+			Status:           v.Status,
+			WatchedAt:        v.WatchedAt,
+			PosterKey:        posterKey,
+			InitialOrdererID: initialOrderer.ID,
 		})
 		if err != nil {
 			return nil, cerrors.NewInternalServerError("Error occurred during movie note creation", err)
@@ -153,7 +175,12 @@ func (service *contentNoteService) CreateContentNote(ctx context.Context, catego
 		contentNote = &models.MovieNote{MovieNote: *movieNote}
 	}
 
-	err = service.IndexContentNote(ctx, contentNote, nil)
+	err = tx.Commit(ctx)
+	if err != nil {
+		return nil, cerrors.NewInternalServerError("Error occurred during transaction commit", err)
+	}
+
+	err = s.IndexContentNote(ctx, contentNote, nil)
 	if err != nil {
 		return nil, err
 	}

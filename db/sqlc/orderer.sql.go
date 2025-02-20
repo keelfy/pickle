@@ -11,13 +11,13 @@ import (
 	"github.com/google/uuid"
 )
 
-const findOrdererById = `-- name: FindOrdererById :one
+const findOrdererByID = `-- name: FindOrdererByID :one
 SELECT id, created_at, created_by, updated_at, updated_by, user_id, username, anonymous FROM "orderers" WHERE "id" = $1
 `
 
 // Author: Egor Kuzmin (keelfy)
-func (q *Queries) FindOrdererById(ctx context.Context, id uuid.UUID) (*Orderer, error) {
-	row := q.db.QueryRow(ctx, findOrdererById, id)
+func (q *Queries) FindOrdererByID(ctx context.Context, id uuid.UUID) (*Orderer, error) {
+	row := q.db.QueryRow(ctx, findOrdererByID, id)
 	var i Orderer
 	err := row.Scan(
 		&i.ID,
@@ -32,13 +32,13 @@ func (q *Queries) FindOrdererById(ctx context.Context, id uuid.UUID) (*Orderer, 
 	return &i, err
 }
 
-const findOrdererByUserId = `-- name: FindOrdererByUserId :one
+const findOrdererByUserID = `-- name: FindOrdererByUserID :one
 SELECT id, created_at, created_by, updated_at, updated_by, user_id, username, anonymous FROM "orderers" WHERE "user_id" = $1
 `
 
 // Author: Egor Kuzmin (keelfy)
-func (q *Queries) FindOrdererByUserId(ctx context.Context, userID *uuid.UUID) (*Orderer, error) {
-	row := q.db.QueryRow(ctx, findOrdererByUserId, userID)
+func (q *Queries) FindOrdererByUserID(ctx context.Context, userID *uuid.UUID) (*Orderer, error) {
+	row := q.db.QueryRow(ctx, findOrdererByUserID, userID)
 	var i Orderer
 	err := row.Scan(
 		&i.ID,
@@ -101,34 +101,22 @@ func (q *Queries) InsertOrderer(ctx context.Context, arg InsertOrdererParams) (*
 	return &i, err
 }
 
-const updateOrdererByUserId = `-- name: UpdateOrdererByUserId :one
+const updateOrdererByUserID = `-- name: UpdateOrdererByUserID :exec
 UPDATE "orderers"
 SET "updated_at" = now(),
     "updated_by" = $2,
     "username" = $3
 WHERE "user_id" = $1
-RETURNING id, created_at, created_by, updated_at, updated_by, user_id, username, anonymous
 `
 
-type UpdateOrdererByUserIdParams struct {
+type UpdateOrdererByUserIDParams struct {
 	UserID    *uuid.UUID `json:"user_id"`
 	UpdatedBy *uuid.UUID `json:"updated_by"`
 	Username  string     `json:"username"`
 }
 
 // Author: Egor Kuzmin (keelfy)
-func (q *Queries) UpdateOrdererByUserId(ctx context.Context, arg UpdateOrdererByUserIdParams) (*Orderer, error) {
-	row := q.db.QueryRow(ctx, updateOrdererByUserId, arg.UserID, arg.UpdatedBy, arg.Username)
-	var i Orderer
-	err := row.Scan(
-		&i.ID,
-		&i.CreatedAt,
-		&i.CreatedBy,
-		&i.UpdatedAt,
-		&i.UpdatedBy,
-		&i.UserID,
-		&i.Username,
-		&i.Anonymous,
-	)
-	return &i, err
+func (q *Queries) UpdateOrdererByUserID(ctx context.Context, arg UpdateOrdererByUserIDParams) error {
+	_, err := q.db.Exec(ctx, updateOrdererByUserID, arg.UserID, arg.UpdatedBy, arg.Username)
+	return err
 }

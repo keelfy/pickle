@@ -37,10 +37,11 @@ type profileService struct {
 	avatarService   AvatarService
 	group           singleflight.Group
 	followerService FollowerService
+	ordererService  OrdererService
 }
 
 func NewProfileService(sqlDb storage.RelationalStorage, s3Client storage.FileStorage, cache storage.CacheStorage,
-	avatarService AvatarService, followerService FollowerService,
+	avatarService AvatarService, followerService FollowerService, ordererService OrdererService,
 ) ProfileService {
 	return &profileService{
 		sqlDb:           sqlDb,
@@ -174,17 +175,6 @@ func (service *profileService) UpdateProfile(ctx context.Context, userId uuid.UU
 		return err
 	}
 
-	if profile.Username != req.Username {
-		// validate username
-		if len(req.Username) < 1 {
-			return errors.NewBadRequestError("Username is required", nil)
-		} else if len(req.Username) < 3 {
-			return errors.NewBadRequestError("Username is too short", nil)
-		} else if len(req.Username) > 100 {
-			return errors.NewBadRequestError("Username is too long", nil)
-		}
-	}
-
 	if profile.Link != req.Link {
 		err = service.ValidateLink(ctx, req.Link)
 		if err != nil {
@@ -197,7 +187,6 @@ func (service *profileService) UpdateProfile(ctx context.Context, userId uuid.UU
 		return err
 	}
 
-	// lower the link
 	req.Link = strings.ToLower(req.Link)
 
 	description := profile.Description
@@ -205,8 +194,14 @@ func (service *profileService) UpdateProfile(ctx context.Context, userId uuid.UU
 		description = req.Description
 	}
 
-	// update profile
-	err = service.sqlDb.Queries().UpdateProfileByUserId(ctx, db.UpdateProfileByUserIdParams{
+	tx, err := service.sqlDb.Begin(ctx)
+	if err != nil {
+		return errors.NewInternalServerError("Error occurred during transaction creation", err)
+	}
+	defer tx.Rollback(ctx)
+	qtx := service.sqlDb.Queries().WithTx(tx)
+
+	err = qtx.UpdateProfileByUserId(ctx, db.UpdateProfileByUserIdParams{
 		UserID:      profile.UserID,
 		UpdatedBy:   profile.UserID,
 		Username:    req.Username,
@@ -219,6 +214,17 @@ func (service *profileService) UpdateProfile(ctx context.Context, userId uuid.UU
 		return errors.NewInternalServerError("Error occurred updating profile", err)
 	}
 
+	if profile.Username != req.Username {
+		err = service.ordererService.UpdateOrdererUsernameByUserIDWithTx(ctx, qtx, profile)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		return errors.NewInternalServerError("Error occurred during transaction commit", err)
+	}
 	return nil
 }
 

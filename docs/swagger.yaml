@@ -70,16 +70,16 @@ definitions:
     type: object
   github_com_pickle_pw_monolith_internal_models.ReactionStack:
     properties:
-      contentNoteID:
-        type: string
       count:
         type: integer
-      emoteID:
+      emoteId:
         type: string
-      isUserReacted:
-        type: boolean
+      noteId:
+        type: string
       source:
         $ref: '#/definitions/github_com_pickle_pw_monolith_db_sqlc.ReactionSource'
+      userReacted:
+        type: boolean
     type: object
   github_com_pickle_pw_monolith_internal_models.SuggestionPreferences:
     properties:
@@ -193,9 +193,7 @@ definitions:
       amount:
         type: number
       category:
-        allOf:
-        - $ref: '#/definitions/github_com_pickle_pw_monolith_db_sqlc.ContentCategory'
-        description: Category
+        $ref: '#/definitions/github_com_pickle_pw_monolith_db_sqlc.ContentCategory'
       createdAt:
         type: string
       id:
@@ -209,14 +207,12 @@ definitions:
       paymentType:
         type: integer
       receiverId:
-        description: User ID
         type: string
       status:
         $ref: '#/definitions/github_com_pickle_pw_monolith_db_sqlc.OrderStatus'
       updatedAt:
         type: string
       updatedBy:
-        description: User ID
         type: string
       updatedCategory:
         $ref: '#/definitions/github_com_pickle_pw_monolith_db_sqlc.ContentCategory'

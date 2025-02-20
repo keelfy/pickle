@@ -100,9 +100,9 @@ type Querier interface {
 	// Queries order by id
 	FindOrderById(ctx context.Context, id uuid.UUID) (*Order, error)
 	// Author: Egor Kuzmin (keelfy)
-	FindOrdererById(ctx context.Context, id uuid.UUID) (*Orderer, error)
+	FindOrdererByID(ctx context.Context, id uuid.UUID) (*Orderer, error)
 	// Author: Egor Kuzmin (keelfy)
-	FindOrdererByUserId(ctx context.Context, userID *uuid.UUID) (*Orderer, error)
+	FindOrdererByUserID(ctx context.Context, userID *uuid.UUID) (*Orderer, error)
 	// Author: Egor Kuzmin (keelfy)
 	// Queries orders by receiver id
 	FindOrdersByReceiverId(ctx context.Context, receiverID uuid.UUID) ([]*Order, error)
@@ -176,7 +176,7 @@ type Querier interface {
 	// Updates order, updated_at and updated_by
 	UpdateOrderById(ctx context.Context, arg UpdateOrderByIdParams) (*Order, error)
 	// Author: Egor Kuzmin (keelfy)
-	UpdateOrdererByUserId(ctx context.Context, arg UpdateOrdererByUserIdParams) (*Orderer, error)
+	UpdateOrdererByUserID(ctx context.Context, arg UpdateOrdererByUserIDParams) error
 	// Author: Egor Kuzmin (keelfy)
 	UpdateProfileAvatarByUserId(ctx context.Context, arg UpdateProfileAvatarByUserIdParams) (*ProfileAvatar, error)
 	// Author: Egor Kuzmin (keelfy)

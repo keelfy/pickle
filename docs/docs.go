@@ -2188,20 +2188,20 @@ const docTemplate = `{
         "github_com_pickle_pw_monolith_internal_models.ReactionStack": {
             "type": "object",
             "properties": {
-                "contentNoteID": {
-                    "type": "string"
-                },
                 "count": {
                     "type": "integer"
                 },
-                "emoteID": {
+                "emoteId": {
                     "type": "string"
                 },
-                "isUserReacted": {
-                    "type": "boolean"
+                "noteId": {
+                    "type": "string"
                 },
                 "source": {
                     "$ref": "#/definitions/github_com_pickle_pw_monolith_db_sqlc.ReactionSource"
+                },
+                "userReacted": {
+                    "type": "boolean"
                 }
             }
         },
@@ -2378,12 +2378,7 @@ const docTemplate = `{
                     "type": "number"
                 },
                 "category": {
-                    "description": "Category",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/github_com_pickle_pw_monolith_db_sqlc.ContentCategory"
-                        }
-                    ]
+                    "$ref": "#/definitions/github_com_pickle_pw_monolith_db_sqlc.ContentCategory"
                 },
                 "createdAt": {
                     "type": "string"
@@ -2404,7 +2399,6 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "receiverId": {
-                    "description": "User ID",
                     "type": "string"
                 },
                 "status": {
@@ -2414,7 +2408,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "updatedBy": {
-                    "description": "User ID",
                     "type": "string"
                 },
                 "updatedCategory": {

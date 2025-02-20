@@ -39,8 +39,8 @@ func InitializeAPI(ctx context.Context) (api.PickleAPI, func(), error) {
 	imageService := services.NewImageService()
 	avatarService := services.NewAvatarService(relationalStorage, cacheStorage, fileStorage, imageService)
 	followerService := services.NewFollowerService(relationalStorage, cacheStorage)
-	profileService := services.NewProfileService(relationalStorage, fileStorage, cacheStorage, avatarService, followerService)
 	ordererService := services.NewOrdererService(relationalStorage)
+	profileService := services.NewProfileService(relationalStorage, fileStorage, cacheStorage, avatarService, followerService, ordererService)
 	elasticStorage, err := storage.NewElasticStorage(ctx)
 	if err != nil {
 		cleanup()
@@ -54,7 +54,7 @@ func InitializeAPI(ctx context.Context) (api.PickleAPI, func(), error) {
 	}
 	moderatorService := services.NewModeratorService(relationalStorage, cacheStorage, supabaseClient, avatarService, profileService)
 	permissionService := services.NewPermissionService(moderatorService)
-	contentNoteService := services.NewContentService(relationalStorage, elasticStorage, cacheStorage, posterService, ordererService, permissionService)
+	contentNoteService := services.NewContentService(relationalStorage, elasticStorage, cacheStorage, posterService, ordererService, permissionService, profileService)
 	orderService := services.NewOrderService(relationalStorage, profileService, ordererService, contentNoteService, permissionService)
 	publicProfileService := services.NewPublicProfileService(avatarService, followerService, moderatorService, orderService, profileService, contentNoteService)
 	profileHandler := handlers.NewUserHandler(profileService, avatarService, orderService, followerService, publicProfileService)

@@ -16,18 +16,17 @@ INSERT INTO "orderers" (
 RETURNING *;
 
 -- Author: Egor Kuzmin (keelfy)
--- name: FindOrdererById :one
+-- name: FindOrdererByID :one
 SELECT * FROM "orderers" WHERE "id" = $1;
 
 -- Author: Egor Kuzmin (keelfy)
--- name: FindOrdererByUserId :one
+-- name: FindOrdererByUserID :one
 SELECT * FROM "orderers" WHERE "user_id" = $1;
 
 -- Author: Egor Kuzmin (keelfy)
--- name: UpdateOrdererByUserId :one
+-- name: UpdateOrdererByUserID :exec
 UPDATE "orderers"
 SET "updated_at" = now(),
     "updated_by" = $2,
     "username" = $3
-WHERE "user_id" = $1
-RETURNING *;
+WHERE "user_id" = $1;

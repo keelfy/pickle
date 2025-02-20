@@ -180,7 +180,7 @@ func (s *contentNoteService) CreateContentNote(ctx context.Context, category db.
 		return nil, cerrors.NewInternalServerError("Error occurred during transaction commit", err)
 	}
 
-	err = s.IndexContentNote(ctx, contentNote, nil)
+	err = s.IndexContentNote(ctx, contentNote, initialOrderer)
 	if err != nil {
 		return nil, err
 	}

@@ -48,7 +48,7 @@ export const signInAction = async (email: string, password: string, goto: string
         return encodedRedirect("error", "/sign-in", goto, error.message);
     }
 
-    return redirect(decodeURIComponent(goto));
+    return redirect(goto && goto.length > 0 ? decodeURIComponent(goto) : "/");
 };
 
 export const signInWithProviderAction = async (provider: Provider, goto: string = "/") => {

@@ -20,6 +20,11 @@ type Props = {
     className?: string;
 };
 
+const ENABLED_CATEGORIES = [
+    "games",
+    "movies",
+]
+
 export default function ProfileNavigationMenu({ link, className }: Props) {
     return (
         <div className={cn("flex items-center justify-between pt-2", className)}>
@@ -43,10 +48,10 @@ export default function ProfileNavigationMenu({ link, className }: Props) {
                         <Separator orientation="vertical" className="h-8" />
                     </div>
                     {CONTENT_CATEGORIES.map((category) => (
-                        <NavigationMenuItem key={category}>
+                        <NavigationMenuItem key={category} className={cn(!ENABLED_CATEGORIES.includes(category) && "opacity-50 text-muted-foreground")}>
                             <MenuItemUnderline link={`/${link}/${category}`}>
                                 <Link
-                                    href={`/${link}/${category}`}
+                                    href={ENABLED_CATEGORIES.includes(category) ? `/${link}/${category}` : "#"}
                                     legacyBehavior
                                     passHref
                                 >

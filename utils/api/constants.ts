@@ -1,4 +1,4 @@
-import { ContentCategory, GameNoteStatus, OrderStatus } from "./types";
+import { ContentCategory, GameNoteStatus, MovieNoteStatus, OrderStatus } from "./types";
 
 export type ApiType<T extends string> = {
     value: T;
@@ -26,4 +26,11 @@ export const gameNoteStatusLabels: ApiType<GameNoteStatus>[] = [
     { value: "finished", label: "Finished" },
     { value: "skipped", label: "Skipped" },
     { value: "planned", label: "Planned" },
+]
+
+export const movieNoteStatusLabels: ApiType<MovieNoteStatus>[] = [
+    { value: "planned", label: "Planned" },
+    { value: "dropped", label: "Dropped" },
+    { value: "watched", label: "Watched" },
+    { value: "skipped", label: "Skipped" },
 ]

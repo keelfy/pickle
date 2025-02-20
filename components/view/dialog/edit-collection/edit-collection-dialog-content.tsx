@@ -27,7 +27,7 @@ import { BaselineIcon, Check, CircleOffIcon, LibraryIcon, X } from "lucide-react
 import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { useCollectionContext } from "../../content-collections/collections-context";
+import { useCollectionContext } from "../../../ui/content-collections/collections-context";
 import EditCollectionDialogItem from "./edit-collection-dialog-item";
 import EditCollectionDialogLoadMoreItems from "./edit-collection-dialog-load-more-items";
 

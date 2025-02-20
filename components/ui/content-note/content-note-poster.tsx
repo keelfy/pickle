@@ -22,7 +22,7 @@ const rounded = {
     lg: "rounded-xl",
 }
 
-export default function ContentPoster({ posterUrl, size = "md", className, loading = false, alt }: Props) {
+export default function ContentNotePoster({ posterUrl, size = "md", className, loading = false, alt }: Props) {
     const [width, height] = sizes[size];
 
     return (posterUrl ? (

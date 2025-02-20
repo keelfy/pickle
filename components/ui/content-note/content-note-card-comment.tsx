@@ -10,7 +10,7 @@ type Props = {
     className?: string;
 }
 
-export default function NoteComment({ comment, className, lengthLimit = 350 }: Props) {
+export default function ContentNoteCardComment({ comment, className, lengthLimit = 350 }: Props) {
     const [isCommentExpanded, setCommentIsExpanded] = React.useState(false);
 
     return (

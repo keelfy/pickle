@@ -26,7 +26,7 @@ import { Check, X } from "lucide-react";
 import { useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { useCollectionContext } from "../../content-collections/collections-context";
+import { useCollectionContext } from "../../../ui/content-collections/collections-context";
 
 const formSchema = z.object({
     name: z.string()

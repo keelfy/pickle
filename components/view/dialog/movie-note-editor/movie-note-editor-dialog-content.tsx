@@ -1,7 +1,6 @@
 "use client";
 
 import EditablePoster from "@/app/(view)/[link]/components/editable-poster";
-import GameUrl from "@/app/(view)/[link]/components/game-url";
 import { Button } from "@/components/ui/button";
 import {
     DialogFooter,
@@ -10,27 +9,19 @@ import {
 } from "@/components/ui/dialog";
 import {
     Form,
-    FormControl,
-    FormField,
-    FormItem
+    FormField
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import LoadingSpinner from "@/components/ui/loading-spinner";
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from "@/components/ui/popover";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { fetchContentNote, updateContentNote } from "@/hooks/api-endpoints-client";
 import { toast } from "@/hooks/use-toast";
 import { useModalStore } from "@/providers/modal";
 import { useProfileStore } from "@/providers/profile-store";
-import { gameNoteStatusLabels } from "@/utils/api/constants";
-import { GameNote, GameNoteStatus } from "@/utils/api/types";
+import { movieNoteStatusLabels } from "@/utils/api/constants";
+import { MovieNote, MovieNoteStatus } from "@/utils/api/types";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Check, CircleOff, Edit, X } from "lucide-react";
+import { Check, CircleOff, X } from "lucide-react";
 import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -43,21 +34,20 @@ import { NoteDialogOrdersSection } from "../note-dialog-orders-section";
 
 const formSchema = z.object({
     name: z.string(),
-    link: z.string().optional(),
     releaseDate: z.date().optional(),
-    status: z.custom<GameNoteStatus>(),
-    lastPlayedAt: z.date().optional(),
+    status: z.custom<MovieNoteStatus>(),
+    watchedAt: z.date().optional(),
     comment: z.string().optional(),
     rate: z.number().max(10).min(1).optional(),
     posterPreviewId: z.string().optional(),
 });
 
-export default function GameNoteEditorDialogContent() {
+export default function MovieNoteEditorDialogContent() {
     const closeModal = useModalStore((state) => state.closeModal);
-    const { id: gameNoteId } = useModalStore((state) => state.modalParams!);
+    const { id: movieNoteId } = useModalStore((state) => state.modalParams!);
     const profile = useProfileStore((state) => state.profile);
 
-    const [gameNote, setGameNote] = React.useState<GameNote>();
+    const [contentNote, setContentNote] = React.useState<MovieNote>();
     const [isLoading, startTransition] = React.useTransition();
 
     const form = useForm<z.infer<typeof formSchema>>({
@@ -70,50 +60,52 @@ export default function GameNoteEditorDialogContent() {
     });
 
     React.useEffect(() => {
-        if (gameNote) {
+        if (contentNote) {
             form.reset({
-                name: gameNote.name,
-                link: gameNote.link,
-                releaseDate: gameNote.releaseDate ? new Date(gameNote.releaseDate) : undefined,
-                status: gameNote.status,
-                lastPlayedAt: gameNote.lastPlayedAt ? new Date(gameNote.lastPlayedAt) : undefined,
-                comment: gameNote.comment,
-                rate: gameNote.rate,
+                name: contentNote.name,
+                releaseDate: contentNote.releaseDate ? new Date(contentNote.releaseDate) : undefined,
+                status: contentNote.status,
+                watchedAt: contentNote.watchedAt ? new Date(contentNote.watchedAt) : undefined,
+                comment: contentNote.comment,
+                rate: contentNote.rate,
             });
         } else {
             form.reset();
         }
-    }, [gameNote?.id]);
+    }, [contentNote?.id]);
 
     React.useEffect(() => {
-        if (!gameNoteId || !profile?.id) return;
-        fetchContentNote<GameNote>(profile, "games", gameNoteId)
-            .then(setGameNote)
+        if (!movieNoteId || !profile?.id) return;
+
+        fetchContentNote<MovieNote>(profile, "movies", movieNoteId)
+            .then(setContentNote)
             .catch(err => {
                 console.error(err);
                 toast({
-                    title: "Failed to fetch game note",
+                    title: "Failed to fetch movie note",
                     description: "Try again later.",
                 });
             });
-    }, [gameNoteId, profile?.id]);
+    }, [movieNoteId, profile?.id]);
 
     const onSubmit = form.handleSubmit((values) => {
-        if (!gameNoteId || !profile?.id) return;
+        if (!movieNoteId || !profile?.id) return;
 
         startTransition(async () => {
             try {
-                const res = await updateContentNote<GameNote>(profile, "games", gameNoteId, values);
+                const res = await updateContentNote<MovieNote>(profile, "movies", movieNoteId, values);
                 form.reset(res);
                 toast({
-                    title: "Game note updated",
-                    description: "The game note was updated.",
+                    title: "Movie note updated",
+                    description: "The movie note was updated.",
                 });
+                closeModal();
             } catch (error: any) {
                 toast({
-                    title: "Failed to update game note",
+                    title: "Failed to update movie note",
                     description:
                         "Status code: " + error.status + ". Try again later.",
+                    variant: "destructive",
                 });
             }
         });
@@ -124,7 +116,7 @@ export default function GameNoteEditorDialogContent() {
             <div className="hidden">
                 <DialogHeader>
                     <DialogTitle>
-                        {gameNote?.name}
+                        {contentNote?.name}
                     </DialogTitle>
                 </DialogHeader>
             </div>
@@ -135,7 +127,7 @@ export default function GameNoteEditorDialogContent() {
                         <div className="flex items-start space-x-4">
                             <EditablePoster
                                 value={form.watch("posterPreviewId")}
-                                defaultImageUrl={gameNote?.posterUrl}
+                                defaultImageUrl={contentNote?.posterUrl}
                                 onChange={(value) => {
                                     form.setValue("posterPreviewId", value, {
                                         shouldDirty: true,
@@ -164,51 +156,6 @@ export default function GameNoteEditorDialogContent() {
                                             </td>
                                         </tr>
                                         <tr>
-                                            <td className="w-1/2">
-                                                <Label className="text-sm">
-                                                    Link
-                                                </Label>
-                                            </td>
-                                            <td className="w-1/2">
-                                                <FormField
-                                                    control={form.control}
-                                                    name="link"
-                                                    render={({ field }) => (
-                                                        <FormItem>
-                                                            <Popover>
-                                                                <PopoverTrigger
-                                                                    asChild
-                                                                >
-                                                                    <FormControl>
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            className="w-full h-8 p-1"
-                                                                            size="icon"
-                                                                        >
-                                                                            <div className="w-full flex items-center justify-between space-x-1">
-                                                                                <GameUrl
-                                                                                    url={
-                                                                                        field.value
-                                                                                    }
-                                                                                />
-                                                                                <Edit />
-                                                                            </div>
-                                                                        </Button>
-                                                                    </FormControl>
-                                                                </PopoverTrigger>
-                                                                <PopoverContent className="w-80 p-0">
-                                                                    <Input
-                                                                        placeholder="Paste URL here..."
-                                                                        {...field}
-                                                                    />
-                                                                </PopoverContent>
-                                                            </Popover>
-                                                        </FormItem>
-                                                    )}
-                                                />
-                                            </td>
-                                        </tr>
-                                        <tr>
                                             <td className="pt-4 text-sm">
                                                 Status
                                             </td>
@@ -219,7 +166,7 @@ export default function GameNoteEditorDialogContent() {
                                                     render={({ field }) => (
                                                         <StatusSelectFormItem
                                                             field={field}
-                                                            options={gameNoteStatusLabels}
+                                                            options={movieNoteStatusLabels}
                                                         />
                                                     )}
                                                 />
@@ -228,13 +175,13 @@ export default function GameNoteEditorDialogContent() {
                                         <tr>
                                             <td>
                                                 <Label className="text-sm">
-                                                    Last Played
+                                                    Watched At
                                                 </Label>
                                             </td>
                                             <td>
                                                 <FormField
                                                     control={form.control}
-                                                    name="lastPlayedAt"
+                                                    name="watchedAt"
                                                     render={({ field }) => <DayPickerFormItem field={field} />}
                                                 />
                                             </td>
@@ -258,7 +205,7 @@ export default function GameNoteEditorDialogContent() {
 
                         <div className="space-y-2 hidden">
                             <Label className="text-md font-semibold">
-                                Recordings/Highlights
+                                Recording/Highlights
                             </Label>
                             <ScrollArea className="max-w-[29rem] whitespace-nowrap">
                                 <div className="flex space-x-2 pb-4">
@@ -276,8 +223,8 @@ export default function GameNoteEditorDialogContent() {
                         </div>
 
                         <NoteDialogOrdersSection
-                            noteId={gameNoteId}
-                            category="games"
+                            noteId={movieNoteId}
+                            category="movies"
                         />
                     </div>
                     <DialogFooter className="mt-4">

@@ -1,30 +1,27 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { ContentNoteStatusIcon } from "@/components/ui/content-note/content-note-status-icon";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Filter } from "@/query-params/filter";
+import { GameNoteStatus } from "@/utils/api/types";
 import { PopoverClose } from "@radix-ui/react-popover";
 import React from "react";
-import { GameNoteStatusIcon } from "./game-note-status-badge";
-import { GameNoteStatus } from "@/utils/api/types";
+
 type Props = {
     value: Filter[];
     onChange: (filters: Filter[]) => void;
+    statusOptions: ContentNoteGridSelectFilterOption[];
 }
 
-const statusOptions = [
-    { value: "any", label: "Any status" },
-    { value: "planned", label: "Planned" },
-    { value: "playing", label: "Playing" },
-    { value: "paused", label: "Paused" },
-    { value: "skipped", label: "Skipped" },
-    { value: "finished", label: "Finished" },
-    { value: "dropped", label: "Dropped" },
-]
+export type ContentNoteGridSelectFilterOption = {
+    value: string;
+    label: string;
+}
 
-export default function GameNoteFiltersContent({ value, onChange }: Props) {
+export default function ContentNoteGridFilters({ value, onChange, statusOptions }: Props) {
     const [filters, setFilters] = React.useState<Filter[]>(value);
 
     const handleStatusChange = (value: string) => {
@@ -84,10 +81,10 @@ export default function GameNoteFiltersContent({ value, onChange }: Props) {
                         <SelectValue placeholder="Any status" />
                     </SelectTrigger>
                     <SelectContent>
-                        {statusOptions.map((option) => (
+                        {[{ value: "any", label: "Any status" }, ...statusOptions].map((option) => (
                             <SelectItem key={option.value} value={option.value} indicatorPosition="right">
                                 <div className="flex items-center gap-1">
-                                    <GameNoteStatusIcon status={option.value as GameNoteStatus} classname="w-4 h-4" />
+                                    <ContentNoteStatusIcon status={option.value as GameNoteStatus} classname="w-4 h-4" />
                                     {option.label}
                                 </div>
                             </SelectItem>

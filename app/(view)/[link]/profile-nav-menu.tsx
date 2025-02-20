@@ -3,8 +3,10 @@ import { Button } from "@/components/ui/button";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import { NavigationMenu, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, navigationMenuTriggerStyle } from "@/components/ui/navigation-menu";
 import { Separator } from "@/components/ui/separator";
+import { localizeContentCategory } from "@/lib/localize-types";
 import { cn } from "@/lib/utils";
 import { ModalType } from "@/stores/modal";
+import { CONTENT_CATEGORIES } from "@/utils/api/types";
 import { Bell, Menu, Search } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -18,12 +20,12 @@ type Props = {
     className?: string;
 };
 
-export default function NavMenu({ link, className }: Props) {
+export default function ProfileNavigationMenu({ link, className }: Props) {
     return (
         <div className={cn("flex items-center justify-between pt-2", className)}>
             <NavigationMenu>
                 <NavigationMenuList>
-                    <Button variant="ghost" size="icon">
+                    <Button variant="ghost" size="icon" className={navigationMenuTriggerStyle()} disabled>
                         <Menu />
                     </Button>
                     <NavigationMenuItem>
@@ -40,57 +42,23 @@ export default function NavMenu({ link, className }: Props) {
                     <div className="px-3">
                         <Separator orientation="vertical" className="h-8" />
                     </div>
-                    <NavigationMenuItem>
-                        <MenuItemUnderline link={`/${link}/games`}>
-                            <Link
-                                href={`/${link}/games`}
-                                legacyBehavior
-                                passHref
-                            >
-                                <NavigationMenuLink
-                                    className={navigationMenuTriggerStyle()}
+                    {CONTENT_CATEGORIES.map((category) => (
+                        <NavigationMenuItem key={category}>
+                            <MenuItemUnderline link={`/${link}/${category}`}>
+                                <Link
+                                    href={`/${link}/${category}`}
+                                    legacyBehavior
+                                    passHref
                                 >
-                                    Games
-                                </NavigationMenuLink>
-                            </Link>
-                        </MenuItemUnderline>
-                    </NavigationMenuItem>
-                    <NavigationMenuItem>
-                        <Link href={`/${link}/movies`} legacyBehavior passHref>
-                            <NavigationMenuLink
-                                className={navigationMenuTriggerStyle()}
-                            >
-                                Movies
-                            </NavigationMenuLink>
-                        </Link>
-                    </NavigationMenuItem>
-                    <NavigationMenuItem>
-                        <Link href="#" legacyBehavior passHref>
-                            <NavigationMenuLink
-                                className={navigationMenuTriggerStyle()}
-                            >
-                                Series
-                            </NavigationMenuLink>
-                        </Link>
-                    </NavigationMenuItem>
-                    <NavigationMenuItem>
-                        <Link href="#" legacyBehavior passHref>
-                            <NavigationMenuLink
-                                className={navigationMenuTriggerStyle()}
-                            >
-                                Anime
-                            </NavigationMenuLink>
-                        </Link>
-                    </NavigationMenuItem>
-                    <NavigationMenuItem>
-                        <Link href="#" legacyBehavior passHref>
-                            <NavigationMenuLink
-                                className={navigationMenuTriggerStyle()}
-                            >
-                                Video
-                            </NavigationMenuLink>
-                        </Link>
-                    </NavigationMenuItem>
+                                    <NavigationMenuLink
+                                        className={navigationMenuTriggerStyle()}
+                                    >
+                                        {localizeContentCategory(category, true)}
+                                    </NavigationMenuLink>
+                                </Link>
+                            </MenuItemUnderline>
+                        </NavigationMenuItem>
+                    ))}
                     <OpenModalButton
                         modal={ModalType.ProfileSearch}
                         className={cn(

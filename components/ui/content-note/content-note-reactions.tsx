@@ -2,25 +2,26 @@
 
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { createGameNoteReaction, deleteGameNoteReaction } from "@/hooks/api-endpoints-client";
+import { createContentNoteReaction, deleteContentNoteReaction } from "@/hooks/api-endpoints-client";
 import useRedirectToLogin from "@/hooks/use-redirect-to-login";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/providers/auth-store";
 import { useProfileStore } from "@/providers/profile-store";
+import { ContentCategory, ContentNote, ContentNoteSearchResult, Reaction } from "@/utils/api/types";
 import { EmojiPicker } from "@ferrucc-io/emoji-picker";
 import React from "react";
-import { GameNote, Reaction } from "@/utils/api/types";
 
 type Props = {
-    note: GameNote;
+    contentNote: ContentNote;
+    category: ContentCategory;
     defaultReactions: Reaction[];
     className?: string;
 }
 
 const randomReactions = ['🔥', '🤮', '❤️', '👍', '👎', '🤔', '💩', '🤡', '👏', '😁', '☠️', '🙁', '👐', '❤️‍🔥', '💔', '💀', '💥', '💦', '💨', '💤', '💫', '💬', '💭', '💡', '💢', '💣', '💤', '💫', '💬', '💭', '💡', '💢', '💣', '💤', '💫', '💬', '💭', '💡', '💢', '💣'];
 
-export default function GameNoteReactions({ note, defaultReactions, className }: Props) {
+export default function ContentNoteReactions({ contentNote, category, defaultReactions, className }: Props) {
     const user = useAuthStore((state) => state.user);
     const profile = useProfileStore((state) => state.profile);
 
@@ -30,7 +31,7 @@ export default function GameNoteReactions({ note, defaultReactions, className }:
     const [isReactionsChanging, startReactionsChange] = React.useTransition();
 
     const canReact = () => {
-        if (reactions.filter((reaction) => reaction.reactedByUser).length >= 3) {
+        if (reactions.filter((reaction) => reaction.userReacted).length >= 3) {
             return false;
         }
 
@@ -38,7 +39,7 @@ export default function GameNoteReactions({ note, defaultReactions, className }:
     }
 
     const handleEmojiClick = (emoteId: string) => {
-        if (!user) {
+        if (!user || !profile) {
             redirectToLogin();
             return;
         }
@@ -47,17 +48,17 @@ export default function GameNoteReactions({ note, defaultReactions, className }:
         const reacted = reactions.find((reaction) => reaction.emoteId === emoteId);
         if (!reacted) return;
 
-        if (reacted.reactedByUser) {
+        if (reacted.userReacted) {
             startReactionsChange(async () => {
                 const previousReactions = reactions;
                 try {
                     if (reacted.count > 1) {
                         reacted.count--;
-                        reacted.reactedByUser = false;
+                        reacted.userReacted = false;
                     } else {
                         setReactions(currValue => currValue.filter((reaction) => reaction.emoteId !== emoteId));
                     }
-                    await deleteGameNoteReaction(profile, note.id, emoteId);
+                    await deleteContentNoteReaction(profile, category, contentNote.id, emoteId);
                     setReactions(currValue => currValue.sort((a, b) => b.count - a.count));
                 } catch (error: any) {
                     console.error(error);
@@ -68,9 +69,9 @@ export default function GameNoteReactions({ note, defaultReactions, className }:
             startReactionsChange(async () => {
                 const previousReactions = reactions;
                 try {
-                    reacted.reactedByUser = true;
+                    reacted.userReacted = true;
                     reacted.count++;
-                    await createGameNoteReaction(profile, note.id, emoteId);
+                    await createContentNoteReaction(profile, category, contentNote.id, emoteId);
                     setReactions(currValue => currValue.sort((a, b) => b.count - a.count));
                 } catch (error: any) {
                     console.error(error);
@@ -88,12 +89,12 @@ export default function GameNoteReactions({ note, defaultReactions, className }:
 
         startReactionsChange(async () => {
             try {
-                await createGameNoteReaction(profile, note.id, emoteId);
+                await createContentNoteReaction(profile, category, contentNote.id, emoteId);
                 const sameEmote = reactions.find((reaction) => reaction.emoteId === emoteId);
                 if (sameEmote) {
                     sameEmote.count++;
                 } else {
-                    setReactions([...reactions, { emoteId, source: 'unicode_emoji', count: 1, reactedByUser: true }]);
+                    setReactions([...reactions, { emoteId, source: 'unicode_emoji', count: 1, userReacted: true }]);
                 }
             } catch (error: any) {
                 console.error(error);
@@ -107,15 +108,12 @@ export default function GameNoteReactions({ note, defaultReactions, className }:
 
     return (
         <div className={cn("flex items-center gap-2 flex-wrap", className)}>
-            {/* {(isReactionsLoading && reactions.length === 0) && Array.from({ length: 3 }).map((_, index) => (
-                <div key={index} className={cn(buttonVariants({ variant: "secondary" }), "rounded-xl px-2 py-1 h-7 w-12 animate-pulse")} />
-            ))} */}
             {reactions.map((reaction) => (
                 <Button
                     key={reaction.emoteId}
                     className="rounded-xl px-2 py-1 h-7"
                     onClick={() => handleEmojiClick(reaction.emoteId)}
-                    variant={reaction.reactedByUser ? "default" : "secondary"}
+                    variant={reaction.userReacted ? "default" : "secondary"}
                 >
                     <div className="flex items-center gap-1">
                         <div className="text-sm">

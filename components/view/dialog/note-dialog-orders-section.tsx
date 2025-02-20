@@ -6,22 +6,23 @@ import LoadingSpinner from "@/components/ui/loading-spinner";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { fetchContentNoteOrders } from "@/hooks/api-endpoints-client";
 import { toast } from "@/hooks/use-toast";
 import { getTimeAgoText } from "@/lib/localize-types";
 import { cn } from "@/lib/utils";
 import { useProfileStore } from "@/providers/profile-store";
 import { Paginated } from "@/utils/api/response";
-import { Order, PublicProfile } from "@/utils/api/types";
+import { ContentCategory, Order } from "@/utils/api/types";
 import { ChevronLeftIcon, UserPlusIcon } from "lucide-react";
 import React from "react";
 
 type Props = {
     noteId: string;
-    fetchOrders: (profile: PublicProfile, noteId: string, page: number, size: number) => Promise<Paginated<Order>>;
+    category: ContentCategory;
     className?: string;
 }
 
-export const NoteDialogOrdersSection = ({ noteId, fetchOrders, className }: Props) => {
+export const NoteDialogOrdersSection = ({ noteId, category, className }: Props) => {
     const { profile } = useProfileStore((state) => state);
     const [detailsOpen, setDetailsOpen] = React.useState(false);
 
@@ -33,7 +34,7 @@ export const NoteDialogOrdersSection = ({ noteId, fetchOrders, className }: Prop
         if (!areOrdersLoading && detailsOpen && !orders) {
             startOrdersTransition(async () => {
                 try {
-                    const response = await fetchOrders(profile, noteId, ordersPage, 5);
+                    const response = await fetchContentNoteOrders(profile, category, noteId, ordersPage, 5);
                     setOrders(response);
                 } catch (error: any) {
                     toast({

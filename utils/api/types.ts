@@ -46,8 +46,8 @@ export type ImageSize = 'sm' | 'md' | 'lg';
 
 export enum ContentCategoryEnum {
     Games = 'games',
-    Anime = 'anime',
     Movies = 'movies',
+    Anime = 'anime',
     Series = 'series',
     Video = 'video',
 }
@@ -62,29 +62,57 @@ export type Content = {
     category: ContentCategory;
 }
 
-export type GameNoteStatus = 'planned' | 'playing' | 'paused' | 'dropped' | 'finished' | 'skipped';
-
-export type GameNote = {
+export interface ContentNote {
     id: string;
     createdAt: Date;
     name: string;
-    releaseDate?: Date;
-    link?: string;
     rate?: number;
     comment?: string;
+    posterUrl: string;
+}
+
+export type GameNoteStatus = 'planned' | 'playing' | 'paused' | 'dropped' | 'finished' | 'skipped';
+
+export type MovieNoteStatus = 'planned' | 'dropped' | 'watched' | 'skipped';
+
+export type ContentNoteStatus = GameNoteStatus | MovieNoteStatus;
+
+export type GameNote = ContentNote & {
+    releaseDate?: Date;
+    link?: string;
     status: GameNoteStatus;
     lastPlayedAt?: Date;
-    initialOrdererId: string;
-    initialOrdererUsername?: string;
     poster?: Partial<ImagePreview>;
-    ordererCount: number;
+    posterUrl: string;
 };
+
+export type MovieNote = ContentNote & {
+    releaseDate?: Date;
+    status: MovieNoteStatus;
+    watchedAt?: Date;
+}
+
+export interface ContentNoteSearchResult extends ContentNote {
+    status: GameNoteStatus;
+    initialOrdererUsername?: string;
+    ordererCount: number;
+}
+
+export type GameNoteSearchResult = ContentNoteSearchResult & {
+    releaseDate?: Date;
+    lastPlayedAt?: Date;
+}
+
+export type MovieNoteSearchResult = ContentNoteSearchResult & {
+    releaseDate?: Date;
+    watchedAt?: Date;
+}
 
 export type Reaction = {
     emoteId: string;
     source: string;
     count: number;
-    reactedByUser: boolean;
+    userReacted: boolean;
 }
 
 export type NoteReaction = {

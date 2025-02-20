@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Filter, SortAsc, UserPlusIcon } from "lucide-react";
-import CollectionsSection from "../../../components/view/content-collections/collections-section";
+import CollectionsSection from "../../../components/ui/content-collections/collections-section";
 import OrdersDataTable from "./components/orders-data-table";
 
 type Props = {

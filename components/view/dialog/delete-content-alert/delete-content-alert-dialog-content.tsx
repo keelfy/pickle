@@ -2,7 +2,7 @@
 
 import { AlertDialogAction, AlertDialogCancel, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { deleteContent } from "@/hooks/api-endpoints-client";
+import { deleteContentNote } from "@/hooks/api-endpoints-client";
 import { toast } from "@/hooks/use-toast";
 import { useModalStore } from "@/providers/modal";
 import { useProfileStore } from "@/providers/profile-store";
@@ -15,15 +15,15 @@ export default function DeleteContentAlertDialogContent() {
         (state) => state
     );
     const profile = useProfileStore((state) => state.profile);
-    const modalParams = useModalStore<DeleteContentAlertModalParams | undefined>(state => state.modalParams);
+    const modalParams = useModalStore<DeleteContentAlertModalParams>(state => state.modalParams!);
     const [isLoading, startTransition] = React.useTransition();
     const [resetApprovedOrders, setResetApprovedOrders] = React.useState(true);
 
     const onConfirm = () => {
-        if (!modalParams?.type || !modalParams?.id) return;
+        if (!modalParams?.category || !modalParams?.id) return;
         startTransition(async () => {
             try {
-                await deleteContent(profile, modalParams?.type, modalParams?.id, resetApprovedOrders);
+                await deleteContentNote(profile, modalParams.category, modalParams.id, resetApprovedOrders);
                 closeModal();
                 toast({
                     title: "Content deleted successfully",

@@ -18,7 +18,7 @@ import { contentCategoryLabels } from "@/utils/api/constants";
 import { ContentSearchHits } from "@/utils/api/response";
 import { CollectionItem, Content } from "@/utils/api/types";
 import React from "react";
-import { useCollectionContext } from "../../content-collections/collections-context";
+import { useCollectionContext } from "../../../ui/content-collections/collections-context";
 
 export default function AddCollectionItemDialogContent() {
     const { modalParams, setModalParams, openModal, closeModal } = useModalStore((state) => state);

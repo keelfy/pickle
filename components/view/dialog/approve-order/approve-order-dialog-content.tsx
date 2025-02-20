@@ -186,13 +186,30 @@ export default function ApproveOrderDialogContent() {
     const onReset = () => {
         if (order) {
             form.reset({
-                category: order?.category ?? "custom",
+                category: order?.category ?? "games",
                 title: order?.message ?? "",
             });
         } else {
             form.reset();
         }
     };
+
+    const openContentNoteEditor = (category: ContentCategory, contentId: string) => {
+        switch (category) {
+            case "games":
+                openModal(ModalType.GameNoteEditor, {
+                    id: contentId,
+                });
+                break;
+            case "movies":
+                openModal(ModalType.MovieNoteEditor, {
+                    id: contentId,
+                });
+                break;
+            default:
+                break;
+        }
+    }
 
     const onSubmit = (values: z.infer<typeof formSchema>) => {
         if (!orderId) {
@@ -211,10 +228,8 @@ export default function ApproveOrderDialogContent() {
 
                 if (!res?.contentCreated) {
                     closeModal();
-                } else {
-                    openModal(ModalType.GameNoteEditor, {
-                        id: res.contentId,
-                    });
+                } else if (res.contentId) {
+                    openContentNoteEditor(values.category, res.contentId);
                 }
             } catch (error: any) {
                 toast({

@@ -6,7 +6,7 @@ import { toast } from "@/hooks/use-toast";
 import { useModalStore } from "@/providers/modal";
 import { Trash, X } from "lucide-react";
 import React from "react";
-import { useCollectionContext } from "../../content-collections/collections-context";
+import { useCollectionContext } from "../../../ui/content-collections/collections-context";
 import { DeleteCollectionAlertModalParams } from "./delete-collection-alert-dialog";
 
 export default function DeleteContentAlertDialogContent() {

@@ -1,23 +1,23 @@
-import { ContentCategory, GameNoteStatus } from "@/utils/api/types";
+import { ContentCategory, ContentNoteStatus } from "@/utils/api/types";
 
-export const localizeContentCategory = (category: ContentCategory, multiple: boolean = false) => {
+export const localizeContentCategory = (category: ContentCategory, plural: boolean = false) => {
     switch (category) {
         case "games":
-            return multiple ? "Games" : "Game";
+            return plural ? "Games" : "Game";
         case "video":
-            return multiple ? "Videos" : "Video";
+            return plural ? "Videos" : "Video";
         case "movies":
-            return multiple ? "Movies" : "Movie";
+            return plural ? "Movies" : "Movie";
         case "series":
-            return multiple ? "Series" : "Series";
+            return plural ? "Series" : "Series";
         case "anime":
-            return multiple ? "Anime" : "Anime";
+            return plural ? "Anime" : "Anime";
         default:
-            return multiple ? "Content" : "Content";
+            return plural ? "Content" : "Content";
     }
 }
 
-export const localizeGameNoteStatus = (status: GameNoteStatus) => {
+export const localizeContentNoteStatus = (status: ContentNoteStatus | undefined) => {
     switch (status) {
         case "playing":
             return "Playing";
@@ -27,6 +27,8 @@ export const localizeGameNoteStatus = (status: GameNoteStatus) => {
             return "Dropped";
         case "finished":
             return "Finished";
+        case "watched":
+            return "Watched";
         case "skipped":
             return "Skipped";
         case "planned":

@@ -1,11 +1,11 @@
-import CollectionHeaderLine from "@/components/view/content-collections/collection-header";
-import CreateCollectionTitleButton from "@/components/view/content-collections/create-collection-title-button";
+import CollectionHeaderLine from "@/components/ui/content-collections/collection-header";
+import CreateCollectionTitleButton from "@/components/ui/content-collections/create-collection-title-button";
 import { fetchCollections, fetchCollectionsItems, fetchProfileByLink } from "@/hooks/api-endpoints-server";
-import AddCollectionItemDialog from "../dialog/add-collection-item/add-collection-item-dialog";
-import CreateCollectionDialog from "../dialog/create-collection/create-collection-dialog";
+import AddCollectionItemDialog from "../../view/dialog/add-collection-item/add-collection-item-dialog";
+import CreateCollectionDialog from "../../view/dialog/create-collection/create-collection-dialog";
 
-import DeleteCollectionAlertDialog from "../dialog/delete-collection-alert/delete-collection-alert-dialog";
-import EditCollectionDialog from "../dialog/edit-collection/edit-collection-dialog";
+import DeleteCollectionAlertDialog from "../../view/dialog/delete-collection-alert/delete-collection-alert-dialog";
+import EditCollectionDialog from "../../view/dialog/edit-collection/edit-collection-dialog";
 import { CollectionsProvider } from "./collections-context";
 import CollectionsList from "./collections-list";
 

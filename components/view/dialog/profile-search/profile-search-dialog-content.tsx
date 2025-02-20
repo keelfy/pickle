@@ -16,6 +16,7 @@ import { useProfileStore } from "@/providers/profile-store";
 import { ModalType } from "@/stores/modal";
 import { contentCategoryLabels } from "@/utils/api/constants";
 import { ContentSearchHits } from "@/utils/api/response";
+import { Content } from "@/utils/api/types";
 import React from "react";
 
 export default function ProfileSearchDialogContent() {
@@ -91,14 +92,23 @@ export default function ProfileSearchDialogContent() {
             } else if (event.key === "Enter") {
                 const selectedContent = result.content[selectedIndex];
                 if (selectedContent) {
-                    openModal(ModalType.GameNote, {
-                        id: selectedContent.source.id,
-                    });
+                    handleEntryClick(selectedContent.source);
                 }
             }
         },
         [result?.content, selectedIndex, openModal]
     );
+
+    const handleEntryClick = ({ category, id }: Content) => {
+        switch (category) {
+            case "games":
+                openModal(ModalType.GameNote, { id });
+                break;
+            case "movies":
+                openModal(ModalType.MovieNote, { id });
+                break;
+        }
+    }
 
     return (
         <>
@@ -121,11 +131,7 @@ export default function ProfileSearchDialogContent() {
                                 <Button
                                     className="flex items-center justify-between w-full"
                                     variant="ghost"
-                                    onClick={() =>
-                                        openModal(ModalType.GameNote, {
-                                            id: source.id,
-                                        })
-                                    }
+                                    onClick={() => handleEntryClick(source)}
                                 >
                                     <div className="text-md">{source.name}</div>
                                     <Badge>

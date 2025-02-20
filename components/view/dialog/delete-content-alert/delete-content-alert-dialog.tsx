@@ -6,6 +6,7 @@ import { ModalType } from "@/stores/modal";
 import React from "react";
 import dynamic from "next/dynamic";
 import LoadingAlertDialogContent from "../loading-alert-dialog-content";
+import { ContentCategory } from "@/utils/api/types";
 
 const DynamicDeleteContentAlertDialogContent = dynamic(
     () => import("./delete-content-alert-dialog-content"),
@@ -14,12 +15,8 @@ const DynamicDeleteContentAlertDialogContent = dynamic(
     }
 );
 
-export enum DeleteContentType {
-    GameNote = "game-notes",
-}
-
 export type DeleteContentAlertModalParams = {
-    type: DeleteContentType;
+    category: ContentCategory;
     title: string;
     id: string;
 }
@@ -29,14 +26,14 @@ export default function DeleteContentAlertDialog() {
         (state) => state
     );
 
-    const modalParams = useModalStore<DeleteContentAlertModalParams | undefined>(state => state.modalParams);
+    const modalParams = useModalStore<DeleteContentAlertModalParams>(state => state.modalParams!);
 
     const isOpen = React.useMemo(
         () => currentModal === ModalType.DeleteContentAlert
             && modalParams?.id !== undefined
-            && modalParams?.type !== undefined
+            && modalParams?.category !== undefined
             && modalParams?.title !== undefined,
-        [currentModal, modalParams?.id, modalParams?.type, modalParams?.title]
+        [currentModal, modalParams?.id, modalParams?.category, modalParams?.title]
     );
 
     return (

@@ -2,24 +2,30 @@
 
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useModalStore } from "@/providers/modal";
-import { ModalType } from "@/stores/modal";
 import dynamic from "next/dynamic";
-import React from "react";
+import { useMemo } from "react";
 import LoadingDialogContent from "../loading-dialog-content";
+import { ModalType } from "@/stores/modal";
 
-const DynamicGameNoteEditorDialogContent = dynamic(
-    () => import("./game-note-editor-dialog-content"),
-    { loading: () => <LoadingDialogContent /> }
+const DynamicMovieNoteDialogContent = dynamic(
+    () => import("./movie-note-dialog-content"),
+    {
+        loading: () => <LoadingDialogContent />,
+    }
 );
 
-export default function GameNoteEditorDialog() {
+export type MovieNoteDialogParams = {
+    id: string;
+}
+
+export default function MovieNoteDialog() {
     const { currentModal, modalParams, closeModal } = useModalStore(
         (state) => state
     );
 
-    const isOpen = React.useMemo(
+    const isOpen = useMemo(
         () =>
-            currentModal === ModalType.GameNoteEditor &&
+            currentModal === ModalType.MovieNote &&
             modalParams?.id !== undefined,
         [currentModal, modalParams?.id]
     );
@@ -31,7 +37,7 @@ export default function GameNoteEditorDialog() {
     return (
         <Dialog open={isOpen} onOpenChange={closeModal}>
             <DialogContent className="overflow-y-auto max-h-screen">
-                {isOpen && <DynamicGameNoteEditorDialogContent />}
+                {isOpen && <DynamicMovieNoteDialogContent />}
             </DialogContent>
         </Dialog>
     );

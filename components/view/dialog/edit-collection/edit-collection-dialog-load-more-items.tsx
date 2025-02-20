@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import React from "react";
-import { useCollectionContext } from "../../content-collections/collections-context";
+import { useCollectionContext } from "../../../ui/content-collections/collections-context";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 
 type Props = {

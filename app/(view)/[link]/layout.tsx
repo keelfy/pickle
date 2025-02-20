@@ -1,6 +1,7 @@
 import DeleteContentAlertDialog from "@/components/view/dialog/delete-content-alert/delete-content-alert-dialog";
 import GameNoteEditorDialog from "@/components/view/dialog/game-note-editor/game-note-editor-dialog";
 import GameNoteDialog from "@/components/view/dialog/game-note/game-note-dialog";
+import MovieNoteEditorDialog from "@/components/view/dialog/movie-note-editor/movie-note-editor-dialog";
 import {
     fetchProfileByLink
 } from "@/hooks/api-endpoints-server";
@@ -8,13 +9,14 @@ import OrderStoreProvider from "@/providers/order";
 import ProfileStoreProvider from "@/providers/profile-store";
 import { Metadata } from "next";
 import Link from "next/link";
-import React, { Suspense } from "react";
+import React from "react";
 import ApproveOrderDialog from "../../../components/view/dialog/approve-order/approve-order-dialog";
 import CreateOrderDialog from "../../../components/view/dialog/create-order/create-order-dialog";
 import DenyOrderDialog from "../../../components/view/dialog/deny-order/deny-order-dialog";
 import ProfileSearchDialog from "../../../components/view/dialog/profile-search/profile-search-dialog";
-import NavMenu from "./navbar-menu";
 import ProfileCard from "./profile-card";
+import ProfileNavigationMenu from "./profile-nav-menu";
+import MovieNoteDialog from "@/components/view/dialog/movie-note/movie-note-dialog";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { link } = await params;
@@ -77,7 +79,7 @@ export default async function RootLayout({ children, params }: React.PropsWithCh
         <main className="min-h-screen bg-background grid gap-10">
             <div className="container max-w-7xl flex flex-col gap-10">
                 <nav className="mt-2">
-                    <NavMenu link={link} className="max-md:hidden" />
+                    <ProfileNavigationMenu link={link} className="max-md:hidden" />
                 </nav>
 
                 <OrderStoreProvider>
@@ -92,10 +94,16 @@ export default async function RootLayout({ children, params }: React.PropsWithCh
 
                         <DenyOrderDialog />
                         <ApproveOrderDialog />
-                        <GameNoteDialog />
+
                         <ProfileSearchDialog />
                         <CreateOrderDialog />
                         <DeleteContentAlertDialog />
+
+                        <GameNoteDialog />
+                        <MovieNoteDialog />
+
+                        <GameNoteEditorDialog />
+                        <MovieNoteEditorDialog />
                     </ProfileStoreProvider>
                 </OrderStoreProvider>
             </div>

@@ -1,18 +1,18 @@
 import ContentNoteCard, { ContentNoteCardHeaderDataTableColumnGroup } from "@/components/ui/content-note/content-note-card";
-import { GameNoteSearchResult, Reaction } from "@/utils/api/types";
+import { MovieNoteSearchResult, Reaction } from "@/utils/api/types";
 import {
     History,
     UserPlus2
 } from "lucide-react";
 
 type Props = {
-    note: GameNoteSearchResult;
+    note: MovieNoteSearchResult;
     defaultReactions?: Reaction[];
 }
 
-export default function GameNoteCard({ note, defaultReactions }: Props) {
+export default function MovieNoteCard({ note, defaultReactions }: Props) {
 
-    const columnGroups: ContentNoteCardHeaderDataTableColumnGroup<GameNoteSearchResult>[] = [{
+    const columnGroups: ContentNoteCardHeaderDataTableColumnGroup<MovieNoteSearchResult>[] = [{
         columns: [
             {
                 icon: <History size={12} />,
@@ -45,7 +45,7 @@ export default function GameNoteCard({ note, defaultReactions }: Props) {
     return (
         <ContentNoteCard
             note={note}
-            category="games"
+            category="movies"
             columnGroups={columnGroups}
             releaseYear={note.releaseDate ? new Date(note.releaseDate).getFullYear() : undefined}
             defaultReactions={defaultReactions}

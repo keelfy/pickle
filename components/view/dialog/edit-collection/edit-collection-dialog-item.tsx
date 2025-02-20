@@ -10,7 +10,7 @@ import { localizeContentCategory } from "@/lib/localize-types";
 import { CollectionItem } from "@/utils/api/types";
 import { TrashIcon } from "lucide-react";
 import React from "react";
-import { useCollectionContext } from "../../content-collections/collections-context";
+import { useCollectionContext } from "../../../ui/content-collections/collections-context";
 
 type Props = {
     item: CollectionItem;

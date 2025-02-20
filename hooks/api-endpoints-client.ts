@@ -1,15 +1,9 @@
 import { fetchApi } from "@/utils/api/client";
 import { AddItemToCollectionReq, CreateCollectionReq, CreateOrderReq, UpdateCollectionReq } from "@/utils/api/request";
 import { ContentSearchHits, LinkValidation, Paginated } from "@/utils/api/response";
-import { Collection, CollectionItem, ContentCategory, GameNote, Image, ImagePreview, ImageSize, ModeratorProfile, NoteReaction, Order, OrderUpdate, Profile, PublicProfile, Reaction, SuggestionPreferences } from "@/utils/api/types";
+import { Collection, CollectionItem, ContentCategory, ContentNote, ContentNoteSearchResult, GameNote, Image, ImagePreview, ImageSize, ModeratorProfile, NoteReaction, Order, OrderUpdate, Profile, PublicProfile, Reaction, SuggestionPreferences } from "@/utils/api/types";
 
-
-export async function uploadAvatarForPreview(formData: FormData) {
-    return fetchApi<ImagePreview>(`/v1/users/me/avatar`, true, {
-        method: "POST",
-        body: formData,
-    });
-}
+// Profile
 
 export async function validateProfileLink(link: string) {
     return fetchApi<LinkValidation>(`/v1/profiles/validate-link?link=${link}`);
@@ -29,13 +23,27 @@ export async function updateSuggestionPreferences(data: SuggestionPreferences) {
     });
 }
 
+// Profile Avatar
+
+export async function uploadAvatarForPreview(formData: FormData) {
+    return fetchApi<ImagePreview>(`/v1/users/me/avatar`, true, {
+        method: "POST",
+        body: formData,
+    });
+}
+
 export async function fetchMyAvatar(size: ImageSize = 'md') {
     return fetchApi<Image>(`/v1/users/me/avatar?size=${size}`);
 }
 
-export async function fetchProfileOrders(profile: Profile, cursor: string, column: string, limit: number, direction: 'asc' | 'desc' = 'desc') {
-    return fetchApi<Order[]>(`/v1/users/${profile.id}/orders?cursor=${cursor}&column=${column}&limit=${limit}&direction=${direction}`);
+// Profile Search
+
+export async function fetchContentSearch(profile: PublicProfile | undefined, query: string, page: number, size: number) {
+    if (!profile) return undefined;
+    return fetchApi<ContentSearchHits>(`/v1/users/${profile.id}/content?query=${query}&page=${page}&size=${size}`);
 }
+
+// Poster Previews
 
 export async function uploadPosterPreview(profile: Profile | undefined, formData: FormData, size: ImageSize = 'md') {
     if (!profile) return undefined;
@@ -52,32 +60,10 @@ export async function deletePosterPreview(profile: PublicProfile | undefined, id
     });
 }
 
-export async function fetchProfileGameNotes(profile: PublicProfile, params: URLSearchParams) {
-    return fetchApi<GameNote[]>(`/v1/users/${profile.id}/game-notes?${params.toString()}`);
-}
+// Orders
 
-export async function fetchGameNotePoster(profile: PublicProfile, gameNoteId: string, size: ImageSize = 'sm') {
-    return fetchApi<Image>(`/v1/users/${profile.id}/game-notes/${gameNoteId}/posters?size=${size}`);
-}
-
-export async function fetchGameNote(profile: PublicProfile, gameNoteId: string) {
-    return fetchApi<GameNote>(`/v1/users/${profile.id}/game-notes/${gameNoteId}`);
-}
-
-export async function updateGameNote(profile: PublicProfile, gameNoteId: string, gameNote: Partial<GameNote>) {
-    return fetchApi<GameNote>(`/v1/users/${profile.id}/game-notes/${gameNoteId}`, true, {
-        method: "PATCH",
-        body: JSON.stringify(gameNote),
-    });
-}
-
-export async function fetchGameNoteOrders(profile: PublicProfile, gameNoteId: string, page: number, size: number) {
-    return fetchApi<Paginated<Order>>(`/v1/users/${profile.id}/game-notes/${gameNoteId}/orders?page=${page}&size=${size}`);
-}
-
-export async function fetchContentSearch(profile: PublicProfile | undefined, query: string, page: number, size: number) {
-    if (!profile) return undefined;
-    return fetchApi<ContentSearchHits>(`/v1/users/${profile.id}/content?query=${query}&page=${page}&size=${size}`);
+export async function fetchProfileOrders(profile: Profile, cursor: string, column: string, limit: number, direction: 'asc' | 'desc' = 'desc') {
+    return fetchApi<Order[]>(`/v1/users/${profile.id}/orders?cursor=${cursor}&column=${column}&limit=${limit}&direction=${direction}`);
 }
 
 export async function fetchOrderById(profile: PublicProfile | undefined, orderId: string) {
@@ -100,12 +86,7 @@ export async function updateOrder(profile: PublicProfile | undefined, orderId: s
     });
 }
 
-export async function deleteContent(profile: PublicProfile | undefined, path: string, id: string, resetApprovedOrders: boolean = true) {
-    if (!profile) return undefined;
-    return fetchApi(`/v1/users/${profile.id}/${path}/${id}?resetApprovedOrders=${resetApprovedOrders}`, true, {
-        method: "DELETE",
-    });
-}
+// Follows
 
 export async function followProfile(profile: PublicProfile | undefined) {
     if (!profile) return undefined;
@@ -121,38 +102,7 @@ export async function unfollowProfile(profile: PublicProfile | undefined) {
     });
 }
 
-export async function fetchGameNoteReactions(profile: PublicProfile, gameNoteId: string) {
-    return fetchApi<Reaction[]>(`/v1/users/${profile.id}/game-notes/${gameNoteId}/reactions`);
-}
-
-export async function fetchBatchGameNoteReactions(profile: PublicProfile, gameNoteIds: string[]) {
-    if (gameNoteIds.length === 0) return [];
-    return fetchApi<NoteReaction[]>(`/v1/users/${profile.id}/game-notes/reactions?noteIds=${gameNoteIds.join(',')}`);
-}
-
-export async function createGameNoteReaction(profile: PublicProfile | undefined, gameNoteId: string, emote: string) {
-    if (!profile) return undefined;
-    const body = {
-        emoteId: emote,
-        source: 'unicode_emoji',
-    }
-    return fetchApi(`/v1/users/${profile.id}/game-notes/${gameNoteId}/reactions`, true, {
-        method: "POST",
-        body: JSON.stringify(body),
-    });
-}
-
-export async function deleteGameNoteReaction(profile: PublicProfile | undefined, gameNoteId: string, emoteId: string) {
-    if (!profile) return undefined;
-    const body = {
-        emoteId: emoteId,
-        source: 'unicode_emoji',
-    }
-    return fetchApi(`/v1/users/${profile.id}/game-notes/${gameNoteId}/reactions`, true, {
-        method: "DELETE",
-        body: JSON.stringify(body),
-    });
-}
+// Collections
 
 export async function fetchCreateCollection(profile: PublicProfile, collection: CreateCollectionReq) {
     return fetchApi<Collection>(`/v1/users/${profile.id}/collections`, true, {
@@ -191,6 +141,8 @@ export async function fetchCollectionItems(collectionId: string, page: number, s
     return fetchApi<Paginated<CollectionItem>>(`/v1/collections/${collectionId}/items?page=${page}&size=${size}`);
 }
 
+// Moderators
+
 export async function fetchModeratorProfiles(profile: PublicProfile) {
     return fetchApi<ModeratorProfile[]>(`/v1/users/${profile.id}/moderators`);
 }
@@ -208,30 +160,71 @@ export async function fetchDeleteModerator(profile: PublicProfile, moderatorId: 
     });
 }
 
-export async function fetchRenameNote(profile: Profile, category: ContentCategory, id: string, name: string) {
-    let path: string;
-    switch (category) {
-        case "games":
-            path = `game-notes`;
-            break;
-        case "anime":
-            path = `anime-notes`;
-            break;
-        case "movies":
-            path = `movie-notes`;
-            break;
-        case "series":
-            path = `series-notes`;
-            break;
-        case "video":
-            path = `video-notes`;
-            break;
-        default:
-            return;
-    }
+// Content Notes
 
-    return fetchApi<void>(`/v1/users/${profile.id}/${path}/${id}/name`, true, {
+export async function fetchProfileContentNotes<T extends ContentNoteSearchResult>(profile: PublicProfile, category: ContentCategory, params: URLSearchParams) {
+    return fetchApi<T[]>(`/v1/users/${profile.id}/content-notes/${category}?${params.toString()}`);
+}
+
+export async function fetchContentNotePoster(profile: PublicProfile, category: ContentCategory, noteId: string, size: ImageSize = 'sm') {
+    return fetchApi<Image>(`/v1/users/${profile.id}/content-notes/${category}/${noteId}/posters?size=${size}`);
+}
+
+export async function fetchContentNote<T extends ContentNote>(profile: PublicProfile, category: ContentCategory, noteId: string) {
+    return fetchApi<T>(`/v1/users/${profile.id}/content-notes/${category}/${noteId}`);
+}
+
+export async function deleteContentNote(profile: PublicProfile, category: ContentCategory, noteId: string, resetApprovedOrders: boolean = true) {
+    return fetchApi(`/v1/users/${profile.id}/content-notes/${category}/${noteId}?resetApprovedOrders=${resetApprovedOrders}`, true, {
+        method: "DELETE",
+    });
+}
+
+export async function updateContentNote<T extends ContentNote>(profile: PublicProfile, category: ContentCategory, noteId: string, note: any) {
+    return fetchApi<T>(`/v1/users/${profile.id}/content-notes/${category}/${noteId}`, true, {
+        method: "PATCH",
+        body: JSON.stringify(note),
+    });
+}
+
+export async function fetchRenameContentNote(profile: Profile, category: ContentCategory, id: string, name: string) {
+    return fetchApi<void>(`/v1/users/${profile.id}/content-notes/${category}/${id}/name`, true, {
         method: "PATCH",
         body: JSON.stringify({ name }),
+    });
+}
+
+export async function fetchContentNoteOrders(profile: Profile, category: ContentCategory, noteId: string, page: number, size: number) {
+    return fetchApi<Paginated<Order>>(`/v1/users/${profile.id}/content-notes/${category}/${noteId}/orders?page=${page}&size=${size}`);
+}
+
+export async function fetchContentNoteReactions(profile: Profile, category: ContentCategory, noteId: string) {
+    return fetchApi<Reaction[]>(`/v1/users/${profile.id}/content-notes/${category}/${noteId}/reactions`);
+}
+
+export async function fetchBatchContentNoteReactions(profile: Profile, category: ContentCategory, noteIds: string[]) {
+    if (noteIds.length === 0) return [];
+    return fetchApi<NoteReaction[]>(`/v1/users/${profile.id}/content-notes/${category}/reactions?noteIds=${noteIds.join(',')}`);
+}
+
+export async function createContentNoteReaction(profile: Profile, category: ContentCategory, noteId: string, emote: string) {
+    const body = {
+        emoteId: emote,
+        source: 'unicode_emoji',
+    }
+    return fetchApi(`/v1/users/${profile.id}/content-notes/${category}/${noteId}/reactions`, true, {
+        method: "POST",
+        body: JSON.stringify(body),
+    });
+}
+
+export async function deleteContentNoteReaction(profile: Profile, category: ContentCategory, noteId: string, emoteId: string) {
+    const body = {
+        emoteId: emoteId,
+        source: 'unicode_emoji',
+    }
+    return fetchApi(`/v1/users/${profile.id}/content-notes/${category}/${noteId}/reactions`, true, {
+        method: "DELETE",
+        body: JSON.stringify(body),
     });
 }

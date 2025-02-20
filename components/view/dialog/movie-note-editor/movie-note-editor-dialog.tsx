@@ -7,19 +7,19 @@ import dynamic from "next/dynamic";
 import React from "react";
 import LoadingDialogContent from "../loading-dialog-content";
 
-const DynamicGameNoteEditorDialogContent = dynamic(
-    () => import("./game-note-editor-dialog-content"),
+const DynamicMovieNoteEditorDialogContent = dynamic(
+    () => import("./movie-note-editor-dialog-content"),
     { loading: () => <LoadingDialogContent /> }
 );
 
-export default function GameNoteEditorDialog() {
+export default function MovieNoteEditorDialog() {
     const { currentModal, modalParams, closeModal } = useModalStore(
         (state) => state
     );
 
     const isOpen = React.useMemo(
         () =>
-            currentModal === ModalType.GameNoteEditor &&
+            currentModal === ModalType.MovieNoteEditor &&
             modalParams?.id !== undefined,
         [currentModal, modalParams?.id]
     );
@@ -31,7 +31,7 @@ export default function GameNoteEditorDialog() {
     return (
         <Dialog open={isOpen} onOpenChange={closeModal}>
             <DialogContent className="overflow-y-auto max-h-screen">
-                {isOpen && <DynamicGameNoteEditorDialogContent />}
+                {isOpen && <DynamicMovieNoteEditorDialogContent />}
             </DialogContent>
         </Dialog>
     );

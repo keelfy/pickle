@@ -8,8 +8,8 @@ import { useProfileStore } from "@/providers/profile-store";
 import { ModalType } from "@/stores/modal";
 import { Collection } from "@/utils/api/types";
 import { ChevronDownIcon, PencilIcon, TrashIcon } from "lucide-react";
-import { DeleteCollectionAlertModalParams } from "../dialog/delete-collection-alert/delete-collection-alert-dialog";
-import { EditCollectionModalParams } from "../dialog/edit-collection/edit-collection-dialog";
+import { DeleteCollectionAlertModalParams } from "../../view/dialog/delete-collection-alert/delete-collection-alert-dialog";
+import { EditCollectionModalParams } from "../../view/dialog/edit-collection/edit-collection-dialog";
 
 type Props = {
     toggleCollapsed: () => void;

@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	db "github.com/pickle.pw/monolith/db/sqlc"
+	"github.com/pickle.pw/monolith/internal/models"
 )
 
 type PaginatedRes[T any] struct {
@@ -74,35 +75,9 @@ type ContentRes struct {
 
 type ContentSearchRes = PaginatedRes[SearchHitRes[ContentRes]]
 
-type GameNoteRes struct {
-	ID                     string            `json:"id"`
-	CreatedAt              time.Time         `json:"createdAt"`
-	UserID                 string            `json:"userId"`
-	Name                   string            `json:"name"`
-	Link                   *string           `json:"link,omitempty"`
-	ReleaseDate            *time.Time        `json:"releaseDate,omitempty"`
-	Rate                   *int16            `json:"rate,omitempty"`
-	Comment                *string           `json:"comment,omitempty"`
-	Ordered                bool              `json:"ordered"`
-	Status                 db.GameNoteStatus `json:"status"`
-	LastPlayedAt           *time.Time        `json:"lastPlayedAt,omitempty"`
-	PosterURL              *string           `json:"posterUrl,omitempty"`
-	InitialOrdererUsername *string           `json:"initialOrdererUsername,omitempty"`
-	OrdererCount           int64             `json:"ordererCount"`
-}
-
-type GameNoteSearchRes = PaginatedRes[SearchHitRes[GameNoteRes]]
-
-type NoteReactionRes struct {
-	EmoteID       string `json:"emoteId"`
-	Source        string `json:"source"`
-	Count         int64  `json:"count"`
-	ReactedByUser bool   `json:"reactedByUser"`
-}
-
 type BatchNoteReactionsRes struct {
-	NoteID    uuid.UUID         `json:"noteId"`
-	Reactions []NoteReactionRes `json:"reactions"`
+	NoteID    uuid.UUID               `json:"noteId"`
+	Reactions []*models.ReactionStack `json:"reactions"`
 }
 
 type OrdererRes struct {
@@ -116,14 +91,14 @@ type OrderRes struct {
 	ID              string             `json:"id"`
 	CreatedAt       time.Time          `json:"createdAt"`
 	UpdatedAt       time.Time          `json:"updatedAt"`
-	UpdatedBy       string             `json:"updatedBy"`  // User ID
-	ReceiverID      string             `json:"receiverId"` // User ID
+	UpdatedBy       string             `json:"updatedBy"`
+	ReceiverID      string             `json:"receiverId"`
 	PaymentType     int16              `json:"paymentType"`
 	Amount          float32            `json:"amount"`
 	Orderer         uuid.UUID          `json:"orderer,omitempty"`
 	OrdererUsername string             `json:"ordererUsername,omitempty"`
 	Status          db.OrderStatus     `json:"status"`
-	Category        db.ContentCategory `json:"category"` // Category
+	Category        db.ContentCategory `json:"category"`
 	Message         string             `json:"message"`
 	UpdatedCategory db.ContentCategory `json:"updatedCategory"`
 	UpdatedMessage  string             `json:"updatedMessage"`

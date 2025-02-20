@@ -30,10 +30,10 @@ type CollectionHandler interface {
 
 type collectionHandler struct {
 	collectionService services.CollectionService
-	contentService    services.ContentService
+	contentService    services.ContentNoteService
 }
 
-func NewCollectionHandler(collectionService services.CollectionService, contentService services.ContentService) CollectionHandler {
+func NewCollectionHandler(collectionService services.CollectionService, contentService services.ContentNoteService) CollectionHandler {
 	return &collectionHandler{collectionService: collectionService, contentService: contentService}
 }
 
@@ -164,7 +164,7 @@ func (h *collectionHandler) AddItemToCollection(w http.ResponseWriter, r *http.R
 
 	posterSize := utils.GetQueryParam(r, "posterSize", "sm")
 
-	content, err := h.contentService.GetContentByID(ctx, req.NoteID, req.Category)
+	content, err := h.contentService.GetContentNoteByID(ctx, req.NoteID, req.Category)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
@@ -185,7 +185,7 @@ func (h *collectionHandler) AddItemToCollection(w http.ResponseWriter, r *http.R
 		Category: content.GetCategory(),
 	}
 
-	posterURL, err := h.contentService.GetContentPosterImageURL1(ctx, posterSize, content)
+	posterURL, err := h.contentService.GetContentNotePosterImageURL1(ctx, posterSize, content)
 	if err != nil {
 		logger.Errorf(ctx, "failed to get poster image URL for %s %s: %v", content.GetCategory(), content.GetID(), err)
 	} else {
@@ -301,7 +301,7 @@ func (h *collectionHandler) GetItemsByUserID(w http.ResponseWriter, r *http.Requ
 
 		posterURL := ""
 		if item.PosterKey != nil {
-			posterURL, err = h.contentService.GetContentPosterImageURL(ctx, item.Category, posterSize, *item.PosterKey, item.PosterUpdatedAt.Time)
+			posterURL, err = h.contentService.GetContentNotePosterImageURL(ctx, item.Category, posterSize, *item.PosterKey, item.PosterUpdatedAt.Time)
 			if err != nil {
 				logger.Errorf(ctx, "failed to get poster image URL for %s %s: %v", item.Category, item.NoteID, err)
 			}
@@ -459,7 +459,7 @@ func (h *collectionHandler) GetItemsByCollectionID(w http.ResponseWriter, r *htt
 		}
 
 		if item.PosterKey != nil {
-			posterURL, err := h.contentService.GetContentPosterImageURL(ctx, item.Category, posterSize, *item.PosterKey, item.PosterUpdatedAt.Time)
+			posterURL, err := h.contentService.GetContentNotePosterImageURL(ctx, item.Category, posterSize, *item.PosterKey, item.PosterUpdatedAt.Time)
 			if err != nil {
 				logger.Errorf(ctx, "failed to get poster image URL for %s %s: %v", item.Category, item.NoteID, err)
 			} else {

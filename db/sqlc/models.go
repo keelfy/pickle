@@ -104,6 +104,50 @@ func (ns NullGameNoteStatus) Value() (driver.Value, error) {
 	return string(ns.GameNoteStatus), nil
 }
 
+type MovieNoteStatus string
+
+const (
+	MovieNoteStatusPlanned MovieNoteStatus = "planned"
+	MovieNoteStatusDropped MovieNoteStatus = "dropped"
+	MovieNoteStatusWatched MovieNoteStatus = "watched"
+	MovieNoteStatusSkipped MovieNoteStatus = "skipped"
+)
+
+func (e *MovieNoteStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = MovieNoteStatus(s)
+	case string:
+		*e = MovieNoteStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for MovieNoteStatus: %T", src)
+	}
+	return nil
+}
+
+type NullMovieNoteStatus struct {
+	MovieNoteStatus MovieNoteStatus `json:"movie_note_status"`
+	Valid           bool            `json:"valid"` // Valid is true if MovieNoteStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullMovieNoteStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.MovieNoteStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.MovieNoteStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullMovieNoteStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.MovieNoteStatus), nil
+}
+
 type OrderStatus string
 
 const (
@@ -267,6 +311,38 @@ type Moderator struct {
 	DeletedBy   *uuid.UUID `json:"deleted_by"`
 	UserID      uuid.UUID  `json:"user_id"`
 	ModeratorID uuid.UUID  `json:"moderator_id"`
+}
+
+type MovieNote struct {
+	ID               uuid.UUID       `json:"id"`
+	UserID           uuid.UUID       `json:"user_id"`
+	Name             string          `json:"name"`
+	ReleaseDate      *time.Time      `json:"release_date"`
+	Rate             *int16          `json:"rate"`
+	Comment          *string         `json:"comment"`
+	Status           MovieNoteStatus `json:"status"`
+	InitialOrdererID uuid.UUID       `json:"initial_orderer_id"`
+	WatchedAt        *time.Time      `json:"watched_at"`
+	PosterKey        *string         `json:"poster_key"`
+	PosterUpdatedAt  time.Time       `json:"poster_updated_at"`
+	CreatedAt        time.Time       `json:"created_at"`
+	CreatedBy        uuid.UUID       `json:"created_by"`
+	UpdatedAt        time.Time       `json:"updated_at"`
+	UpdatedBy        uuid.UUID       `json:"updated_by"`
+}
+
+type MovieNoteOrder struct {
+	MovieNoteID uuid.UUID `json:"movie_note_id"`
+	OrderID     uuid.UUID `json:"order_id"`
+	CreatedAt   time.Time `json:"created_at"`
+	CreatedBy   uuid.UUID `json:"created_by"`
+}
+
+type MovieNoteReaction struct {
+	MovieNoteID uuid.UUID      `json:"movie_note_id"`
+	UserID      uuid.UUID      `json:"user_id"`
+	EmoteID     string         `json:"emote_id"`
+	Source      ReactionSource `json:"source"`
 }
 
 type Order struct {

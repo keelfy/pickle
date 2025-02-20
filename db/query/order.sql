@@ -60,7 +60,6 @@ WHERE o."receiver_id" = $1
 ORDER BY o."created_at" DESC
 LIMIT $2;
 
-
 -- Author: Egor Kuzmin (keelfy)
 -- Updates order, updated_at and updated_by
 -- name: UpdateOrderById :one
@@ -81,5 +80,16 @@ FROM "orders"
         "game_note_orders"."order_id" = "orders"."id"
         AND "game_note_orders"."game_note_id" = $1
 ORDER BY "game_note_orders"."created_at" DESC
+LIMIT $2
+OFFSET $3;
+
+-- Author: Egor Kuzmin (keelfy)
+-- name: FindPaginatedOrdersByMovieNoteId :many
+SELECT "orders".*
+FROM "orders"
+    INNER JOIN "movie_note_orders" ON 
+        "movie_note_orders"."order_id" = "orders"."id"
+        AND "movie_note_orders"."movie_note_id" = $1
+ORDER BY "movie_note_orders"."created_at" DESC
 LIMIT $2
 OFFSET $3;

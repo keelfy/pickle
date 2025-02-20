@@ -21,8 +21,7 @@ type OrderService interface {
 	UpdateOrderStatus(ctx context.Context, order *db.Order, status db.OrderStatus, initiatorUserID uuid.UUID) (*db.Order, error)
 	CreateOrder(ctx context.Context, userId uuid.UUID, req *types.CreateOrderReq) (*db.Order, error)
 	UpdateOrderByID(ctx context.Context, orderID, userID uuid.UUID, req *types.OrderReq) (*db.Order, uuid.UUID, error)
-	GetPaginatedByGameNoteId(ctx context.Context, id uuid.UUID, pagination *types.Pagination) ([]*db.Order, error)
-	CountGameNotesById(ctx context.Context, id uuid.UUID) (int64, error)
+	GetPaginatedByContentNoteID(ctx context.Context, category db.ContentCategory, id uuid.UUID, pagination *types.Pagination) ([]*db.Order, error)
 	CountOrdersByReceiverId(ctx context.Context, receiverId uuid.UUID) (int64, error)
 }
 
@@ -30,11 +29,11 @@ type orderService struct {
 	sqlDb             storage.RelationalStorage
 	userService       ProfileService
 	ordererService    OrdererService
-	contentService    ContentService
+	contentService    ContentNoteService
 	permissionService PermissionService
 }
 
-func NewOrderService(sqlDb storage.RelationalStorage, userService ProfileService, ordererService OrdererService, contentService ContentService, permissionService PermissionService) OrderService {
+func NewOrderService(sqlDb storage.RelationalStorage, userService ProfileService, ordererService OrdererService, contentService ContentNoteService, permissionService PermissionService) OrderService {
 	return &orderService{
 		sqlDb:             sqlDb,
 		userService:       userService,
@@ -215,7 +214,7 @@ func (service *orderService) approveOrderByID(ctx context.Context, order *db.Ord
 	}
 
 	if req.ContentID != nil && len(*req.ContentID) != 0 {
-		err = service.contentService.AttachOrderToContent(ctx, order, *req.ContentID, *req.Category)
+		err = service.contentService.AttachOrderToContentNote(ctx, order, *req.ContentID, *req.Category, approver.UserID)
 		if err != nil {
 			return nil, relatedContentID, err
 		}
@@ -225,7 +224,7 @@ func (service *orderService) approveOrderByID(ctx context.Context, order *db.Ord
 			return nil, relatedContentID, err
 		}
 
-		relatedContentID, err = service.contentService.CreateOrderedContent(ctx, *req.Category, order, orderer, *req.Title)
+		relatedContentID, err = service.contentService.CreateOrderedContentNote(ctx, *req.Category, order, orderer, *req.Title, approver.UserID)
 		if err != nil {
 			return nil, relatedContentID, err
 		}
@@ -254,24 +253,31 @@ func (service *orderService) rejectOrderByID(ctx context.Context, order *db.Orde
 	return updatedOrder, nil
 }
 
-func (service *orderService) GetPaginatedByGameNoteId(ctx context.Context, id uuid.UUID, pagination *types.Pagination) ([]*db.Order, error) {
-	orders, err := service.sqlDb.Queries().FindPaginatedOrdersByGameNoteId(ctx, db.FindPaginatedOrdersByGameNoteIdParams{
-		GameNoteID: id,
-		Limit:      int64(pagination.Size),
-		Offset:     int64(pagination.From),
-	})
+func (service *orderService) GetPaginatedByContentNoteID(ctx context.Context, category db.ContentCategory, id uuid.UUID, pagination *types.Pagination) ([]*db.Order, error) {
+	var orders []*db.Order
+	var err error
+
+	switch category {
+	case db.ContentCategoryGames:
+		orders, err = service.sqlDb.Queries().FindPaginatedOrdersByGameNoteId(ctx, db.FindPaginatedOrdersByGameNoteIdParams{
+			GameNoteID: id,
+			Limit:      int64(pagination.Size),
+			Offset:     int64(pagination.From),
+		})
+	case db.ContentCategoryMovies:
+		orders, err = service.sqlDb.Queries().FindPaginatedOrdersByMovieNoteId(ctx, db.FindPaginatedOrdersByMovieNoteIdParams{
+			MovieNoteID: id,
+			Limit:       int64(pagination.Size),
+			Offset:      int64(pagination.From),
+		})
+	default:
+		return nil, errors.NewBadRequestError("Invalid content category", nil)
+	}
+
 	if err != nil {
 		return nil, errors.NewInternalServerError("Error occurred during orders fetching", err)
 	}
 	return orders, nil
-}
-
-func (service *orderService) CountGameNotesById(ctx context.Context, id uuid.UUID) (int64, error) {
-	count, err := service.sqlDb.Queries().CountOrdersByGameNoteId(ctx, id)
-	if err != nil {
-		return 0, errors.NewInternalServerError("Error occurred during orders count", err)
-	}
-	return count, nil
 }
 
 func (service *orderService) CountOrdersByReceiverId(ctx context.Context, receiverId uuid.UUID) (int64, error) {

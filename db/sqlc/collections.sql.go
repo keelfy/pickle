@@ -296,20 +296,24 @@ WITH "ranked_items" AS (
         ci.id, ci.collection_id, ci.note_id, ci.category, ci.created_at, ci.created_by,
         CASE
             WHEN ci."category" = 'games' THEN g."name"
+            WHEN ci."category" = 'movies' THEN m."name"
             ELSE NULL
         END AS "content_name",
         CASE 
             WHEN ci."category" = 'games' THEN g."poster_key"
+            WHEN ci."category" = 'movies' THEN m."poster_key"
             ELSE NULL
         END AS "poster_key",
         CASE 
             WHEN ci."category" = 'games' THEN g."poster_updated_at"
+            WHEN ci."category" = 'movies' THEN m."poster_updated_at"
             ELSE NULL
         END AS "poster_updated_at",
         ROW_NUMBER() OVER (PARTITION BY ci."collection_id" ORDER BY ci."created_at" DESC) AS "rn"
     FROM "collection_items" ci
     INNER JOIN "collections" c ON ci."collection_id" = c."id"
     LEFT JOIN "game_notes" g ON ci."category" = 'games' AND ci."note_id" = g."id"
+    LEFT JOIN "movie_notes" m ON ci."category" = 'movies' AND ci."note_id" = m."id"
     WHERE c."user_id" = $2::uuid
 )
 SELECT ri.id, ri.collection_id, ri.note_id, ri.category, ri.created_at, ri.created_by, ri.content_name, ri.poster_key, ri.poster_updated_at, ri.rn

@@ -16,7 +16,7 @@ INSERT INTO "game_notes" (
     "poster_key"
 ) VALUES (
     @created_by::uuid,
-    @updated_by::uuid,
+    @created_by::uuid,
     @name::text,
     sqlc.narg('link')::text,
     sqlc.narg('release_date')::timestamptz,
@@ -67,7 +67,7 @@ LIMIT sqlc.arg('limit')::int;
 SELECT COUNT(*) AS "count"
 FROM "game_notes"
 WHERE "user_id" = @user_id::uuid
-    AND "status" IN ('playing', 'finished', 'dropped')
+    AND "status" IN ('playing', 'finished', 'dropped', 'paused')
 GROUP BY "user_id";
 
 -- Author: Egor Kuzmin (keelfy)
@@ -89,3 +89,12 @@ SET "updated_by" = @updated_by::uuid,
     "last_played_at" = sqlc.narg('last_played_at')::timestamptz,
     "poster_key" = sqlc.narg('poster_key')::text
 WHERE "id" = @id::uuid;
+
+-- Author: Egor Kuzmin (keelfy)
+-- name: UpdateGameNoteName :one
+UPDATE "game_notes"
+SET "name" = @name::text,
+    "updated_by" = @updated_by::uuid,
+    "updated_at" = now()
+WHERE "id" = @id::uuid
+RETURNING *;

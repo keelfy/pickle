@@ -10,6 +10,7 @@ import (
 	db "github.com/pickle.pw/monolith/db/sqlc"
 	"github.com/pickle.pw/monolith/internal/errors"
 	"github.com/pickle.pw/monolith/internal/storage"
+	"github.com/pickle.pw/monolith/internal/utils"
 	"golang.org/x/sync/singleflight"
 )
 
@@ -119,7 +120,10 @@ func (service *followerService) CountFollowers(ctx context.Context, userId uuid.
 		return 0, err
 	}
 
-	count = value.(int64)
+	count, err = utils.ConvertAnyToInt64(value)
+	if err != nil {
+		return 0, errors.NewInternalServerError("Error occurred counting followers", err)
+	}
 	return count, nil
 }
 

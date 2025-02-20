@@ -16,22 +16,6 @@ definitions:
     - ContentCategoryAnime
     - ContentCategorySeries
     - ContentCategoryCustom
-  github_com_pickle_pw_monolith_db_sqlc.GameNoteStatus:
-    enum:
-    - planned
-    - playing
-    - paused
-    - dropped
-    - finished
-    - skipped
-    type: string
-    x-enum-varnames:
-    - GameNoteStatusPlanned
-    - GameNoteStatusPlaying
-    - GameNoteStatusPaused
-    - GameNoteStatusDropped
-    - GameNoteStatusFinished
-    - GameNoteStatusSkipped
   github_com_pickle_pw_monolith_db_sqlc.OrderStatus:
     enum:
     - pending
@@ -42,6 +26,16 @@ definitions:
     - OrderStatusPending
     - OrderStatusApproved
     - OrderStatusRejected
+  github_com_pickle_pw_monolith_db_sqlc.ReactionSource:
+    enum:
+    - unicode_emoji
+    - 7tv
+    - custom
+    type: string
+    x-enum-varnames:
+    - ReactionSourceUnicodeEmoji
+    - ReactionSource7tv
+    - ReactionSourceCustom
   github_com_pickle_pw_monolith_internal_models.PublicProfile:
     properties:
       avatarUrl:
@@ -74,6 +68,19 @@ definitions:
       watched:
         type: integer
     type: object
+  github_com_pickle_pw_monolith_internal_models.ReactionStack:
+    properties:
+      contentNoteID:
+        type: string
+      count:
+        type: integer
+      emoteID:
+        type: string
+      isUserReacted:
+        type: boolean
+      source:
+        $ref: '#/definitions/github_com_pickle_pw_monolith_db_sqlc.ReactionSource'
+    type: object
   github_com_pickle_pw_monolith_internal_models.SuggestionPreferences:
     properties:
       allowedAnonymously:
@@ -93,7 +100,7 @@ definitions:
         type: string
       reactions:
         items:
-          $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.NoteReactionRes'
+          $ref: '#/definitions/github_com_pickle_pw_monolith_internal_models.ReactionStack'
         type: array
     type: object
   github_com_pickle_pw_monolith_internal_types.CollectionItemRes:
@@ -151,56 +158,6 @@ definitions:
       ordererUsername:
         type: string
     type: object
-  github_com_pickle_pw_monolith_internal_types.GameNoteReq:
-    properties:
-      comment:
-        type: string
-      lastPlayedAt:
-        type: string
-      link:
-        type: string
-      name:
-        type: string
-      poster:
-        $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.PosterReq'
-      rate:
-        type: integer
-      releaseDate:
-        type: string
-      status:
-        $ref: '#/definitions/github_com_pickle_pw_monolith_db_sqlc.GameNoteStatus'
-    type: object
-  github_com_pickle_pw_monolith_internal_types.GameNoteRes:
-    properties:
-      comment:
-        type: string
-      createdAt:
-        type: string
-      id:
-        type: string
-      initialOrdererUsername:
-        type: string
-      lastPlayedAt:
-        type: string
-      link:
-        type: string
-      name:
-        type: string
-      ordered:
-        type: boolean
-      ordererCount:
-        type: integer
-      posterUrl:
-        type: string
-      rate:
-        type: integer
-      releaseDate:
-        type: string
-      status:
-        $ref: '#/definitions/github_com_pickle_pw_monolith_db_sqlc.GameNoteStatus'
-      userId:
-        type: string
-    type: object
   github_com_pickle_pw_monolith_internal_types.ImagePreviewRes:
     properties:
       previewId:
@@ -219,17 +176,6 @@ definitions:
         type: string
       valid:
         type: boolean
-    type: object
-  github_com_pickle_pw_monolith_internal_types.NoteReactionRes:
-    properties:
-      count:
-        type: integer
-      emoteId:
-        type: string
-      reactedByUser:
-        type: boolean
-      source:
-        type: string
     type: object
   github_com_pickle_pw_monolith_internal_types.OrderReq:
     properties:
@@ -284,11 +230,6 @@ definitions:
       id:
         type: string
       url:
-        type: string
-    type: object
-  github_com_pickle_pw_monolith_internal_types.PosterReq:
-    properties:
-      previewId:
         type: string
     type: object
   github_com_pickle_pw_monolith_internal_types.ProfileRes:
@@ -829,6 +770,405 @@ paths:
       summary: Get items by user ID
       tags:
       - collections
+  /v1/users/{userId}/content-notes/{category}:
+    get:
+      consumes:
+      - application/json
+      description: Get content notes sorted by receiver link
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: Cursor
+        in: query
+        name: cursor
+        type: string
+      - description: Limit
+        in: query
+        name: limit
+        type: integer
+      - description: Column
+        in: query
+        name: column
+        type: string
+      - description: Direction
+        in: query
+        name: direction
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items: {}
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get content notes sorted by receiver link
+      tags:
+      - content-notes
+    post:
+      consumes:
+      - application/json
+      description: Create a content note
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: Content note request
+        in: body
+        name: contentNoteReq
+        required: true
+        schema: {}
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema: {}
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Create a content note
+      tags:
+      - content-notes
+  /v1/users/{userId}/content-notes/{category}/{noteId}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a content note
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: Note ID
+        in: path
+        name: noteId
+        required: true
+        type: string
+      - description: Reset approved orders
+        in: query
+        name: resetApprovedOrders
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Delete a content note
+      tags:
+      - content-notes
+    get:
+      consumes:
+      - application/json
+      description: Get content note by ID
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: Note ID
+        in: path
+        name: noteId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema: {}
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get content note by ID
+      tags:
+      - content-notes
+    put:
+      consumes:
+      - application/json
+      description: Update a content note name
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: Note ID
+        in: path
+        name: noteId
+        required: true
+        type: string
+      - description: Content note request
+        in: body
+        name: contentNoteReq
+        required: true
+        schema: {}
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Update a content note name
+      tags:
+      - content-notes
+  /v1/users/{userId}/content-notes/{category}/{noteId}/orders:
+    get:
+      consumes:
+      - application/json
+      description: Get orders by content note ID
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: Note ID
+        in: path
+        name: noteId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.OrderRes'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get orders by content note ID
+      tags:
+      - content-notes
+  /v1/users/{userId}/content-notes/{category}/{noteId}/poster:
+    get:
+      consumes:
+      - application/json
+      description: Get poster image URL
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: Note ID
+        in: path
+        name: noteId
+        required: true
+        type: string
+      - description: Size
+        in: query
+        name: size
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.ImageRes'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get poster image URL
+      tags:
+      - content-notes
+  /v1/users/{userId}/content-notes/{category}/{noteId}/reactions:
+    delete:
+      consumes:
+      - application/json
+      description: Remove content note reaction
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: Note ID
+        in: path
+        name: noteId
+        required: true
+        type: string
+      - description: Reaction request
+        in: body
+        name: reactionReq
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.ReactionReq'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Remove content note reaction
+      tags:
+      - content-notes
+    get:
+      consumes:
+      - application/json
+      description: Get content note reactions
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: Note ID
+        in: path
+        name: noteId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_pickle_pw_monolith_internal_models.ReactionStack'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get content note reactions
+      tags:
+      - content-notes
+    post:
+      consumes:
+      - application/json
+      description: Add content note reaction
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: Note ID
+        in: path
+        name: noteId
+        required: true
+        type: string
+      - description: Reaction request
+        in: body
+        name: reactionReq
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.ReactionReq'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Add content note reaction
+      tags:
+      - content-notes
+  /v1/users/{userId}/content-notes/reactions:
+    get:
+      consumes:
+      - application/json
+      description: Get batch content note reactions
+      parameters:
+      - description: Note IDs
+        in: query
+        name: noteIds
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.BatchNoteReactionsRes'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get batch content note reactions
+      tags:
+      - content-notes
   /v1/users/{userId}/content/search:
     get:
       consumes:
@@ -910,377 +1250,6 @@ paths:
       summary: Follow profile
       tags:
       - profiles
-  /v1/users/{userId}/game-notes:
-    get:
-      consumes:
-      - application/json
-      description: Get game notes sorted by receiver link
-      parameters:
-      - description: User ID
-        in: path
-        name: userId
-        required: true
-        type: string
-      - description: Cursor
-        in: query
-        name: cursor
-        type: string
-      - description: Limit
-        in: query
-        name: limit
-        type: integer
-      - description: Column
-        in: query
-        name: column
-        type: string
-      - description: Direction
-        in: query
-        name: direction
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.GameNoteRes'
-            type: array
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Get game notes sorted by receiver link
-      tags:
-      - game-notes
-    post:
-      consumes:
-      - application/json
-      description: Create a game note
-      parameters:
-      - description: User ID
-        in: path
-        name: userId
-        required: true
-        type: string
-      - description: Game note request
-        in: body
-        name: gameNoteReq
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.GameNoteReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.GameNoteRes'
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Create a game note
-      tags:
-      - game-notes
-  /v1/users/{userId}/game-notes/{noteId}:
-    delete:
-      consumes:
-      - application/json
-      description: Delete a game note
-      parameters:
-      - description: User ID
-        in: path
-        name: userId
-        required: true
-        type: string
-      - description: Note ID
-        in: path
-        name: noteId
-        required: true
-        type: string
-      - description: Reset approved orders
-        in: query
-        name: resetApprovedOrders
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Delete a game note
-      tags:
-      - game-notes
-    put:
-      consumes:
-      - application/json
-      description: Update a game note
-      parameters:
-      - description: User ID
-        in: path
-        name: userId
-        required: true
-        type: string
-      - description: Note ID
-        in: path
-        name: noteId
-        required: true
-        type: string
-      - description: Game note request
-        in: body
-        name: gameNoteReq
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.GameNoteReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Update a game note
-      tags:
-      - game-notes
-  /v1/users/{userId}/game-notes/{noteId}/orders:
-    get:
-      consumes:
-      - application/json
-      description: Get orders by game note ID
-      parameters:
-      - description: User ID
-        in: path
-        name: userId
-        required: true
-        type: string
-      - description: Note ID
-        in: path
-        name: noteId
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.OrderRes'
-            type: array
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Get orders by game note ID
-      tags:
-      - game-notes
-  /v1/users/{userId}/game-notes/{noteId}/poster:
-    get:
-      consumes:
-      - application/json
-      description: Get poster image URL
-      parameters:
-      - description: User ID
-        in: path
-        name: userId
-        required: true
-        type: string
-      - description: Note ID
-        in: path
-        name: noteId
-        required: true
-        type: string
-      - description: Size
-        in: query
-        name: size
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.ImageRes'
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Get poster image URL
-      tags:
-      - game-notes
-  /v1/users/{userId}/game-notes/{noteId}/reactions:
-    delete:
-      consumes:
-      - application/json
-      description: Remove game note reaction
-      parameters:
-      - description: User ID
-        in: path
-        name: userId
-        required: true
-        type: string
-      - description: Note ID
-        in: path
-        name: noteId
-        required: true
-        type: string
-      - description: Reaction request
-        in: body
-        name: reactionReq
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.ReactionReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Remove game note reaction
-      tags:
-      - game-notes
-    get:
-      consumes:
-      - application/json
-      description: Get game note reactions
-      parameters:
-      - description: User ID
-        in: path
-        name: userId
-        required: true
-        type: string
-      - description: Note ID
-        in: path
-        name: noteId
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.NoteReactionRes'
-            type: array
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Get game note reactions
-      tags:
-      - game-notes
-    post:
-      consumes:
-      - application/json
-      description: Add game note reaction
-      parameters:
-      - description: User ID
-        in: path
-        name: userId
-        required: true
-        type: string
-      - description: Note ID
-        in: path
-        name: noteId
-        required: true
-        type: string
-      - description: Reaction request
-        in: body
-        name: reactionReq
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.ReactionReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Add game note reaction
-      tags:
-      - game-notes
-  /v1/users/{userId}/game-notes/reactions:
-    get:
-      consumes:
-      - application/json
-      description: Get batch game note reactions
-      parameters:
-      - description: Note IDs
-        in: query
-        name: noteIds
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.BatchNoteReactionsRes'
-            type: array
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Get batch game note reactions
-      tags:
-      - game-notes
   /v1/users/{userId}/orders:
     get:
       consumes:

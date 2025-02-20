@@ -14,7 +14,7 @@ import (
 const countOrdersByGameNoteId = `-- name: CountOrdersByGameNoteId :one
 SELECT COUNT(*) AS "total"
 FROM "game_note_orders"
-WHERE "game_note_id" = $1
+WHERE "game_note_id" = $1::uuid
 `
 
 // Author: Egor Kuzmin (keelfy)
@@ -32,10 +32,10 @@ INSERT INTO "game_note_orders" (
     "created_by",
     "updated_by"
 ) VALUES (
-    $1,
-    $2,
-    $3,
-    $4
+    $1::uuid,
+    $2::uuid,
+    $3::uuid,
+    $4::uuid
 )
 RETURNING game_note_id, order_id, created_at, created_by, updated_at, updated_by
 `
@@ -73,7 +73,7 @@ SET "status" = 'pending'
 WHERE "id" IN (
     SELECT "order_id"
     FROM "game_note_orders"
-    WHERE "game_note_id" = $1
+    WHERE "game_note_id" = $1::uuid
 )
 `
 

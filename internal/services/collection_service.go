@@ -20,7 +20,7 @@ type CollectionService interface {
 	CreateCollection(ctx context.Context, userID uuid.UUID, req *types.CreateCollectionReq) (*db.Collection, error)
 	DeleteCollection(ctx context.Context, collectionID uuid.UUID) error
 	UpdateCollection(ctx context.Context, collectionID uuid.UUID, req *types.UpdateCollectionReq) (*db.Collection, error)
-	AddItemToCollection(ctx context.Context, collectionID uuid.UUID, content models.Content) (*db.CollectionItem, error)
+	AddItemToCollection(ctx context.Context, collectionID uuid.UUID, content models.ContentNote) (*db.CollectionItem, error)
 	RemoveItemFromCollection(ctx context.Context, collectionID uuid.UUID, itemID uuid.UUID) error
 	GetByID(ctx context.Context, collectionID uuid.UUID) (*db.Collection, error)
 	GetByUserID(ctx context.Context, userID uuid.UUID) ([]*db.Collection, error)
@@ -165,7 +165,7 @@ func (service *collectionService) UpdateCollection(ctx context.Context, collecti
 	return collection, nil
 }
 
-func (service *collectionService) AddItemToCollection(ctx context.Context, collectionID uuid.UUID, content models.Content) (*db.CollectionItem, error) {
+func (service *collectionService) AddItemToCollection(ctx context.Context, collectionID uuid.UUID, content models.ContentNote) (*db.CollectionItem, error) {
 	authUserID, err := utils.UserIdFromContext(ctx)
 	if err != nil {
 		return nil, errors.NewInternalServerError("failed to get user ID from context", err)
@@ -331,6 +331,9 @@ func (service *collectionService) CountCollectionItemsByCollectionID(ctx context
 		return 0, err
 	}
 
-	count = value.(int64)
+	count, err = utils.ConvertAnyToInt64(value)
+	if err != nil {
+		return 0, errors.NewInternalServerError("failed to count collection items by collection ID", err)
+	}
 	return count, nil
 }

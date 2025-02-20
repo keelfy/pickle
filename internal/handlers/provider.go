@@ -8,7 +8,7 @@ var ProviderSet = wire.NewSet(
 	NewStatusHandler,
 	NewUserHandler,
 	NewOrdersHandler,
-	NewGameNoteHandler,
+	NewContentNoteHandler,
 	NewContentHandler,
 	NewPosterHandler,
 	NewCollectionHandler,

@@ -40,13 +40,12 @@ func InitializeAPI(ctx context.Context) (api.PickleAPI, func(), error) {
 	avatarService := services.NewAvatarService(relationalStorage, cacheStorage, fileStorage, imageService)
 	followerService := services.NewFollowerService(relationalStorage, cacheStorage)
 	profileService := services.NewProfileService(relationalStorage, fileStorage, cacheStorage, avatarService, followerService)
+	ordererService := services.NewOrdererService(relationalStorage)
 	elasticStorage, err := storage.NewElasticStorage(ctx)
 	if err != nil {
 		cleanup()
 		return nil, nil, err
 	}
-	ordererService := services.NewOrdererService(relationalStorage)
-	gameNoteOrderService := services.NewGameNoteOrderService(relationalStorage)
 	posterService := services.NewPosterService(relationalStorage, fileStorage, cacheStorage, imageService, profileService)
 	supabaseClient, err := storage.NewSupabaseClient(ctx)
 	if err != nil {
@@ -55,23 +54,22 @@ func InitializeAPI(ctx context.Context) (api.PickleAPI, func(), error) {
 	}
 	moderatorService := services.NewModeratorService(relationalStorage, cacheStorage, supabaseClient, avatarService, profileService)
 	permissionService := services.NewPermissionService(moderatorService)
-	gameNoteService := services.NewGameNoteService(relationalStorage, elasticStorage, cacheStorage, profileService, ordererService, gameNoteOrderService, posterService, permissionService)
-	contentService := services.NewContentService(elasticStorage, gameNoteService, gameNoteOrderService, posterService)
-	orderService := services.NewOrderService(relationalStorage, profileService, ordererService, contentService, permissionService)
-	publicProfileService := services.NewPublicProfileService(avatarService, followerService, moderatorService, gameNoteService, orderService, profileService)
-	profileHandler := handlers.NewUserHandler(profileService, avatarService, gameNoteService, orderService, followerService, publicProfileService)
+	contentNoteService := services.NewContentService(relationalStorage, elasticStorage, cacheStorage, posterService, ordererService, permissionService)
+	orderService := services.NewOrderService(relationalStorage, profileService, ordererService, contentNoteService, permissionService)
+	publicProfileService := services.NewPublicProfileService(avatarService, followerService, moderatorService, orderService, profileService, contentNoteService)
+	profileHandler := handlers.NewUserHandler(profileService, avatarService, orderService, followerService, publicProfileService)
 	statusService := services.NewStatusService(supabaseClient, fileStorage)
 	statusHandler := handlers.NewStatusHandler(relationalStorage, elasticStorage, cacheStorage, statusService)
-	orderHandler := handlers.NewOrdersHandler(orderService, profileService, contentService)
-	gameNoteReactionService := services.NewGameNoteReactionService(relationalStorage)
-	gameNoteHandler := handlers.NewGameNoteHandler(profileService, gameNoteService, orderService, posterService, gameNoteReactionService)
+	orderHandler := handlers.NewOrdersHandler(orderService, profileService, contentNoteService)
+	contentNoteReactionService := services.NewContentNoteReactionService(relationalStorage)
+	contentNoteHandler := handlers.NewContentNoteHandler(profileService, orderService, posterService, contentNoteService, contentNoteReactionService)
 	posterHandler := handlers.NewPosterHandler(posterService)
 	migrationService := services.NewMigrationService(relationalStorage, elasticStorage)
-	contentHandler := handlers.NewContentHandler(elasticStorage, contentService)
+	contentHandler := handlers.NewContentHandler(elasticStorage, contentNoteService)
 	collectionService := services.NewCollectionService(relationalStorage, cacheStorage, permissionService)
-	collectionHandler := handlers.NewCollectionHandler(collectionService, contentService)
+	collectionHandler := handlers.NewCollectionHandler(collectionService, contentNoteService)
 	moderatorHandler := handlers.NewModeratorHandler(moderatorService, profileService)
-	pickleAPI := api.NewPickleAPI(profileHandler, statusHandler, orderHandler, gameNoteHandler, posterHandler, migrationService, contentHandler, collectionHandler, moderatorHandler)
+	pickleAPI := api.NewPickleAPI(profileHandler, statusHandler, orderHandler, contentNoteHandler, posterHandler, migrationService, contentHandler, collectionHandler, moderatorHandler)
 	return pickleAPI, func() {
 		cleanup()
 	}, nil

@@ -6,10 +6,10 @@ INSERT INTO "game_note_orders" (
     "created_by",
     "updated_by"
 ) VALUES (
-    $1,
-    $2,
-    $3,
-    $4
+    @game_note_id::uuid,
+    @order_id::uuid,
+    @created_by::uuid,
+    @updated_by::uuid
 )
 RETURNING *;
 
@@ -17,7 +17,7 @@ RETURNING *;
 -- name: CountOrdersByGameNoteId :one
 SELECT COUNT(*) AS "total"
 FROM "game_note_orders"
-WHERE "game_note_id" = $1;
+WHERE "game_note_id" = @game_note_id::uuid;
 
 -- Author: Egor Kuzmin (keelfy)
 -- name: ResetApprovedOrdersByGameNoteId :exec
@@ -26,5 +26,5 @@ SET "status" = 'pending'
 WHERE "id" IN (
     SELECT "order_id"
     FROM "game_note_orders"
-    WHERE "game_note_id" = $1
+    WHERE "game_note_id" = @game_note_id::uuid
 );

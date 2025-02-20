@@ -25,7 +25,7 @@ type ElasticStorage interface {
 	Search(ctx context.Context, indexName string, query *esTypes.Query, pagination *types.Pagination) (*search.Response, error)
 	IndexContent(ctx context.Context, id uuid.UUID, name string, userId uuid.UUID, category db.ContentCategory) error
 	SearchContent(ctx context.Context, query string, userId uuid.UUID, pagination *types.Pagination) (*search.Response, error)
-	DeleteContentNoteByID(ctx context.Context, indexName string, contentID uuid.UUID) error
+	DeleteContentNoteByID(ctx context.Context, category db.ContentCategory, contentID uuid.UUID) error
 	DeleteContent(ctx context.Context, contentID uuid.UUID, category db.ContentCategory) error
 }
 
@@ -197,7 +197,17 @@ func (storage *elasticStorage) SearchContent(ctx context.Context, query string, 
 	return response, nil
 }
 
-func (storage *elasticStorage) DeleteContentNoteByID(ctx context.Context, indexName string, contentID uuid.UUID) error {
+func (storage *elasticStorage) DeleteContentNoteByID(ctx context.Context, category db.ContentCategory, contentID uuid.UUID) error {
+	var indexName string
+	switch category {
+	case db.ContentCategoryGames:
+		indexName = "game_notes"
+	case db.ContentCategoryMovies:
+		indexName = "movie_notes"
+	default:
+		return errors.NewInternalServerError("Invalid content category", nil)
+	}
+
 	_, err := storage.client.Delete(indexName, contentID.String()).Do(ctx)
 	if err != nil {
 		return errors.NewInternalServerError("Error deleting content document", err)

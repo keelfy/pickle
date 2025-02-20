@@ -215,6 +215,60 @@ func (q *Queries) FindPaginatedOrdersByGameNoteId(ctx context.Context, arg FindP
 	return items, nil
 }
 
+const findPaginatedOrdersByMovieNoteId = `-- name: FindPaginatedOrdersByMovieNoteId :many
+SELECT orders.id, orders.created_at, orders.created_by, orders.updated_at, orders.updated_by, orders.receiver_id, orders.payment_type, orders.amount, orders.status, orders.orderer_id, orders.orderer_username, orders.message, orders.category, orders.updated_message, orders.updated_category
+FROM "orders"
+    INNER JOIN "movie_note_orders" ON 
+        "movie_note_orders"."order_id" = "orders"."id"
+        AND "movie_note_orders"."movie_note_id" = $1
+ORDER BY "movie_note_orders"."created_at" DESC
+LIMIT $2
+OFFSET $3
+`
+
+type FindPaginatedOrdersByMovieNoteIdParams struct {
+	MovieNoteID uuid.UUID `json:"movie_note_id"`
+	Limit       int64     `json:"limit"`
+	Offset      int64     `json:"offset"`
+}
+
+// Author: Egor Kuzmin (keelfy)
+func (q *Queries) FindPaginatedOrdersByMovieNoteId(ctx context.Context, arg FindPaginatedOrdersByMovieNoteIdParams) ([]*Order, error) {
+	rows, err := q.db.Query(ctx, findPaginatedOrdersByMovieNoteId, arg.MovieNoteID, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []*Order{}
+	for rows.Next() {
+		var i Order
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.CreatedBy,
+			&i.UpdatedAt,
+			&i.UpdatedBy,
+			&i.ReceiverID,
+			&i.PaymentType,
+			&i.Amount,
+			&i.Status,
+			&i.OrdererID,
+			&i.OrdererUsername,
+			&i.Message,
+			&i.Category,
+			&i.UpdatedMessage,
+			&i.UpdatedCategory,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, &i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const insertOrder = `-- name: InsertOrder :one
 INSERT INTO "orders" (
     "created_by",

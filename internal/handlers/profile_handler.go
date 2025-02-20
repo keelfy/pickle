@@ -32,21 +32,19 @@ type ProfileHandler interface {
 type profileHandler struct {
 	profileService       services.ProfileService
 	avatarService        services.AvatarService
-	gameNoteService      services.GameNoteService
 	orderService         services.OrderService
 	followerService      services.FollowerService
 	publicProfileService services.PublicProfileService
 }
 
 func NewUserHandler(
-	profileService services.ProfileService, avatarService services.AvatarService, gameNoteService services.GameNoteService,
+	profileService services.ProfileService, avatarService services.AvatarService,
 	orderService services.OrderService, followerService services.FollowerService,
 	publicProfileService services.PublicProfileService,
 ) ProfileHandler {
 	return &profileHandler{
 		profileService:       profileService,
 		avatarService:        avatarService,
-		gameNoteService:      gameNoteService,
 		orderService:         orderService,
 		followerService:      followerService,
 		publicProfileService: publicProfileService,

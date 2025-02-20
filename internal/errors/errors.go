@@ -28,9 +28,9 @@ func MapCustomErrorToHttpStatus(err error) int {
 
 func LogCustomError(ctx context.Context, err error) {
 	if customErr, ok := err.(*CustomError); ok {
-		logger.Errorf(ctx, "%v: %v", customErr.Message, customErr.OriginalError)
+		logger.Errorf(ctx, "%v: %w", customErr.Message, customErr.OriginalError)
 	} else {
-		logger.Errorf(ctx, "Error: %v", err)
+		logger.Errorf(ctx, "Error: %w", err)
 	}
 }
 

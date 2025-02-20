@@ -15,10 +15,10 @@ type ContentHandler interface {
 
 type contentHandler struct {
 	elastic        storage.ElasticStorage
-	contentService services.ContentService
+	contentService services.ContentNoteService
 }
 
-func NewContentHandler(elastic storage.ElasticStorage, contentService services.ContentService) ContentHandler {
+func NewContentHandler(elastic storage.ElasticStorage, contentService services.ContentNoteService) ContentHandler {
 	return &contentHandler{
 		elastic:        elastic,
 		contentService: contentService,

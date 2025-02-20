@@ -12,17 +12,25 @@ import (
 
 type Querier interface {
 	AddGameNoteReaction(ctx context.Context, arg AddGameNoteReactionParams) error
+	// Author: Egor Kuzmin (keelfy)
+	AddMovieNoteReaction(ctx context.Context, arg AddMovieNoteReactionParams) error
 	CountCollectionItemsByCollectionID(ctx context.Context, id uuid.UUID) (int64, error)
 	// Author: Egor Kuzmin (keelfy)
 	CountFollowers(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountGameNoteReactionsByGameNoteIdAndUserId(ctx context.Context, arg CountGameNoteReactionsByGameNoteIdAndUserIdParams) (int64, error)
 	// Author: Egor Kuzmin (keelfy)
+	CountMovieNoteReactionsByMovieNoteIdAndUserId(ctx context.Context, arg CountMovieNoteReactionsByMovieNoteIdAndUserIdParams) (int64, error)
+	// Author: Egor Kuzmin (keelfy)
 	CountOrdersByGameNoteId(ctx context.Context, gameNoteID uuid.UUID) (int64, error)
+	// Author: Egor Kuzmin (keelfy)
+	CountOrdersByMovieNoteId(ctx context.Context, movieNoteID uuid.UUID) (int64, error)
 	// Author: Egor Kuzmin (keelfy)
 	// Counts orders by receiver id
 	CountOrdersByReceiverId(ctx context.Context, receiverID uuid.UUID) (int64, error)
 	// Author: Egor Kuzmin (keelfy)
 	CountPlayedGameNotesByUserId(ctx context.Context, userID uuid.UUID) (int64, error)
+	// Author: Egor Kuzmin (keelfy)
+	CountWatchedMovieNotesByUserId(ctx context.Context, userID uuid.UUID) (int64, error)
 	DeleteCollectionByID(ctx context.Context, id uuid.UUID) error
 	DeleteCollectionItemByID(ctx context.Context, id uuid.UUID) error
 	DeleteCollectionItemsByCollectionID(ctx context.Context, collectionID uuid.UUID) error
@@ -31,6 +39,8 @@ type Querier interface {
 	// Author: Egor Kuzmin (keelfy)
 	DeleteGameNoteById(ctx context.Context, id uuid.UUID) error
 	DeleteModeratorByUserIDAndModeratorID(ctx context.Context, arg DeleteModeratorByUserIDAndModeratorIDParams) error
+	// Author: Egor Kuzmin (keelfy)
+	DeleteMovieNoteById(ctx context.Context, id uuid.UUID) error
 	DeletePosterPreview(ctx context.Context, id uuid.UUID) error
 	FindCollectionByID(ctx context.Context, id uuid.UUID) (*Collection, error)
 	FindCollectionItemByID(ctx context.Context, id uuid.UUID) (*CollectionItem, error)
@@ -85,6 +95,8 @@ type Querier interface {
 	FindModeratorProfilesByUserID(ctx context.Context, userID uuid.UUID) ([]*FindModeratorProfilesByUserIDRow, error)
 	FindModeratorsByUserID(ctx context.Context, userID uuid.UUID) ([]*Moderator, error)
 	// Author: Egor Kuzmin (keelfy)
+	FindMovieNoteById(ctx context.Context, id uuid.UUID) (*MovieNote, error)
+	// Author: Egor Kuzmin (keelfy)
 	// Queries order by id
 	FindOrderById(ctx context.Context, id uuid.UUID) (*Order, error)
 	// Author: Egor Kuzmin (keelfy)
@@ -97,7 +109,11 @@ type Querier interface {
 	// Author: Egor Kuzmin (keelfy)
 	FindPaginatedGameNotesByUserId(ctx context.Context, arg FindPaginatedGameNotesByUserIdParams) ([]*FindPaginatedGameNotesByUserIdRow, error)
 	// Author: Egor Kuzmin (keelfy)
+	FindPaginatedMovieNotesByUserId(ctx context.Context, arg FindPaginatedMovieNotesByUserIdParams) ([]*FindPaginatedMovieNotesByUserIdRow, error)
+	// Author: Egor Kuzmin (keelfy)
 	FindPaginatedOrdersByGameNoteId(ctx context.Context, arg FindPaginatedOrdersByGameNoteIdParams) ([]*Order, error)
+	// Author: Egor Kuzmin (keelfy)
+	FindPaginatedOrdersByMovieNoteId(ctx context.Context, arg FindPaginatedOrdersByMovieNoteIdParams) ([]*Order, error)
 	FindPosterPreviewByCreatedAtAfterAndCreatedBy(ctx context.Context, arg FindPosterPreviewByCreatedAtAfterAndCreatedByParams) ([]*PosterPreview, error)
 	FindPosterPreviewByCreatedBy(ctx context.Context, createdBy uuid.UUID) ([]*PosterPreview, error)
 	FindPosterPreviewById(ctx context.Context, id uuid.UUID) (*PosterPreview, error)
@@ -110,6 +126,8 @@ type Querier interface {
 	FindProfilesByModeratorID(ctx context.Context, moderatorID uuid.UUID) ([]*FindProfilesByModeratorIDRow, error)
 	GetGameNoteReactionsByGameNoteIdInAndUserId(ctx context.Context, arg GetGameNoteReactionsByGameNoteIdInAndUserIdParams) ([]*GetGameNoteReactionsByGameNoteIdInAndUserIdRow, error)
 	// Author: Egor Kuzmin (keelfy)
+	GetMovieNoteReactionsByMovieNoteIdInAndUserId(ctx context.Context, arg GetMovieNoteReactionsByMovieNoteIdInAndUserIdParams) ([]*GetMovieNoteReactionsByMovieNoteIdInAndUserIdRow, error)
+	// Author: Egor Kuzmin (keelfy)
 	GetUserFollows(ctx context.Context, followerID uuid.UUID) ([]*Profile, error)
 	InsertCollection(ctx context.Context, arg InsertCollectionParams) (*Collection, error)
 	InsertCollectionItem(ctx context.Context, arg InsertCollectionItemParams) (*CollectionItem, error)
@@ -121,6 +139,10 @@ type Querier interface {
 	// Author: Egor Kuzmin (keelfy)
 	InsertGameNoteOrder(ctx context.Context, arg InsertGameNoteOrderParams) (*GameNoteOrder, error)
 	InsertModerator(ctx context.Context, arg InsertModeratorParams) (*Moderator, error)
+	// Author: Egor Kuzmin (keelfy)
+	InsertMovieNote(ctx context.Context, arg InsertMovieNoteParams) (*MovieNote, error)
+	// Author: Egor Kuzmin (keelfy)
+	InsertMovieNoteOrder(ctx context.Context, arg InsertMovieNoteOrderParams) (*MovieNoteOrder, error)
 	// Author: Egor Kuzmin (keelfy)
 	// Inserts a new order
 	InsertOrder(ctx context.Context, arg InsertOrderParams) (*Order, error)
@@ -135,11 +157,21 @@ type Querier interface {
 	IsFollowing(ctx context.Context, arg IsFollowingParams) (int64, error)
 	RemoveGameNoteReaction(ctx context.Context, arg RemoveGameNoteReactionParams) error
 	// Author: Egor Kuzmin (keelfy)
+	RemoveMovieNoteReaction(ctx context.Context, arg RemoveMovieNoteReactionParams) error
+	// Author: Egor Kuzmin (keelfy)
 	ResetApprovedOrdersByGameNoteId(ctx context.Context, gameNoteID uuid.UUID) error
+	// Author: Egor Kuzmin (keelfy)
+	ResetApprovedOrdersByMovieNoteId(ctx context.Context, movieNoteID uuid.UUID) error
 	RevertModeratorByUserIDAndModeratorID(ctx context.Context, arg RevertModeratorByUserIDAndModeratorIDParams) error
 	UpdateCollectionByID(ctx context.Context, arg UpdateCollectionByIDParams) (*Collection, error)
 	// Author: Egor Kuzmin (keelfy)
 	UpdateGameNoteById(ctx context.Context, arg UpdateGameNoteByIdParams) error
+	// Author: Egor Kuzmin (keelfy)
+	UpdateGameNoteName(ctx context.Context, arg UpdateGameNoteNameParams) (*GameNote, error)
+	// Author: Egor Kuzmin (keelfy)
+	UpdateMovieNoteById(ctx context.Context, arg UpdateMovieNoteByIdParams) error
+	// Author: Egor Kuzmin (keelfy)
+	UpdateMovieNoteName(ctx context.Context, arg UpdateMovieNoteNameParams) (*MovieNote, error)
 	// Author: Egor Kuzmin (keelfy)
 	// Updates order, updated_at and updated_by
 	UpdateOrderById(ctx context.Context, arg UpdateOrderByIdParams) (*Order, error)

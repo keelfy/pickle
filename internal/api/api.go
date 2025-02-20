@@ -22,35 +22,35 @@ type PickleAPI interface {
 }
 
 type pickleAPI struct {
-	profileHandler    handlers.ProfileHandler
-	statusHandler     handlers.StatusHandler
-	orderHandler      handlers.OrderHandler
-	gameNoteHandler   handlers.GameNoteHandler
-	posterHandler     handlers.PosterHandler
-	migrationService  services.MigrationService
-	contentService    handlers.ContentHandler
-	collectionHandler handlers.CollectionHandler
-	tokenAuth         *jwtAuth.JWTAuth
-	moderatorHandler  handlers.ModeratorHandler
+	profileHandler     handlers.ProfileHandler
+	statusHandler      handlers.StatusHandler
+	orderHandler       handlers.OrderHandler
+	contentNoteHandler handlers.ContentNoteHandler
+	posterHandler      handlers.PosterHandler
+	migrationService   services.MigrationService
+	contentService     handlers.ContentHandler
+	collectionHandler  handlers.CollectionHandler
+	tokenAuth          *jwtAuth.JWTAuth
+	moderatorHandler   handlers.ModeratorHandler
 }
 
 func NewPickleAPI(
 	profileHandler handlers.ProfileHandler, statusHandler handlers.StatusHandler, orderHandler handlers.OrderHandler,
-	gameNoteHandler handlers.GameNoteHandler, posterHandler handlers.PosterHandler,
+	contentNoteHandler handlers.ContentNoteHandler, posterHandler handlers.PosterHandler,
 	migrationService services.MigrationService, contentService handlers.ContentHandler,
 	collectionHandler handlers.CollectionHandler, moderatorHandler handlers.ModeratorHandler,
 ) PickleAPI {
 	return &pickleAPI{
-		profileHandler:    profileHandler,
-		statusHandler:     statusHandler,
-		orderHandler:      orderHandler,
-		gameNoteHandler:   gameNoteHandler,
-		posterHandler:     posterHandler,
-		migrationService:  migrationService,
-		contentService:    contentService,
-		collectionHandler: collectionHandler,
-		moderatorHandler:  moderatorHandler,
-		tokenAuth:         jwtAuth.New("HS256", config.GetJWTSecret(), nil),
+		profileHandler:     profileHandler,
+		statusHandler:      statusHandler,
+		orderHandler:       orderHandler,
+		contentNoteHandler: contentNoteHandler,
+		posterHandler:      posterHandler,
+		migrationService:   migrationService,
+		contentService:     contentService,
+		collectionHandler:  collectionHandler,
+		moderatorHandler:   moderatorHandler,
+		tokenAuth:          jwtAuth.New("HS256", config.GetJWTSecret(), nil),
 	}
 }
 
@@ -174,46 +174,46 @@ func (api *pickleAPI) v1RouteHandler() http.Handler {
 				r.Delete("/", api.profileHandler.UnfollowProfile)
 			})
 
-			r.Route("/game-notes", func(r chi.Router) {
-				r.Get("/", api.gameNoteHandler.GetSortedGameNotesByUserID)
+			r.Route("/content-notes/{category}", func(r chi.Router) {
+				r.Get("/", api.contentNoteHandler.GetSortedContentNotesByUserID)
 
 				r.Group(func(r chi.Router) {
 					api.useProtectedRoutes(r)
 
-					r.Post("/", api.gameNoteHandler.CreateGameNote)
+					r.Post("/", api.contentNoteHandler.CreateContentNote)
 				})
 
 				r.Route("/reactions", func(r chi.Router) {
 					api.useUnprotectedRoutes(r)
 
-					r.Get("/", api.gameNoteHandler.GetBatchGameNoteReactions)
+					r.Get("/", api.contentNoteHandler.GetBatchContentNoteReactions)
 				})
 
 				r.Route("/{noteId}", func(r chi.Router) {
-					r.Get("/", api.gameNoteHandler.GetGameNoteById)
-					r.Get("/orders", api.gameNoteHandler.GetOrdersById)
-					r.Get("/posters", api.gameNoteHandler.GetPosterImageURL)
+					r.Get("/", api.contentNoteHandler.GetContentNoteById)
+					r.Get("/orders", api.contentNoteHandler.GetOrdersByID)
+					r.Get("/posters", api.contentNoteHandler.GetPosterImageURL)
 
 					r.Group(func(r chi.Router) {
 						api.useProtectedRoutes(r)
 
-						r.Delete("/", api.gameNoteHandler.DeleteGameNote)
-						r.Patch("/", api.gameNoteHandler.UpdateGameNote)
-						r.Patch("/name", api.gameNoteHandler.UpdateGameNoteName)
+						r.Delete("/", api.contentNoteHandler.DeleteContentNote)
+						r.Patch("/", api.contentNoteHandler.UpdateContentNote)
+						r.Patch("/name", api.contentNoteHandler.UpdateContentNoteName)
 					})
 
 					r.Route("/reactions", func(r chi.Router) {
 						r.Group(func(r chi.Router) {
 							api.useUnprotectedRoutes(r)
 
-							r.Get("/", api.gameNoteHandler.GetGameNoteReactions)
+							r.Get("/", api.contentNoteHandler.GetContentNoteReactions)
 						})
 
 						r.Group(func(r chi.Router) {
 							api.useProtectedRoutes(r)
 
-							r.Post("/", api.gameNoteHandler.AddGameNoteReaction)
-							r.Delete("/", api.gameNoteHandler.RemoveGameNoteReaction)
+							r.Post("/", api.contentNoteHandler.AddContentNoteReaction)
+							r.Delete("/", api.contentNoteHandler.RemoveContentNoteReaction)
 						})
 					})
 				})

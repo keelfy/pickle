@@ -21,10 +21,10 @@ type OrderHandler interface {
 type orderHandler struct {
 	orderService   services.OrderService
 	userService    services.ProfileService
-	contentService services.ContentService
+	contentService services.ContentNoteService
 }
 
-func NewOrdersHandler(orderService services.OrderService, userService services.ProfileService, contentService services.ContentService) OrderHandler {
+func NewOrdersHandler(orderService services.OrderService, userService services.ProfileService, contentService services.ContentNoteService) OrderHandler {
 	return &orderHandler{
 		orderService:   orderService,
 		userService:    userService,

@@ -18,26 +18,26 @@ type PublicProfileService interface {
 }
 
 type publicProfileService struct {
-	avatarService    AvatarService
-	followerService  FollowerService
-	moderatorService ModeratorService
-	gameNoteService  GameNoteService
-	orderService     OrderService
-	profileService   ProfileService
+	avatarService      AvatarService
+	followerService    FollowerService
+	moderatorService   ModeratorService
+	orderService       OrderService
+	profileService     ProfileService
+	contentNoteService ContentNoteService
 }
 
 func NewPublicProfileService(
 	avatarService AvatarService, followerService FollowerService,
-	moderatorService ModeratorService, gameNoteService GameNoteService, orderService OrderService,
-	profileService ProfileService,
+	moderatorService ModeratorService, orderService OrderService,
+	profileService ProfileService, contentNoteService ContentNoteService,
 ) PublicProfileService {
 	return &publicProfileService{
-		avatarService:    avatarService,
-		followerService:  followerService,
-		moderatorService: moderatorService,
-		gameNoteService:  gameNoteService,
-		orderService:     orderService,
-		profileService:   profileService,
+		avatarService:      avatarService,
+		followerService:    followerService,
+		moderatorService:   moderatorService,
+		orderService:       orderService,
+		profileService:     profileService,
+		contentNoteService: contentNoteService,
 	}
 }
 
@@ -85,12 +85,23 @@ func (s *publicProfileService) GetPublicProfile(ctx context.Context, profile *db
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		playedCount, playedErr := s.gameNoteService.CountPlayedByUserId(ctx, profile.UserID)
+		playedCount, playedErr := s.contentNoteService.CountPlayedContentByUserID(ctx, profile.UserID)
 		if playedErr != nil {
 			logger.Errorf(ctx, "Error occurred during played count: %v", playedErr)
 			return
 		}
 		counts.Played = playedCount
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		watchedCount, watchedErr := s.contentNoteService.CountWatchedContentByUserID(ctx, profile.UserID)
+		if watchedErr != nil {
+			logger.Errorf(ctx, "Error occurred during watched count: %v", watchedErr)
+			return
+		}
+		counts.Watched = watchedCount
 	}()
 
 	wg.Add(1)

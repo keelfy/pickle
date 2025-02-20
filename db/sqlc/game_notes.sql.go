@@ -16,7 +16,7 @@ const countPlayedGameNotesByUserId = `-- name: CountPlayedGameNotesByUserId :one
 SELECT COUNT(*) AS "count"
 FROM "game_notes"
 WHERE "user_id" = $1::uuid
-    AND "status" IN ('playing', 'finished', 'dropped')
+    AND "status" IN ('playing', 'finished', 'dropped', 'paused')
 GROUP BY "user_id"
 `
 
@@ -164,25 +164,24 @@ INSERT INTO "game_notes" (
     "poster_key"
 ) VALUES (
     $1::uuid,
-    $2::uuid,
+    $1::uuid,
+    $2::text,
     $3::text,
-    $4::text,
-    $5::timestamptz,
+    $4::timestamptz,
+    $5::uuid,
     $6::uuid,
-    $7::uuid,
-    $8::smallint,
-    $9::text,
-    $10::uuid,
-    $11::game_note_status,
-    $12::timestamptz,
-    $13::text
+    $7::smallint,
+    $8::text,
+    $9::uuid,
+    $10::game_note_status,
+    $11::timestamptz,
+    $12::text
 )
 RETURNING id, created_at, created_by, updated_at, updated_by, user_id, game_id, name, link, release_date, rate, comment, initial_orderer_id, status, last_played_at, poster_key, poster_updated_at
 `
 
 type InsertGameNoteParams struct {
 	CreatedBy        uuid.UUID      `json:"created_by"`
-	UpdatedBy        uuid.UUID      `json:"updated_by"`
 	Name             string         `json:"name"`
 	Link             *string        `json:"link"`
 	ReleaseDate      *time.Time     `json:"release_date"`
@@ -200,7 +199,6 @@ type InsertGameNoteParams struct {
 func (q *Queries) InsertGameNote(ctx context.Context, arg InsertGameNoteParams) (*GameNote, error) {
 	row := q.db.QueryRow(ctx, insertGameNote,
 		arg.CreatedBy,
-		arg.UpdatedBy,
 		arg.Name,
 		arg.Link,
 		arg.ReleaseDate,
@@ -279,4 +277,45 @@ func (q *Queries) UpdateGameNoteById(ctx context.Context, arg UpdateGameNoteById
 		arg.ID,
 	)
 	return err
+}
+
+const updateGameNoteName = `-- name: UpdateGameNoteName :one
+UPDATE "game_notes"
+SET "name" = $1::text,
+    "updated_by" = $2::uuid,
+    "updated_at" = now()
+WHERE "id" = $3::uuid
+RETURNING id, created_at, created_by, updated_at, updated_by, user_id, game_id, name, link, release_date, rate, comment, initial_orderer_id, status, last_played_at, poster_key, poster_updated_at
+`
+
+type UpdateGameNoteNameParams struct {
+	Name      string    `json:"name"`
+	UpdatedBy uuid.UUID `json:"updated_by"`
+	ID        uuid.UUID `json:"id"`
+}
+
+// Author: Egor Kuzmin (keelfy)
+func (q *Queries) UpdateGameNoteName(ctx context.Context, arg UpdateGameNoteNameParams) (*GameNote, error) {
+	row := q.db.QueryRow(ctx, updateGameNoteName, arg.Name, arg.UpdatedBy, arg.ID)
+	var i GameNote
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.CreatedBy,
+		&i.UpdatedAt,
+		&i.UpdatedBy,
+		&i.UserID,
+		&i.GameID,
+		&i.Name,
+		&i.Link,
+		&i.ReleaseDate,
+		&i.Rate,
+		&i.Comment,
+		&i.InitialOrdererID,
+		&i.Status,
+		&i.LastPlayedAt,
+		&i.PosterKey,
+		&i.PosterUpdatedAt,
+	)
+	return &i, err
 }

@@ -38,7 +38,7 @@ const spinners = {
     )
 }
 
-const LoadingSpinner = ({ className, type, ref, ...props }: LoadingSpinnerProps) => {
+const LoadingSpinner = ({ className, type = 'bars', ref, ...props }: LoadingSpinnerProps) => {
     return (
         <div
             data-testid="spinner"
@@ -49,7 +49,7 @@ const LoadingSpinner = ({ className, type, ref, ...props }: LoadingSpinnerProps)
             ref={ref}
             {...props}
         >
-            {spinners[type ?? 'long']}
+            {spinners[type]}
         </div>
     )
 }

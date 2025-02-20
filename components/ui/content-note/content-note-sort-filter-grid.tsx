@@ -188,7 +188,7 @@ export default function ContentNoteSortFilterGrid<T extends ContentNoteSearchRes
                         </div>
                     );
                 })}
-                {(notes.length === 0 || !isLoading) && (
+                {(notes.length === 0 && !isLoading) && (
                     <div className="flex items-center justify-center w-full h-full">
                         <p className="text-muted-foreground text-sm">No {localizeContentCategory(category, true).toLowerCase()} found.</p>
                     </div>

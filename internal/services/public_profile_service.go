@@ -162,5 +162,6 @@ func (s *publicProfileService) GetPublicProfile(ctx context.Context, profile *db
 
 	wg.Wait()
 
+	publicProfile.Counts = *counts
 	return publicProfile, nil
 }

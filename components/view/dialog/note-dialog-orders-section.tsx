@@ -75,46 +75,52 @@ export const NoteDialogOrdersSection = ({ noteId, category, className }: Props) 
                 </CollapsibleTrigger>
             </div>
             <CollapsibleContent>
-                <div className="flex flex-col gap-3 px-2">
+                <div className="flex flex-col gap-3 px-2 pb-2">
                     <TooltipProvider>
-                        <table className="w-fit border-separate border-spacing-y-0.5 border-spacing-x-2">
-                            <tbody>
-                                {orders?.content.map((order) => (
-                                    <tr key={order.id}>
-                                        <td className="text-muted-foreground">
-                                            <Tooltip>
-                                                <TooltipTrigger>
-                                                    <p>
-                                                        {getTimeAgoText(
-                                                            new Date(
-                                                                order.createdAt
-                                                            )
-                                                        )} ago
-                                                    </p>
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    {new Date(
-                                                        order.createdAt
-                                                    ).toLocaleString(
-                                                        undefined,
-                                                        {
-                                                            year: "numeric",
-                                                            month: "numeric",
-                                                            day: "numeric",
-                                                            hour: "numeric",
-                                                            minute: "numeric",
-                                                        }
-                                                    )}
-                                                </TooltipContent>
-                                            </Tooltip>
-                                        </td>
-                                        <td>{order.ordererUsername}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                        {orders && orders.content.length === 0 && ordersPage === 0 && (
+                            <p className="text-muted-foreground w-full text-center">
+                                No suggesters found.
+                            </p>
+                        )}
+                        {orders && orders.content.length > 0 && (
+                            <table className="w-fit border-separate border-spacing-y-0.5 border-spacing-x-2">
+                                <tbody>
+                                    {orders?.content.map((order) => (
+                                        <tr key={order.id}>
+                                            <td className="text-muted-foreground">
+                                                <Tooltip>
+                                                    <TooltipTrigger>
+                                                        <p>
+                                                            {getTimeAgoText(
+                                                                new Date(
+                                                                    order.createdAt
+                                                                )
+                                                            )} ago
+                                                        </p>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        {new Date(
+                                                            order.createdAt
+                                                        ).toLocaleString(
+                                                            undefined,
+                                                            {
+                                                                year: "numeric",
+                                                                month: "numeric",
+                                                                day: "numeric",
+                                                                hour: "numeric",
+                                                                minute: "numeric",
+                                                            }
+                                                        )}
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </td>
+                                            <td>{order.ordererUsername}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>)}
                     </TooltipProvider>
-                    {orders && (
+                    {(orders && orders.totalPages > 1) && (
                         <Pagination>
                             <PaginationContent>
                                 <PaginationItem>
@@ -165,8 +171,7 @@ export const NoteDialogOrdersSection = ({ noteId, category, className }: Props) 
                                 </PaginationItem>
                                 <PaginationItem
                                     className={
-                                        ordersPage ===
-                                            orders.totalPages - 1
+                                        ordersPage >= orders.totalPages
                                             ? "invisible"
                                             : ""
                                     }
@@ -186,20 +191,14 @@ export const NoteDialogOrdersSection = ({ noteId, category, className }: Props) 
                                 <PaginationItem>
                                     <PaginationNext
                                         href="#"
-                                        aria-disabled={
-                                            ordersPage ===
-                                            orders.totalPages - 1
-                                        }
                                         tabIndex={
-                                            ordersPage ===
-                                                orders.totalPages - 1
+                                            ordersPage >= orders.totalPages
                                                 ? -1
                                                 : undefined
                                         }
                                         size='sm'
                                         className={
-                                            ordersPage ===
-                                                orders.totalPages - 1
+                                            ordersPage >= orders.totalPages
                                                 ? "pointer-events-none opacity-50"
                                                 : undefined
                                         }

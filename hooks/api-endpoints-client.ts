@@ -162,27 +162,34 @@ export async function fetchDeleteModerator(profile: PublicProfile, moderatorId: 
 
 // Content Notes
 
-export async function fetchProfileContentNotes<T extends ContentNoteSearchResult>(profile: PublicProfile, category: ContentCategory, params: URLSearchParams) {
+export async function fetchProfileContentNotes<T extends ContentNoteSearchResult>(profile: Profile, category: ContentCategory, params: URLSearchParams) {
     return fetchApi<T[]>(`/v1/users/${profile.id}/content-notes/${category}?${params.toString()}`);
 }
 
-export async function fetchContentNotePoster(profile: PublicProfile, category: ContentCategory, noteId: string, size: ImageSize = 'sm') {
+export async function fetchContentNotePoster(profile: Profile, category: ContentCategory, noteId: string, size: ImageSize = 'sm') {
     return fetchApi<Image>(`/v1/users/${profile.id}/content-notes/${category}/${noteId}/posters?size=${size}`);
 }
 
-export async function fetchContentNote<T extends ContentNote>(profile: PublicProfile, category: ContentCategory, noteId: string) {
+export async function fetchContentNote<T extends ContentNote>(profile: Profile, category: ContentCategory, noteId: string) {
     return fetchApi<T>(`/v1/users/${profile.id}/content-notes/${category}/${noteId}`);
 }
 
-export async function deleteContentNote(profile: PublicProfile, category: ContentCategory, noteId: string, resetApprovedOrders: boolean = true) {
+export async function deleteContentNote(profile: Profile, category: ContentCategory, noteId: string, resetApprovedOrders: boolean = true) {
     return fetchApi(`/v1/users/${profile.id}/content-notes/${category}/${noteId}?resetApprovedOrders=${resetApprovedOrders}`, true, {
         method: "DELETE",
     });
 }
 
-export async function updateContentNote<T extends ContentNote>(profile: PublicProfile, category: ContentCategory, noteId: string, note: any) {
+export async function updateContentNote<T extends ContentNote>(profile: Profile, category: ContentCategory, noteId: string, note: any) {
     return fetchApi<T>(`/v1/users/${profile.id}/content-notes/${category}/${noteId}`, true, {
         method: "PATCH",
+        body: JSON.stringify(note),
+    });
+}
+
+export async function createContentNote<T extends ContentNote>(profile: Profile, category: ContentCategory, note: any) {
+    return fetchApi<T>(`/v1/users/${profile.id}/content-notes/${category}`, true, {
+        method: "POST",
         body: JSON.stringify(note),
     });
 }

@@ -4,14 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Check } from "lucide-react";
 import React from "react";
-import { UseFormRegisterReturn } from "react-hook-form";
+import { ControllerRenderProps, FieldValues, FieldPath, UseFormRegisterReturn } from "react-hook-form";
 
-type Props<TFieldValues extends string> = {
+type Props<TFieldValues extends FieldValues, N extends FieldPath<TFieldValues>> = {
     value: string;
-    field: UseFormRegisterReturn<TFieldValues>;
+    field: ControllerRenderProps<TFieldValues, N>;
 }
 
-export default function EditableContentName<TFieldValues extends string>({ value, field }: Props<TFieldValues>) {
+export default function EditableContentName<TFieldValues extends FieldValues, N extends FieldPath<TFieldValues>>({ value, field }: Props<TFieldValues, N>) {
     const [isEditingName, setIsEditingName] = React.useState(false);
 
     if (!isEditingName) {
@@ -22,19 +22,14 @@ export default function EditableContentName<TFieldValues extends string>({ value
                 type="button"
                 onClick={() => setIsEditingName(!isEditingName)}
             >
-                {value}
+                {value.length > 0 ? value : "Untitled"}
             </Button>
         )
     }
 
     return (
         <div className="flex items-center gap-2 mt-2">
-            <Input
-                {...field}
-                defaultValue={value}
-                onBlur={() => setIsEditingName(false)}
-                className="flex-1"
-            />
+            <Input className="flex-1" {...field} />
             <Button
                 size="icon"
                 variant="secondary"

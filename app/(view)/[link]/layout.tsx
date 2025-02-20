@@ -17,6 +17,7 @@ import ProfileSearchDialog from "../../../components/view/dialog/profile-search/
 import ProfileCard from "./profile-card";
 import ProfileNavigationMenu from "./profile-nav-menu";
 import MovieNoteDialog from "@/components/view/dialog/movie-note/movie-note-dialog";
+import ManualNoteCreationDialog from "@/components/view/dialog/manual-note-creation/manual-note-creation-dialog";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { link } = await params;
@@ -102,6 +103,7 @@ export default async function RootLayout({ children, params }: React.PropsWithCh
                         <GameNoteDialog />
                         <MovieNoteDialog />
 
+                        <ManualNoteCreationDialog />
                         <GameNoteEditorDialog />
                         <MovieNoteEditorDialog />
                     </ProfileStoreProvider>

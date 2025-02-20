@@ -2,21 +2,33 @@ import { createStore } from "zustand";
 import { devtools } from "zustand/middleware";
 
 export enum ModalType {
+    // default
     None = "none",
+
+    // orders
     ApproveOrder = "approve-order",
     RejectOrder = "reject-order",
     CreateOrder = "create-order",
-    GameNote = "game-note",
-    GameNoteEditor = "game-note-editor",
-    MovieNote = "movie-note",
-    MovieNoteEditor = "movie-note-editor",
+
+    // profile
     ProfileSearch = "profile-search",
     ProfileSettings = "profile-settings",
+
+    // content notes
     DeleteContentAlert = "delete-content-alert",
-    CreateCollection = "create-collection",
-    DeleteCollectionAlert = "delete-collection-alert",
+    ManualNoteCreation = "manual-note-creation",
+    GameNote = "game-note",
+    GameNoteEditor = "game-note-editor",
+    GameNoteCreator = "game-note-creator",
+    MovieNote = "movie-note",
+    MovieNoteEditor = "movie-note-editor",
+    MovieNoteCreator = "movie-note-creator",
+
+    // collections
     EditCollection = "edit-collection",
     AddCollectionItem = "add-collection-item",
+    CreateCollection = "create-collection",
+    DeleteCollectionAlert = "delete-collection-alert",
 }
 
 type Action = {

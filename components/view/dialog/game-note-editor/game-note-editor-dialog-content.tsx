@@ -12,7 +12,8 @@ import {
     Form,
     FormControl,
     FormField,
-    FormItem
+    FormItem,
+    FormMessage
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,7 +24,7 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { fetchContentNote, updateContentNote } from "@/hooks/api-endpoints-client";
+import { createContentNote, fetchContentNote, updateContentNote } from "@/hooks/api-endpoints-client";
 import { toast } from "@/hooks/use-toast";
 import { useModalStore } from "@/providers/modal";
 import { useProfileStore } from "@/providers/profile-store";
@@ -42,7 +43,11 @@ import StatusSelectFormItem from "../content-note-editor/status-select-form-item
 import { NoteDialogOrdersSection } from "../note-dialog-orders-section";
 
 const formSchema = z.object({
-    name: z.string(),
+    name: z.string().min(1, {
+        message: "Name is required",
+    }).max(100, {
+        message: "Name must be less than 100 characters",
+    }),
     link: z.string().optional(),
     releaseDate: z.date().optional(),
     status: z.custom<GameNoteStatus>(),
@@ -52,9 +57,12 @@ const formSchema = z.object({
     posterPreviewId: z.string().optional(),
 });
 
-export default function GameNoteEditorDialogContent() {
+type Props = {
+    noteId: string | undefined;
+}
+
+export default function GameNoteEditorDialogContent({ noteId }: Props) {
     const closeModal = useModalStore((state) => state.closeModal);
-    const { id: gameNoteId } = useModalStore((state) => state.modalParams!);
     const profile = useProfileStore((state) => state.profile);
 
     const [gameNote, setGameNote] = React.useState<GameNote>();
@@ -63,7 +71,7 @@ export default function GameNoteEditorDialogContent() {
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            name: "",
+            name: "Untitled game",
             status: "planned",
             comment: "",
         },
@@ -86,8 +94,8 @@ export default function GameNoteEditorDialogContent() {
     }, [gameNote?.id]);
 
     React.useEffect(() => {
-        if (!gameNoteId || !profile?.id) return;
-        fetchContentNote<GameNote>(profile, "games", gameNoteId)
+        if (!noteId || !profile?.id) return;
+        fetchContentNote<GameNote>(profile, "games", noteId)
             .then(setGameNote)
             .catch(err => {
                 console.error(err);
@@ -96,27 +104,42 @@ export default function GameNoteEditorDialogContent() {
                     description: "Try again later.",
                 });
             });
-    }, [gameNoteId, profile?.id]);
+    }, [noteId, profile?.id]);
 
     const onSubmit = form.handleSubmit((values) => {
-        if (!gameNoteId || !profile?.id) return;
+        if (!profile?.id) return;
 
-        startTransition(async () => {
-            try {
-                const res = await updateContentNote<GameNote>(profile, "games", gameNoteId, values);
-                form.reset(res);
-                toast({
-                    title: "Game note updated",
-                    description: "The game note was updated.",
-                });
-            } catch (error: any) {
-                toast({
-                    title: "Failed to update game note",
-                    description:
-                        "Status code: " + error.status + ". Try again later.",
-                });
-            }
-        });
+        if (noteId) {
+            startTransition(async () => {
+                try {
+                    const res = await updateContentNote<GameNote>(profile, "games", noteId, values);
+                    form.reset(res);
+                } catch (error: any) {
+                    toast({
+                        title: "Failed to update game",
+                        description: error.message ?? "An error occurred.",
+                        variant: "destructive",
+                    });
+                }
+            });
+        } else {
+            startTransition(async () => {
+                try {
+                    const res = await createContentNote<GameNote>(profile, "games", values);
+                    toast({
+                        title: res.name,
+                        description: "The game was created.",
+                    });
+                    closeModal();
+                } catch (error: any) {
+                    toast({
+                        title: "Failed to create game",
+                        description: error.message ?? "An error occurred.",
+                        variant: "destructive",
+                    });
+                }
+            })
+        }
     });
 
     return (
@@ -143,9 +166,18 @@ export default function GameNoteEditorDialogContent() {
                                 }}
                             />
                             <div className="flex-1 flex flex-col gap-2 w-full">
-                                <EditableContentName
-                                    value={form.watch("name")}
-                                    field={form.register("name")}
+                                <FormField
+                                    control={form.control}
+                                    name="name"
+                                    render={({ field }) => (
+                                        <FormItem className="space-y-0">
+                                            <EditableContentName
+                                                value={field.value}
+                                                field={field}
+                                            />
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
                                 />
                                 <table>
                                     <tbody>
@@ -275,10 +307,12 @@ export default function GameNoteEditorDialogContent() {
                             </ScrollArea>
                         </div>
 
-                        <NoteDialogOrdersSection
-                            noteId={gameNoteId}
-                            category="games"
-                        />
+                        {noteId && (
+                            <NoteDialogOrdersSection
+                                noteId={noteId}
+                                category="games"
+                            />
+                        )}
                     </div>
                     <DialogFooter className="mt-4">
                         <Button
@@ -289,18 +323,20 @@ export default function GameNoteEditorDialogContent() {
                             <X />
                             Cancel
                         </Button>
-                        <Button
-                            variant="secondary"
-                            type="button"
-                            onClick={() => form.reset()}
-                            disabled={isLoading || !form.formState.isDirty}
-                        >
-                            <CircleOff />
-                            Reset
-                        </Button>
-                        <Button type="submit" disabled={isLoading || !form.formState.isValid || !form.formState.isDirty}>
+                        {noteId && (
+                            <Button
+                                variant="secondary"
+                                type="button"
+                                onClick={() => form.reset()}
+                                disabled={isLoading || !form.formState.isDirty}
+                            >
+                                <CircleOff />
+                                Reset
+                            </Button>
+                        )}
+                        <Button type="submit" disabled={isLoading || !form.formState.isDirty}>
                             {isLoading ? <LoadingSpinner /> : <Check />}
-                            Confirm
+                            {noteId ? "Confirm" : "Create"}
                         </Button>
                     </DialogFooter>
                 </form>

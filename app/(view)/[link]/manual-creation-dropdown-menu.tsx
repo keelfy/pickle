@@ -1,7 +1,7 @@
 "use client";
 
 import { buttonVariants } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { MoreHorizontalIcon } from "lucide-react";
 
@@ -11,20 +11,17 @@ type Props = {
 
 export default function ManualCreationDropdownMenu({ className }: Props) {
     return (
-        <TooltipProvider>
-            <Tooltip delayDuration={0}>
-                <TooltipTrigger>
-                    <div className={cn(buttonVariants({ variant: "secondary", size: "icon" }), className)}>
-                        <MoreHorizontalIcon />
-                    </div>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">
-                    <p>
-                        Mass creation (.xlxs import) <br />
-                        will be available soon
-                    </p>
-                </TooltipContent>
-            </Tooltip>
-        </TooltipProvider>
+        <DropdownMenu>
+            <DropdownMenuTrigger>
+                <div className={cn(buttonVariants({ variant: "secondary", size: "icon" }), className)}>
+                    <MoreHorizontalIcon />
+                </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+                <DropdownMenuItem className="text-muted-foreground">
+                    Import from .xlxs
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
     )
 }

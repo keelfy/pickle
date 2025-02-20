@@ -9,12 +9,14 @@ import {
 } from "@/components/ui/dialog";
 import {
     Form,
-    FormField
+    FormField,
+    FormItem,
+    FormMessage
 } from "@/components/ui/form";
 import { Label } from "@/components/ui/label";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { fetchContentNote, updateContentNote } from "@/hooks/api-endpoints-client";
+import { createContentNote, fetchContentNote, updateContentNote } from "@/hooks/api-endpoints-client";
 import { toast } from "@/hooks/use-toast";
 import { useModalStore } from "@/providers/modal";
 import { useProfileStore } from "@/providers/profile-store";
@@ -42,9 +44,12 @@ const formSchema = z.object({
     posterPreviewId: z.string().optional(),
 });
 
-export default function MovieNoteEditorDialogContent() {
+type Props = {
+    noteId: string | undefined;
+}
+
+export default function MovieNoteEditorDialogContent({ noteId }: Props) {
     const closeModal = useModalStore((state) => state.closeModal);
-    const { id: movieNoteId } = useModalStore((state) => state.modalParams!);
     const profile = useProfileStore((state) => state.profile);
 
     const [contentNote, setContentNote] = React.useState<MovieNote>();
@@ -53,7 +58,7 @@ export default function MovieNoteEditorDialogContent() {
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            name: "",
+            name: "Untitled movie",
             status: "planned",
             comment: "",
         },
@@ -75,9 +80,9 @@ export default function MovieNoteEditorDialogContent() {
     }, [contentNote?.id]);
 
     React.useEffect(() => {
-        if (!movieNoteId || !profile?.id) return;
+        if (!noteId || !profile?.id) return;
 
-        fetchContentNote<MovieNote>(profile, "movies", movieNoteId)
+        fetchContentNote<MovieNote>(profile, "movies", noteId)
             .then(setContentNote)
             .catch(err => {
                 console.error(err);
@@ -86,29 +91,42 @@ export default function MovieNoteEditorDialogContent() {
                     description: "Try again later.",
                 });
             });
-    }, [movieNoteId, profile?.id]);
+    }, [noteId, profile?.id]);
 
     const onSubmit = form.handleSubmit((values) => {
-        if (!movieNoteId || !profile?.id) return;
+        if (!profile?.id) return;
 
-        startTransition(async () => {
-            try {
-                const res = await updateContentNote<MovieNote>(profile, "movies", movieNoteId, values);
-                form.reset(res);
-                toast({
-                    title: "Movie note updated",
-                    description: "The movie note was updated.",
-                });
-                closeModal();
-            } catch (error: any) {
-                toast({
-                    title: "Failed to update movie note",
-                    description:
-                        "Status code: " + error.status + ". Try again later.",
-                    variant: "destructive",
-                });
-            }
-        });
+        if (noteId) {
+            startTransition(async () => {
+                try {
+                    const res = await updateContentNote<MovieNote>(profile, "movies", noteId, values);
+                    form.reset(res);
+                } catch (error: any) {
+                    toast({
+                        title: "Failed to update movie",
+                        description: error.message ?? "An error occurred.",
+                        variant: "destructive",
+                    });
+                }
+            });
+        } else {
+            startTransition(async () => {
+                try {
+                    const res = await createContentNote<MovieNote>(profile, "movies", values);
+                    toast({
+                        title: res.name,
+                        description: "The movie was created.",
+                    });
+                    closeModal();
+                } catch (error: any) {
+                    toast({
+                        title: "Failed to create movie",
+                        description: error.message ?? "An error occurred.",
+                        variant: "destructive",
+                    });
+                }
+            })
+        }
     });
 
     return (
@@ -135,9 +153,18 @@ export default function MovieNoteEditorDialogContent() {
                                 }}
                             />
                             <div className="flex-1 flex flex-col gap-2 w-full">
-                                <EditableContentName
-                                    value={form.watch("name")}
-                                    field={form.register("name")}
+                                <FormField
+                                    control={form.control}
+                                    name="name"
+                                    render={({ field }) => (
+                                        <FormItem className="space-y-0">
+                                            <EditableContentName
+                                                value={field.value}
+                                                field={field}
+                                            />
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
                                 />
                                 <table>
                                     <tbody>
@@ -222,10 +249,12 @@ export default function MovieNoteEditorDialogContent() {
                             </ScrollArea>
                         </div>
 
-                        <NoteDialogOrdersSection
-                            noteId={movieNoteId}
-                            category="movies"
-                        />
+                        {noteId && (
+                            <NoteDialogOrdersSection
+                                noteId={noteId}
+                                category="movies"
+                            />
+                        )}
                     </div>
                     <DialogFooter className="mt-4">
                         <Button
@@ -236,18 +265,20 @@ export default function MovieNoteEditorDialogContent() {
                             <X />
                             Cancel
                         </Button>
-                        <Button
-                            variant="secondary"
-                            type="button"
-                            onClick={() => form.reset()}
-                            disabled={isLoading || !form.formState.isDirty}
-                        >
-                            <CircleOff />
-                            Reset
-                        </Button>
+                        {noteId && (
+                            <Button
+                                variant="secondary"
+                                type="button"
+                                onClick={() => form.reset()}
+                                disabled={isLoading || !form.formState.isDirty}
+                            >
+                                <CircleOff />
+                                Reset
+                            </Button>
+                        )}
                         <Button type="submit" disabled={isLoading || !form.formState.isValid || !form.formState.isDirty}>
                             {isLoading ? <LoadingSpinner /> : <Check />}
-                            Confirm
+                            {noteId ? "Confirm" : "Create"}
                         </Button>
                     </DialogFooter>
                 </form>

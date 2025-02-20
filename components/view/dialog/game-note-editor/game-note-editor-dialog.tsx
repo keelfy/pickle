@@ -18,9 +18,8 @@ export default function GameNoteEditorDialog() {
     );
 
     const isOpen = React.useMemo(
-        () =>
-            currentModal === ModalType.GameNoteEditor &&
-            modalParams?.id !== undefined,
+        () => currentModal === ModalType.GameNoteCreator ||
+            (currentModal === ModalType.GameNoteEditor && modalParams?.id !== undefined),
         [currentModal, modalParams?.id]
     );
 
@@ -31,7 +30,7 @@ export default function GameNoteEditorDialog() {
     return (
         <Dialog open={isOpen} onOpenChange={closeModal}>
             <DialogContent className="overflow-y-auto max-h-screen">
-                {isOpen && <DynamicGameNoteEditorDialogContent />}
+                {isOpen && <DynamicGameNoteEditorDialogContent noteId={modalParams?.id} />}
             </DialogContent>
         </Dialog>
     );

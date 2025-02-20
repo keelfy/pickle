@@ -15,6 +15,7 @@ import { Gamepad } from "lucide-react";
 import Link from "next/link";
 import { FollowButton } from "./follow-button";
 import ManualCreationDropdownMenu from "./manual-creation-dropdown-menu";
+import ManualNoteCreationButton from "./manual-note-creation-button";
 import SuggestionLinkCopyButton from "./suggestion-link-copy-button";
 
 type Props = {
@@ -101,10 +102,10 @@ export default function ProfileCard({ profile, className }: Props) {
                     </div>
                 )}
                 <div className={cn("flex items-center", !profile.isAuthorized && "hidden")}>
-                    <Button variant="secondary" className="w-full rounded-r-none">
+                    <ManualNoteCreationButton className="flex-1 rounded-r-none">
                         <ShieldPlusIcon />
                         Add a title manually
-                    </Button>
+                    </ManualNoteCreationButton>
                     <ManualCreationDropdownMenu className="rounded-l-none" />
                 </div>
             </div>

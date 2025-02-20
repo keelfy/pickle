@@ -18,9 +18,8 @@ export default function MovieNoteEditorDialog() {
     );
 
     const isOpen = React.useMemo(
-        () =>
-            currentModal === ModalType.MovieNoteEditor &&
-            modalParams?.id !== undefined,
+        () => currentModal === ModalType.MovieNoteCreator ||
+            (currentModal === ModalType.MovieNoteEditor && modalParams?.id !== undefined),
         [currentModal, modalParams?.id]
     );
 
@@ -31,7 +30,7 @@ export default function MovieNoteEditorDialog() {
     return (
         <Dialog open={isOpen} onOpenChange={closeModal}>
             <DialogContent className="overflow-y-auto max-h-screen">
-                {isOpen && <DynamicMovieNoteEditorDialogContent />}
+                {isOpen && <DynamicMovieNoteEditorDialogContent noteId={modalParams?.id} />}
             </DialogContent>
         </Dialog>
     );

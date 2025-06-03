@@ -14,6 +14,8 @@ type Querier interface {
 	AddGameNoteReaction(ctx context.Context, arg AddGameNoteReactionParams) error
 	// Author: Egor Kuzmin (keelfy)
 	AddMovieNoteReaction(ctx context.Context, arg AddMovieNoteReactionParams) error
+	CompleteIGDBSync(ctx context.Context, arg CompleteIGDBSyncParams) error
+	CompleteIGDBSyncWithError(ctx context.Context, arg CompleteIGDBSyncWithErrorParams) error
 	CountCollectionItemsByCollectionID(ctx context.Context, id uuid.UUID) (int64, error)
 	// Author: Egor Kuzmin (keelfy)
 	CountFollowers(ctx context.Context, userID uuid.UUID) (int64, error)
@@ -31,11 +33,14 @@ type Querier interface {
 	CountPlayedGameNotesByUserId(ctx context.Context, userID uuid.UUID) (int64, error)
 	// Author: Egor Kuzmin (keelfy)
 	CountWatchedMovieNotesByUserId(ctx context.Context, userID uuid.UUID) (int64, error)
+	CreateIGDBSync(ctx context.Context, syncType IgdbSyncType) (*IgdbSyncLog, error)
 	DeleteCollectionByID(ctx context.Context, id uuid.UUID) error
 	DeleteCollectionItemByID(ctx context.Context, id uuid.UUID) error
 	DeleteCollectionItemsByCollectionID(ctx context.Context, collectionID uuid.UUID) error
 	// Author: Egor Kuzmin (keelfy)
 	DeleteFollower(ctx context.Context, arg DeleteFollowerParams) error
+	DeleteGame(ctx context.Context, id uuid.UUID) error
+	DeleteGameLocalization(ctx context.Context, arg DeleteGameLocalizationParams) error
 	// Author: Egor Kuzmin (keelfy)
 	DeleteGameNoteById(ctx context.Context, id uuid.UUID) error
 	DeleteModeratorByUserIDAndModeratorID(ctx context.Context, arg DeleteModeratorByUserIDAndModeratorIDParams) error
@@ -125,6 +130,7 @@ type Querier interface {
 	FindProfileByLink(ctx context.Context, link string) (*Profile, error)
 	FindProfilesByModeratorID(ctx context.Context, moderatorID uuid.UUID) ([]*FindProfilesByModeratorIDRow, error)
 	GetGameNoteReactionsByGameNoteIdInAndUserId(ctx context.Context, arg GetGameNoteReactionsByGameNoteIdInAndUserIdParams) ([]*GetGameNoteReactionsByGameNoteIdInAndUserIdRow, error)
+	GetLastSuccessfulSync(ctx context.Context, syncType IgdbSyncType) (*IgdbSyncLog, error)
 	// Author: Egor Kuzmin (keelfy)
 	GetMovieNoteReactionsByMovieNoteIdInAndUserId(ctx context.Context, arg GetMovieNoteReactionsByMovieNoteIdInAndUserIdParams) ([]*GetMovieNoteReactionsByMovieNoteIdInAndUserIdRow, error)
 	// Author: Egor Kuzmin (keelfy)
@@ -155,6 +161,7 @@ type Querier interface {
 	InsertProfileAvatar(ctx context.Context, arg InsertProfileAvatarParams) (*ProfileAvatar, error)
 	// Author: Egor Kuzmin (keelfy)
 	IsFollowing(ctx context.Context, arg IsFollowingParams) (int64, error)
+	RefreshLocalizedGameViews(ctx context.Context) error
 	RemoveGameNoteReaction(ctx context.Context, arg RemoveGameNoteReactionParams) error
 	// Author: Egor Kuzmin (keelfy)
 	RemoveMovieNoteReaction(ctx context.Context, arg RemoveMovieNoteReactionParams) error
@@ -163,6 +170,7 @@ type Querier interface {
 	// Author: Egor Kuzmin (keelfy)
 	ResetApprovedOrdersByMovieNoteId(ctx context.Context, movieNoteID uuid.UUID) error
 	RevertModeratorByUserIDAndModeratorID(ctx context.Context, arg RevertModeratorByUserIDAndModeratorIDParams) error
+	StartIGDBSync(ctx context.Context, id uuid.UUID) error
 	UpdateCollectionByID(ctx context.Context, arg UpdateCollectionByIDParams) (*Collection, error)
 	// Author: Egor Kuzmin (keelfy)
 	UpdateGameNoteById(ctx context.Context, arg UpdateGameNoteByIdParams) error
@@ -183,6 +191,8 @@ type Querier interface {
 	UpdateProfileByUserId(ctx context.Context, arg UpdateProfileByUserIdParams) error
 	// Author: Egor Kuzmin (keelfy)
 	UpdateProfileSuggestionPreferences(ctx context.Context, arg UpdateProfileSuggestionPreferencesParams) error
+	UpsertGame(ctx context.Context, arg UpsertGameParams) (uuid.UUID, error)
+	UpsertGameLocalization(ctx context.Context, arg UpsertGameLocalizationParams) error
 }
 
 var _ Querier = (*Queries)(nil)

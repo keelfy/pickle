@@ -1,0 +1,34 @@
+{
+  "id": "22022025_1_igdb_games_index",
+  "index": "igdb_games",
+  "query": {
+    "settings": {
+      "number_of_shards": 4,
+      "number_of_replicas": 1
+    },
+    "mappings": {
+      "properties": {
+        "name_en": {
+          "type": "text",
+          "analyzer": "english"
+        },
+        "name_ru": {
+          "type": "text",
+          "analyzer": "russian"
+        },
+        "name_de": {
+          "type": "text",
+          "analyzer": "german"
+        },
+        "name_es": {
+          "type": "text",
+          "analyzer": "spanish"
+        },
+        "game_id": {
+          "type": "text",
+          "index": false
+        }
+      }
+    }
+  }
+}

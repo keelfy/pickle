@@ -29,19 +29,17 @@ type ModeratorService interface {
 type moderatorService struct {
 	sqlDb          storage.RelationalStorage
 	cache          storage.CacheStorage
-	supabase       storage.SupabaseClient
 	sfGroup        singleflight.Group
 	avatarService  AvatarService
 	profileService ProfileService
 }
 
-func NewModeratorService(sqlDb storage.RelationalStorage, cache storage.CacheStorage, supabase storage.SupabaseClient,
+func NewModeratorService(sqlDb storage.RelationalStorage, cache storage.CacheStorage,
 	avatarService AvatarService, profileService ProfileService,
 ) ModeratorService {
 	return &moderatorService{
 		sqlDb:          sqlDb,
 		cache:          cache,
-		supabase:       supabase,
 		sfGroup:        singleflight.Group{},
 		avatarService:  avatarService,
 		profileService: profileService,

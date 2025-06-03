@@ -122,3 +122,13 @@ func GetImgProxySalt() string {
 func GetCorsAllowedOrigins() []string {
 	return strings.Split(os.Getenv("CORS_ALLOWED_ORIGINS"), ";")
 }
+
+/** IGDB */
+
+func GetTwitchClientID() string {
+	return os.Getenv("TWITCH_CLIENT_ID")
+}
+
+func GetTwitchClientSecret() string {
+	return os.Getenv("TWITCH_CLIENT_SECRET")
+}

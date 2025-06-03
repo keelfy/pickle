@@ -104,6 +104,92 @@ func (ns NullGameNoteStatus) Value() (driver.Value, error) {
 	return string(ns.GameNoteStatus), nil
 }
 
+type IgdbSyncStatus string
+
+const (
+	IgdbSyncStatusPending    IgdbSyncStatus = "pending"
+	IgdbSyncStatusInProgress IgdbSyncStatus = "in_progress"
+	IgdbSyncStatusCompleted  IgdbSyncStatus = "completed"
+	IgdbSyncStatusFailed     IgdbSyncStatus = "failed"
+)
+
+func (e *IgdbSyncStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = IgdbSyncStatus(s)
+	case string:
+		*e = IgdbSyncStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for IgdbSyncStatus: %T", src)
+	}
+	return nil
+}
+
+type NullIgdbSyncStatus struct {
+	IgdbSyncStatus IgdbSyncStatus `json:"igdb_sync_status"`
+	Valid          bool           `json:"valid"` // Valid is true if IgdbSyncStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullIgdbSyncStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.IgdbSyncStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.IgdbSyncStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullIgdbSyncStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.IgdbSyncStatus), nil
+}
+
+type IgdbSyncType string
+
+const (
+	IgdbSyncTypeFull        IgdbSyncType = "full"
+	IgdbSyncTypeIncremental IgdbSyncType = "incremental"
+)
+
+func (e *IgdbSyncType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = IgdbSyncType(s)
+	case string:
+		*e = IgdbSyncType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for IgdbSyncType: %T", src)
+	}
+	return nil
+}
+
+type NullIgdbSyncType struct {
+	IgdbSyncType IgdbSyncType `json:"igdb_sync_type"`
+	Valid        bool         `json:"valid"` // Valid is true if IgdbSyncType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullIgdbSyncType) Scan(value interface{}) error {
+	if value == nil {
+		ns.IgdbSyncType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.IgdbSyncType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullIgdbSyncType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.IgdbSyncType), nil
+}
+
 type MovieNoteStatus string
 
 const (
@@ -265,6 +351,23 @@ type Follower struct {
 	CreatedAt  time.Time `json:"created_at"`
 }
 
+type Game struct {
+	ID          uuid.UUID  `json:"id"`
+	IgdbID      int64      `json:"igdb_id"`
+	ReleaseDate *time.Time `json:"release_date"`
+	Websites    []byte     `json:"websites"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
+}
+
+type GameLocalization struct {
+	GameID    uuid.UUID `json:"game_id"`
+	Lang      string    `json:"lang"`
+	Title     string    `json:"title"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
 type GameNote struct {
 	ID               uuid.UUID      `json:"id"`
 	CreatedAt        time.Time      `json:"created_at"`
@@ -303,6 +406,36 @@ type GameNoteReaction struct {
 	CreatedBy  uuid.UUID      `json:"created_by"`
 }
 
+type GamesViewEn struct {
+	ID          uuid.UUID  `json:"id"`
+	IgdbID      int64      `json:"igdb_id"`
+	Title       string     `json:"title"`
+	ReleaseDate *time.Time `json:"release_date"`
+	Websites    []byte     `json:"websites"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
+}
+
+type GamesViewRu struct {
+	ID          uuid.UUID  `json:"id"`
+	IgdbID      int64      `json:"igdb_id"`
+	Title       string     `json:"title"`
+	ReleaseDate *time.Time `json:"release_date"`
+	Websites    []byte     `json:"websites"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
+}
+
+type IgdbSyncLog struct {
+	ID             uuid.UUID      `json:"id"`
+	SyncType       IgdbSyncType   `json:"sync_type"`
+	Status         IgdbSyncStatus `json:"status"`
+	StartedAt      time.Time      `json:"started_at"`
+	GamesProcessed int64          `json:"games_processed"`
+	CompletedAt    *time.Time     `json:"completed_at"`
+	ErrorMessage   *string        `json:"error_message"`
+}
+
 type Moderator struct {
 	ID          uuid.UUID  `json:"id"`
 	CreatedAt   time.Time  `json:"created_at"`
@@ -311,6 +444,23 @@ type Moderator struct {
 	DeletedBy   *uuid.UUID `json:"deleted_by"`
 	UserID      uuid.UUID  `json:"user_id"`
 	ModeratorID uuid.UUID  `json:"moderator_id"`
+}
+
+type Movie struct {
+	ID          uuid.UUID  `json:"id"`
+	TmdbID      int64      `json:"tmdb_id"`
+	Title       string     `json:"title"`
+	ReleaseDate *time.Time `json:"release_date"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
+}
+
+type MovieLocalization struct {
+	MovieID   uuid.UUID `json:"movie_id"`
+	Lang      string    `json:"lang"`
+	Title     string    `json:"title"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type MovieNote struct {
@@ -343,6 +493,18 @@ type MovieNoteReaction struct {
 	UserID      uuid.UUID      `json:"user_id"`
 	EmoteID     string         `json:"emote_id"`
 	Source      ReactionSource `json:"source"`
+}
+
+type MoviesViewEn struct {
+	ID     uuid.UUID `json:"id"`
+	TmdbID int64     `json:"tmdb_id"`
+	Title  string    `json:"title"`
+}
+
+type MoviesViewRu struct {
+	ID     uuid.UUID `json:"id"`
+	TmdbID int64     `json:"tmdb_id"`
+	Title  string    `json:"title"`
 }
 
 type Order struct {

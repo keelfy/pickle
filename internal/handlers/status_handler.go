@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/pickle.pw/monolith/internal/logger"
-	"github.com/pickle.pw/monolith/internal/services"
 	"github.com/pickle.pw/monolith/internal/storage"
 	"github.com/pickle.pw/monolith/internal/types"
 	"github.com/pickle.pw/monolith/internal/utils"
@@ -16,18 +15,16 @@ type StatusHandler interface {
 }
 
 type statusHandler struct {
-	sqlDb         storage.RelationalStorage
-	elastic       storage.ElasticStorage
-	cache         storage.CacheStorage
-	statusService services.StatusService
+	sqlDb   storage.RelationalStorage
+	elastic storage.ElasticStorage
+	cache   storage.CacheStorage
 }
 
-func NewStatusHandler(sqlDb storage.RelationalStorage, elastic storage.ElasticStorage, cache storage.CacheStorage, statusService services.StatusService) StatusHandler {
+func NewStatusHandler(sqlDb storage.RelationalStorage, elastic storage.ElasticStorage, cache storage.CacheStorage) StatusHandler {
 	return &statusHandler{
-		sqlDb:         sqlDb,
-		elastic:       elastic,
-		cache:         cache,
-		statusService: statusService,
+		sqlDb:   sqlDb,
+		elastic: elastic,
+		cache:   cache,
 	}
 }
 
@@ -50,13 +47,7 @@ func (handler *statusHandler) Health(w http.ResponseWriter, r *http.Request) {
 	}
 	statusCode := http.StatusOK
 
-	err := handler.statusService.GetApiStatus()
-	if err != nil {
-		response.API = "ERROR"
-		statusCode = http.StatusInternalServerError
-	}
-
-	err = handler.sqlDb.Ping(ctx)
+	err := handler.sqlDb.Ping(ctx)
 	if err != nil {
 		response.Database = "ERROR"
 		statusCode = http.StatusInternalServerError

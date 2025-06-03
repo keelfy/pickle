@@ -83,6 +83,13 @@ func getNoteTableNameByCategory(category db.ContentCategory) (string, error) {
 }
 
 const findPaginatedContentNotesByUserIDQuery = `
+	WITH filtered_notes AS (
+		SELECT note.*
+		FROM "%s" note
+		WHERE note."user_id" = $1 
+			AND ($2::text IS NULL OR note."%s" %s $2::%s)
+			%s -- conditional filters
+	)
 	SELECT DISTINCT 
 		note."id",
 		note."created_at",
@@ -92,19 +99,17 @@ const findPaginatedContentNotesByUserIDQuery = `
 		note."comment",
 		note."poster_key",
 		note."poster_updated_at",
-		%s
+		%s -- content specific columns
 		o."username" AS "initial_orderer_username",
 		COALESCE(order_counts."count", 0) AS "orderer_count"
-	FROM "%s" note
+	FROM filtered_notes note
 		INNER JOIN "orderers" o ON note."initial_orderer_id" = o."id"
-		%s
-		LEFT JOIN (
-			SELECT "%s_id", COUNT(*) as "count" 
+		%s -- optional joins
+		LEFT JOIN LATERAL(
+			SELECT COUNT(*) as "count" 
 			FROM "%s_orders" 
-			GROUP BY "%s_id"
+			WHERE "%s_id" = note."id"
 		) order_counts ON note."id" = order_counts."%s_id"
-	WHERE note."user_id" = $1 
-		AND ($2::text IS NULL OR note."%s" %s $2::%s)%s
 	ORDER BY note."%s" %s 
 	LIMIT $3
 `
@@ -190,14 +195,14 @@ func (sqlDb *relationalStorage) FindPaginatedContentNotesByUserID(ctx context.Co
 	}
 
 	query := fmt.Sprintf(findPaginatedContentNotesByUserIDQuery,
-		selectedColumns,
-		tableName,
-		joins,
-		prefix, prefix, prefix, prefix,
-		strings.ToLower(sort.Column),
+		tableName,              // content note table name
+		conditionalFilters,     // conditional filters
+		selectedColumns,        // content specific columns
+		joins,                  // optional joins
+		prefix, prefix, prefix, // note orders table name
+		strings.ToLower(sort.Column), // sort column
 		comparisonOperator,
 		columnType,
-		conditionalFilters,
 		strings.ToLower(sort.Column),
 		strings.ToUpper(sort.Direction),
 	)

@@ -9,7 +9,9 @@ package main
 import (
 	"context"
 	"github.com/pickle.pw/monolith/internal/api"
+	"github.com/pickle.pw/monolith/internal/clients"
 	"github.com/pickle.pw/monolith/internal/handlers"
+	"github.com/pickle.pw/monolith/internal/schedulers"
 	"github.com/pickle.pw/monolith/internal/services"
 	"github.com/pickle.pw/monolith/internal/storage"
 )
@@ -47,19 +49,13 @@ func InitializeAPI(ctx context.Context) (api.PickleAPI, func(), error) {
 		return nil, nil, err
 	}
 	posterService := services.NewPosterService(relationalStorage, fileStorage, cacheStorage, imageService, profileService)
-	supabaseClient, err := storage.NewSupabaseClient(ctx)
-	if err != nil {
-		cleanup()
-		return nil, nil, err
-	}
-	moderatorService := services.NewModeratorService(relationalStorage, cacheStorage, supabaseClient, avatarService, profileService)
+	moderatorService := services.NewModeratorService(relationalStorage, cacheStorage, avatarService, profileService)
 	permissionService := services.NewPermissionService(moderatorService)
 	contentNoteService := services.NewContentService(relationalStorage, elasticStorage, cacheStorage, posterService, ordererService, permissionService, profileService)
 	orderService := services.NewOrderService(relationalStorage, profileService, ordererService, contentNoteService, permissionService)
 	publicProfileService := services.NewPublicProfileService(avatarService, followerService, moderatorService, orderService, profileService, contentNoteService)
 	profileHandler := handlers.NewUserHandler(profileService, avatarService, orderService, followerService, publicProfileService)
-	statusService := services.NewStatusService(supabaseClient, fileStorage)
-	statusHandler := handlers.NewStatusHandler(relationalStorage, elasticStorage, cacheStorage, statusService)
+	statusHandler := handlers.NewStatusHandler(relationalStorage, elasticStorage, cacheStorage)
 	orderHandler := handlers.NewOrdersHandler(orderService, profileService, contentNoteService)
 	contentNoteReactionService := services.NewContentNoteReactionService(relationalStorage)
 	contentNoteHandler := handlers.NewContentNoteHandler(profileService, orderService, posterService, contentNoteService, contentNoteReactionService)
@@ -69,7 +65,10 @@ func InitializeAPI(ctx context.Context) (api.PickleAPI, func(), error) {
 	collectionService := services.NewCollectionService(relationalStorage, cacheStorage, permissionService)
 	collectionHandler := handlers.NewCollectionHandler(collectionService, contentNoteService)
 	moderatorHandler := handlers.NewModeratorHandler(moderatorService, profileService)
-	pickleAPI := api.NewPickleAPI(profileHandler, statusHandler, orderHandler, contentNoteHandler, posterHandler, migrationService, contentHandler, collectionHandler, moderatorHandler)
+	igdbClient := clients.NewIGDBClient()
+	igdbSyncService := services.NewIGDBSyncService(relationalStorage, elasticStorage, igdbClient)
+	igdbScheduler := schedulers.NewIGDBScheduler(igdbSyncService, relationalStorage)
+	pickleAPI := api.NewPickleAPI(profileHandler, statusHandler, orderHandler, contentNoteHandler, posterHandler, migrationService, contentHandler, collectionHandler, moderatorHandler, igdbScheduler, igdbSyncService)
 	return pickleAPI, func() {
 		cleanup()
 	}, nil

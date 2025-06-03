@@ -348,11 +348,29 @@ func (service *profileService) CreateProfileWebhook(ctx context.Context, req *ty
 		attempts++
 	}
 
+	suggestionPreferences := &models.SuggestionPreferences{
+		Enabled:            false,
+		AllowedFree:        true,
+		AllowedAnonymously: true,
+		Categories: []db.ContentCategory{
+			db.ContentCategoryGames,
+			db.ContentCategoryMovies,
+			db.ContentCategoryAnime,
+			db.ContentCategoryVideo,
+			db.ContentCategorySeries,
+		},
+	}
+	jsonb, err := json.Marshal(suggestionPreferences)
+	if err != nil {
+		return nil, errors.NewInternalServerError("Error occurred marshalling suggestion preferences", err)
+	}
+
 	createdProfile, err := service.sqlDb.Queries().InsertProfile(ctx, db.InsertProfileParams{
-		UserID:      userId,
-		Username:    name,
-		Description: "",
-		Link:        link,
+		UserID:                userId,
+		Username:              name,
+		Description:           "",
+		Link:                  link,
+		SuggestionPreferences: jsonb,
 	})
 	if err != nil {
 		return nil, errors.NewInternalServerError("Error occurred creating a profile", err)

@@ -13,6 +13,7 @@ import (
 	"github.com/pickle.pw/monolith/internal/handlers"
 	"github.com/pickle.pw/monolith/internal/logger"
 	"github.com/pickle.pw/monolith/internal/middleware"
+	"github.com/pickle.pw/monolith/internal/schedulers"
 	"github.com/pickle.pw/monolith/internal/services"
 	httpSwagger "github.com/swaggo/http-swagger"
 )
@@ -32,6 +33,8 @@ type pickleAPI struct {
 	collectionHandler  handlers.CollectionHandler
 	tokenAuth          *jwtAuth.JWTAuth
 	moderatorHandler   handlers.ModeratorHandler
+	igdbSyncScheduler  schedulers.IGDBScheduler
+	igdbSyncService    services.IGDBSyncService
 }
 
 func NewPickleAPI(
@@ -39,6 +42,7 @@ func NewPickleAPI(
 	contentNoteHandler handlers.ContentNoteHandler, posterHandler handlers.PosterHandler,
 	migrationService services.MigrationService, contentService handlers.ContentHandler,
 	collectionHandler handlers.CollectionHandler, moderatorHandler handlers.ModeratorHandler,
+	igdbSyncScheduler schedulers.IGDBScheduler, igdbSyncService services.IGDBSyncService,
 ) PickleAPI {
 	return &pickleAPI{
 		profileHandler:     profileHandler,
@@ -50,6 +54,8 @@ func NewPickleAPI(
 		contentService:     contentService,
 		collectionHandler:  collectionHandler,
 		moderatorHandler:   moderatorHandler,
+		igdbSyncScheduler:  igdbSyncScheduler,
+		igdbSyncService:    igdbSyncService,
 		tokenAuth:          jwtAuth.New("HS256", config.GetJWTSecret(), nil),
 	}
 }
@@ -61,6 +67,13 @@ func (api *pickleAPI) BuildAPI(ctx context.Context) (*chi.Mux, error) {
 		return nil, fmt.Errorf("Error occurred during Elasticsearch migrations: %v", err)
 	}
 	logger.Info(ctx, "Elasticsearch migrations applied")
+
+	// Setup IGDB sync scheduler
+	err = api.igdbSyncScheduler.SetupIGDBSync(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("Error occurred during IGDB sync scheduler setup: %v", err)
+	}
+	logger.Info(ctx, "IGDB sync scheduler setup completed")
 
 	r := chi.NewRouter()
 
@@ -121,6 +134,12 @@ func (api *pickleAPI) v1RouteHandler() http.Handler {
 		api.useApiKey(r)
 
 		r.Post("/users", api.profileHandler.CreateProfileWebhook)
+	})
+
+	r.Route("/triggers", func(r chi.Router) {
+		api.useApiKey(r)
+
+		r.Post("/igdb-sync", api.igdbSyncService.TriggerGamesSync)
 	})
 
 	r.Route("/profiles", func(r chi.Router) {

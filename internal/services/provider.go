@@ -3,7 +3,6 @@ package services
 import "github.com/google/wire"
 
 var ProviderSet = wire.NewSet(
-	NewStatusService,
 	NewMigrationService,
 	NewProfileService,
 	NewOrdererService,
@@ -18,4 +17,5 @@ var ProviderSet = wire.NewSet(
 	NewModeratorService,
 	NewPermissionService,
 	NewPublicProfileService,
+	NewIGDBSyncService,
 )

@@ -3,6 +3,7 @@ package storage
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -22,6 +23,7 @@ type ElasticStorage interface {
 	Ping(ctx context.Context) error
 	CreateOrUpdateIndex(ctx context.Context, indexName string, query []byte) error
 	IndexDocument(ctx context.Context, indexName, id string, document any) (*index.Response, error)
+	BulkIndexDocuments(ctx context.Context, indexName string, requests []*BulkIndexRequest) error
 	Search(ctx context.Context, indexName string, query *esTypes.Query, pagination *types.Pagination) (*search.Response, error)
 	IndexContent(ctx context.Context, id uuid.UUID, name string, userId uuid.UUID, category db.ContentCategory) error
 	SearchContent(ctx context.Context, query string, userId uuid.UUID, pagination *types.Pagination) (*search.Response, error)
@@ -127,6 +129,34 @@ func (storage *elasticStorage) IndexDocument(ctx context.Context, indexName, id 
 
 	logger.Debugf(ctx, "[ELASTIC] Document indexed: %s", response.Result)
 	return response, nil
+}
+
+type BulkIndexRequest struct {
+	ID  string
+	Doc any
+}
+
+func (storage *elasticStorage) BulkIndexDocuments(ctx context.Context, indexName string, requests []*BulkIndexRequest) error {
+	var rawReq strings.Builder
+	for _, request := range requests {
+		rawReq.WriteString(fmt.Sprintf("{\"index\": {\"_index\": \"%s\", \"_id\": \"%s\"}}\n", indexName, request.ID))
+
+		jsonDoc, err := json.Marshal(request.Doc)
+		if err != nil {
+			return fmt.Errorf("error marshalling document: %w", err)
+		}
+
+		rawReq.Write(jsonDoc)
+		rawReq.WriteString("\n")
+	}
+
+	response, err := storage.client.Bulk().Raw(strings.NewReader(rawReq.String())).Do(ctx)
+	if err != nil {
+		return fmt.Errorf("error bulk indexing documents: %w", err)
+	}
+
+	logger.Debugf(ctx, "[ELASTIC] Documents indexed: %d", len(response.Items))
+	return nil
 }
 
 func (storage *elasticStorage) Search(ctx context.Context, indexName string, query *esTypes.Query, pagination *types.Pagination) (*search.Response, error) {

@@ -100,16 +100,19 @@ const findPaginatedContentNotesByUserIDQuery = `
 		note."poster_key",
 		note."poster_updated_at",
 		%s -- content specific columns
-		o."username" AS "initial_orderer_username",
-		COALESCE(order_counts."count", 0) AS "orderer_count"
+		o."username" AS initial_orderer_username,
+		COALESCE(order_counts."count", 0) AS orderer_count
 	FROM filtered_notes note
 		INNER JOIN "orderers" o ON note."initial_orderer_id" = o."id"
 		%s -- optional joins
 		LEFT JOIN LATERAL(
-			SELECT COUNT(*) as "count" 
+			SELECT 
+				COUNT(*) as count,
+				"%s_id" AS note_id
 			FROM "%s_orders" 
 			WHERE "%s_id" = note."id"
-		) order_counts ON note."id" = order_counts."%s_id"
+			GROUP BY "%s_id"
+		) order_counts ON note."id" = order_counts.note_id
 	ORDER BY note."%s" %s 
 	LIMIT $3
 `
@@ -154,9 +157,9 @@ func getContentNoteFilterQuery(filters types.Filters) string {
 	for key, value := range filters {
 		switch key {
 		case "status":
-			query += fmt.Sprintf(" AND note.\"%s\" = '%s'", key, value)
+			query += fmt.Sprintf(` AND note."%s" = '%s'`, key, value)
 		case "requester":
-			query += fmt.Sprintf(" AND orders.\"orderer_username\" ILIKE '%s'", value)
+			query += fmt.Sprintf(` AND orders."orderer_username" ILIKE '%s'`, value)
 		}
 	}
 	return query
@@ -195,14 +198,14 @@ func (sqlDb *relationalStorage) FindPaginatedContentNotesByUserID(ctx context.Co
 	}
 
 	query := fmt.Sprintf(findPaginatedContentNotesByUserIDQuery,
-		tableName,              // content note table name
-		conditionalFilters,     // conditional filters
-		selectedColumns,        // content specific columns
-		joins,                  // optional joins
-		prefix, prefix, prefix, // note orders table name
-		strings.ToLower(sort.Column), // sort column
-		comparisonOperator,
-		columnType,
+		tableName,                      // content note table name
+		strings.ToLower(sort.Column),   // sort column
+		comparisonOperator,             // sort comparison type
+		columnType,                     // sort column type
+		conditionalFilters,             // conditional filters
+		selectedColumns,                // content specific columns
+		joins,                          // optional joins
+		prefix, prefix, prefix, prefix, // note orders table name
 		strings.ToLower(sort.Column),
 		strings.ToUpper(sort.Direction),
 	)

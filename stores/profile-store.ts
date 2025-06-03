@@ -1,13 +1,14 @@
+import { Profile, PublicProfile } from '@/utils/api/types';
 import { createStore } from 'zustand';
 import { devtools } from 'zustand/middleware';
 
 type Actions = {
-    update: (profile: Profile) => void
+    update: (profile: PublicProfile) => void
     clear: () => void
 }
 
 type State = {
-    profile: Profile | undefined;
+    profile: PublicProfile | undefined;
 };
 
 export type ProfileStore = Actions & State;

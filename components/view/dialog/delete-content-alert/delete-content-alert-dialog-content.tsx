@@ -1,6 +1,12 @@
 "use client";
 
-import { AlertDialogAction, AlertDialogCancel, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import {
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { deleteContentNote } from "@/hooks/api-endpoints-client";
 import { toast } from "@/hooks/use-toast";
@@ -11,19 +17,24 @@ import React from "react";
 import { DeleteContentAlertModalParams } from "./delete-content-alert-dialog";
 
 export default function DeleteContentAlertDialogContent() {
-    const { closeModal } = useModalStore(
-        (state) => state
-    );
+    const { closeModal } = useModalStore((state) => state);
     const profile = useProfileStore((state) => state.profile);
-    const modalParams = useModalStore<DeleteContentAlertModalParams>(state => state.modalParams!);
+    const modalParams = useModalStore<DeleteContentAlertModalParams>(
+        (state) => state.modalParams!
+    );
     const [isLoading, startTransition] = React.useTransition();
     const [resetApprovedOrders, setResetApprovedOrders] = React.useState(true);
 
     const onConfirm = () => {
-        if (!modalParams?.category || !modalParams?.id) return;
+        if (!modalParams?.category || !modalParams?.id || !profile) return;
         startTransition(async () => {
             try {
-                await deleteContentNote(profile, modalParams.category, modalParams.id, resetApprovedOrders);
+                await deleteContentNote(
+                    profile,
+                    modalParams.category,
+                    modalParams.id,
+                    resetApprovedOrders
+                );
                 closeModal();
                 toast({
                     title: "Content deleted successfully",
@@ -48,16 +59,21 @@ export default function DeleteContentAlertDialogContent() {
 
             <div className="flex flex-col gap-2 text-sm">
                 <div>
-                    You're about to delete&nbsp;<span className="font-semibold">{modalParams?.title}</span>.
+                    You're about to delete&nbsp;
+                    <span className="font-semibold">{modalParams?.title}</span>.
                 </div>
 
                 <div className="flex flex-col gap-4">
                     <div className="flex items-center gap-2">
                         <Checkbox
                             checked={resetApprovedOrders}
-                            onCheckedChange={() => setResetApprovedOrders(!resetApprovedOrders)}
+                            onCheckedChange={() =>
+                                setResetApprovedOrders(!resetApprovedOrders)
+                            }
                         />
-                        <span>Set all related orders back to pending status</span>
+                        <span>
+                            Set all related orders back to pending status
+                        </span>
                     </div>
                     <div className="text-destructive">
                         This action cannot be undone.
@@ -76,5 +92,5 @@ export default function DeleteContentAlertDialogContent() {
                 </AlertDialogAction>
             </AlertDialogFooter>
         </>
-    )
+    );
 }

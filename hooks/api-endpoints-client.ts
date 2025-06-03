@@ -53,7 +53,7 @@ export async function uploadPosterPreview(profile: Profile | undefined, formData
     });
 }
 
-export async function deletePosterPreview(profile: PublicProfile | undefined, id: string) {
+export async function deletePosterPreview(profile: Profile | undefined, id: string) {
     if (!profile) return undefined;
     return fetchApi(`/v1/users/${profile.id}/posters/previews/${id}`, true, {
         method: "DELETE",
@@ -66,19 +66,19 @@ export async function fetchProfileOrders(profile: Profile, cursor: string, colum
     return fetchApi<Order[]>(`/v1/users/${profile.id}/orders?cursor=${cursor}&column=${column}&limit=${limit}&direction=${direction}`);
 }
 
-export async function fetchOrderById(profile: PublicProfile | undefined, orderId: string) {
+export async function fetchOrderById(profile: Profile | undefined, orderId: string) {
     if (!profile) return undefined;
     return fetchApi<Order>(`/v1/users/${profile.id}/orders/${orderId}`);
 }
 
-export async function createOrder(profile: PublicProfile, order: CreateOrderReq) {
+export async function createOrder(profile: Profile, order: CreateOrderReq) {
     return fetchApi<Order>(`/v1/users/${profile.id}/orders`, true, {
         method: "POST",
         body: JSON.stringify(order),
     });
 }
 
-export async function updateOrder(profile: PublicProfile | undefined, orderId: string, order: any) {
+export async function updateOrder(profile: Profile | undefined, orderId: string, order: any) {
     if (!profile) return undefined;
     return fetchApi<OrderUpdate>(`/v1/users/${profile.id}/orders/${orderId}`, true, {
         method: "PATCH",
@@ -88,14 +88,14 @@ export async function updateOrder(profile: PublicProfile | undefined, orderId: s
 
 // Follows
 
-export async function followProfile(profile: PublicProfile | undefined) {
+export async function followProfile(profile: Profile | undefined) {
     if (!profile) return undefined;
     return fetchApi(`/v1/users/${profile.id}/follows`, true, {
         method: "POST",
     });
 }
 
-export async function unfollowProfile(profile: PublicProfile | undefined) {
+export async function unfollowProfile(profile: Profile | undefined) {
     if (!profile) return undefined;
     return fetchApi(`/v1/users/${profile.id}/follows`, true, {
         method: "DELETE",
@@ -104,7 +104,7 @@ export async function unfollowProfile(profile: PublicProfile | undefined) {
 
 // Collections
 
-export async function fetchCreateCollection(profile: PublicProfile, collection: CreateCollectionReq) {
+export async function fetchCreateCollection(profile: Profile, collection: CreateCollectionReq) {
     return fetchApi<Collection>(`/v1/users/${profile.id}/collections`, true, {
         method: "POST",
         body: JSON.stringify(collection),
@@ -143,18 +143,18 @@ export async function fetchCollectionItems(collectionId: string, page: number, s
 
 // Moderators
 
-export async function fetchModeratorProfiles(profile: PublicProfile) {
+export async function fetchModeratorProfiles(profile: Profile) {
     return fetchApi<ModeratorProfile[]>(`/v1/users/${profile.id}/moderators`);
 }
 
-export async function fetchAddModerator(profile: PublicProfile, userLink: string) {
+export async function fetchAddModerator(profile: Profile, userLink: string) {
     return fetchApi<ModeratorProfile>(`/v1/users/${profile.id}/moderators`, true, {
         method: "POST",
         body: JSON.stringify({ userLink }),
     });
 }
 
-export async function fetchDeleteModerator(profile: PublicProfile, moderatorId: string) {
+export async function fetchDeleteModerator(profile: Profile, moderatorId: string) {
     return fetchApi<void>(`/v1/users/${profile.id}/moderators/${moderatorId}`, true, {
         method: "DELETE",
     });

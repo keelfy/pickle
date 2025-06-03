@@ -1,6 +1,9 @@
 "use client";
 
-import { deletePosterPreview, uploadPosterPreview } from "@/hooks/api-endpoints-client";
+import {
+    deletePosterPreview,
+    uploadPosterPreview,
+} from "@/hooks/api-endpoints-client";
 import { cn } from "@/lib/utils";
 import { useProfileStore } from "@/providers/profile-store";
 import { Upload } from "lucide-react";
@@ -17,12 +20,14 @@ type Props = {
 
 const EditablePoster = ({ value, defaultImageUrl, onChange }: Props) => {
     const profile = useProfileStore((state) => state.profile);
-    const [previewUrl, setPreviewUrl] = React.useState<string | undefined>(defaultImageUrl);
+    const [previewUrl, setPreviewUrl] = React.useState<string | undefined>(
+        defaultImageUrl
+    );
 
     async function uploadImage(file: File) {
         const formData = new FormData();
         formData.append("file", file);
-        return uploadPosterPreview(profile, formData, 'md');
+        return uploadPosterPreview(profile, formData, "md");
     }
 
     async function deleteImage(id: string) {
@@ -32,7 +37,7 @@ const EditablePoster = ({ value, defaultImageUrl, onChange }: Props) => {
     async function embedImage(url: string) {
         const formData = new FormData();
         formData.append("url", url);
-        return uploadPosterPreview(profile, formData, 'md');
+        return uploadPosterPreview(profile, formData, "md");
     }
 
     function onImagePreviewChanged(preview: ImagePreview | undefined) {

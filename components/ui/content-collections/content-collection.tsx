@@ -16,9 +16,13 @@ type Props = {
     collection: Collection;
     items: CollectionItem[];
     hasMoreItems: boolean;
-}
+};
 
-export default function ContentCollection({ collection, items, hasMoreItems }: Props) {
+export default function ContentCollection({
+    collection,
+    items,
+    hasMoreItems,
+}: Props) {
     const [collapsed, setCollapsed] = React.useState(false);
     const toggleCollapsed = () => setCollapsed(!collapsed);
     const profile = useProfileStore((state) => state.profile);
@@ -32,7 +36,9 @@ export default function ContentCollection({ collection, items, hasMoreItems }: P
                             name={collection.name}
                             onClick={toggleCollapsed}
                         />
-                        <span className="text-sm text-muted-foreground">({items.length})</span>
+                        <span className="text-sm text-muted-foreground">
+                            ({items.length})
+                        </span>
                     </div>
                 }
                 rightSide={
@@ -46,15 +52,29 @@ export default function ContentCollection({ collection, items, hasMoreItems }: P
             <CollapsibleContent>
                 <ScrollArea className="max-w-[848px] w-full whitespace-nowrap">
                     <div className="flex items-start gap-2 pb-3 pt-1 pl-1">
-                        {profile.isAuthorized && <AddCollectionElement collection={collection} className="flex-shrink-0" />}
+                        {profile?.isAuthorized && (
+                            <AddCollectionElement
+                                collection={collection}
+                                className="flex-shrink-0"
+                            />
+                        )}
                         {items.map((item) => (
-                            <CollectionElement key={item.id} item={item} className="flex-shrink-0" />
+                            <CollectionElement
+                                key={item.id}
+                                item={item}
+                                className="flex-shrink-0"
+                            />
                         ))}
-                        {hasMoreItems && <LoadMoreCollectionElement collectionId={collection.id} className="flex-shrink-0" />}
+                        {hasMoreItems && (
+                            <LoadMoreCollectionElement
+                                collectionId={collection.id}
+                                className="flex-shrink-0"
+                            />
+                        )}
                     </div>
                     <ScrollBar orientation="horizontal" />
                 </ScrollArea>
             </CollapsibleContent>
         </Collapsible>
-    )
+    );
 }

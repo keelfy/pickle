@@ -1,3 +1,4 @@
+import { Order } from "@/utils/api/types";
 import { createStore } from "zustand";
 import { devtools } from "zustand/middleware";
 

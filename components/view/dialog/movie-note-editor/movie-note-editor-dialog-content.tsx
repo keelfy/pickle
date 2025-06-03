@@ -23,7 +23,7 @@ import { useProfileStore } from "@/providers/profile-store";
 import { movieNoteStatusLabels } from "@/utils/api/constants";
 import { MovieNote, MovieNoteStatus } from "@/utils/api/types";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Check, CircleOff, X } from "lucide-react";
+import { Check, CheckIcon, CircleOff, HistoryIcon, RocketIcon, X } from "lucide-react";
 import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -169,12 +169,11 @@ export default function MovieNoteEditorDialogContent({ noteId }: Props) {
                                 <table>
                                     <tbody>
                                         <tr>
-                                            <td className="w-1/2">
-                                                <Label className="text-sm">
-                                                    Release Date
-                                                </Label>
+                                            <td className="w-1/2 text-sm whitespace-nowrap">
+                                                <RocketIcon size={12} />
+                                                Release date
                                             </td>
-                                            <td>
+                                            <td className="w-1/2">
                                                 <FormField
                                                     control={form.control}
                                                     name="releaseDate"
@@ -183,7 +182,8 @@ export default function MovieNoteEditorDialogContent({ noteId }: Props) {
                                             </td>
                                         </tr>
                                         <tr>
-                                            <td className="pt-4 text-sm">
+                                            <td className="pt-4 text-sm flex items-center gap-2 whitespace-nowrap">
+                                                <CheckIcon size={12} />
                                                 Status
                                             </td>
                                             <td className="pt-4">
@@ -200,10 +200,9 @@ export default function MovieNoteEditorDialogContent({ noteId }: Props) {
                                             </td>
                                         </tr>
                                         <tr>
-                                            <td>
-                                                <Label className="text-sm">
-                                                    Watched At
-                                                </Label>
+                                            <td className="text-sm flex items-center gap-2 whitespace-nowrap">
+                                                <HistoryIcon size={12} />
+                                                Watched at
                                             </td>
                                             <td>
                                                 <FormField

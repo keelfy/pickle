@@ -1,12 +1,12 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import ContentCategoryIcon from "@/components/ui/content-category-icon";
 import {
-    DialogHeader,
-    DialogTitle
-} from "@/components/ui/dialog";
+    Collapsible,
+    CollapsibleContent
+} from "@/components/ui/collapsible";
+import ContentCategoryIcon from "@/components/ui/content-category-icon";
+import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { localizeContentCategory } from "@/lib/localize-types";
 import { useModalStore } from "@/providers/modal";
 import { ModalType } from "@/stores/modal";
@@ -17,7 +17,8 @@ import React from "react";
 export default function ManualNoteCreationDialogContent() {
     const { openModal } = useModalStore((state) => state);
 
-    const [selectedCategory, setSelectedCategory] = React.useState<ContentCategory>();
+    const [selectedCategory, setSelectedCategory] =
+        React.useState<ContentCategory>();
 
     const handleClick = () => {
         switch (selectedCategory) {
@@ -30,7 +31,7 @@ export default function ManualNoteCreationDialogContent() {
             default:
                 break;
         }
-    }
+    };
 
     const isDisabled = (category: ContentCategory) => {
         switch (category) {
@@ -40,15 +41,13 @@ export default function ManualNoteCreationDialogContent() {
             default:
                 return true;
         }
-    }
+    };
 
     return (
         <>
             <div className="hidden">
                 <DialogHeader>
-                    <DialogTitle>
-                        Manual content creation
-                    </DialogTitle>
+                    <DialogTitle>Manual content creation</DialogTitle>
                 </DialogHeader>
             </div>
 
@@ -58,16 +57,27 @@ export default function ManualNoteCreationDialogContent() {
                         What do you want to add to your profile?
                     </h2>
                     <div className="grid grid-cols-2 gap-4">
-                        {CONTENT_CATEGORIES.map(category => (
+                        {CONTENT_CATEGORIES.map((category) => (
                             <Button
                                 key={category}
-                                variant={selectedCategory === category ? "default" : "secondary"}
-                                size='lg'
+                                variant={
+                                    selectedCategory === category
+                                        ? "default"
+                                        : "secondary"
+                                }
+                                size="lg"
                                 className="text-md w-full"
                                 disabled={isDisabled(category)}
-                                onClick={() => setSelectedCategory(prev => prev === category ? undefined : category)}
+                                onClick={() =>
+                                    setSelectedCategory((prev) =>
+                                        prev === category ? undefined : category
+                                    )
+                                }
                             >
-                                <ContentCategoryIcon category={category} className="w-6 h-6" />
+                                <ContentCategoryIcon
+                                    category={category}
+                                    className="w-6 h-6"
+                                />
                                 {localizeContentCategory(category)}
                             </Button>
                         ))}
@@ -79,24 +89,46 @@ export default function ManualNoteCreationDialogContent() {
                         <div className="grid gap-3">
                             <div className="flex flex-col items-center">
                                 <h2 className="text-lg font-bold text-center">
-                                    Is it a real {localizeContentCategory(selectedCategory!).toLowerCase()}?
+                                    Is it a real{" "}
+                                    {localizeContentCategory(
+                                        selectedCategory!
+                                    ).toLowerCase()}
+                                    ?
                                 </h2>
                                 <p className="text-muted-foreground text-center text-sm">
-                                    You can auto-fill metadata (poster, release date, etc.).
+                                    You can auto-fill metadata (poster, release
+                                    date, etc.).
                                 </p>
                             </div>
 
                             <div className="flex items-center gap-2">
-                                <Button variant="default" className="w-full" disabled>
+                                <Button
+                                    variant="default"
+                                    className="w-full"
+                                    disabled
+                                >
                                     <SearchIcon />
-                                    <p>Search in <span className="font-bold">{selectedCategory === "games" ? "IGDB" : "TMDB"}</span></p>
+                                    <p>
+                                        Search in{" "}
+                                        <span className="font-bold">
+                                            {selectedCategory === "games"
+                                                ? "IGDB"
+                                                : "TMDB"}
+                                        </span>
+                                    </p>
                                 </Button>
 
                                 <div className="flex flex-col items-center">
-                                    <p className="text-muted-foreground text-center text-sm">or</p>
+                                    <p className="text-muted-foreground text-center text-sm">
+                                        or
+                                    </p>
                                 </div>
 
-                                <Button variant="secondary" className="w-full" onClick={handleClick}>
+                                <Button
+                                    variant="secondary"
+                                    className="w-full"
+                                    onClick={handleClick}
+                                >
                                     <p>Fill the card manually</p>
                                     <ArrowRightIcon />
                                 </Button>

@@ -4,6 +4,7 @@ import React from "react";
 import { useStore } from "zustand";
 
 import createProfileStore, { ProfileStore } from "@/stores/profile-store";
+import { PublicProfile } from "@/utils/api/types";
 
 export type ProfileStoreApi = ReturnType<typeof createProfileStore>;
 
@@ -12,7 +13,7 @@ export const ProfileStoreContext = React.createContext<
 >(undefined);
 
 export type ProfileStoreProviderProps = React.PropsWithChildren<{
-    profile: Profile | undefined;
+    profile: PublicProfile | undefined;
 }>;
 
 export default function ProfileStoreProvider({

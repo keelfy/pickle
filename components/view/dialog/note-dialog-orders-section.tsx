@@ -1,11 +1,27 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import LoadingSpinner from "@/components/ui/loading-spinner";
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import {
+    Pagination,
+    PaginationContent,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
+} from "@/components/ui/pagination";
 import { Separator } from "@/components/ui/separator";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { fetchContentNoteOrders } from "@/hooks/api-endpoints-client";
 import { toast } from "@/hooks/use-toast";
 import { getTimeAgoText } from "@/lib/localize-types";
@@ -16,13 +32,13 @@ import { ContentCategory, Order } from "@/utils/api/types";
 import { ChevronLeftIcon, UserPlusIcon } from "lucide-react";
 import React from "react";
 
-type Props = {
-    noteId: string;
-    category: ContentCategory;
-    className?: string;
-}
+type Props = { noteId: string; category: ContentCategory; className?: string };
 
-export const NoteDialogOrdersSection = ({ noteId, category, className }: Props) => {
+export const NoteDialogOrdersSection = ({
+    noteId,
+    category,
+    className,
+}: Props) => {
     const { profile } = useProfileStore((state) => state);
     const [detailsOpen, setDetailsOpen] = React.useState(false);
 
@@ -31,10 +47,16 @@ export const NoteDialogOrdersSection = ({ noteId, category, className }: Props) 
     const [areOrdersLoading, startOrdersTransition] = React.useTransition();
 
     React.useEffect(() => {
-        if (!areOrdersLoading && detailsOpen && !orders) {
+        if (!areOrdersLoading && detailsOpen && !orders && profile) {
             startOrdersTransition(async () => {
                 try {
-                    const response = await fetchContentNoteOrders(profile, category, noteId, ordersPage, 5);
+                    const response = await fetchContentNoteOrders(
+                        profile,
+                        category,
+                        noteId,
+                        ordersPage,
+                        5
+                    );
                     setOrders(response);
                 } catch (error: any) {
                     toast({
@@ -60,7 +82,11 @@ export const NoteDialogOrdersSection = ({ noteId, category, className }: Props) 
         >
             <div className="flex items-center justify-between space-x-4">
                 <CollapsibleTrigger asChild>
-                    <Button variant="link" size="sm" className="text-md font-semibold p-0">
+                    <Button
+                        variant="link"
+                        size="sm"
+                        className="text-md font-semibold p-0"
+                    >
                         <UserPlusIcon className="w-4 h-4" />
                         Suggesters
                     </Button>
@@ -69,7 +95,12 @@ export const NoteDialogOrdersSection = ({ noteId, category, className }: Props) 
                 <Separator orientation="horizontal" className="flex-1" />
                 <CollapsibleTrigger asChild>
                     <Button variant="ghost" size="sm">
-                        <ChevronLeftIcon className={cn("h-4 w-4 transition-transform duration-300", detailsOpen && "-rotate-90")} />
+                        <ChevronLeftIcon
+                            className={cn(
+                                "h-4 w-4 transition-transform duration-300",
+                                detailsOpen && "-rotate-90"
+                            )}
+                        />
                         <span className="sr-only">Toggle suggesters view</span>
                     </Button>
                 </CollapsibleTrigger>
@@ -77,11 +108,13 @@ export const NoteDialogOrdersSection = ({ noteId, category, className }: Props) 
             <CollapsibleContent>
                 <div className="flex flex-col gap-3 px-2 pb-2">
                     <TooltipProvider>
-                        {orders && orders.content.length === 0 && ordersPage === 0 && (
-                            <p className="text-muted-foreground w-full text-center">
-                                No suggesters found.
-                            </p>
-                        )}
+                        {orders &&
+                            orders.content.length === 0 &&
+                            ordersPage === 0 && (
+                                <p className="text-muted-foreground w-full text-center">
+                                    No suggesters found.
+                                </p>
+                            )}
                         {orders && orders.content.length > 0 && (
                             <table className="w-fit border-separate border-spacing-y-0.5 border-spacing-x-2">
                                 <tbody>
@@ -95,7 +128,8 @@ export const NoteDialogOrdersSection = ({ noteId, category, className }: Props) 
                                                                 new Date(
                                                                     order.createdAt
                                                                 )
-                                                            )} ago
+                                                            )}{" "}
+                                                            ago
                                                         </p>
                                                     </TooltipTrigger>
                                                     <TooltipContent>
@@ -118,9 +152,10 @@ export const NoteDialogOrdersSection = ({ noteId, category, className }: Props) 
                                         </tr>
                                     ))}
                                 </tbody>
-                            </table>)}
+                            </table>
+                        )}
                     </TooltipProvider>
-                    {(orders && orders.totalPages > 1) && (
+                    {orders && orders.totalPages > 1 && (
                         <Pagination>
                             <PaginationContent>
                                 <PaginationItem>
@@ -128,44 +163,36 @@ export const NoteDialogOrdersSection = ({ noteId, category, className }: Props) 
                                         href="#"
                                         aria-disabled={ordersPage <= 0}
                                         tabIndex={
-                                            ordersPage <= 0
-                                                ? -1
-                                                : undefined
+                                            ordersPage <= 0 ? -1 : undefined
                                         }
-                                        size='sm'
+                                        size="sm"
                                         className={
                                             ordersPage <= 0
                                                 ? "pointer-events-none opacity-50"
                                                 : undefined
                                         }
                                         onClick={() =>
-                                            setOrdersPage(
-                                                ordersPage - 1
-                                            )
+                                            setOrdersPage(ordersPage - 1)
                                         }
                                     />
                                 </PaginationItem>
                                 <PaginationItem
                                     className={
-                                        ordersPage === 0
-                                            ? "invisible"
-                                            : ""
+                                        ordersPage === 0 ? "invisible" : ""
                                     }
                                 >
                                     <PaginationLink
                                         href="#"
-                                        size='sm'
+                                        size="sm"
                                         onClick={() =>
-                                            setOrdersPage(
-                                                ordersPage - 1
-                                            )
+                                            setOrdersPage(ordersPage - 1)
                                         }
                                     >
                                         {ordersPage}
                                     </PaginationLink>
                                 </PaginationItem>
                                 <PaginationItem>
-                                    <PaginationLink href="#" size='sm' isActive>
+                                    <PaginationLink href="#" size="sm" isActive>
                                         {ordersPage + 1}
                                     </PaginationLink>
                                 </PaginationItem>
@@ -178,11 +205,9 @@ export const NoteDialogOrdersSection = ({ noteId, category, className }: Props) 
                                 >
                                     <PaginationLink
                                         href="#"
-                                        size='sm'
+                                        size="sm"
                                         onClick={() =>
-                                            setOrdersPage(
-                                                ordersPage + 1
-                                            )
+                                            setOrdersPage(ordersPage + 1)
                                         }
                                     >
                                         {ordersPage + 2}
@@ -196,16 +221,14 @@ export const NoteDialogOrdersSection = ({ noteId, category, className }: Props) 
                                                 ? -1
                                                 : undefined
                                         }
-                                        size='sm'
+                                        size="sm"
                                         className={
                                             ordersPage >= orders.totalPages
                                                 ? "pointer-events-none opacity-50"
                                                 : undefined
                                         }
                                         onClick={() =>
-                                            setOrdersPage(
-                                                ordersPage + 1
-                                            )
+                                            setOrdersPage(ordersPage + 1)
                                         }
                                     />
                                 </PaginationItem>

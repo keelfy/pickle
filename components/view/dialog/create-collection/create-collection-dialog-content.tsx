@@ -13,7 +13,7 @@ import {
     FormField,
     FormItem,
     FormLabel,
-    FormMessage
+    FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import LoadingSpinner from "@/components/ui/loading-spinner";
@@ -29,7 +29,8 @@ import { z } from "zod";
 import { useCollectionContext } from "../../../ui/content-collections/collections-context";
 
 const formSchema = z.object({
-    name: z.string()
+    name: z
+        .string()
         .min(1, { message: "Name is required" })
         .max(50, { message: "Name must be less than 50 characters" }),
 });
@@ -38,17 +39,17 @@ export default function CreateCollectionDialogContent() {
     const { closeModal } = useModalStore((state) => state);
     const profile = useProfileStore((state) => state.profile);
     const [isLoading, startTransition] = useTransition();
-    const { addCollection, updateCollection, deleteCollection } = useCollectionContext();
+    const { addCollection, updateCollection, deleteCollection } =
+        useCollectionContext();
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
-        defaultValues: {
-            name: "Untitled collection",
-        },
+        defaultValues: { name: "Untitled collection" },
     });
 
     const onSubmit = (data: z.infer<typeof formSchema>) => {
         startTransition(async () => {
+            if (!profile) return;
             const optimisticCollection = {
                 id: crypto.randomUUID(),
                 name: data.name,
@@ -57,7 +58,10 @@ export default function CreateCollectionDialogContent() {
             };
             addCollection(optimisticCollection);
             try {
-                const newCollection = await fetchCreateCollection(profile, data);
+                const newCollection = await fetchCreateCollection(
+                    profile,
+                    data
+                );
                 updateCollection(optimisticCollection.id, newCollection);
                 closeModal();
                 toast({
@@ -79,7 +83,10 @@ export default function CreateCollectionDialogContent() {
         <>
             <DialogHeader>
                 <DialogTitle>Create collection</DialogTitle>
-                <DialogDescription>You can combine anything (e.g. games, movies, series, etc.) into a collection visible to everyone.</DialogDescription>
+                <DialogDescription>
+                    You can combine anything (e.g. games, movies, series, etc.)
+                    into a collection visible to everyone.
+                </DialogDescription>
             </DialogHeader>
 
             <Form {...form}>
@@ -94,7 +101,10 @@ export default function CreateCollectionDialogContent() {
                             <FormItem>
                                 <FormLabel>Name</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="e.g. My favorite games" {...field} />
+                                    <Input
+                                        placeholder="e.g. My favorite games"
+                                        {...field}
+                                    />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>

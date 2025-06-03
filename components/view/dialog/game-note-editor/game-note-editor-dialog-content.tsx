@@ -6,14 +6,14 @@ import { Button } from "@/components/ui/button";
 import {
     DialogFooter,
     DialogHeader,
-    DialogTitle
+    DialogTitle,
 } from "@/components/ui/dialog";
 import {
     Form,
     FormControl,
     FormField,
     FormItem,
-    FormMessage
+    FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,14 +24,27 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { createContentNote, fetchContentNote, updateContentNote } from "@/hooks/api-endpoints-client";
+import {
+    createContentNote,
+    fetchContentNote,
+    updateContentNote,
+} from "@/hooks/api-endpoints-client";
 import { toast } from "@/hooks/use-toast";
 import { useModalStore } from "@/providers/modal";
 import { useProfileStore } from "@/providers/profile-store";
 import { gameNoteStatusLabels } from "@/utils/api/constants";
 import { GameNote, GameNoteStatus } from "@/utils/api/types";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Check, CircleOff, Edit, X } from "lucide-react";
+import {
+    Check,
+    CheckIcon,
+    CircleOff,
+    Edit,
+    HistoryIcon,
+    LinkIcon,
+    RocketIcon,
+    X,
+} from "lucide-react";
 import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -43,11 +56,10 @@ import StatusSelectFormItem from "../content-note-editor/status-select-form-item
 import { NoteDialogOrdersSection } from "../note-dialog-orders-section";
 
 const formSchema = z.object({
-    name: z.string().min(1, {
-        message: "Name is required",
-    }).max(100, {
-        message: "Name must be less than 100 characters",
-    }),
+    name: z
+        .string()
+        .min(1, { message: "Name is required" })
+        .max(100, { message: "Name must be less than 100 characters" }),
     link: z.string().optional(),
     releaseDate: z.date().optional(),
     status: z.custom<GameNoteStatus>(),
@@ -57,9 +69,7 @@ const formSchema = z.object({
     posterPreviewId: z.string().optional(),
 });
 
-type Props = {
-    noteId: string | undefined;
-}
+type Props = { noteId: string | undefined };
 
 export default function GameNoteEditorDialogContent({ noteId }: Props) {
     const closeModal = useModalStore((state) => state.closeModal);
@@ -82,9 +92,13 @@ export default function GameNoteEditorDialogContent({ noteId }: Props) {
             form.reset({
                 name: gameNote.name,
                 link: gameNote.link,
-                releaseDate: gameNote.releaseDate ? new Date(gameNote.releaseDate) : undefined,
+                releaseDate: gameNote.releaseDate
+                    ? new Date(gameNote.releaseDate)
+                    : undefined,
                 status: gameNote.status,
-                lastPlayedAt: gameNote.lastPlayedAt ? new Date(gameNote.lastPlayedAt) : undefined,
+                lastPlayedAt: gameNote.lastPlayedAt
+                    ? new Date(gameNote.lastPlayedAt)
+                    : undefined,
                 comment: gameNote.comment,
                 rate: gameNote.rate,
             });
@@ -97,7 +111,7 @@ export default function GameNoteEditorDialogContent({ noteId }: Props) {
         if (!noteId || !profile?.id) return;
         fetchContentNote<GameNote>(profile, "games", noteId)
             .then(setGameNote)
-            .catch(err => {
+            .catch((err) => {
                 console.error(err);
                 toast({
                     title: "Failed to fetch game note",
@@ -112,7 +126,12 @@ export default function GameNoteEditorDialogContent({ noteId }: Props) {
         if (noteId) {
             startTransition(async () => {
                 try {
-                    const res = await updateContentNote<GameNote>(profile, "games", noteId, values);
+                    const res = await updateContentNote<GameNote>(
+                        profile,
+                        "games",
+                        noteId,
+                        values
+                    );
                     form.reset(res);
                 } catch (error: any) {
                     toast({
@@ -125,7 +144,11 @@ export default function GameNoteEditorDialogContent({ noteId }: Props) {
         } else {
             startTransition(async () => {
                 try {
-                    const res = await createContentNote<GameNote>(profile, "games", values);
+                    const res = await createContentNote<GameNote>(
+                        profile,
+                        "games",
+                        values
+                    );
                     toast({
                         title: res.name,
                         description: "The game was created.",
@@ -138,7 +161,7 @@ export default function GameNoteEditorDialogContent({ noteId }: Props) {
                         variant: "destructive",
                     });
                 }
-            })
+            });
         }
     });
 
@@ -146,9 +169,7 @@ export default function GameNoteEditorDialogContent({ noteId }: Props) {
         <>
             <div className="hidden">
                 <DialogHeader>
-                    <DialogTitle>
-                        {gameNote?.name}
-                    </DialogTitle>
+                    <DialogTitle>{gameNote?.name}</DialogTitle>
                 </DialogHeader>
             </div>
 
@@ -182,24 +203,30 @@ export default function GameNoteEditorDialogContent({ noteId }: Props) {
                                 <table>
                                     <tbody>
                                         <tr>
-                                            <td className="w-1/2">
-                                                <Label className="text-sm">
-                                                    Release Date
-                                                </Label>
+                                            <td className="w-1/2 font-semibold flex items-center gap-2">
+                                                <div>
+                                                    <RocketIcon size={12} />
+                                                </div>
+                                                <div className="whitespace-nowrap">
+                                                    Release date
+                                                </div>
                                             </td>
                                             <td>
                                                 <FormField
                                                     control={form.control}
                                                     name="releaseDate"
-                                                    render={({ field }) => <DayPickerFormItem field={field} />}
+                                                    render={({ field }) => (
+                                                        <DayPickerFormItem
+                                                            field={field}
+                                                        />
+                                                    )}
                                                 />
                                             </td>
                                         </tr>
                                         <tr>
-                                            <td className="w-1/2">
-                                                <Label className="text-sm">
-                                                    Link
-                                                </Label>
+                                            <td className="w-1/2 font-semibold flex items-center gap-2">
+                                                <LinkIcon size={12} />
+                                                Link
                                             </td>
                                             <td className="w-1/2">
                                                 <FormField
@@ -241,8 +268,13 @@ export default function GameNoteEditorDialogContent({ noteId }: Props) {
                                             </td>
                                         </tr>
                                         <tr>
-                                            <td className="pt-4 text-sm">
-                                                Status
+                                            <td className="pt-4 text-sm font-semibold flex items-center gap-2">
+                                                <div>
+                                                    <CheckIcon size={12} />
+                                                </div>
+                                                <div className="whitespace-nowrap">
+                                                    Status
+                                                </div>
                                             </td>
                                             <td className="pt-4">
                                                 <FormField
@@ -251,23 +283,30 @@ export default function GameNoteEditorDialogContent({ noteId }: Props) {
                                                     render={({ field }) => (
                                                         <StatusSelectFormItem
                                                             field={field}
-                                                            options={gameNoteStatusLabels}
+                                                            options={
+                                                                gameNoteStatusLabels
+                                                            }
                                                         />
                                                     )}
                                                 />
                                             </td>
                                         </tr>
                                         <tr>
-                                            <td>
-                                                <Label className="text-sm">
-                                                    Last Played
-                                                </Label>
+                                            <td className="text-sm w-1/2 py-1 font-semibold flex items-center gap-2">
+                                                <HistoryIcon size={12} />
+                                                <div className="whitespace-nowrap">
+                                                    Last played
+                                                </div>
                                             </td>
                                             <td>
                                                 <FormField
                                                     control={form.control}
                                                     name="lastPlayedAt"
-                                                    render={({ field }) => <DayPickerFormItem field={field} />}
+                                                    render={({ field }) => (
+                                                        <DayPickerFormItem
+                                                            field={field}
+                                                        />
+                                                    )}
                                                 />
                                             </td>
                                         </tr>
@@ -279,13 +318,17 @@ export default function GameNoteEditorDialogContent({ noteId }: Props) {
                         <FormField
                             control={form.control}
                             name="rate"
-                            render={({ field }) => <RateFormItem field={field} />}
+                            render={({ field }) => (
+                                <RateFormItem field={field} />
+                            )}
                         />
 
                         <FormField
                             control={form.control}
                             name="comment"
-                            render={({ field }) => <CommentFormItem field={field} />}
+                            render={({ field }) => (
+                                <CommentFormItem field={field} />
+                            )}
                         />
 
                         <div className="space-y-2 hidden">
@@ -334,7 +377,10 @@ export default function GameNoteEditorDialogContent({ noteId }: Props) {
                                 Reset
                             </Button>
                         )}
-                        <Button type="submit" disabled={isLoading || !form.formState.isDirty}>
+                        <Button
+                            type="submit"
+                            disabled={isLoading || !form.formState.isDirty}
+                        >
                             {isLoading ? <LoadingSpinner /> : <Check />}
                             {noteId ? "Confirm" : "Create"}
                         </Button>

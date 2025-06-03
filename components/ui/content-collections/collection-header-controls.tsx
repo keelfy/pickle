@@ -41,7 +41,7 @@ export default function CollectionHeaderControls({ toggleCollapsed, collapsed, c
             <Button variant="ghost" size="icon" onClick={toggleCollapsed}>
                 <ChevronDownIcon className={cn("transition-transform duration-300", collapsed && "rotate-90")} />
             </Button>
-            {profile.isAuthorized && (
+            {profile?.isAuthorized && (
                 <>
                     <Button variant="ghost" size="icon" onClick={handleEditClick}>
                         <PencilIcon />

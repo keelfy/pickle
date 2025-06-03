@@ -32,27 +32,20 @@ import {
 import { Input } from "./ui/input";
 import LoadingSpinner from "./ui/loading-spinner";
 
-type Props = {
-    message: Message;
-    registration: boolean;
-    className?: string;
-};
+type Props = { message: Message; registration: boolean; className?: string };
 
 const formSchema = z
     .object({
         registration: z.boolean(),
         email: z.string().email({ message: "Invalid email address" }),
-        password: z.string().min(6, {
-            message: "Password must be at least 6 characters",
-        }),
+        password: z
+            .string()
+            .min(6, { message: "Password must be at least 6 characters" }),
         repeatPassword: z.string(),
     })
     .refine(
         (data) => !data.registration || data.password === data.repeatPassword,
-        {
-            message: "Passwords don't match",
-            path: ["repeatPassword"],
-        }
+        { message: "Passwords don't match", path: ["repeatPassword"] }
     );
 
 const AuthForm = ({ message, registration, className }: Props) => {
@@ -189,7 +182,11 @@ const AuthForm = ({ message, registration, className }: Props) => {
                                                 required
                                                 placeholder="*****"
                                                 type="password"
-                                                autoComplete={registration ? "new-password" : "current-password"}
+                                                autoComplete={
+                                                    registration
+                                                        ? "new-password"
+                                                        : "current-password"
+                                                }
                                                 {...field}
                                             />
                                         </FormControl>
@@ -238,12 +235,10 @@ const AuthForm = ({ message, registration, className }: Props) => {
                                     pathname: registration
                                         ? "/sign-in"
                                         : "/sign-up",
-                                    query: {
-                                        goto: getGoTo(),
-                                    },
+                                    query: { goto: getGoTo() },
                                 }}
                                 className="underline"
-                                legacyBehavior>
+                            >
                                 {registration ? "Sign in" : "Sign up"}
                             </Link>
                         </div>

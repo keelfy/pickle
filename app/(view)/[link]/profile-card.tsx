@@ -18,33 +18,29 @@ import ManualCreationDropdownMenu from "./manual-creation-dropdown-menu";
 import ManualNoteCreationButton from "./manual-note-creation-button";
 import SuggestionLinkCopyButton from "./suggestion-link-copy-button";
 
-type Props = {
-    profile: PublicProfile;
-    className?: string;
-}
+type Props = { profile: PublicProfile; className?: string };
 
 export default function ProfileCard({ profile, className }: Props) {
     return (
         <div className={cn("min-w-80 space-y-4", className)}>
             <div className="space-y-4">
                 <div className="space-y-0.5">
-                    <div className="text-3xl font-bold">
-                        {profile.username}
-                    </div>
+                    <div className="text-3xl font-bold">{profile.username}</div>
                     <div className="flex items-center gap-2 text-sm">
+                        <div>@{profile.link}</div>
+                        <div className="text-muted-foreground">&bull;</div>
                         <div>
-                            @{profile.link}
-                        </div>
-                        <div className="text-muted-foreground">
-                            &bull;
-                        </div>
-                        <div>
-                            {getShortenedCount(profile.counts?.followers ?? 0)} followers
+                            {getShortenedCount(profile.counts?.followers ?? 0)}{" "}
+                            followers
                         </div>
                     </div>
                 </div>
                 <div className="flex items-center gap-6 pl-4">
-                    <ProfileAvatar avatarUrl={profile.avatarUrl} size="lg" className="h-36 w-36" />
+                    <ProfileAvatar
+                        avatarUrl={profile.avatarUrl}
+                        size="lg"
+                        className="h-36 w-36"
+                    />
                     <div className="flex flex-col gap-3 w-full">
                         <table className="w-min border-separate border-spacing-x-2">
                             <tbody>
@@ -87,21 +83,27 @@ export default function ProfileCard({ profile, className }: Props) {
             <div className="grid gap-2">
                 {profile.suggestionPreferences.enabled && (
                     <div className="flex items-center">
-                        <Link
-                            href={`/suggest/${profile.link}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="w-full"
-                        >
-                            <Button className="w-full rounded-r-none">
+                        <Button className="w-full rounded-r-none" asChild>
+                            <Link
+                                href={`/suggest/${profile.link}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="w-full"
+                            >
                                 <SparklesIcon />
                                 Suggest content
-                            </Button>
-                        </Link>
+                            </Link>
+                        </Button>
+
                         <SuggestionLinkCopyButton className="rounded-l-none" />
                     </div>
                 )}
-                <div className={cn("flex items-center", !profile.isAuthorized && "hidden")}>
+                <div
+                    className={cn(
+                        "flex items-center",
+                        !profile.isAuthorized && "hidden"
+                    )}
+                >
                     <ManualNoteCreationButton className="flex-1 rounded-r-none">
                         <ShieldPlusIcon />
                         Add a title manually
@@ -113,9 +115,7 @@ export default function ProfileCard({ profile, className }: Props) {
                 {(profile?.description ?? "").length > 0 ? (
                     profile?.description
                 ) : (
-                    <div className="italic">
-                        No description provided yet.
-                    </div>
+                    <div className="italic">No description provided yet.</div>
                 )}
             </div>
             <div className="flex items-center gap-2 ml-4">
@@ -133,5 +133,5 @@ export default function ProfileCard({ profile, className }: Props) {
                 </Button>
             </div>
         </div>
-    )
+    );
 }

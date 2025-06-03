@@ -7,12 +7,10 @@ import { ModalType } from "@/stores/modal";
 import { PublicProfile } from "@/utils/api/types";
 import Link from "next/link";
 
-type Props = {
-    profile: PublicProfile;
-}
+type Props = { profile: PublicProfile };
 
 export default function OrdersDisabledSection({ profile }: Props) {
-    const myProfile = useAuthStore(state => state.profile);
+    const myProfile = useAuthStore((state) => state.profile);
     const isOwner = myProfile !== undefined && myProfile?.id == profile.id;
 
     return (
@@ -21,12 +19,14 @@ export default function OrdersDisabledSection({ profile }: Props) {
                 Suggestions are disabled for {profile.username}.
             </div>
             {isOwner && (
-                <Link href={`/${myProfile.link}?modal=${ModalType.ProfileSettings}&modalParams=tab=suggestions`}>
-                    <Button variant="link" size="sm">
+                <Button variant="link" size="sm" asChild>
+                    <Link
+                        href={`/${myProfile.link}?modal=${ModalType.ProfileSettings}&modalParams=tab=suggestions`}
+                    >
                         You can enable this feature here.
-                    </Button>
-                </Link>
+                    </Link>
+                </Button>
             )}
         </div>
-    )
+    );
 }

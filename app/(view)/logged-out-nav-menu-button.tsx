@@ -9,16 +9,16 @@ export default function LoggedOutProfileNavSection() {
     const pathname = usePathname();
 
     return (
-        <Link
-            href={{
-                pathname: "/sign-in",
-                query: { goto: encodeURIComponent(pathname) },
-            }}
-        >
-            <Button variant="secondary">
+        <Button variant="secondary" asChild>
+            <Link
+                href={{
+                    pathname: "/sign-in",
+                    query: { goto: encodeURIComponent(pathname) },
+                }}
+            >
                 <LogIn />
                 Sign In
-            </Button>
-        </Link>
+            </Link>
+        </Button>
     );
 }

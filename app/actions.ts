@@ -8,7 +8,7 @@ import { redirect } from "next/navigation";
 
 export const signUpAction = async (email: string, password: string, goto: string = "/") => {
     const supabase = await createClient();
-    const origin = (await headers()).get("origin");
+    const origin = process.env.NEXT_PUBLIC_DOMAIN!;
 
     if (!email || !password) {
         return { error: "Email and password are required" };
@@ -52,13 +52,13 @@ export const signInAction = async (email: string, password: string, goto: string
 };
 
 export const signInWithProviderAction = async (provider: Provider, goto: string = "/") => {
-    const origin = (await headers()).get("origin");
+    const origin = process.env.NEXT_PUBLIC_DOMAIN!;
     const supabase = await createClient();
 
     const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-            redirectTo: origin + `/auth/callback${goto && goto.length > 0 ? `?redirect_to=${goto}` : ""}`,
+            redirectTo: `${origin}/auth/callback${goto && goto.length > 0 ? `?redirect_to=${goto}` : ""}`,
         }
     });
 
@@ -72,7 +72,7 @@ export const signInWithProviderAction = async (provider: Provider, goto: string 
 export const forgotPasswordAction = async (formData: FormData) => {
     const email = formData.get("email")?.toString();
     const supabase = await createClient();
-    const origin = (await headers()).get("origin");
+    const origin = process.env.NEXT_PUBLIC_DOMAIN!;
     const callbackUrl = formData.get("callbackUrl")?.toString();
 
     if (!email) {

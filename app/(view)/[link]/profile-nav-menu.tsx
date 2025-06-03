@@ -2,7 +2,13 @@ import LanguageDropdownMenu from "@/components/language-dropdown-menu";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Button } from "@/components/ui/button";
 import LoadingSpinner from "@/components/ui/loading-spinner";
-import { NavigationMenu, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, navigationMenuTriggerStyle } from "@/components/ui/navigation-menu";
+import {
+    NavigationMenu,
+    NavigationMenuItem,
+    NavigationMenuLink,
+    NavigationMenuList,
+    navigationMenuTriggerStyle,
+} from "@/components/ui/navigation-menu";
 import { Separator } from "@/components/ui/separator";
 import { localizeContentCategory } from "@/lib/localize-types";
 import { cn } from "@/lib/utils";
@@ -15,52 +21,69 @@ import ProfileDropdownMenu from "../profile-dropdown-menu";
 import MenuItemUnderline from "./menu-item-underline";
 import OpenModalButton from "./open-modal-button";
 
-type Props = {
-    link: string;
-    className?: string;
-};
+type Props = { link: string; className?: string };
 
-const ENABLED_CATEGORIES = [
-    "games",
-    "movies",
-]
+const ENABLED_CATEGORIES = ["games", "movies"];
 
 export default function ProfileNavigationMenu({ link, className }: Props) {
     return (
-        <div className={cn("flex items-center justify-between pt-2", className)}>
+        <div
+            className={cn("flex items-center justify-between pt-2", className)}
+        >
             <NavigationMenu>
                 <NavigationMenuList>
-                    <Button variant="ghost" size="icon" className={navigationMenuTriggerStyle()} disabled>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className={navigationMenuTriggerStyle()}
+                        disabled
+                    >
                         <Menu />
                     </Button>
                     <NavigationMenuItem>
                         <MenuItemUnderline link={`/${link}`}>
-                            <Link href={`/${link}`} legacyBehavior passHref>
-                                <NavigationMenuLink
-                                    className={navigationMenuTriggerStyle()}
-                                >
+                            <NavigationMenuLink
+                                className={navigationMenuTriggerStyle()}
+                                asChild
+                            >
+                                <Link href={`/${link}`} passHref>
                                     Overview
-                                </NavigationMenuLink>
-                            </Link>
+                                </Link>
+                            </NavigationMenuLink>
                         </MenuItemUnderline>
                     </NavigationMenuItem>
                     <div className="px-3">
                         <Separator orientation="vertical" className="h-8" />
                     </div>
                     {CONTENT_CATEGORIES.map((category) => (
-                        <NavigationMenuItem key={category} className={cn(!ENABLED_CATEGORIES.includes(category) && "opacity-50 text-muted-foreground")}>
+                        <NavigationMenuItem
+                            key={category}
+                            className={cn(
+                                !ENABLED_CATEGORIES.includes(category) &&
+                                    "opacity-50 text-muted-foreground"
+                            )}
+                        >
                             <MenuItemUnderline link={`/${link}/${category}`}>
-                                <Link
-                                    href={ENABLED_CATEGORIES.includes(category) ? `/${link}/${category}` : "#"}
-                                    legacyBehavior
-                                    passHref
+                                <NavigationMenuLink
+                                    className={navigationMenuTriggerStyle()}
+                                    asChild
                                 >
-                                    <NavigationMenuLink
-                                        className={navigationMenuTriggerStyle()}
+                                    <Link
+                                        href={
+                                            ENABLED_CATEGORIES.includes(
+                                                category
+                                            )
+                                                ? `/${link}/${category}`
+                                                : "#"
+                                        }
+                                        passHref
                                     >
-                                        {localizeContentCategory(category, true)}
-                                    </NavigationMenuLink>
-                                </Link>
+                                        {localizeContentCategory(
+                                            category,
+                                            true
+                                        )}
+                                    </Link>
+                                </NavigationMenuLink>
                             </MenuItemUnderline>
                         </NavigationMenuItem>
                     ))}

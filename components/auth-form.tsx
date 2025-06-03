@@ -243,7 +243,7 @@ const AuthForm = ({ message, registration, className }: Props) => {
                                     },
                                 }}
                                 className="underline"
-                            >
+                                legacyBehavior>
                                 {registration ? "Sign in" : "Sign up"}
                             </Link>
                         </div>

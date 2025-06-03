@@ -9,34 +9,33 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React from "react";
 
-type Props = {
-    className?: string;
-}
+type Props = { className?: string };
 
 export default function AuthSuggestSection({ className }: Props) {
-    const user = useAuthStore(state => state.user)
+    const user = useAuthStore((state) => state.user);
     const pathname = usePathname();
     const [isPending, startTransition] = React.useTransition();
 
-    const onSignOut = () => startTransition(async () => {
-        await signOutAction();
-        window.location.reload();
-    });
+    const onSignOut = () =>
+        startTransition(async () => {
+            await signOutAction();
+            window.location.reload();
+        });
 
     if (!user) {
         return (
-            <Link
-                href={{
-                    pathname: "/sign-in",
-                    query: { goto: encodeURIComponent(pathname) },
-                }}
-            >
-                <Button variant="secondary" className={className}>
+            <Button variant="secondary" className={className}>
+                <Link
+                    href={{
+                        pathname: "/sign-in",
+                        query: { goto: encodeURIComponent(pathname) },
+                    }}
+                >
                     <LogInIcon />
                     Sign In
-                </Button>
-            </Link>
-        )
+                </Link>
+            </Button>
+        );
     }
     return (
         <Button
@@ -48,5 +47,5 @@ export default function AuthSuggestSection({ className }: Props) {
             {isPending ? <LoadingSpinner /> : <LogOutIcon />}
             Log Out
         </Button>
-    )
+    );
 }

@@ -49,7 +49,7 @@ export default function ModeratorElement({ moderator, isLoading, afterDelete, cl
                 <ProfileAvatar avatarUrl={moderator.avatarUrl} size="sm" />
                 <div className="grid gap-0">
                     {moderator.link ? (
-                        <Link href={`/${moderator.link}`} target="_blank">
+                        <Link href={`/${moderator.link}`} target="_blank" legacyBehavior>
                             <ModeratorUsernameButton />
                         </Link>
                     ) : <ModeratorUsernameButton />}

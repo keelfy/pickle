@@ -8,7 +8,7 @@ import {
     DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuSeparator,
-    DropdownMenuTrigger
+    DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import DropdownMenuDialogWrapper from "@/components/view/dialog/dropdown-menu-dialog-wrapper";
 import ProfileSettingsDialog from "@/components/view/dialog/profile-settings/profile-settings-dialog";
@@ -22,12 +22,12 @@ import OpenModalDropdownMenuItem from "./[link]/open-modal-dropdown-menu-item";
 import LoggedOutProfileNavSection from "./logged-out-nav-menu-button";
 import DropdownMenuSignOutItem from "./sign-out-button";
 
-type Props = {
-    className?: string;
-    avatarSize?: "sm" | "md" | "lg";
-}
+type Props = { className?: string; avatarSize?: "sm" | "md" | "lg" };
 
-export default async function ProfileDropdownMenu({ className, avatarSize = "md" }: Props) {
+export default async function ProfileDropdownMenu({
+    className,
+    avatarSize = "md",
+}: Props) {
     const user = await getUser();
 
     if (!user) {
@@ -39,10 +39,12 @@ export default async function ProfileDropdownMenu({ className, avatarSize = "md"
     return (
         <DropdownMenuDialogWrapper>
             <DropdownMenu modal={false}>
-                <DropdownMenuTrigger
-                    className="hover:opacity-80 transition-opacity cursor-pointer"
-                >
-                    <ProfileAvatar avatarUrl={profile?.avatarUrl} size={avatarSize} className={cn("w-12 h-12", className)} />
+                <DropdownMenuTrigger className="hover:opacity-80 transition-opacity cursor-pointer">
+                    <ProfileAvatar
+                        avatarUrl={profile?.avatarUrl}
+                        size={avatarSize}
+                        className={cn("w-12 h-12", className)}
+                    />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                     <DropdownMenuLabel className="flex flex-col gap-4">
@@ -59,11 +61,10 @@ export default async function ProfileDropdownMenu({ className, avatarSize = "md"
                                 <User size={16} />
                             </Badge>
                         </div>
-                        <Link href={`/${profile?.link}`}>
-                            <Button className="w-full" variant="secondary">
-                                My profile
-                            </Button>
-                        </Link>
+
+                        <Button className="w-full" variant="secondary" asChild>
+                            <Link href={`/${profile?.link}`}>My profile</Link>
+                        </Button>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuGroup>

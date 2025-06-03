@@ -3,7 +3,6 @@
 import { createClient } from "@/utils/supabase/server";
 import { encodedRedirect } from "@/utils/utils";
 import { Provider } from "@supabase/supabase-js";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 export const signUpAction = async (email: string, password: string, goto: string = "/") => {
@@ -66,6 +65,7 @@ export const signInWithProviderAction = async (provider: Provider, goto: string 
         return encodedRedirect("error", "/sign-in", goto, error.message);
     }
 
+    console.log("Data from supabase:", data);
     return redirect(data.url);
 };
 

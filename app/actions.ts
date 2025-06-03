@@ -57,7 +57,7 @@ export const signInWithProviderAction = async (provider: Provider, goto: string 
     const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-            redirectTo: `${origin}/auth/callback${goto && goto.length > 0 ? `?redirect_to=${goto}` : ""}`,
+            redirectTo: `${origin}/auth/callback${goto && goto.length > 0 ? `?next=${goto}` : ""}`,
         }
     });
 
@@ -65,7 +65,6 @@ export const signInWithProviderAction = async (provider: Provider, goto: string 
         return encodedRedirect("error", "/sign-in", goto, error.message);
     }
 
-    console.log("Data from supabase:", data);
     return redirect(data.url);
 };
 
@@ -80,7 +79,7 @@ export const forgotPasswordAction = async (formData: FormData) => {
     }
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${origin}/auth/callback?redirect_to=/protected/reset-password`,
+        redirectTo: `${origin}/auth/callback?next=/protected/reset-password`,
     });
 
     if (error) {

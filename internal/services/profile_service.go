@@ -50,6 +50,7 @@ func NewProfileService(sqlDb storage.RelationalStorage, s3Client storage.FileSto
 		avatarService:   avatarService,
 		group:           singleflight.Group{},
 		followerService: followerService,
+		ordererService:  ordererService,
 	}
 }
 

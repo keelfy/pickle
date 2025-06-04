@@ -3,14 +3,18 @@
 import DonatePayIcon from "@/components/ui/icons/donate-pay-icon";
 import DonationAlertsIcon from "@/components/ui/icons/donation-alerts-icon";
 import StreamElementsIcon from "@/components/ui/icons/stream-elements-icon";
+import { useAuthCookies } from "@/hooks/use-auth-cookies";
 import { toast } from "@/hooks/use-toast";
 import { SiStreamlabs, SiTwitch } from "@icons-pack/react-simple-icons";
 import IntegrationElement from "./integration-element";
 
 export default function IntegrationsSettingsTab() {
 
+    const { refreshAuthCookie } = useAuthCookies();
+
     const handleTwitchConnect = async () => {
         try {
+            await refreshAuthCookie();
             window.location.href = `${process.env.NEXT_PUBLIC_BACKEND_URL}/v1/twitch/connect`;
         } catch (error) {
             toast({

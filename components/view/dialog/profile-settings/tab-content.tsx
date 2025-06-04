@@ -12,6 +12,11 @@ const DynamicSecuritySettingsTab = dynamic(
     { loading: () => <LoadingSpinner /> }
 );
 
+const DynamicIntegrationsSettingsTab = dynamic(
+    () => import("./integrations-tab/integrations-settings-tab"),
+    { loading: () => <LoadingSpinner /> }
+);
+
 const DynamicModerationSettingsTab = dynamic(
     () => import("./moderation-tab/moderation-settings-tab"),
     { loading: () => <LoadingSpinner /> }
@@ -27,13 +32,11 @@ export type ProfileSettingsDialogTab =
     | "security"
     | "notifications"
     | "moderation"
-    | "connections"
+    | "integrations"
     | "suggestions"
     | "payments";
 
-type Props = {
-    tab: ProfileSettingsDialogTab;
-}
+type Props = { tab: ProfileSettingsDialogTab };
 
 export default function TabContent({ tab }: Props) {
     const profile = useAuthStore((state) => state.profile);
@@ -44,8 +47,8 @@ export default function TabContent({ tab }: Props) {
             return <DynamicGeneralSettingsTab />;
         case "security":
             return <DynamicSecuritySettingsTab />;
-        case "connections":
-            return <div />;
+        case "integrations":
+            return <DynamicIntegrationsSettingsTab />;
         case "moderation":
             return <DynamicModerationSettingsTab />;
         case "notifications":
@@ -56,5 +59,5 @@ export default function TabContent({ tab }: Props) {
             return <div />;
     }
 
-    return <div>Tab content</div>;
+    return <div />;
 }

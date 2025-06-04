@@ -89,7 +89,7 @@ export default function ModerationSettingsTab() {
         <div className="flex flex-col gap-6 w-full">
             <div className="flex flex-col gap-2">
                 <h2 className="text-lg font-medium flex items-center gap-2">
-                    <ShieldAlertIcon className="w-4 h-4" />
+                    <ShieldAlertIcon className="w-5 h-5" />
                     What can moderators do?
                 </h2>
                 <ul className="list-disc list-inside text-sm">
@@ -101,7 +101,7 @@ export default function ModerationSettingsTab() {
 
             <div className="flex flex-col gap-2">
                 <h2 className="text-lg font-medium flex items-center gap-2">
-                    <UserCog className="w-4 h-4" />
+                    <UserCog className="w-5 h-5" />
                     Moderators
                 </h2>
                 {moderatorProfiles.length === 0 ? (
@@ -126,7 +126,7 @@ export default function ModerationSettingsTab() {
 
             <div className="flex flex-col gap-2">
                 <h2 className="text-lg font-medium flex items-center gap-2">
-                    <UserPlusIcon className="w-4 h-4" />
+                    <UserPlusIcon className="w-5 h-5" />
                     Add moderator
                 </h2>
 

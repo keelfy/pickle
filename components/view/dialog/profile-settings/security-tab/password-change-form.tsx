@@ -23,17 +23,13 @@ import { z } from "zod";
 
 const formSchema = z
     .object({
-        currentPassword: z.string().min(1, {
-            message: "Current password is required",
-        }),
+        currentPassword: z
+            .string()
+            .min(1, { message: "Current password is required" }),
         newPassword: z
             .string()
-            .min(1, {
-                message: "New password is required",
-            })
-            .min(6, {
-                message: "New password must be at least 6 characters",
-            }),
+            .min(1, { message: "New password is required" })
+            .min(6, { message: "New password must be at least 6 characters" }),
         confirmNewPassword: z.string(),
     })
     .refine((data) => data.newPassword === data.confirmNewPassword, {
@@ -47,11 +43,9 @@ const defaultFormValues: z.infer<typeof formSchema> = {
     confirmNewPassword: "",
 };
 
-type Props = {
-    className?: string;
-};
+type Props = { className?: string; needSetUp: boolean };
 
-export default function PasswordChangeForm({ className }: Props) {
+export default function PasswordChangeForm({ className, needSetUp }: Props) {
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: defaultFormValues,
@@ -63,7 +57,12 @@ export default function PasswordChangeForm({ className }: Props) {
 
     const handleSubmit = form.handleSubmit((values) =>
         startTransition(() =>
-            changePasswordAction(values).then((res) => {
+            changePasswordAction({
+                currentPassword: needSetUp
+                    ? values.newPassword
+                    : values.currentPassword,
+                newPassword: values.newPassword,
+            }).then((res) => {
                 if (res !== undefined && typeof res === "string") {
                     setError(res);
                     return;
@@ -89,22 +88,24 @@ export default function PasswordChangeForm({ className }: Props) {
                     <Input type="email" autoComplete="username" />
                 </div>
 
-                <FormField
-                    control={form.control}
-                    name="currentPassword"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Current password</FormLabel>
-                            <FormControl>
-                                <PasswordInput
-                                    autoComplete="current-password"
-                                    {...field}
-                                />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
+                {!needSetUp && (
+                    <FormField
+                        control={form.control}
+                        name="currentPassword"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Current password</FormLabel>
+                                <FormControl>
+                                    <PasswordInput
+                                        autoComplete="current-password"
+                                        {...field}
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                )}
 
                 <div className="flex items-start space-x-2 w-full justify-between">
                     <FormField
@@ -149,7 +150,7 @@ export default function PasswordChangeForm({ className }: Props) {
                         disabled={isLoading}
                     >
                         {isLoading ? <LoadingSpinner /> : <Check />}
-                        Confirm password change
+                        Confirm password{!needSetUp && " change"}
                     </Button>
                     {error && (
                         <div className="text-[0.8rem] font-medium text-destructive">

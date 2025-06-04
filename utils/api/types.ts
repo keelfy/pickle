@@ -20,6 +20,16 @@ export type PublicProfile = Profile & {
     isFollowing: boolean;
     isAuthorized: boolean;
     suggestionPreferences: SuggestionPreferences;
+    connections?: Connections;
+}
+
+export type Connections = {
+    twitch: TwitchConnection;
+}
+
+export type TwitchConnection = {
+    connected: boolean;
+    login?: string;
 }
 
 export type SuggestionPreferences = {

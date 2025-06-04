@@ -12,7 +12,11 @@ export async function apiFetcher<T>(
             headers.set("Authorization", `Bearer ${token}`);
         }
 
-        const response = await fetch(baseURL + url, { ...options, headers });
+        const response = await fetch(baseURL + url, {
+            ...options,
+            headers,
+            credentials: "include"
+        });
         const contentType = response.headers.get("Content-Type");
 
         let body: any = undefined;
@@ -23,7 +27,7 @@ export async function apiFetcher<T>(
             body = await response.text();
         }
 
-        if (!response.ok) {
+        if (response.status >= 400) {
             if (body?.error) {
                 throw new Error(body.error);
             } else if (body && typeof body === "string" && body.length > 0) {

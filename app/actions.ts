@@ -57,7 +57,7 @@ export const signInWithProviderAction = async (provider: Provider, goto: string 
     const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-            redirectTo: `${origin}/auth/callback${goto && goto.length > 0 ? `?next=${goto}` : ""}`,
+            redirectTo: `${origin}/auth/callback${goto && goto.length > 0 ? `?next=${encodeURIComponent(goto)}` : ""}`,
         }
     });
 
@@ -66,6 +66,42 @@ export const signInWithProviderAction = async (provider: Provider, goto: string 
     }
 
     return redirect(data.url);
+};
+
+export const linkProviderAction = async (provider: Provider, goto: string = "/") => {
+    const origin = process.env.NEXT_PUBLIC_DOMAIN!;
+    const supabase = await createClient();
+
+    const { data, error } = await supabase.auth.linkIdentity({
+        provider,
+        options: {
+            redirectTo: `${origin}/auth/callback${goto && goto.length > 0 ? `?next=${encodeURIComponent(goto)}` : ""}`,
+        }
+    });
+
+    if (error) {
+        const url = new URL(`${origin}${goto}`);
+        url.searchParams.set("providerError", provider)
+        url.searchParams.set("linkingError", error.message);
+        return redirect(`${url.pathname}?${url.searchParams.toString()}`);
+    }
+
+    return redirect(data.url);
+};
+
+export const unlinkProviderAction = async (provider: Provider) => {
+    const supabase = await createClient();
+
+    const { data: identities, error: identitiesError } = await supabase.auth.getUserIdentities();
+
+    if (!identitiesError) {
+        const identity = identities.identities.find(i => i.provider === provider)
+
+        if (identity) {
+            const { error } = await supabase.auth.unlinkIdentity(identity);
+            console.error("Error occurred during account unlink", error)
+        }
+    }
 };
 
 export const forgotPasswordAction = async (formData: FormData) => {
@@ -102,13 +138,13 @@ export const forgotPasswordAction = async (formData: FormData) => {
 export const changePasswordAction = async ({ currentPassword, newPassword }: { currentPassword: string, newPassword: string }) => {
     const supabase = await createClient();
 
-    if (!currentPassword) {
-        return "Current password is required";
-    } else if (!newPassword) {
+    if (!newPassword) {
         return "Password is required";
     } else if (newPassword.length < 6) {
         return "Password must be at least 6 characters";
-    };
+    } else if (!currentPassword) {
+        return "Current password is required";
+    }
 
     // Get the current user's email
     const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -116,14 +152,16 @@ export const changePasswordAction = async ({ currentPassword, newPassword }: { c
         return 'User not authenticated'
     }
 
-    // Verify current password
-    const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email: user.email,
-        password: currentPassword,
-    });
+    if (user.identities?.find(i => i.provider === 'email')) {
+        // Verify current password
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+            email: user.email,
+            password: currentPassword,
+        });
 
-    if (signInError) {
-        return 'Invalid current password'
+        if (signInError) {
+            return 'Invalid current password'
+        }
     }
 
     const { error } = await supabase.auth.updateUser({

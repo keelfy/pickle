@@ -43,8 +43,8 @@ func GetSupabaseKey() string {
 	return os.Getenv("SUPABASE_KEY")
 }
 
-func GetSupabaseTokenCookieName() string {
-	return os.Getenv("SUPABASE_TOKEN_COOKIE_NAME")
+func GetAccessTokenCookieName() string {
+	return os.Getenv("ACCESS_TOKEN_COOKIE_NAME")
 }
 
 /** JWT */

@@ -3,6 +3,7 @@ package clients
 import (
 	"context"
 	"fmt"
+	"net/url"
 
 	"github.com/nicklaw5/helix/v2"
 	"github.com/pickle.pw/monolith/internal/config"
@@ -56,7 +57,7 @@ func (c *twitchHelixClient) GetHelixUser(ctx context.Context, accessToken string
 func (c *twitchHelixClient) GetAuthorizationURL(ctx context.Context, state string) (string, error) {
 	client, err := helix.NewClientWithContext(ctx, &helix.Options{
 		ClientID:    twitchClientID,
-		RedirectURI: twitchRedirectURI,
+		RedirectURI: url.QueryEscape(twitchRedirectURI),
 	})
 	if err != nil {
 		return "", fmt.Errorf("error creating twitch helix client: %w", err)
@@ -76,7 +77,7 @@ func (c *twitchHelixClient) RequestUserAccessToken(ctx context.Context, code str
 	client, err := helix.NewClient(&helix.Options{
 		ClientID:     twitchClientID,
 		ClientSecret: twitchClientSecret,
-		RedirectURI:  twitchRedirectURI,
+		RedirectURI:  url.QueryEscape(twitchRedirectURI),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("error creating twitch helix client: %w", err)

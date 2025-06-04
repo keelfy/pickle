@@ -18,4 +18,6 @@ var ProviderSet = wire.NewSet(
 	NewPermissionService,
 	NewPublicProfileService,
 	NewIGDBSyncService,
+	NewConnectionService,
+	NewTwitchService,
 )

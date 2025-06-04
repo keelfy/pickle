@@ -24,12 +24,14 @@ type publicProfileService struct {
 	orderService       OrderService
 	profileService     ProfileService
 	contentNoteService ContentNoteService
+	connectionService  ConnectionService
 }
 
 func NewPublicProfileService(
 	avatarService AvatarService, followerService FollowerService,
 	moderatorService ModeratorService, orderService OrderService,
 	profileService ProfileService, contentNoteService ContentNoteService,
+	connectionService ConnectionService,
 ) PublicProfileService {
 	return &publicProfileService{
 		avatarService:      avatarService,
@@ -38,6 +40,7 @@ func NewPublicProfileService(
 		orderService:       orderService,
 		profileService:     profileService,
 		contentNoteService: contentNoteService,
+		connectionService:  connectionService,
 	}
 }
 
@@ -163,5 +166,6 @@ func (s *publicProfileService) GetPublicProfile(ctx context.Context, profile *db
 	wg.Wait()
 
 	publicProfile.Counts = *counts
+
 	return publicProfile, nil
 }

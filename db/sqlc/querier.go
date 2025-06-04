@@ -34,6 +34,7 @@ type Querier interface {
 	// Author: Egor Kuzmin (keelfy)
 	CountWatchedMovieNotesByUserId(ctx context.Context, userID uuid.UUID) (int64, error)
 	CreateIGDBSync(ctx context.Context, syncType IgdbSyncType) (*IgdbSyncLog, error)
+	CreateTwitchConnection(ctx context.Context, arg CreateTwitchConnectionParams) error
 	DeleteCollectionByID(ctx context.Context, id uuid.UUID) error
 	DeleteCollectionItemByID(ctx context.Context, id uuid.UUID) error
 	DeleteCollectionItemsByCollectionID(ctx context.Context, collectionID uuid.UUID) error
@@ -133,6 +134,7 @@ type Querier interface {
 	GetLastSuccessfulSync(ctx context.Context, syncType IgdbSyncType) (*IgdbSyncLog, error)
 	// Author: Egor Kuzmin (keelfy)
 	GetMovieNoteReactionsByMovieNoteIdInAndUserId(ctx context.Context, arg GetMovieNoteReactionsByMovieNoteIdInAndUserIdParams) ([]*GetMovieNoteReactionsByMovieNoteIdInAndUserIdRow, error)
+	GetTwitchConnectionByOwnerID(ctx context.Context, ownerID uuid.UUID) (string, error)
 	// Author: Egor Kuzmin (keelfy)
 	GetUserFollows(ctx context.Context, followerID uuid.UUID) ([]*Profile, error)
 	InsertCollection(ctx context.Context, arg InsertCollectionParams) (*Collection, error)

@@ -42,7 +42,10 @@ func InitializeAPI(ctx context.Context) (api.PickleAPI, func(), error) {
 	avatarService := services.NewAvatarService(relationalStorage, cacheStorage, fileStorage, imageService)
 	followerService := services.NewFollowerService(relationalStorage, cacheStorage)
 	ordererService := services.NewOrdererService(relationalStorage)
-	profileService := services.NewProfileService(relationalStorage, fileStorage, cacheStorage, avatarService, followerService, ordererService)
+	twitchHelixClient := clients.NewTwitchHelixClient(ctx)
+	twitchService := services.NewTwitchService(relationalStorage, twitchHelixClient)
+	connectionService := services.NewConnectionService(twitchService)
+	profileService := services.NewProfileService(relationalStorage, fileStorage, cacheStorage, avatarService, followerService, ordererService, connectionService)
 	elasticStorage, err := storage.NewElasticStorage(ctx)
 	if err != nil {
 		cleanup()
@@ -53,7 +56,7 @@ func InitializeAPI(ctx context.Context) (api.PickleAPI, func(), error) {
 	permissionService := services.NewPermissionService(moderatorService)
 	contentNoteService := services.NewContentService(relationalStorage, elasticStorage, cacheStorage, posterService, ordererService, permissionService, profileService)
 	orderService := services.NewOrderService(relationalStorage, profileService, ordererService, contentNoteService, permissionService)
-	publicProfileService := services.NewPublicProfileService(avatarService, followerService, moderatorService, orderService, profileService, contentNoteService)
+	publicProfileService := services.NewPublicProfileService(avatarService, followerService, moderatorService, orderService, profileService, contentNoteService, connectionService)
 	profileHandler := handlers.NewUserHandler(profileService, avatarService, orderService, followerService, publicProfileService)
 	statusHandler := handlers.NewStatusHandler(relationalStorage, elasticStorage, cacheStorage)
 	orderHandler := handlers.NewOrdersHandler(orderService, profileService, contentNoteService)
@@ -68,7 +71,8 @@ func InitializeAPI(ctx context.Context) (api.PickleAPI, func(), error) {
 	igdbClient := clients.NewIGDBClient()
 	igdbSyncService := services.NewIGDBSyncService(relationalStorage, elasticStorage, igdbClient)
 	igdbScheduler := schedulers.NewIGDBScheduler(igdbSyncService, relationalStorage)
-	pickleAPI := api.NewPickleAPI(profileHandler, statusHandler, orderHandler, contentNoteHandler, posterHandler, migrationService, contentHandler, collectionHandler, moderatorHandler, igdbScheduler, igdbSyncService)
+	twitchConnectionHandler := handlers.NewTwitchConnectionHandler(twitchService, profileService)
+	pickleAPI := api.NewPickleAPI(profileHandler, statusHandler, orderHandler, contentNoteHandler, posterHandler, migrationService, contentHandler, collectionHandler, moderatorHandler, igdbScheduler, igdbSyncService, twitchConnectionHandler)
 	return pickleAPI, func() {
 		cleanup()
 	}, nil

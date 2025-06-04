@@ -31,26 +31,29 @@ type ProfileService interface {
 }
 
 type profileService struct {
-	sqlDb           storage.RelationalStorage
-	s3Client        storage.FileStorage
-	cache           storage.CacheStorage
-	avatarService   AvatarService
-	group           singleflight.Group
-	followerService FollowerService
-	ordererService  OrdererService
+	sqlDb             storage.RelationalStorage
+	s3Client          storage.FileStorage
+	cache             storage.CacheStorage
+	avatarService     AvatarService
+	group             singleflight.Group
+	followerService   FollowerService
+	ordererService    OrdererService
+	connectionService ConnectionService
 }
 
 func NewProfileService(sqlDb storage.RelationalStorage, s3Client storage.FileStorage, cache storage.CacheStorage,
 	avatarService AvatarService, followerService FollowerService, ordererService OrdererService,
+	connectionService ConnectionService,
 ) ProfileService {
 	return &profileService{
-		sqlDb:           sqlDb,
-		s3Client:        s3Client,
-		cache:           cache,
-		avatarService:   avatarService,
-		group:           singleflight.Group{},
-		followerService: followerService,
-		ordererService:  ordererService,
+		sqlDb:             sqlDb,
+		s3Client:          s3Client,
+		cache:             cache,
+		avatarService:     avatarService,
+		group:             singleflight.Group{},
+		followerService:   followerService,
+		ordererService:    ordererService,
+		connectionService: connectionService,
 	}
 }
 
@@ -115,6 +118,16 @@ func (service *profileService) GetMyProfile(ctx context.Context, avatarSize stri
 			logger.Errorf(ctx, "Error occurred during avatar url: %v", err)
 		}
 		publicProfile.AvatarURL = avatarUrl
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		connections, err := service.connectionService.GetConnections(ctx, profile.UserID)
+		if err != nil {
+			logger.Errorf(ctx, err.Error())
+		}
+		publicProfile.Connections = connections
 	}()
 
 	wg.Wait()

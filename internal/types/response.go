@@ -46,16 +46,26 @@ type CountsRes struct {
 	Followers int64 `json:"followers,omitempty"`
 }
 
+type TwitchConnectionRes struct {
+	Connected bool   `json:"connected"`
+	Login     string `json:"login,omitempty"`
+}
+
+type ConnectionsRes struct {
+	Twitch TwitchConnectionRes `json:"twitch,omitempty"`
+}
+
 type ProfileRes struct {
-	UserID       string     `json:"id"`
-	CreatedAt    time.Time  `json:"createdAt"`
-	Username     string     `json:"username"`
-	Link         string     `json:"link"`
-	Description  *string    `json:"description,omitempty"`
-	Counts       *CountsRes `json:"counts,omitempty"`
-	IsFollowing  bool       `json:"isFollowing"`
-	IsAuthorized bool       `json:"isAuthorized"`
-	AvatarURL    string     `json:"avatarUrl,omitempty"`
+	UserID       string          `json:"id"`
+	CreatedAt    time.Time       `json:"createdAt"`
+	Username     string          `json:"username"`
+	Link         string          `json:"link"`
+	Description  *string         `json:"description,omitempty"`
+	Counts       *CountsRes      `json:"counts,omitempty"`
+	IsFollowing  bool            `json:"isFollowing"`
+	IsAuthorized bool            `json:"isAuthorized"`
+	AvatarURL    string          `json:"avatarUrl,omitempty"`
+	Connections  *ConnectionsRes `json:"connections,omitempty"`
 }
 
 type ModeratorProfileRes struct {

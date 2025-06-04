@@ -43,6 +43,10 @@ func GetSupabaseKey() string {
 	return os.Getenv("SUPABASE_KEY")
 }
 
+func GetSupabaseTokenCookieName() string {
+	return os.Getenv("SUPABASE_TOKEN_COOKIE_NAME")
+}
+
 /** JWT */
 
 func GetJWTSecret() []byte {
@@ -123,7 +127,7 @@ func GetCorsAllowedOrigins() []string {
 	return strings.Split(os.Getenv("CORS_ALLOWED_ORIGINS"), ";")
 }
 
-/** IGDB */
+/** Twitch */
 
 func GetTwitchClientID() string {
 	return os.Getenv("TWITCH_CLIENT_ID")
@@ -131,4 +135,12 @@ func GetTwitchClientID() string {
 
 func GetTwitchClientSecret() string {
 	return os.Getenv("TWITCH_CLIENT_SECRET")
+}
+
+func GetTwitchRedirectURI() string {
+	return os.Getenv("TWITCH_REDIRECT_URI")
+}
+
+func GetTwitchAuthStateSecret() []byte {
+	return []byte(os.Getenv("TWITCH_AUTH_STATE_SECRET"))
 }

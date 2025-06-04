@@ -36,10 +36,17 @@ definitions:
     - ReactionSourceUnicodeEmoji
     - ReactionSource7tv
     - ReactionSourceCustom
+  github_com_pickle_pw_monolith_internal_models.Connections:
+    properties:
+      twitch:
+        $ref: '#/definitions/github_com_pickle_pw_monolith_internal_models.TwitchConnection'
+    type: object
   github_com_pickle_pw_monolith_internal_models.PublicProfile:
     properties:
       avatarUrl:
         type: string
+      connections:
+        $ref: '#/definitions/github_com_pickle_pw_monolith_internal_models.Connections'
       counts:
         $ref: '#/definitions/github_com_pickle_pw_monolith_internal_models.PublicProfileCounts'
       description:
@@ -94,6 +101,13 @@ definitions:
       enabled:
         type: boolean
     type: object
+  github_com_pickle_pw_monolith_internal_models.TwitchConnection:
+    properties:
+      connected:
+        type: boolean
+      login:
+        type: string
+    type: object
   github_com_pickle_pw_monolith_internal_types.BatchNoteReactionsRes:
     properties:
       noteId:
@@ -124,6 +138,11 @@ definitions:
         type: string
       name:
         type: string
+    type: object
+  github_com_pickle_pw_monolith_internal_types.ConnectionsRes:
+    properties:
+      twitch:
+        $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.TwitchConnectionRes'
     type: object
   github_com_pickle_pw_monolith_internal_types.ContentRes:
     properties:
@@ -232,6 +251,8 @@ definitions:
     properties:
       avatarUrl:
         type: string
+      connections:
+        $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.ConnectionsRes'
       counts:
         $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.CountsRes'
       createdAt:
@@ -286,6 +307,13 @@ definitions:
       type:
         type: string
     type: object
+  github_com_pickle_pw_monolith_internal_types.TwitchConnectionRes:
+    properties:
+      connected:
+        type: boolean
+      login:
+        type: string
+    type: object
   github_com_pickle_pw_monolith_internal_types.UpdateProfileReq:
     properties:
       description:
@@ -293,6 +321,14 @@ definitions:
       link:
         type: string
       username:
+        type: string
+    type: object
+  internal_handlers.SetJWTCookieRequest:
+    properties:
+      maxAge:
+        description: Optional, defaults to 24 hours
+        type: integer
+      token:
         type: string
     type: object
 host: api.pickle.pw
@@ -309,6 +345,51 @@ info:
   title: Pickle API
   version: "1.0"
 paths:
+  /v1/auth/clear-cookie:
+    post:
+      consumes:
+      - application/json
+      description: Clears the HTTP-only JWT cookie used for authentication
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Clear JWT Cookie
+      tags:
+      - auth
+  /v1/auth/set-cookie:
+    post:
+      consumes:
+      - application/json
+      description: Sets an HTTP-only cookie with the provided JWT token for authentication
+      parameters:
+      - description: JWT token and optional max age
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handlers.SetJWTCookieRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: Set JWT Cookie
+      tags:
+      - auth
   /v1/collections/{collectionId}:
     delete:
       consumes:

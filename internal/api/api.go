@@ -23,18 +23,20 @@ type PickleAPI interface {
 }
 
 type pickleAPI struct {
-	profileHandler     handlers.ProfileHandler
-	statusHandler      handlers.StatusHandler
-	orderHandler       handlers.OrderHandler
-	contentNoteHandler handlers.ContentNoteHandler
-	posterHandler      handlers.PosterHandler
-	migrationService   services.MigrationService
-	contentService     handlers.ContentHandler
-	collectionHandler  handlers.CollectionHandler
-	tokenAuth          *jwtAuth.JWTAuth
-	moderatorHandler   handlers.ModeratorHandler
-	igdbSyncScheduler  schedulers.IGDBScheduler
-	igdbSyncService    services.IGDBSyncService
+	profileHandler          handlers.ProfileHandler
+	statusHandler           handlers.StatusHandler
+	orderHandler            handlers.OrderHandler
+	contentNoteHandler      handlers.ContentNoteHandler
+	posterHandler           handlers.PosterHandler
+	migrationService        services.MigrationService
+	contentService          handlers.ContentHandler
+	collectionHandler       handlers.CollectionHandler
+	tokenAuth               *jwtAuth.JWTAuth
+	moderatorHandler        handlers.ModeratorHandler
+	igdbSyncScheduler       schedulers.IGDBScheduler
+	igdbSyncService         services.IGDBSyncService
+	twitchConnectionHandler handlers.TwitchConnectionHandler
+	authHandler             handlers.AuthHandler
 }
 
 func NewPickleAPI(
@@ -43,20 +45,23 @@ func NewPickleAPI(
 	migrationService services.MigrationService, contentService handlers.ContentHandler,
 	collectionHandler handlers.CollectionHandler, moderatorHandler handlers.ModeratorHandler,
 	igdbSyncScheduler schedulers.IGDBScheduler, igdbSyncService services.IGDBSyncService,
+	twitchConnectionHandler handlers.TwitchConnectionHandler,
 ) PickleAPI {
 	return &pickleAPI{
-		profileHandler:     profileHandler,
-		statusHandler:      statusHandler,
-		orderHandler:       orderHandler,
-		contentNoteHandler: contentNoteHandler,
-		posterHandler:      posterHandler,
-		migrationService:   migrationService,
-		contentService:     contentService,
-		collectionHandler:  collectionHandler,
-		moderatorHandler:   moderatorHandler,
-		igdbSyncScheduler:  igdbSyncScheduler,
-		igdbSyncService:    igdbSyncService,
-		tokenAuth:          jwtAuth.New("HS256", config.GetJWTSecret(), nil),
+		profileHandler:          profileHandler,
+		statusHandler:           statusHandler,
+		orderHandler:            orderHandler,
+		contentNoteHandler:      contentNoteHandler,
+		posterHandler:           posterHandler,
+		migrationService:        migrationService,
+		contentService:          contentService,
+		collectionHandler:       collectionHandler,
+		moderatorHandler:        moderatorHandler,
+		igdbSyncScheduler:       igdbSyncScheduler,
+		igdbSyncService:         igdbSyncService,
+		twitchConnectionHandler: twitchConnectionHandler,
+		authHandler:             handlers.NewAuthHandler(),
+		tokenAuth:               jwtAuth.New("HS256", config.GetJWTSecret(), nil),
 	}
 }
 
@@ -114,11 +119,11 @@ func (api *pickleAPI) applyElasticsearchMigrations(ctx context.Context) error {
 }
 
 func (api *pickleAPI) useProtectedRoutes(r chi.Router) {
-	r.Use(jwtAuth.Verifier(api.tokenAuth), middleware.Authenticator(api.tokenAuth, true))
+	r.Use(middleware.VerifierWithCookieSupport(api.tokenAuth), middleware.Authenticator(api.tokenAuth, true))
 }
 
 func (api *pickleAPI) useUnprotectedRoutes(r chi.Router) {
-	r.Use(jwtAuth.Verifier(api.tokenAuth), middleware.Authenticator(api.tokenAuth, false))
+	r.Use(middleware.VerifierWithCookieSupport(api.tokenAuth), middleware.Authenticator(api.tokenAuth, false))
 }
 
 func (api *pickleAPI) useApiKey(r chi.Router) {
@@ -130,10 +135,27 @@ func (api *pickleAPI) v1RouteHandler() http.Handler {
 
 	r.Get("/health", api.statusHandler.Health)
 
+	r.Route("/auth", func(r chi.Router) {
+		r.Post("/set-cookie", api.authHandler.SetJWTCookie)
+		r.Post("/clear-cookie", api.authHandler.ClearJWTCookie)
+	})
+
 	r.Route("/supabase-webhooks", func(r chi.Router) {
 		api.useApiKey(r)
 
 		r.Post("/users", api.profileHandler.CreateProfileWebhook)
+	})
+
+	r.Route("/twitch", func(r chi.Router) {
+		r.Group(func(r chi.Router) {
+			api.useProtectedRoutes(r)
+
+			r.Get("/connect", api.twitchConnectionHandler.ConnectTwitchRedemptions)
+		})
+
+		r.Group(func(r chi.Router) {
+			r.Get("/callback", api.twitchConnectionHandler.TwitchRedemptionsCallback)
+		})
 	})
 
 	r.Route("/triggers", func(r chi.Router) {

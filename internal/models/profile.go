@@ -44,6 +44,15 @@ type PublicProfileCounts struct {
 	Followers int64 `json:"followers"`
 }
 
+type TwitchConnection struct {
+	Connected bool   `json:"connected"`
+	Login     string `json:"login,omitempty"`
+}
+
+type Connections struct {
+	Twitch TwitchConnection `json:"twitch,omitempty"`
+}
+
 type PublicProfile struct {
 	ID                    uuid.UUID              `json:"id"`
 	Username              string                 `json:"username"`
@@ -54,6 +63,7 @@ type PublicProfile struct {
 	IsFollowing           bool                   `json:"isFollowing"`
 	IsAuthorized          bool                   `json:"isAuthorized"`
 	SuggestionPreferences *SuggestionPreferences `json:"suggestionPreferences,omitempty"`
+	Connections           *Connections           `json:"connections,omitempty"`
 }
 
 func (p *PublicProfile) GetID() uuid.UUID {

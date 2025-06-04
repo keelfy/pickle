@@ -24,6 +24,75 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/v1/auth/clear-cookie": {
+            "post": {
+                "description": "Clears the HTTP-only JWT cookie used for authentication",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Clear JWT Cookie",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/auth/set-cookie": {
+            "post": {
+                "description": "Sets an HTTP-only cookie with the provided JWT token for authentication",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Set JWT Cookie",
+                "parameters": [
+                    {
+                        "description": "JWT token and optional max age",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handlers.SetJWTCookieRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/collections/{collectionId}": {
             "get": {
                 "description": "Get collection by ID",
@@ -2136,11 +2205,22 @@ const docTemplate = `{
                 "ReactionSourceCustom"
             ]
         },
+        "github_com_pickle_pw_monolith_internal_models.Connections": {
+            "type": "object",
+            "properties": {
+                "twitch": {
+                    "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_models.TwitchConnection"
+                }
+            }
+        },
         "github_com_pickle_pw_monolith_internal_models.PublicProfile": {
             "type": "object",
             "properties": {
                 "avatarUrl": {
                     "type": "string"
+                },
+                "connections": {
+                    "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_models.Connections"
                 },
                 "counts": {
                     "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_models.PublicProfileCounts"
@@ -2225,6 +2305,17 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_pickle_pw_monolith_internal_models.TwitchConnection": {
+            "type": "object",
+            "properties": {
+                "connected": {
+                    "type": "boolean"
+                },
+                "login": {
+                    "type": "string"
+                }
+            }
+        },
         "github_com_pickle_pw_monolith_internal_types.BatchNoteReactionsRes": {
             "type": "object",
             "properties": {
@@ -2270,6 +2361,14 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                }
+            }
+        },
+        "github_com_pickle_pw_monolith_internal_types.ConnectionsRes": {
+            "type": "object",
+            "properties": {
+                "twitch": {
+                    "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.TwitchConnectionRes"
                 }
             }
         },
@@ -2438,6 +2537,9 @@ const docTemplate = `{
                 "avatarUrl": {
                     "type": "string"
                 },
+                "connections": {
+                    "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.ConnectionsRes"
+                },
                 "counts": {
                     "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.CountsRes"
                 },
@@ -2520,6 +2622,17 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_pickle_pw_monolith_internal_types.TwitchConnectionRes": {
+            "type": "object",
+            "properties": {
+                "connected": {
+                    "type": "boolean"
+                },
+                "login": {
+                    "type": "string"
+                }
+            }
+        },
         "github_com_pickle_pw_monolith_internal_types.UpdateProfileReq": {
             "type": "object",
             "properties": {
@@ -2530,6 +2643,18 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handlers.SetJWTCookieRequest": {
+            "type": "object",
+            "properties": {
+                "maxAge": {
+                    "description": "Optional, defaults to 24 hours",
+                    "type": "integer"
+                },
+                "token": {
                     "type": "string"
                 }
             }

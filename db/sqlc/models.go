@@ -564,3 +564,12 @@ type ProfileAvatar struct {
 	AvatarUrl        *string    `json:"avatar_url"`
 	AvatarPreviewKey *string    `json:"avatar_preview_key"`
 }
+
+type TwitchConnection struct {
+	OwnerID       uuid.UUID `json:"owner_id"`
+	BroadcasterID string    `json:"broadcaster_id"`
+	Login         string    `json:"login"`
+	AccessToken   string    `json:"access_token"`
+	RefreshToken  string    `json:"refresh_token"`
+	ExpiresAt     time.Time `json:"expires_at"`
+}

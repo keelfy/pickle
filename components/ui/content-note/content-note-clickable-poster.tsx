@@ -43,7 +43,7 @@ export default function ContentNoteClickablePoster({ size = "sm", className, loa
             className={cn("border-none p-0 hover:shadow-2xl hover:scale-105 transition-all duration-300 rounded-md", className)}
         >
             <ContentNotePoster
-                posterUrl={content.coverUrl?.replace("t_thumb", "t_cover_big")}
+                posterUrl={content.content.coverUrl?.replace("t_thumb", "t_cover_big")}
                 size={size}
                 loading={loading}
                 className="cursor-pointer"

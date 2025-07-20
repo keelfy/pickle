@@ -33,6 +33,7 @@ import EditableContentName from "../content-note-editor/editable-content-name";
 import RateFormItem from "../content-note-editor/rate-form-item";
 import StatusSelectFormItem from "../content-note-editor/status-select-form-item";
 import { NoteDialogOrdersSection } from "../note-dialog-orders-section";
+import { CreateContentNoteReq } from "@/utils/api/request";
 
 const formSchema = z.object({
     name: z.string(),
@@ -67,8 +68,8 @@ export default function MovieNoteEditorDialogContent({ noteId }: Props) {
     React.useEffect(() => {
         if (contentNote) {
             form.reset({
-                name: contentNote.name,
-                releaseDate: contentNote.releaseDate ? new Date(contentNote.releaseDate) : undefined,
+                name: contentNote.content.title,
+                releaseDate: contentNote.content.releaseDate ? new Date(contentNote.content.releaseDate) : undefined,
                 status: contentNote.status,
                 watchedAt: contentNote.watchedAt ? new Date(contentNote.watchedAt) : undefined,
                 comment: contentNote.comment,
@@ -99,7 +100,7 @@ export default function MovieNoteEditorDialogContent({ noteId }: Props) {
         if (noteId) {
             startTransition(async () => {
                 try {
-                    const res = await updateContentNote<MovieNote>(profile, "movies", noteId, values);
+                    const res = await updateContentNote<MovieNote, Partial<CreateContentNoteReq>>(profile, "movies", noteId, values);
                     form.reset(res);
                 } catch (error: any) {
                     toast({
@@ -112,11 +113,11 @@ export default function MovieNoteEditorDialogContent({ noteId }: Props) {
         } else {
             startTransition(async () => {
                 try {
-                    const res = await createContentNote<MovieNote>(profile, "movies", values);
-                    toast({
-                        title: res.name,
-                        description: "The movie was created.",
-                    });
+                    // const res = await createContentNote<MovieNote, CreateContentNoteReq>(profile, "movies", values);
+                    // toast({
+                    //     title: res.content.title,
+                    //     description: "The movie was created.",
+                    // });
                     closeModal();
                 } catch (error: any) {
                     toast({
@@ -134,7 +135,7 @@ export default function MovieNoteEditorDialogContent({ noteId }: Props) {
             <div className="hidden">
                 <DialogHeader>
                     <DialogTitle>
-                        {contentNote?.name}
+                        {contentNote?.content.title}
                     </DialogTitle>
                 </DialogHeader>
             </div>
@@ -145,7 +146,7 @@ export default function MovieNoteEditorDialogContent({ noteId }: Props) {
                         <div className="flex items-start space-x-4">
                             <EditablePoster
                                 value={form.watch("posterPreviewId")}
-                                defaultImageUrl={contentNote?.coverUrl}
+                                defaultImageUrl={contentNote?.content.coverUrl}
                                 onChange={(value) => {
                                     form.setValue("posterPreviewId", value, {
                                         shouldDirty: true,

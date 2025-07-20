@@ -59,17 +59,17 @@ export default function MovieNoteDialogContent() {
             <div className="hidden">
                 <DialogHeader>
                     <DialogTitle>
-                        {contentNote?.name}
+                        {contentNote?.content.title}
                     </DialogTitle>
                 </DialogHeader>
             </div>
 
             <div className="grid space-y-6">
                 <div className="flex items-start gap-4">
-                    <ContentNotePoster posterUrl={contentNote?.coverUrl} size="md" loading={isLoading} />
+                    <ContentNotePoster posterUrl={contentNote?.content.coverUrl} size="md" loading={isLoading} />
                     <div className="flex-1 flex flex-col gap-3 w-full justify-between">
                         <div className="font-bold text-lg">
-                            {contentNote?.name}
+                            {contentNote?.content.title}
                         </div>
                         <table className="w-full">
                             <tbody>
@@ -84,9 +84,9 @@ export default function MovieNoteDialogContent() {
                                     </td>
                                     <td>
                                         <div className="text-sm w-1/2 py-1 whitespace-nowrap">
-                                            {contentNote?.releaseDate
+                                            {contentNote?.content.releaseDate
                                                 ? new Date(
-                                                    contentNote?.releaseDate
+                                                    contentNote?.content.releaseDate
                                                 ).toLocaleDateString(
                                                     undefined,
                                                     {

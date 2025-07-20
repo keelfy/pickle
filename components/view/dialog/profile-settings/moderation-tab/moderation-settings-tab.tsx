@@ -56,6 +56,7 @@ export default function ModerationSettingsTab() {
             const prevModeratorProfiles = [...moderatorProfiles];
             const optimisticModerator = {
                 id: crypto.randomUUID(),
+                displayName: "Loading...",
                 username: "Loading...",
                 link: data.link,
                 avatarUrl: "",

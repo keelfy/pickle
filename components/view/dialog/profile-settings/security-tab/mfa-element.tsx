@@ -2,17 +2,13 @@ import { Button } from "@/components/ui/button";
 import {
     Tooltip,
     TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
+    TooltipTrigger
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { useAuthStore } from "@/providers/auth-store";
 
 type Props = { className?: string };
 
 export default function MFAElement({ className }: Props) {
-    const user = useAuthStore((store) => store.user);
-    const emailIdentity = user?.identities?.find((i) => i.provider === "email");
 
     return (
         <div
@@ -32,7 +28,7 @@ export default function MFAElement({ className }: Props) {
                 <TooltipTrigger asChild>
                     <Button
                         variant="outline"
-                        onClick={emailIdentity ? () => null : () => null}
+                        onClick={() => null}
                     >
                         Set up
                     </Button>

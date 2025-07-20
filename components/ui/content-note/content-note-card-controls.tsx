@@ -14,7 +14,10 @@ import {
     DropdownMenuTrigger,
 } from "../dropdown-menu";
 
-type Props = { contentNote: ContentNote; category: ContentCategory };
+type Props = {
+    contentNote: ContentNote;
+    category: ContentCategory;
+};
 
 export default function ContentNoteCardControls({
     contentNote,
@@ -48,7 +51,7 @@ export default function ContentNoteCardControls({
     const onDelete = () =>
         openModal(ModalType.DeleteContentAlert, {
             category: category,
-            title: contentNote.name,
+            title: contentNote.content.title,
             id: contentNote.id,
         });
 

@@ -87,7 +87,7 @@ export default function OrderForm({ profile, className }: Props) {
         currency: "USD" as const,
         amount: 1,
         isAnonymously: profile.suggestionPreferences.allowedAnonymously && myProfile === undefined,
-        username: myProfile?.username ?? "",
+        username: myProfile?.displayName ?? "",
     }
 
     const form = useForm<z.infer<typeof orderFormSchema>>({
@@ -106,7 +106,7 @@ export default function OrderForm({ profile, className }: Props) {
                     message: data.message,
                 }
                 await createOrder(profile, req);
-                router.push(`/${profile.link}`)
+                router.push(`/${profile.username}`)
             } catch (error: any) {
                 toast({
                     title: "Failed to create order",
@@ -214,7 +214,7 @@ export default function OrderForm({ profile, className }: Props) {
                                         <FormDescription className="flex items-start gap-0.5">
                                             <DollarSignIcon className="w-3 h-3 text-yellow-600" />
                                             <span>
-                                                Donations are highly appreciated and will motivate <span className="font-semibold">{profile.username}</span> to consider your suggestion sooner.
+                                                Donations are highly appreciated and will motivate <span className="font-semibold">{profile.displayName}</span> to consider your suggestion sooner.
                                             </span>
                                         </FormDescription>
                                     </div>
@@ -293,7 +293,7 @@ export default function OrderForm({ profile, className }: Props) {
                                             </div>
                                             <FormDescription className="w-full flex items-center justify-between">
                                                 <span>
-                                                    All the money will be sent to <span className="font-semibold">{profile.username}</span>.
+                                                    All the money will be sent to <span className="font-semibold">{profile.displayName}</span>.
                                                 </span>
                                                 <span>
                                                     Minimum amount is 1{CURRENCY_SYMBOLS[selectedCurrency]}

@@ -47,7 +47,7 @@ export default function EditCollectionDialogItem({ item }: Props) {
                     <TooltipTrigger className="flex-1 flex items-center px-3 border rounded-md rounded-r-none w-full" asChild>
                         <div className="flex items-center gap-2">
                             <ContentCategoryIcon category={item.content.category} className="w-4 h-4" />
-                            <p className="text-sm">{item.content.name}</p>
+                            <p className="text-sm">{item.content.title}</p>
                         </div>
                     </TooltipTrigger>
                     <TooltipContent side="top" align="start">

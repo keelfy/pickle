@@ -24,13 +24,13 @@ export default function ContentNoteClickablePoster({ size = "sm", className, loa
         switch (category) {
             case 'games':
                 const gameParams: GameNoteDialogParams = {
-                    id: content.id,
+                    noteId: content.id,
                 }
                 openModal(ModalType.GameNote, gameParams);
                 break;
             case 'movies':
                 const movieParams: MovieNoteDialogParams = {
-                    id: content.id,
+                    noteId: content.id,
                 }
                 openModal(ModalType.MovieNote, movieParams);
                 break;
@@ -43,7 +43,7 @@ export default function ContentNoteClickablePoster({ size = "sm", className, loa
             className={cn("border-none p-0 hover:shadow-2xl hover:scale-105 transition-all duration-300 rounded-md", className)}
         >
             <ContentNotePoster
-                posterUrl={content.posterUrl}
+                posterUrl={content.coverUrl?.replace("t_thumb", "t_cover_big")}
                 size={size}
                 loading={loading}
                 className="cursor-pointer"

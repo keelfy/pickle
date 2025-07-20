@@ -38,6 +38,13 @@ export const localizeContentNoteStatus = (status: ContentNoteStatus | undefined)
     }
 }
 
+export const localizeOrderSource = (source: string) => {
+    switch (source) {
+        case "twitch-channel-points":
+            return "Twitch";
+    }
+}
+
 export const getTimeAgoText = (date: Date) => {
     const diff = new Date().getTime() - new Date(date).getTime();
     const seconds = Math.floor(diff / 1000);

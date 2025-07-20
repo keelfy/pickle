@@ -19,15 +19,15 @@ import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/providers/auth-store";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Check, CircleOff, Upload, X } from "lucide-react";
+import { Check, CircleOff, Upload, UserIcon, X } from "lucide-react";
 import Image from "next/image";
 import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 const formSchema = z.object({
+    displayName: z.string(),
     username: z.string(),
-    link: z.string(),
     description: z
         .string()
         .max(500, {
@@ -38,7 +38,7 @@ const formSchema = z.object({
 });
 
 export default function GeneralSettingsTab() {
-    const { profile, updateProfile } = useAuthStore(
+    const { profile, updateProfile, session } = useAuthStore(
         (state) => state
     );
     const [isLoading, startTransition] = React.useTransition();
@@ -52,40 +52,40 @@ export default function GeneralSettingsTab() {
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
+            displayName: "",
             username: "",
-            link: "",
             description: "",
             avatarUrl,
         },
     });
 
     React.useEffect(() => {
-        const link = form.watch("link");
-        if (link === profile?.link) {
-            form.clearErrors("link");
+        const username = form.watch("username");
+        if (username === profile?.username) {
+            form.clearErrors("username");
             return;
         }
 
         const getData = setTimeout(async () => {
             try {
                 setLinkValidating(true);
-                const res = await validateProfileLink(form.watch("link"));
+                const res = await validateProfileLink(form.watch("username"));
                 if (res.valid) {
-                    form.clearErrors("link");
+                    form.clearErrors("username");
                 } else {
-                    form.setError("link", {
+                    form.setError("username", {
                         message: res.message,
                     });
                 }
             } catch (error: any) {
-                form.setError("link", {
+                form.setError("username", {
                     message: error.message,
                 });
             }
             setLinkValidating(false);
         }, 300);
         return () => clearTimeout(getData);
-    }, [form.watch("link")]);
+    }, [form.watch("username")]);
 
     React.useEffect(() => {
         resetForm();
@@ -175,7 +175,7 @@ export default function GeneralSettingsTab() {
             return <LoadingSpinner className={cn("w-4 h-4", className)} />;
         }
 
-        return !form.getFieldState("link").invalid ? (
+        return !form.getFieldState("username").invalid ? (
             <Check size={16} className={cn("text-green-500", className)} />
         ) : (
             <X size={16} className={cn("text-red-500", className)} />
@@ -207,8 +207,7 @@ export default function GeneralSettingsTab() {
                                         )}
                                     </AvatarImage>
                                     <AvatarFallback>
-                                        {profile?.username?.substring(0, 1) ??
-                                            "n/a"}
+                                        <UserIcon className="w-10 h-10" />
                                     </AvatarFallback>
                                 </Avatar>
                                 <div className="flex flex-col space-y-2">
@@ -249,10 +248,10 @@ export default function GeneralSettingsTab() {
                     />
                     <FormField
                         control={form.control}
-                        name="username"
+                        name="displayName"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Profile name</FormLabel>
+                                <FormLabel>Display name</FormLabel>
                                 <FormControl>
                                     <Input placeholder="Jane Doe" {...field} />
                                 </FormControl>
@@ -266,10 +265,10 @@ export default function GeneralSettingsTab() {
                     />
                     <FormField
                         control={form.control}
-                        name="link"
+                        name="username"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel htmlFor="link">
+                                <FormLabel htmlFor="username">
                                     Link to your page
                                 </FormLabel>
                                 <div className="flex">

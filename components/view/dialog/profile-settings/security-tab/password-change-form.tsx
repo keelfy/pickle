@@ -1,6 +1,5 @@
 "use client";
 
-import { changePasswordAction } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import {
     Form,
@@ -9,23 +8,25 @@ import {
     FormItem,
     FormLabel,
     FormMessage,
+    FormRootError,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import { PasswordInput } from "@/components/ui/password-input";
 import { toast } from "@/hooks/use-toast";
+import ory from "@/lib/ory";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Check } from "lucide-react";
+import { isResponseError, SettingsFlow, UiNodeInputAttributes } from "@ory/client-fetch";
+import { CheckIcon } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 const formSchema = z
     .object({
-        currentPassword: z
-            .string()
-            .min(1, { message: "Current password is required" }),
+        csrfToken: z.string(),
         newPassword: z
             .string()
             .min(1, { message: "New password is required" })
@@ -38,14 +39,19 @@ const formSchema = z
     });
 
 const defaultFormValues: z.infer<typeof formSchema> = {
-    currentPassword: "",
+    csrfToken: "",
     newPassword: "",
     confirmNewPassword: "",
 };
 
-type Props = { className?: string; needSetUp: boolean };
+type Props = {
+    className?: string;
+    flow: SettingsFlow | undefined;
+    isFlowPending: boolean;
+    updateFlow: (flow: SettingsFlow) => void
+};
 
-export default function PasswordChangeForm({ className, needSetUp }: Props) {
+export default function PasswordChangeForm({ className, flow, isFlowPending, updateFlow }: Props) {
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: defaultFormValues,
@@ -54,28 +60,85 @@ export default function PasswordChangeForm({ className, needSetUp }: Props) {
     const [isLoading, startTransition] = React.useTransition();
 
     const [error, setError] = React.useState<string>();
+    const [isSuccess, setIsSuccess] = React.useState(false);
+
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+
+    const returnTo = React.useMemo(() => {
+        return `${pathname}?${searchParams.toString()}`;
+    }, [pathname, searchParams]);
+
+    React.useEffect(() => {
+        if (flow) {
+            updateFormFromSettingsFlow(flow);
+        }
+    }, [flow?.ui?.nodes, form])
+
+    const updateFormFromSettingsFlow = (flow: SettingsFlow) => {
+        const passwordNode = flow?.ui?.nodes?.find(node => node.group === 'password' && (node.attributes as UiNodeInputAttributes).name === 'password');
+        const csrfTokenNode = flow?.ui?.nodes?.find(node => node.group === 'default' && (node.attributes as UiNodeInputAttributes).name === 'csrf_token');
+
+        form.reset({
+            csrfToken: (csrfTokenNode?.attributes as UiNodeInputAttributes)?.value as string,
+            newPassword: (passwordNode?.attributes as UiNodeInputAttributes)?.value as string,
+            confirmNewPassword: (passwordNode?.attributes as UiNodeInputAttributes)?.value as string,
+        });
+
+        if (flow.state === 'success') {
+            setIsSuccess(true);
+        } else {
+            setIsSuccess(false);
+        }
+    }
+
+    const updateErrors = (flow: SettingsFlow) => {
+        const flowNodes = flow?.ui?.nodes?.filter(node => node.group === 'password');
+        const passwordNode = flowNodes?.find(node => (node.attributes as UiNodeInputAttributes).name === 'password');
+
+        if (passwordNode?.messages?.length && passwordNode.messages.filter(message => message.type === 'error').length > 0) {
+            form.setError("newPassword", {
+                message: passwordNode.messages.filter(message => message.type === 'error')[0].text,
+            })
+        } else {
+            form.clearErrors("newPassword");
+        }
+    }
 
     const handleSubmit = form.handleSubmit((values) =>
-        startTransition(() =>
-            changePasswordAction({
-                currentPassword: needSetUp
-                    ? values.newPassword
-                    : values.currentPassword,
-                newPassword: values.newPassword,
-            }).then((res) => {
-                if (res !== undefined && typeof res === "string") {
-                    setError(res);
-                    return;
-                }
+        startTransition(async () => {
+            if (!flow) return;
+            try {
+                const settingsFlow = await ory.updateSettingsFlow({
+                    flow: flow.id,
+                    updateSettingsFlowBody: {
+                        method: 'password',
+                        csrf_token: values.csrfToken,
+                        password: values.newPassword,
+                    }
+                })
+                updateFlow(settingsFlow);
+            } catch (error) {
+                if (isResponseError(error)) {
+                    const res = await error.response.json();
 
-                setError(undefined);
-                form.reset(defaultFormValues);
-                toast({
-                    title: "Password changed",
-                    description: "Your password has been successfully changed",
-                });
-            })
-        )
+                    if (error.response.status === 400) {
+                        updateErrors(res);
+                    } else if (error.response.status === 403) {
+                        if (res.error.id === 'security_csrf_violation') {
+                            toast({
+                                title: "Failed to request email change",
+                                description: "CSRF Violation. Please try again.",
+                                variant: "destructive",
+                            })
+                        } else if (res.error.id === 'session_refresh_required') {
+                            window.location.href = `${process.env.NEXT_PUBLIC_ORY_SDK_URL}/self-service/login/browser?refresh=true&return_to=${returnTo}`;
+                        }
+                    }
+                }
+            }
+        })
     );
 
     return (
@@ -88,60 +151,39 @@ export default function PasswordChangeForm({ className, needSetUp }: Props) {
                     <Input type="email" autoComplete="username" />
                 </div>
 
-                {!needSetUp && (
-                    <FormField
-                        control={form.control}
-                        name="currentPassword"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Current password</FormLabel>
-                                <FormControl>
-                                    <PasswordInput
-                                        autoComplete="current-password"
-                                        {...field}
-                                    />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                )}
+                <FormField
+                    control={form.control}
+                    name="newPassword"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>New password</FormLabel>
+                            <FormControl>
+                                <PasswordInput
+                                    autoComplete="new-password"
+                                    {...field}
+                                />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
 
-                <div className="flex items-start space-x-2 w-full justify-between">
-                    <FormField
-                        control={form.control}
-                        name="newPassword"
-                        render={({ field }) => (
-                            <FormItem className="w-1/2">
-                                <FormLabel>New password</FormLabel>
-                                <FormControl>
-                                    <PasswordInput
-                                        autoComplete="new-password"
-                                        {...field}
-                                    />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-
-                    <FormField
-                        control={form.control}
-                        name="confirmNewPassword"
-                        render={({ field }) => (
-                            <FormItem className="w-1/2">
-                                <FormLabel>Confirm new password</FormLabel>
-                                <FormControl>
-                                    <PasswordInput
-                                        autoComplete="confirm-new-password"
-                                        {...field}
-                                    />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </div>
+                <FormField
+                    control={form.control}
+                    name="confirmNewPassword"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Repeat password</FormLabel>
+                            <FormControl>
+                                <PasswordInput
+                                    autoComplete="confirm-new-password"
+                                    {...field}
+                                />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
 
                 <div className="grid gap-1 pt-2 w-full">
                     <Button
@@ -149,13 +191,14 @@ export default function PasswordChangeForm({ className, needSetUp }: Props) {
                         className="w-full"
                         disabled={isLoading}
                     >
-                        {isLoading ? <LoadingSpinner /> : <Check />}
-                        Confirm password{!needSetUp && " change"}
+                        {isLoading ? <LoadingSpinner /> : <CheckIcon />}
+                        Confirm Password Change
                     </Button>
-                    {error && (
-                        <div className="text-[0.8rem] font-medium text-destructive">
-                            {error}
-                        </div>
+                    {form.formState.errors.root && <FormRootError />}
+                    {isSuccess && (
+                        <p className="text-sm text-green-500">
+                            Password changed successfully.
+                        </p>
                     )}
                 </div>
             </form>

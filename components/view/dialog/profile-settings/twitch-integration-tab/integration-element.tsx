@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import LoadingSpinner from "@/components/ui/loading-spinner";
-import { KeyIcon } from "lucide-react";
+import { KeyIcon, XIcon } from "lucide-react";
 import React from "react";
 
 type Props = {
@@ -9,6 +9,8 @@ type Props = {
     description: React.ReactNode;
     tbd?: boolean;
     action?: () => Promise<void>;
+    isLoading?: boolean;
+    isLinked?: boolean;
 }
 
 export default function IntegrationElement({
@@ -16,7 +18,9 @@ export default function IntegrationElement({
     title,
     description,
     tbd = false,
-    action = () => Promise.resolve()
+    action = () => Promise.resolve(),
+    isLoading = false,
+    isLinked = false,
 }: Props) {
 
     const [isPending, startTransition] = React.useTransition();
@@ -42,10 +46,10 @@ export default function IntegrationElement({
             <Button
                 variant="outline"
                 onClick={handleClick}
-                disabled={tbd}
+                disabled={tbd || isLoading}
             >
-                {isPending ? <LoadingSpinner /> : <KeyIcon className="w-4 h-4" />}
-                Connect
+                {isPending || isLoading ? <LoadingSpinner /> : (isLinked ? <XIcon className="w-4 h-4 text-destructive" /> : <KeyIcon className="w-4 h-4" />)}
+                {isLinked ? "Disconnect" : "Connect"}
             </Button>
         </div>
     )

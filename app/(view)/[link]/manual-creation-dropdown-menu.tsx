@@ -2,6 +2,7 @@
 
 import { buttonVariants } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import RankOneIcon from "@/components/ui/icons/rankone-icon";
 import { cn } from "@/lib/utils";
 import { SiLetterboxd, SiSteam } from "@icons-pack/react-simple-icons";
 import { FileJsonIcon, MoreHorizontalIcon, TableIcon } from "lucide-react";
@@ -37,6 +38,10 @@ export default function ManualCreationDropdownMenu({ className }: Props) {
                 <DropdownMenuItem className="text-muted-foreground">
                     <SiLetterboxd className="w-4 h-4" />
                     Letterboxd
+                </DropdownMenuItem>
+                <DropdownMenuItem className="text-muted-foreground">
+                    <RankOneIcon className="w-4 h-4" />
+                    RankOne
                 </DropdownMenuItem>
                 <DropdownMenuItem className="text-muted-foreground">
                     <SiSteam className="w-4 h-4" />

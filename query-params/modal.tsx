@@ -18,14 +18,14 @@ export const ModalQuerySync = () => {
     );
 
     const [modalQuery, setModalQuery] = useQueryState(
-        "modal",
+        "m",
         parseAsStringEnum<ModalType>(Object.values(ModalType)).withDefault(
             ModalType.None
         )
     );
 
     const [modalParamsQuery, setModalParamsQuery] = useQueryState(
-        "modalParams",
+        "mps",
         parseAsString.withDefault("")
     );
 

@@ -34,7 +34,7 @@ export default function DenyOrderDialogContent() {
                 closeModal();
                 toast({
                     title: `Order rejected successfully`,
-                    description: `${rejectedOrder?.ordererUsername} will not be notified!`,
+                    description: `${rejectedOrder?.ordererDisplayName} will not be notified!`,
                 });
             } catch (error: any) {
                 toast({

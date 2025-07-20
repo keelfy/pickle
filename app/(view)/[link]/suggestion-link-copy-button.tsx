@@ -12,7 +12,7 @@ export default function SuggestionLinkCopyButton(props: ButtonProps) {
 
     const copyLink = useCallback(() => {
         if (!profile) return;
-        navigator.clipboard.writeText(`https://pickle.pw/suggest/${profile.link}`);
+        navigator.clipboard.writeText(`https://pickle.pw/suggest/${profile.username}`);
         setCopied(true);
         setTimeout(() => {
             setCopied(false);

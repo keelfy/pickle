@@ -20,13 +20,23 @@ export default function ManualNoteCreationDialogContent() {
     const [selectedCategory, setSelectedCategory] =
         React.useState<ContentCategory>();
 
-    const handleClick = () => {
+    const handleManualCreationClick = () => {
         switch (selectedCategory) {
             case "games":
                 openModal(ModalType.GameNoteCreator);
                 break;
             case "movies":
                 openModal(ModalType.MovieNoteCreator);
+                break;
+            default:
+                break;
+        }
+    };
+
+    const handleExternalSearchClick = (category: ContentCategory) => {
+        switch (category) {
+            case "games":
+                openModal(ModalType.SelectIGDBItem, { category: "games" });
                 break;
             default:
                 break;
@@ -60,19 +70,15 @@ export default function ManualNoteCreationDialogContent() {
                         {CONTENT_CATEGORIES.map((category) => (
                             <Button
                                 key={category}
-                                variant={
-                                    selectedCategory === category
-                                        ? "default"
-                                        : "secondary"
-                                }
                                 size="lg"
                                 className="text-md w-full"
                                 disabled={isDisabled(category)}
-                                onClick={() =>
-                                    setSelectedCategory((prev) =>
-                                        prev === category ? undefined : category
-                                    )
-                                }
+                                onClick={() => handleExternalSearchClick(category)}
+                            // onClick={() =>
+                            //     setSelectedCategory((prev) =>
+                            //         prev === category ? undefined : category
+                            //     )
+                            // }
                             >
                                 <ContentCategoryIcon
                                     category={category}
@@ -84,7 +90,7 @@ export default function ManualNoteCreationDialogContent() {
                     </div>
                 </div>
 
-                <Collapsible open={!!selectedCategory}>
+                {/* <Collapsible open={!!selectedCategory}>
                     <CollapsibleContent>
                         <div className="grid gap-3">
                             <div className="flex flex-col items-center">
@@ -105,7 +111,8 @@ export default function ManualNoteCreationDialogContent() {
                                 <Button
                                     variant="default"
                                     className="w-full"
-                                    disabled
+                                    disabled={!selectedCategory || selectedCategory !== "games"}
+                                    onClick={handleExternalSearchClick}
                                 >
                                     <SearchIcon />
                                     <p>
@@ -127,7 +134,7 @@ export default function ManualNoteCreationDialogContent() {
                                 <Button
                                     variant="secondary"
                                     className="w-full"
-                                    onClick={handleClick}
+                                    onClick={handleManualCreationClick}
                                 >
                                     <p>Fill the card manually</p>
                                     <ArrowRightIcon />
@@ -135,7 +142,7 @@ export default function ManualNoteCreationDialogContent() {
                             </div>
                         </div>
                     </CollapsibleContent>
-                </Collapsible>
+                </Collapsible> */}
             </div>
         </>
     );

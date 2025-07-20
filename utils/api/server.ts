@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import { createClient } from "../supabase/server";
 import { apiFetcher } from "./fetcher";
 
@@ -13,5 +14,6 @@ export async function fetchApi<T>(
     options: RequestInit = {}
 ): Promise<T> {
     const token = authorized ? await getTokenFromSession() : undefined;
-    return apiFetcher<T>(url, token, options);
+    const cookies = (await headers()).get("cookie") ?? "";
+    return apiFetcher<T>(url, token, options, cookies);
 }

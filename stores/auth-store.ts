@@ -1,33 +1,32 @@
 import { PublicProfile } from '@/utils/api/types';
-import { User } from '@supabase/supabase-js';
+import { Session } from '@ory/client-fetch';
 import { createStore } from 'zustand';
 import { devtools } from 'zustand/middleware';
 
 type Actions = {
     updateProfile: (profile: PublicProfile) => void
-    updateUser: (user: User) => void
-    clearUser: () => void
+    updateSession: (session: Session) => void
+    clearSession: () => void
 }
 
 type State = {
     profile: PublicProfile | undefined;
-    user: User | undefined;
+    session: Session | undefined;
 };
 
 export type AuthStore = Actions & State;
 
 const defaultInitialState: State = {
     profile: undefined,
-    user: undefined,
+    session: undefined,
 }
 
-// Create your store, which includes both state and (optionally) actions
 const createAuthStore = (initialState: State = defaultInitialState) => {
     return createStore<AuthStore>()(devtools((set) => ({
         ...initialState,
-        updateProfile: (profile) => set(() => ({ profile: profile })),
-        updateUser: (user) => set(() => ({ user: user })),
-        clearUser: () => set(() => ({ ...initialState })),
+        updateProfile: (profile) => set(() => ({ profile })),
+        updateSession: (session) => set(() => ({ session })),
+        clearSession: () => set(() => ({ ...initialState })),
     })))
 }
 

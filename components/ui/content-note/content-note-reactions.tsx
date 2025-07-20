@@ -20,6 +20,7 @@ import {
     ContentNote,
     Reaction
 } from "@/utils/api/types";
+import { isSessionActive } from "@/utils/session";
 import { EmojiPicker } from "@ferrucc-io/emoji-picker";
 import React from "react";
 
@@ -79,7 +80,7 @@ export default function ContentNoteReactions({
     defaultReactions,
     className,
 }: Props) {
-    const user = useAuthStore((state) => state.user);
+    const session = useAuthStore((state) => state.session);
     const profile = useProfileStore((state) => state.profile);
 
     const redirectToLogin = useRedirectToLogin();
@@ -97,7 +98,7 @@ export default function ContentNoteReactions({
     };
 
     const handleEmojiClick = (emoteId: string) => {
-        if (!user || !profile) {
+        if (!isSessionActive(session) || !profile) {
             redirectToLogin();
             return;
         }
@@ -160,7 +161,7 @@ export default function ContentNoteReactions({
     };
 
     const handleEmojiSelect = (emoteId: string) => {
-        if (!user || !profile) {
+        if (!isSessionActive(session) || !profile) {
             redirectToLogin();
             return;
         }
@@ -221,7 +222,7 @@ export default function ContentNoteReactions({
                     </div>
                 </Button>
             ))}
-            {user && canReact() && (
+            {isSessionActive(session) && canReact() && (
                 <Popover>
                     <PopoverTrigger disabled={!canReact()}>
                         <div className="border rounded-xl px-2 py-1 h-7 flex items-center justify-center">
@@ -230,10 +231,10 @@ export default function ContentNoteReactions({
                                     +&nbsp;
                                     {
                                         randomReactions[
-                                            Math.floor(
-                                                Math.random() *
-                                                    randomReactions.length
-                                            )
+                                        Math.floor(
+                                            Math.random() *
+                                            randomReactions.length
+                                        )
                                         ]
                                     }
                                 </p>

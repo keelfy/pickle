@@ -1,12 +1,6 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-    Collapsible,
-    CollapsibleContent,
-    CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import {
     Command,
     CommandGroup,
@@ -23,17 +17,14 @@ import {
 import {
     Form,
     FormControl,
+    FormDescription,
     FormField,
     FormItem,
     FormLabel,
     FormMessage,
+    FormRootError,
 } from "@/components/ui/form";
-import { Label } from "@/components/ui/label";
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from "@/components/ui/popover";
+import LoadingSpinner from "@/components/ui/loading-spinner";
 import {
     Select,
     SelectContent,
@@ -42,26 +33,31 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { fetchContentSearch, fetchOrderById, updateOrder } from "@/hooks/api-endpoints-client";
+import { fetchContentSearch, fetchIGDBSearch, fetchOrderById, updateOrder } from "@/hooks/api-endpoints-client";
 import { toast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+import { localizeContentCategory } from "@/lib/localize-types";
 import { useModalStore } from "@/providers/modal";
 import { useProfileStore } from "@/providers/profile-store";
 import { ModalType } from "@/stores/modal";
 import { contentCategoryLabels } from "@/utils/api/constants";
-import { ContentSearchHits } from "@/utils/api/response";
+import { ContentSearchHits, ExternalSearchHits } from "@/utils/api/response";
 import { ContentCategory, Order } from "@/utils/api/types";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PopoverClose } from "@radix-ui/react-popover";
-import { Check, ChevronsUpDown, CircleAlert, CircleOff, X } from "lucide-react";
+import { Check, CircleAlertIcon, CircleOff, FoldersIcon, ListPlusIcon, X } from "lucide-react";
+import Image from "next/image";
 import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 const formSchema = z.object({
     category: z.custom<ContentCategory>(),
-    title: z.string(),
-    contentId: z.string().optional(),
+    content: z.object({
+        id: z.uuidv4({
+            error: "Please select a content to link to the suggestion",
+        }),
+        title: z.string().optional(),
+        thumbnailUrl: z.string().optional(),
+    }),
 });
 
 export default function ApproveOrderDialogContent() {
@@ -70,12 +66,13 @@ export default function ApproveOrderDialogContent() {
     const { profile } = useProfileStore((state) => state);
     const [order, setOrder] = React.useState<Order>();
 
-    const [detailsOpen, setDetailsOpen] = React.useState<boolean>(false);
+    const [contentSearchQuery, setContentSearchQuery] = React.useState<string>("");
 
     const [contentSearchResults, setContentSearchResults] =
         React.useState<ContentSearchHits>();
 
-    const [contentQuery, setContentQuery] = React.useState<string>("");
+    const [externalSearchResults, setExternalSearchResults] =
+        React.useState<ExternalSearchHits>();
 
     const [isOrderApproving, startOrderApprovingTransition] =
         React.useTransition();
@@ -89,7 +86,9 @@ export default function ApproveOrderDialogContent() {
         resolver: zodResolver(formSchema),
         defaultValues: {
             category: order?.category ?? "games",
-            title: order?.message ?? "",
+            content: {
+                id: "",
+            },
         },
     });
 
@@ -103,11 +102,11 @@ export default function ApproveOrderDialogContent() {
 
     React.useEffect(() => {
         const timeout = setTimeout(() => {
-            setDebouncedContentQuery(contentQuery);
+            setDebouncedContentQuery(contentSearchQuery);
         }, 200);
 
         return () => clearTimeout(timeout);
-    }, [contentQuery]);
+    }, [contentSearchQuery]);
 
     React.useEffect(() => {
         setContentSearchPage(0);
@@ -116,6 +115,7 @@ export default function ApproveOrderDialogContent() {
     React.useEffect(() => {
         if (!isSearchQueryValid) {
             setContentSearchResults(undefined);
+            setExternalSearchResults(undefined);
             return;
         }
 
@@ -130,6 +130,20 @@ export default function ApproveOrderDialogContent() {
                 });
             }
         })();
+
+        if (form.watch("category") === "games") {
+            (async () => {
+                try {
+                    const response = await fetchIGDBSearch(debouncedContentQuery, contentSearchPage, 5);
+                    setExternalSearchResults(response);
+                } catch (error: any) {
+                    toast({
+                        title: "Failed to fetch search results",
+                        description: error.message ?? "An error occurred",
+                    });
+                }
+            })();
+        }
     }, [debouncedContentQuery]);
 
     React.useEffect(() => {
@@ -159,6 +173,32 @@ export default function ApproveOrderDialogContent() {
                 });
             }
         })();
+
+        if (form.watch("category") === "games") {
+            (async () => {
+                try {
+                    const response = await fetchIGDBSearch(debouncedContentQuery, contentSearchPage, 5);
+                    if (response?.content) {
+                        if (externalSearchResults?.content) {
+                            setExternalSearchResults({
+                                ...response,
+                                content: [
+                                    ...externalSearchResults.content,
+                                    ...response.content,
+                                ],
+                            });
+                        } else {
+                            setExternalSearchResults(response);
+                        }
+                    }
+                } catch (error: any) {
+                    toast({
+                        title: "Failed to fetch search results",
+                        description: error.message ?? "An error occurred",
+                    });
+                }
+            })();
+        }
     }, [contentSearchPage]);
 
     React.useEffect(() => {
@@ -187,7 +227,6 @@ export default function ApproveOrderDialogContent() {
         if (order) {
             form.reset({
                 category: order?.category ?? "games",
-                title: order?.message ?? "",
             });
         } else {
             form.reset();
@@ -198,12 +237,12 @@ export default function ApproveOrderDialogContent() {
         switch (category) {
             case "games":
                 openModal(ModalType.GameNoteEditor, {
-                    id: contentId,
+                    noteId: contentId,
                 });
                 break;
             case "movies":
                 openModal(ModalType.MovieNoteEditor, {
-                    id: contentId,
+                    noteId: contentId,
                 });
                 break;
             default:
@@ -222,8 +261,7 @@ export default function ApproveOrderDialogContent() {
                 const res = await updateOrder(profile, orderId, {
                     status: 'approved',
                     category: values.category,
-                    title: values.title,
-                    contentId: values.contentId,
+                    contentId: values.content?.id,
                 });
 
                 if (!res?.contentCreated) {
@@ -244,9 +282,9 @@ export default function ApproveOrderDialogContent() {
     return (
         <>
             <DialogHeader>
-                <DialogTitle>Approve the order</DialogTitle>
+                <DialogTitle>Approve the suggestion</DialogTitle>
                 <DialogDescription>
-                    You can change the details before continuing.
+                    After approving, the order will be added to existing content or a new content will be added to your profile.
                 </DialogDescription>
             </DialogHeader>
 
@@ -255,20 +293,32 @@ export default function ApproveOrderDialogContent() {
                     onSubmit={form.handleSubmit(onSubmit)}
                     className="space-y-6"
                 >
+                    <p className="text-sm rounded-md p-2 bg-muted-foreground/10">
+                        {order?.createdAt && (
+                            <span className="text-xs text-muted-foreground font-mono">
+                                [{new Date(order.createdAt).toLocaleString()}]&nbsp;
+                            </span>
+                        )}
+                        <span className="font-bold">{order?.ordererDisplayName}</span>:&nbsp;
+                        <span className="italic">
+                            {order?.message ?? "No message"}
+                        </span>
+                    </p>
+
                     <FormField
                         control={form.control}
                         name="category"
                         render={({ field }) => (
-                            <FormItem className="flex flex-col gap-1">
-                                <FormLabel>Category</FormLabel>
+                            <FormItem>
+                                <FormLabel className="flex items-center gap-2">
+                                    <FoldersIcon className="size-4" />
+                                    Category
+                                </FormLabel>
                                 <Select
                                     value={field.value.toString()}
                                     onValueChange={(value) => {
                                         if (value) {
-                                            form.setValue(
-                                                "category",
-                                                value as ContentCategory
-                                            );
+                                            form.setValue("category", value as ContentCategory);
                                             form.setFocus("category");
                                         }
                                     }}
@@ -294,6 +344,9 @@ export default function ApproveOrderDialogContent() {
                                         </SelectGroup>
                                     </SelectContent>
                                 </Select>
+                                <FormDescription>
+                                    What category is this suggestion about?
+                                </FormDescription>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -302,271 +355,143 @@ export default function ApproveOrderDialogContent() {
                     <div className="space-y-2">
                         <FormField
                             control={form.control}
-                            name="title"
+                            name="content"
                             render={({ field }) => (
-                                <FormItem className="flex flex-col gap-2">
-                                    <FormLabel>Title</FormLabel>
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <FormControl>
-                                                <Button
-                                                    variant="outline"
-                                                    role="combobox"
-                                                    className={cn(
-                                                        "w-full justify-between",
-                                                        !field.value &&
-                                                        "text-muted-foreground"
-                                                    )}
-                                                >
-                                                    {field.value.length > 50
-                                                        ? `${field.value.slice(0, 50)}...`
-                                                        : field.value ||
-                                                        "Select a content"}
-                                                    <ChevronsUpDown className="opacity-50" />
-                                                </Button>
-                                            </FormControl>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="p-0">
-                                            <Command shouldFilter={false}>
-                                                <CommandInput
-                                                    placeholder="Type to search a content"
-                                                    onValueChange={
-                                                        setContentQuery
-                                                    }
-                                                    value={contentQuery}
+                                <FormItem className="w-full">
+                                    <FormLabel className="flex items-center gap-2">
+                                        <ListPlusIcon className="size-4" />
+                                        {localizeContentCategory(form.watch("category"))}
+                                    </FormLabel>
+                                    <div className="flex gap-2 justify-between items-center rounded-md border px-4 py-1">
+                                        <div className="flex items-center gap-2">
+                                            {field.value.thumbnailUrl && (
+                                                <Image
+                                                    src={field.value.thumbnailUrl ?? ""}
+                                                    alt={field.value.title ?? ""}
+                                                    width={35}
+                                                    height={35}
+                                                    className="rounded-md p-1 h-8 w-8"
                                                 />
-                                                <CommandList>
-                                                    <CommandGroup heading="Add a new title">
-                                                        <PopoverClose className="w-full">
-                                                            <CommandItem
-                                                                value={
-                                                                    order?.message
-                                                                }
-                                                                onSelect={() => {
-                                                                    form.setValue(
-                                                                        "title",
-                                                                        order?.message ??
-                                                                        ""
-                                                                    );
-                                                                    form.setFocus(
-                                                                        "title"
-                                                                    );
-                                                                    form.setValue(
-                                                                        "contentId",
-                                                                        undefined
-                                                                    );
-                                                                }}
-                                                                className="text-start"
-                                                            >
-                                                                {order?.message}
-                                                            </CommandItem>
-                                                        </PopoverClose>
-                                                        {contentQuery.length >
-                                                            0 && (
-                                                                <PopoverClose className="w-full">
-                                                                    <CommandItem
-                                                                        value={
-                                                                            contentQuery
-                                                                        }
-                                                                        onSelect={() => {
-                                                                            form.setValue(
-                                                                                "title",
-                                                                                contentQuery ??
-                                                                                ""
-                                                                            );
-                                                                            form.setFocus(
-                                                                                "title"
-                                                                            );
-                                                                            form.setValue(
-                                                                                "contentId",
-                                                                                undefined
-                                                                            );
-                                                                        }}
-                                                                        className="text-start"
-                                                                    >
-                                                                        {
-                                                                            contentQuery
-                                                                        }
-                                                                    </CommandItem>
-                                                                </PopoverClose>
-                                                            )}
-                                                    </CommandGroup>
-                                                    <CommandGroup
-                                                        heading={
-                                                            <>
-                                                                Search results
-                                                                for
-                                                                profile&nbsp;
-                                                                <span className="font-bold">
-                                                                    {
-                                                                        profile?.username
-                                                                    }
-                                                                </span>
-                                                            </>
-                                                        }
-                                                    >
-                                                        {contentSearchResults?.content.map(
-                                                            ({ source }) => (
-                                                                <PopoverClose
-                                                                    className="w-full"
-                                                                    key={
-                                                                        source.id
-                                                                    }
-                                                                >
-                                                                    <CommandItem
-                                                                        value={
-                                                                            source.name
-                                                                        }
-                                                                        onSelect={() => {
-                                                                            form.setValue(
-                                                                                "title",
-                                                                                source.name
-                                                                            );
-                                                                            form.setValue(
-                                                                                "category",
-                                                                                source.category
-                                                                            );
-                                                                            form.setValue(
-                                                                                "contentId",
-                                                                                source.id
-                                                                            );
-                                                                            form.setFocus(
-                                                                                "title"
-                                                                            );
-                                                                        }}
-                                                                        className="flex items-center justify-between gap-2"
-                                                                    >
-                                                                        {
-                                                                            source.name
-                                                                        }
-                                                                        <Badge>
-                                                                            {
-                                                                                contentCategoryLabels.find(
-                                                                                    (
-                                                                                        category
-                                                                                    ) =>
-                                                                                        category.value ===
-                                                                                        source.category
-                                                                                )
-                                                                                    ?.label
-                                                                            }
-                                                                        </Badge>
-                                                                    </CommandItem>
-                                                                </PopoverClose>
-                                                            )
-                                                        )}
-                                                        {!contentSearchResults && (
-                                                            <CommandItem
-                                                                className="italic"
-                                                                disabled
-                                                            >
-                                                                ...type anything
-                                                                to search
-                                                            </CommandItem>
-                                                        )}
-                                                        {contentSearchResults?.content &&
-                                                            contentSearchResults
-                                                                .content
-                                                                .length ===
-                                                            0 && (
-                                                                <CommandItem
-                                                                    className="italic"
-                                                                    disabled
-                                                                >
-                                                                    ...no
-                                                                    results
-                                                                    found
-                                                                </CommandItem>
-                                                            )}
-                                                        {contentSearchResults?.content &&
-                                                            contentSearchResults
-                                                                .content
-                                                                .length > 0 &&
-                                                            contentSearchResults.totalPages -
-                                                            1 >
-                                                            contentSearchResults.page && (
-                                                                <CommandItem
-                                                                    onSelect={() => {
-                                                                        setContentSearchPage(
-                                                                            contentSearchPage +
-                                                                            1
-                                                                        );
-                                                                    }}
-                                                                >
-                                                                    -- Show more
-                                                                    results --
-                                                                </CommandItem>
-                                                            )}
-                                                    </CommandGroup>
-                                                </CommandList>
-                                            </Command>
-                                        </PopoverContent>
-                                    </Popover>
-                                    <FormMessage />
+                                            )}
+                                            {field.value.title ? (
+                                                <p className="text-sm">{field.value.title}</p>
+                                            ) : (
+                                                <>
+                                                    <CircleAlertIcon className="text-yellow-500 size-4" />
+                                                    <p className="italic text-sm">No content selected</p>
+                                                </>
+                                            )}
+                                        </div>
+                                        <FormControl>
+                                            <Button variant='link' size="icon" type="button" onClick={() => {
+                                                field.onChange({
+                                                    id: "",
+                                                    title: undefined,
+                                                    thumbnailUrl: undefined,
+                                                });
+                                            }}>
+                                                <X />
+                                            </Button>
+                                        </FormControl>
+                                    </div>
+                                    <FormDescription>
+                                        Please find the {localizeContentCategory(form.watch("category")).toLowerCase()} related to the suggestion.
+                                    </FormDescription>
                                 </FormItem>
                             )}
                         />
-
-                        {!form.watch("contentId") && (
-                            <div className="flex items-center gap-2 px-2">
-                                <CircleAlert
-                                    size={16}
-                                    className="text-yellow-500"
-                                />
-                                <span className="text-sm">
-                                    A new title will be added to your profile.
-                                </span>
-                            </div>
-                        )}
+                        <Command shouldFilter={false} className="border rounded-md">
+                            <CommandInput
+                                placeholder={`Type to search a ${localizeContentCategory(form.watch("category")).toLowerCase()}`}
+                                onValueChange={setContentSearchQuery}
+                                value={contentSearchQuery}
+                            />
+                            <CommandList>
+                                <CommandGroup>
+                                    {externalSearchResults?.content.map(
+                                        ({ id, source }) => (
+                                            <CommandItem
+                                                key={id}
+                                                value={source.nameEn}
+                                                onSelect={() => {
+                                                    form.setValue("category", "games");
+                                                    form.setValue("content", {
+                                                        id,
+                                                        title: source.nameEn,
+                                                        thumbnailUrl: source.thumbnailUrl ? "https:" + source.thumbnailUrl.replace("t_thumb", "t_micro") : undefined
+                                                    });
+                                                    form.setFocus("content");
+                                                }}
+                                                className="flex items-center justify-start gap-1"
+                                            >
+                                                <Image
+                                                    src={source.thumbnailUrl ? "https:" + source.thumbnailUrl.replace("t_thumb", "t_micro") : ""}
+                                                    alt={source.nameEn}
+                                                    width={35}
+                                                    height={35}
+                                                    className="rounded-md p-1 h-8 w-8"
+                                                />
+                                                {source.nameEn}
+                                            </CommandItem>
+                                        )
+                                    )}
+                                    {!externalSearchResults && (
+                                        <CommandItem
+                                            className="italic"
+                                            disabled
+                                        >
+                                            ...type anything
+                                            to search
+                                        </CommandItem>
+                                    )}
+                                    {externalSearchResults?.content &&
+                                        externalSearchResults
+                                            .content
+                                            .length ===
+                                        0 && (
+                                            <CommandItem
+                                                className="italic"
+                                                disabled
+                                            >
+                                                ...no
+                                                results
+                                                found
+                                            </CommandItem>
+                                        )}
+                                    {externalSearchResults?.content &&
+                                        externalSearchResults
+                                            .content
+                                            .length > 0 &&
+                                        externalSearchResults.totalPages -
+                                        1 >
+                                        externalSearchResults.page && (
+                                            <CommandItem
+                                                onSelect={() => {
+                                                    setContentSearchPage(
+                                                        contentSearchPage +
+                                                        1
+                                                    );
+                                                }}
+                                            >
+                                                -- Show more
+                                                results --
+                                            </CommandItem>
+                                        )}
+                                </CommandGroup>
+                            </CommandList>
+                        </Command>
+                        {/* {{!form.watch("content")?.id && ( */}
+                        {/* <div className="flex items-center gap-2 px-2">
+                            <CircleAlert
+                                size={16}
+                                className="text-yellow-500"
+                            />
+                            <span className="text-sm">
+                                A new title will be added to your profile.
+                            </span>
+                        </div> */}
+                        {/* )} */}
                     </div>
-
-                    <Collapsible
-                        open={detailsOpen}
-                        onOpenChange={setDetailsOpen}
-                        className="space-y-4"
-                    >
-                        <div className="flex items-center justify-between space-x-4">
-                            <h4 className="text-md font-semibold">
-                                Orderer Details
-                            </h4>
-                            <CollapsibleTrigger asChild>
-                                <Button variant="ghost" size="sm" type="button">
-                                    <ChevronsUpDown className="h-4 w-4" />
-                                    <span className="sr-only">Toggle</span>
-                                </Button>
-                            </CollapsibleTrigger>
-                        </div>
-                        <CollapsibleContent className="space-y-4">
-                            <div className="grid w-full max-w-sm items-center gap-1.5">
-                                <Label>Orderer Username</Label>
-                                <div className="rounded-md border px-4 py-2 font-mono text-sm shadow-sm">
-                                    {order?.ordererUsername}
-                                </div>
-                            </div>
-                            <div className="grid w-full max-w-sm items-center gap-1.5">
-                                <Label>Date of the order</Label>
-                                <div className="rounded-md border px-4 py-2 font-mono text-sm shadow-sm">
-                                    {order?.createdAt
-                                        ? new Date(
-                                            order?.createdAt
-                                        ).toLocaleString()
-                                        : "unknown"}
-                                </div>
-                            </div>
-                            <div className="grid w-full max-w-sm items-center gap-1.5">
-                                <Label>Amount</Label>
-                                <div className="rounded-md border px-4 py-2 font-mono text-sm shadow-sm">
-                                    {order?.amount}
-                                </div>
-                            </div>
-                            <div className="grid w-full max-w-sm items-center gap-1.5">
-                                <Label>Currency</Label>
-                                <div className="rounded-md border px-4 py-2 font-mono text-sm shadow-sm">
-                                    {order?.paymentType}
-                                </div>
-                            </div>
-                        </CollapsibleContent>
-                    </Collapsible>
 
                     <DialogFooter>
                         <Button
@@ -588,12 +513,12 @@ export default function ApproveOrderDialogContent() {
                             Reset
                         </Button>
                         <Button type="submit" disabled={isOrderApproving}>
-                            <Check />
+                            {isOrderApproving ? <LoadingSpinner /> : <Check />}
                             Approve
                         </Button>
                     </DialogFooter>
                 </form>
-            </Form>
+            </Form >
         </>
     );
 }

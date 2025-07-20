@@ -1,6 +1,7 @@
-import { Content, Order } from "./types";
+import { Content, ExternalSearchResult, Order } from "./types";
 
 export type SearchHit<T> = {
+    id: string;
     source: T;
     score: number;
 }
@@ -21,3 +22,5 @@ export type LinkValidation = {
 }
 
 export type ContentSearchHits = Paginated<SearchHit<Content>>;
+
+export type ExternalSearchHits = Paginated<SearchHit<ExternalSearchResult>>;

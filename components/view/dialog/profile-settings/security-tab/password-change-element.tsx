@@ -4,17 +4,20 @@ import {
     CollapsibleContent,
     CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { useAuthStore } from "@/providers/auth-store";
-import { AlertTriangleIcon, ChevronsUpDownIcon } from "lucide-react";
-import PasswordChangeForm from "./password-change-form";
+import LoadingSpinner from "@/components/ui/loading-spinner";
 import { cn } from "@/lib/utils";
+import { SettingsFlow } from "@ory/client-fetch";
+import { ChevronsUpDownIcon } from "lucide-react";
+import PasswordChangeForm from "./password-change-form";
 
-type Props = { className?: string };
+type Props = {
+    className?: string;
+    flow: SettingsFlow | undefined;
+    isFlowPending: boolean;
+    updateFlow: (flow: SettingsFlow) => void;
+};
 
-export default function PasswordChangeElement({ className }: Props) {
-    const user = useAuthStore((store) => store.user);
-    const emailProvider = user?.identities?.find((i) => i.provider === "email");
-
+export default function PasswordChangeElement({ className, flow, isFlowPending, updateFlow }: Props) {
     return (
         <Collapsible>
             <div
@@ -24,32 +27,31 @@ export default function PasswordChangeElement({ className }: Props) {
                 )}
             >
                 <div className="flex-1 flex flex-col space-y-2">
-                    <div className="flex space-x-2 items-center">
-                        <p>Password</p>
-                        {!emailProvider && (
-                            <AlertTriangleIcon className="w-4 h-4 text-yellow-400" />
-                        )}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                        {emailProvider
-                            ? "You can change your password at any time. We recommend using a strong password."
-                            : "You don't have password set up. You can log in to this account only using third-party providers."}
-                    </div>
+                    <p className="flex space-x-2 items-center">
+                        Password
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                        You can change your password at any time. We recommend using a strong password.
+                        {/* You don't have password set up. You can log in to this account only using third-party providers. */}
+                    </p>
                 </div>
                 <CollapsibleTrigger asChild>
                     <Button
                         variant="outline"
                         className="flex items-center gap-1"
+                        disabled={isFlowPending}
                     >
-                        {emailProvider ? "Change" : "Set up"}&nbsp;
-                        <ChevronsUpDownIcon />
+                        Change
+                        {isFlowPending ? <LoadingSpinner /> : <ChevronsUpDownIcon />}
                     </Button>
                 </CollapsibleTrigger>
             </div>
             <CollapsibleContent>
                 <PasswordChangeForm
                     className="mt-2"
-                    needSetUp={!emailProvider}
+                    flow={flow}
+                    isFlowPending={isFlowPending}
+                    updateFlow={updateFlow}
                 />
             </CollapsibleContent>
         </Collapsible>

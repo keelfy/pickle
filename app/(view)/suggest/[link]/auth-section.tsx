@@ -6,14 +6,20 @@ import LoadingSpinner from "@/components/ui/loading-spinner";
 import { useAuthStore } from "@/providers/auth-store";
 import { LogInIcon, LogOutIcon } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import React from "react";
 
 type Props = { className?: string };
 
 export default function AuthSuggestSection({ className }: Props) {
-    const user = useAuthStore((state) => state.user);
+    const session = useAuthStore((state) => state.session);
     const pathname = usePathname();
+    const searchParams = useSearchParams();
+
+    const returnTo = React.useMemo(() => {
+        return `${pathname}?${searchParams.toString()}`;
+    }, [pathname, searchParams]);
+
     const [isPending, startTransition] = React.useTransition();
 
     const onSignOut = () =>
@@ -22,13 +28,13 @@ export default function AuthSuggestSection({ className }: Props) {
             window.location.reload();
         });
 
-    if (!user) {
+    if (session === undefined || !session.active) {
         return (
             <Button variant="secondary" className={className}>
                 <Link
                     href={{
-                        pathname: "/sign-in",
-                        query: { goto: encodeURIComponent(pathname) },
+                        pathname: `${process.env.NEXT_PUBLIC_ORY_SDK_URL}/self-service/login/browser`,
+                        query: { return_to: returnTo },
                     }}
                 >
                     <LogInIcon />

@@ -17,7 +17,7 @@ export default function ContentSearchItem({ source, link }: Props) {
     return (
         <CommandItem asChild className="cursor-pointer">
             <div className="flex items-center justify-between w-full">
-                <div className="text-md">{source.name}</div>
+                <div className="text-md">{source.title}</div>
                 <Badge>
                     {
                         contentCategoryLabels.find(

@@ -26,10 +26,10 @@ export default function ContentNoteCardControls({
     const openGameNote = () => {
         switch (category) {
             case "games":
-                openModal(ModalType.GameNote, { id: contentNote.id });
+                openModal(ModalType.GameNote, { noteId: contentNote.id });
                 break;
             case "movies":
-                openModal(ModalType.MovieNote, { id: contentNote.id });
+                openModal(ModalType.MovieNote, { noteId: contentNote.id });
                 break;
         }
     };
@@ -37,10 +37,10 @@ export default function ContentNoteCardControls({
     const openGameNoteEditor = () => {
         switch (category) {
             case "games":
-                openModal(ModalType.GameNoteEditor, { id: contentNote.id });
+                openModal(ModalType.GameNoteEditor, { noteId: contentNote.id });
                 break;
             case "movies":
-                openModal(ModalType.MovieNoteEditor, { id: contentNote.id });
+                openModal(ModalType.MovieNoteEditor, { noteId: contentNote.id });
                 break;
         }
     };

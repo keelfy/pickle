@@ -21,7 +21,7 @@ export default function StatusSelectFormItem<S extends ContentNoteStatus, V exte
             <Select value={field.value} onValueChange={field.onChange}>
                 <FormControl>
                     <SelectTrigger
-                        className={cn(buttonVariants({ variant: "ghost" }), "w-full h-8 justify-between border-none p-1")}
+                        className={cn(buttonVariants({ variant: "ghost" }), "w-full h-6 justify-between border-none px-1")}
                         isArrow={false}
                     >
                         <SelectValue placeholder="Select status">

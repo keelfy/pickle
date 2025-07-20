@@ -25,9 +25,9 @@ export default function ProfileCard({ profile, className }: Props) {
         <div className={cn("min-w-80 space-y-4", className)}>
             <div className="space-y-4">
                 <div className="space-y-0.5">
-                    <div className="text-3xl font-bold">{profile.username}</div>
+                    <div className="text-3xl font-bold">{profile.displayName}</div>
                     <div className="flex items-center gap-2 text-sm">
-                        <div>@{profile.link}</div>
+                        <div>@{profile.username}</div>
                         <div className="text-muted-foreground">&bull;</div>
                         <div>
                             {getShortenedCount(profile.counts?.followers ?? 0)}{" "}
@@ -85,7 +85,7 @@ export default function ProfileCard({ profile, className }: Props) {
                     <div className="flex items-center">
                         <Button className="w-full rounded-r-none" asChild>
                             <Link
-                                href={`/suggest/${profile.link}`}
+                                href={`/suggest/${profile.username}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="w-full"

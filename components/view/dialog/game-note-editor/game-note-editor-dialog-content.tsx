@@ -1,8 +1,7 @@
 "use client";
 
-import EditablePoster from "@/app/(view)/[link]/components/editable-poster";
-import GameUrl from "@/app/(view)/[link]/components/game-url";
 import { Button } from "@/components/ui/button";
+import ContentNotePoster from "@/components/ui/content-note/content-note-poster";
 import {
     DialogFooter,
     DialogHeader,
@@ -10,24 +9,15 @@ import {
 } from "@/components/ui/dialog";
 import {
     Form,
-    FormControl,
-    FormField,
-    FormItem,
-    FormMessage,
+    FormField
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import IGDBIcon from "@/components/ui/icons/igdb-icon";
 import { Label } from "@/components/ui/label";
 import LoadingSpinner from "@/components/ui/loading-spinner";
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from "@/components/ui/popover";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
-    createContentNote,
     fetchContentNote,
-    updateContentNote,
+    updateContentNote
 } from "@/hooks/api-endpoints-client";
 import { toast } from "@/hooks/use-toast";
 import { useModalStore } from "@/providers/modal";
@@ -39,34 +29,27 @@ import {
     Check,
     CheckIcon,
     CircleOff,
-    Edit,
     HistoryIcon,
-    LinkIcon,
     RocketIcon,
-    X,
+    X
 } from "lucide-react";
 import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import CommentFormItem from "../content-note-editor/comment-form-item";
 import DayPickerFormItem from "../content-note-editor/day-picker-form-item";
-import EditableContentName from "../content-note-editor/editable-content-name";
 import RateFormItem from "../content-note-editor/rate-form-item";
 import StatusSelectFormItem from "../content-note-editor/status-select-form-item";
+import { getSourceLinks } from "../game-note-creator/game-note-creator-dialog-content";
 import { NoteDialogOrdersSection } from "../note-dialog-orders-section";
+import Link from "next/link";
+import { CreateGameNoteReq } from "@/utils/api/request";
 
 const formSchema = z.object({
-    name: z
-        .string()
-        .min(1, { message: "Name is required" })
-        .max(100, { message: "Name must be less than 100 characters" }),
-    link: z.string().optional(),
-    releaseDate: z.date().optional(),
     status: z.custom<GameNoteStatus>(),
     lastPlayedAt: z.date().optional(),
     comment: z.string().optional(),
     rate: z.number().max(10).min(1).optional(),
-    posterPreviewId: z.string().optional(),
 });
 
 type Props = { noteId: string | undefined };
@@ -81,7 +64,6 @@ export default function GameNoteEditorDialogContent({ noteId }: Props) {
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            name: "Untitled game",
             status: "planned",
             comment: "",
         },
@@ -90,11 +72,6 @@ export default function GameNoteEditorDialogContent({ noteId }: Props) {
     React.useEffect(() => {
         if (gameNote) {
             form.reset({
-                name: gameNote.name,
-                link: gameNote.link,
-                releaseDate: gameNote.releaseDate
-                    ? new Date(gameNote.releaseDate)
-                    : undefined,
                 status: gameNote.status,
                 lastPlayedAt: gameNote.lastPlayedAt
                     ? new Date(gameNote.lastPlayedAt)
@@ -109,7 +86,7 @@ export default function GameNoteEditorDialogContent({ noteId }: Props) {
 
     React.useEffect(() => {
         if (!noteId || !profile?.id) return;
-        fetchContentNote<GameNote>(profile, "games", noteId)
+        fetchContentNote<GameNote>(profile, "games", noteId, 'lg')
             .then(setGameNote)
             .catch((err) => {
                 console.error(err);
@@ -121,55 +98,32 @@ export default function GameNoteEditorDialogContent({ noteId }: Props) {
     }, [noteId, profile?.id]);
 
     const onSubmit = form.handleSubmit((values) => {
-        if (!profile?.id) return;
+        if (!profile?.id || !noteId) return;
 
-        if (noteId) {
-            startTransition(async () => {
-                try {
-                    const res = await updateContentNote<GameNote>(
-                        profile,
-                        "games",
-                        noteId,
-                        values
-                    );
-                    form.reset(res);
-                } catch (error: any) {
-                    toast({
-                        title: "Failed to update game",
-                        description: error.message ?? "An error occurred.",
-                        variant: "destructive",
-                    });
-                }
-            });
-        } else {
-            startTransition(async () => {
-                try {
-                    const res = await createContentNote<GameNote>(
-                        profile,
-                        "games",
-                        values
-                    );
-                    toast({
-                        title: res.name,
-                        description: "The game was created.",
-                    });
-                    closeModal();
-                } catch (error: any) {
-                    toast({
-                        title: "Failed to create game",
-                        description: error.message ?? "An error occurred.",
-                        variant: "destructive",
-                    });
-                }
-            });
-        }
+        startTransition(async () => {
+            try {
+                const res = await updateContentNote<GameNote, Partial<CreateGameNoteReq>>(
+                    profile,
+                    "games",
+                    noteId,
+                    values
+                );
+                form.reset(res);
+            } catch (error: any) {
+                toast({
+                    title: "Failed to update game",
+                    description: error.message ?? "An error occurred.",
+                    variant: "destructive",
+                });
+            }
+        });
     });
 
     return (
         <>
             <div className="hidden">
                 <DialogHeader>
-                    <DialogTitle>{gameNote?.name}</DialogTitle>
+                    <DialogTitle>{gameNote?.content.title}</DialogTitle>
                 </DialogHeader>
             </div>
 
@@ -177,141 +131,72 @@ export default function GameNoteEditorDialogContent({ noteId }: Props) {
                 <form onSubmit={onSubmit}>
                     <div className="space-y-6">
                         <div className="flex items-start space-x-4">
-                            <EditablePoster
-                                value={form.watch("posterPreviewId")}
-                                defaultImageUrl={gameNote?.posterUrl}
-                                onChange={(value) => {
-                                    form.setValue("posterPreviewId", value, {
-                                        shouldDirty: true,
-                                    });
-                                }}
+                            <ContentNotePoster
+                                posterUrl={gameNote?.content.coverUrl?.replace("t_thumb", "t_cover_big")}
+                                size="md"
+                                loading={isLoading}
                             />
-                            <div className="flex-1 flex flex-col gap-2 w-full">
-                                <FormField
-                                    control={form.control}
-                                    name="name"
-                                    render={({ field }) => (
-                                        <FormItem className="space-y-0">
-                                            <EditableContentName
-                                                value={field.value}
-                                                field={field}
-                                            />
-                                            <FormMessage />
-                                        </FormItem>
+                            <div className="grid min-h-[225px] w-full">
+                                <div className="flex flex-col gap-0">
+                                    <div className="font-bold text-lg line-clamp-3">
+                                        {gameNote?.content.title}
+                                    </div>
+                                    {gameNote?.content.releaseDate && (
+                                        <div className="text-sm whitespace-nowrap flex items-center gap-1">
+                                            <RocketIcon className="size-3" />
+                                            {new Date(gameNote?.content.releaseDate).toLocaleDateString(
+                                                undefined,
+                                                {
+                                                    year: "numeric"
+                                                }
+                                            )}
+                                        </div>
                                     )}
-                                />
-                                <table>
-                                    <tbody>
-                                        <tr>
-                                            <td className="w-1/2 font-semibold flex items-center gap-2">
-                                                <div>
-                                                    <RocketIcon size={12} />
-                                                </div>
-                                                <div className="whitespace-nowrap">
-                                                    Release date
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <FormField
-                                                    control={form.control}
-                                                    name="releaseDate"
-                                                    render={({ field }) => (
-                                                        <DayPickerFormItem
-                                                            field={field}
-                                                        />
-                                                    )}
-                                                />
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td className="w-1/2 font-semibold flex items-center gap-2">
-                                                <LinkIcon size={12} />
-                                                Link
-                                            </td>
-                                            <td className="w-1/2">
-                                                <FormField
-                                                    control={form.control}
-                                                    name="link"
-                                                    render={({ field }) => (
-                                                        <FormItem>
-                                                            <Popover>
-                                                                <PopoverTrigger
-                                                                    asChild
-                                                                >
-                                                                    <FormControl>
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            className="w-full h-8 p-1"
-                                                                            size="icon"
-                                                                        >
-                                                                            <div className="w-full flex items-center justify-between space-x-1">
-                                                                                <GameUrl
-                                                                                    url={
-                                                                                        field.value
-                                                                                    }
-                                                                                />
-                                                                                <Edit />
-                                                                            </div>
-                                                                        </Button>
-                                                                    </FormControl>
-                                                                </PopoverTrigger>
-                                                                <PopoverContent className="w-80 p-0">
-                                                                    <Input
-                                                                        placeholder="Paste URL here..."
-                                                                        {...field}
-                                                                    />
-                                                                </PopoverContent>
-                                                            </Popover>
-                                                        </FormItem>
-                                                    )}
-                                                />
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td className="pt-4 text-sm font-semibold flex items-center gap-2">
-                                                <div>
-                                                    <CheckIcon size={12} />
-                                                </div>
-                                                <div className="whitespace-nowrap">
-                                                    Status
-                                                </div>
-                                            </td>
-                                            <td className="pt-4">
-                                                <FormField
-                                                    control={form.control}
-                                                    name="status"
-                                                    render={({ field }) => (
-                                                        <StatusSelectFormItem
-                                                            field={field}
-                                                            options={
-                                                                gameNoteStatusLabels
-                                                            }
-                                                        />
-                                                    )}
-                                                />
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td className="text-sm w-1/2 py-1 font-semibold flex items-center gap-2">
-                                                <HistoryIcon size={12} />
-                                                <div className="whitespace-nowrap">
-                                                    Last played
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <FormField
-                                                    control={form.control}
-                                                    name="lastPlayedAt"
-                                                    render={({ field }) => (
-                                                        <DayPickerFormItem
-                                                            field={field}
-                                                        />
-                                                    )}
-                                                />
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                                    <div className="grid grid-cols-2 gap-2 mt-4">
+                                        <div className="text-sm font-semibold flex items-center gap-2 whitespace-nowrap">
+                                            <CheckIcon size={12} />
+                                            Status
+                                        </div>
+                                        <div>
+                                            <FormField
+                                                control={form.control}
+                                                name="status"
+                                                render={({ field }) => (
+                                                    <StatusSelectFormItem
+                                                        field={field}
+                                                        options={
+                                                            gameNoteStatusLabels
+                                                        }
+                                                    />
+                                                )}
+                                            />
+                                        </div>
+
+                                        <div className="text-sm font-semibold flex items-center gap-2 whitespace-nowrap">
+                                            <HistoryIcon size={12} />
+                                            Last played
+                                        </div>
+                                        <div>
+                                            <FormField
+                                                control={form.control}
+                                                name="lastPlayedAt"
+                                                render={({ field }) => (
+                                                    <DayPickerFormItem
+                                                        field={field}
+                                                    />
+                                                )}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3 mt-auto mb-1">
+                                    {gameNote?.content.sourceUrl && (
+                                        <Link href={gameNote?.content.sourceUrl} target="_blank">
+                                            <IGDBIcon className="w-12" />
+                                        </Link>
+                                    )}
+                                    {gameNote?.content.websites && getSourceLinks(gameNote.content.websites)}
+                                </div>
                             </div>
                         </div>
 

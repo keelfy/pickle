@@ -1,6 +1,6 @@
 import { ImageSize } from "@/utils/api/types";
 import { AvatarProps } from "@radix-ui/react-avatar";
-import { User } from "lucide-react";
+import { UserIcon } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
 type Props = AvatarProps & {
@@ -14,6 +14,12 @@ const avatarSizes = {
     lg: 128,
 }
 
+const avatarIconSizes = {
+    sm: 4,
+    md: 6,
+    lg: 10,
+}
+
 export default function ProfileAvatar({ avatarUrl, size = "lg", className }: Props) {
     return (
         <Avatar className={className}>
@@ -24,7 +30,7 @@ export default function ProfileAvatar({ avatarUrl, size = "lg", className }: Pro
                 height={avatarSizes[size]}
             />
             <AvatarFallback>
-                <User />
+                <UserIcon className={`w-${avatarIconSizes[size]} h-${avatarIconSizes[size]}`} />
             </AvatarFallback>
         </Avatar>
     );

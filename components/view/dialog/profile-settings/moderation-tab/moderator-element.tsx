@@ -38,7 +38,7 @@ export default function ModeratorElement({ moderator, isLoading, afterDelete, cl
     const ModeratorUsernameButton = () => {
         return (
             <Button variant="link" className="text-start p-0 h-fit w-fit">
-                {isLoading ? "Loading..." : moderator.username}
+                {isLoading ? "Loading..." : moderator.displayName}
             </Button>
         )
     }
@@ -48,8 +48,8 @@ export default function ModeratorElement({ moderator, isLoading, afterDelete, cl
             <div className="flex items-center gap-2">
                 <ProfileAvatar avatarUrl={moderator.avatarUrl} size="sm" />
                 <div className="grid gap-0">
-                    {moderator.link ? (
-                        <Link href={`/${moderator.link}`} target="_blank" legacyBehavior>
+                    {moderator.username ? (
+                        <Link href={`/${moderator.username}`} target="_blank" legacyBehavior>
                             <ModeratorUsernameButton />
                         </Link>
                     ) : <ModeratorUsernameButton />}

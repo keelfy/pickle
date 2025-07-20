@@ -15,7 +15,7 @@ const DynamicMovieNoteDialogContent = dynamic(
 );
 
 export type MovieNoteDialogParams = {
-    id: string;
+    noteId: string;
 }
 
 export default function MovieNoteDialog() {
@@ -26,8 +26,8 @@ export default function MovieNoteDialog() {
     const isOpen = useMemo(
         () =>
             currentModal === ModalType.MovieNote &&
-            modalParams?.id !== undefined,
-        [currentModal, modalParams?.id]
+            modalParams?.noteId !== undefined,
+        [currentModal, modalParams?.noteId]
     );
 
     if (!isOpen) {

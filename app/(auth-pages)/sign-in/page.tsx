@@ -1,18 +1,72 @@
+"use client";
+
 import AuthForm from "@/components/auth-form";
-import { Message } from "@/components/auth-form-message";
+import ory from "@/lib/ory";
+import { isResponseError, LoginFlow, ResponseError } from "@ory/client-fetch";
+import { redirect } from "next/navigation";
+import { useQueryState } from "nuqs";
+import { parseAsBoolean, parseAsString } from "nuqs/server";
+import React from "react";
 
-type Props = {
-    searchParams: Promise<Message>;
-};
+export default function SignInPage() {
 
-export default async function SignInPage({ searchParams }: Props) {
-    const message = await searchParams;
+    const [goto] = useQueryState("goto", parseAsString.withDefault("/"));
+    const [refresh] = useQueryState("refresh", parseAsBoolean.withDefault(false));
+    const [flowId, setFlowId] = useQueryState("flow", parseAsString.withDefault(""));
 
-    return (
-        <AuthForm
-            message={message}
-            registration={false}
-            className="mx-auto flex-1"
-        />
-    );
+    const [flow, setFlow] = React.useState<LoginFlow>();
+    const [isFlowLoading, startFlowTransition] = React.useTransition();
+
+    React.useEffect(() => {
+        if (flow) return;
+
+        startFlowTransition(async () => {
+            let flow: LoginFlow | undefined = undefined;
+
+            if (flowId.length > 0) {
+                try {
+                    flow = await ory.getLoginFlow({
+                        id: flowId,
+                    })
+                } catch (error: any) {
+                    if (isResponseError(error)) {
+                        error.response.json().then(res => console.log("Failed to load existing authorization flow", JSON.stringify(res.error.message)));
+                    }
+                    flow = undefined;
+                }
+            }
+
+            if (!flow) {
+                const returnTo = process.env.NEXT_PUBLIC_DOMAIN + decodeURIComponent(goto);
+                try {
+                    flow = await ory.createBrowserLoginFlow({
+                        returnTo,
+                        refresh,
+                    })
+                } catch (error: any) {
+                    if (error instanceof ResponseError) {
+                        const res = await error.response.json();
+
+                        switch (res.error.id) {
+                            case 'session_already_available':
+                                return redirect(returnTo);
+                            default:
+                                console.log("Failed to create authorization flow", JSON.stringify(res.error.message));
+                                break;
+                        }
+                    }
+                }
+            }
+
+            setFlow(flow);
+        });
+    }, []);
+
+    React.useEffect(() => {
+        if (flowId !== flow?.id) {
+            setFlowId(flow?.id ?? "");
+        }
+    }, [flow]);
+
+    return <AuthForm flowType={refresh ? "refresh" : "login"} flow={flow} isFlowLoading={isFlowLoading} className="mx-auto flex-1" />;
 }

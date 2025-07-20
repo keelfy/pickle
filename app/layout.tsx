@@ -1,5 +1,8 @@
 import { Toaster } from "@/components/ui/toaster";
+import { fetchMyProfile } from "@/hooks/api-endpoints-server";
+import getCurrentSession from "@/hooks/getCurrentSession";
 import { cn } from "@/lib/utils";
+import AuthStoreProvider from "@/providers/auth-store";
 import { GeistSans } from "geist/font/sans";
 import "./globals.css";
 import RootProviders from "./root-providers";
@@ -14,12 +17,17 @@ export const metadata = {
     description: "The pickle website",
 };
 
-export default function RootLayout({ children }: React.PropsWithChildren) {
+export default async function RootLayout({ children }: React.PropsWithChildren) {
+    const session = await getCurrentSession();
+    const profile = session?.identity?.id ? await fetchMyProfile('md').catch(() => undefined) : undefined;
+
     return (
         <html lang="en" suppressHydrationWarning>
             <body className={cn(GeistSans.className, "antialiased")}>
                 <RootProviders>
-                    {children}
+                    <AuthStoreProvider profile={profile} session={session}>
+                        {children}
+                    </AuthStoreProvider>
                     <Toaster />
                 </RootProviders>
             </body>

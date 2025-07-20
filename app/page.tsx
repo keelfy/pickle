@@ -1,11 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { fetchMyProfile } from "@/hooks/api-endpoints-server";
-import getUser from "@/hooks/getUser";
+import getCurrentSession from "@/hooks/getCurrentSession";
 import Link from "next/link";
 
 export default async function LandingPage() {
-    const user = await getUser();
-    const profile = user ? await fetchMyProfile() : undefined;
+    const session = await getCurrentSession();
+    const profile = session?.identity?.id ? await fetchMyProfile() : undefined;
 
     return (
         <div className="h-screen w-screen flex flex-col items-center justify-center gap-10">
@@ -28,7 +28,7 @@ export default async function LandingPage() {
                 size="lg"
                 asChild
             >
-                <Link href={profile ? `/${profile.link}` : "/sign-up"}>
+                <Link href={profile ? `/${profile.username}` : "/sign-up"}>
                     {profile ? "my profile" : "get started"}
                 </Link>
             </Button>

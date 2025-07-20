@@ -4,8 +4,8 @@ import React from "react";
 import { useStore } from "zustand";
 
 import createAuthStore, { AuthStore } from "@/stores/auth-store";
-import { User } from "@supabase/supabase-js";
 import { PublicProfile } from "@/utils/api/types";
+import { Session } from "@ory/client-fetch";
 
 export type AuthStoreApi = ReturnType<typeof createAuthStore>;
 
@@ -15,7 +15,7 @@ export const AuthStoreContext = React.createContext<
 
 export type AuthStoreProviderProps = React.PropsWithChildren<{
     profile: PublicProfile | undefined;
-    user: User | undefined;
+    session: Session | undefined;
 }>;
 
 export default function AuthStoreProvider({

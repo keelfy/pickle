@@ -1,6 +1,7 @@
 import LanguageDropdownMenu from "@/components/language-dropdown-menu";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Button } from "@/components/ui/button";
+import PickleLogo from "@/components/ui/icons/pickle-logo";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import {
     NavigationMenu,
@@ -14,32 +15,31 @@ import { localizeContentCategory } from "@/lib/localize-types";
 import { cn } from "@/lib/utils";
 import { ModalType } from "@/stores/modal";
 import { CONTENT_CATEGORIES } from "@/utils/api/types";
-import { Bell, Menu, Search } from "lucide-react";
+import { Bell, Search } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import ProfileDropdownMenu from "../profile-dropdown-menu";
 import MenuItemUnderline from "./menu-item-underline";
 import OpenModalButton from "./open-modal-button";
 
-type Props = { link: string; className?: string };
+type Props = {
+    link: string;
+    username: string;
+    className?: string;
+};
 
 const ENABLED_CATEGORIES = ["games", "movies"];
 
-export default function ProfileNavigationMenu({ link, className }: Props) {
+export default function ProfileNavigationMenu({ link, username, className }: Props) {
     return (
         <div
             className={cn("flex items-center justify-between pt-2", className)}
         >
             <NavigationMenu>
                 <NavigationMenuList>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className={navigationMenuTriggerStyle()}
-                        disabled
-                    >
-                        <Menu />
-                    </Button>
+                    <Link href="/">
+                        <PickleLogo className="w-24 mr-6" />
+                    </Link>
                     <NavigationMenuItem>
                         <MenuItemUnderline link={`/${link}`}>
                             <NavigationMenuLink
@@ -60,7 +60,7 @@ export default function ProfileNavigationMenu({ link, className }: Props) {
                             key={category}
                             className={cn(
                                 !ENABLED_CATEGORIES.includes(category) &&
-                                    "opacity-50 text-muted-foreground"
+                                "opacity-50 text-muted-foreground"
                             )}
                         >
                             <MenuItemUnderline link={`/${link}/${category}`}>

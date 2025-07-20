@@ -145,7 +145,7 @@ export default function MovieNoteEditorDialogContent({ noteId }: Props) {
                         <div className="flex items-start space-x-4">
                             <EditablePoster
                                 value={form.watch("posterPreviewId")}
-                                defaultImageUrl={contentNote?.posterUrl}
+                                defaultImageUrl={contentNote?.coverUrl}
                                 onChange={(value) => {
                                     form.setValue("posterPreviewId", value, {
                                         shouldDirty: true,

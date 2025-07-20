@@ -1,19 +1,21 @@
 import { Collection, ContentCategory } from "./types";
 
 export type GameNoteReq = {
-	name: string
-	link: string
-	releaseDate: string
-	rate: number
-	comment: string
-	ordered: boolean
-	status: number
+	status: string;
+	rate?: number;
+	comment?: string;
+	contentId: string;
 }
 
-export type CreateGameNoteReq = {
-	userLink: string;
-	gameNote: GameNoteReq;
-	initialOrderId: string;
+export type CreateContentNoteReq = {
+	status: string;
+	rate?: number;
+	comment?: string;
+	contentId: string;
+}
+
+export type CreateGameNoteReq = CreateContentNoteReq & {
+	lastPlayedAt?: Date;
 }
 
 export type CreateCollectionReq = {
@@ -32,4 +34,15 @@ export type CreateOrderReq = {
 	isAnonymously: boolean;
 	category: ContentCategory;
 	message: string;
+}
+
+export type TrackedRewardReq = {
+	rewardId: string;
+	category: ContentCategory | 'any';
+}
+
+export type BroadcasterPreferencesReq = {
+	rewards: {
+		trackedRewards: TrackedRewardReq[];
+	}
 }

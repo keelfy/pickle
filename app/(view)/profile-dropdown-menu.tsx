@@ -13,7 +13,7 @@ import {
 import DropdownMenuDialogWrapper from "@/components/view/dialog/dropdown-menu-dialog-wrapper";
 import ProfileSettingsDialog from "@/components/view/dialog/profile-settings/profile-settings-dialog";
 import { fetchMyProfile } from "@/hooks/api-endpoints-server";
-import getUser from "@/hooks/getUser";
+import getCurrentSession from "@/hooks/getCurrentSession";
 import { cn } from "@/lib/utils";
 import { ModalType } from "@/stores/modal";
 import { MessageCircle, Settings, User, UsersIcon } from "lucide-react";
@@ -28,9 +28,9 @@ export default async function ProfileDropdownMenu({
     className,
     avatarSize = "md",
 }: Props) {
-    const user = await getUser();
+    const session = await getCurrentSession();
 
-    if (!user) {
+    if (!session?.active) {
         return <LoggedOutProfileNavSection />;
     }
 
@@ -51,10 +51,10 @@ export default async function ProfileDropdownMenu({
                         <div className="flex items-center justify-between gap-6">
                             <div className="flex flex-col gap-0.5">
                                 <div className="text-md">
-                                    {profile?.username}
+                                    {profile?.displayName}
                                 </div>
                                 <div className="text-muted-foreground text-xs">
-                                    {user?.email}
+                                    {session?.identity?.traits.email}
                                 </div>
                             </div>
                             <Badge>
@@ -63,7 +63,7 @@ export default async function ProfileDropdownMenu({
                         </div>
 
                         <Button className="w-full" variant="secondary" asChild>
-                            <Link href={`/${profile?.link}`}>My profile</Link>
+                            <Link href={`/${profile?.username}`}>My profile</Link>
                         </Button>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />

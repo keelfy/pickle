@@ -12,15 +12,18 @@ const DynamicGameNoteEditorDialogContent = dynamic(
     { loading: () => <LoadingDialogContent /> }
 );
 
+export type GameNoteEditorDialogParams = {
+    noteId: string;
+}
+
 export default function GameNoteEditorDialog() {
     const { currentModal, modalParams, closeModal } = useModalStore(
         (state) => state
     );
 
     const isOpen = React.useMemo(
-        () => currentModal === ModalType.GameNoteCreator ||
-            (currentModal === ModalType.GameNoteEditor && modalParams?.id !== undefined),
-        [currentModal, modalParams?.id]
+        () => currentModal === ModalType.GameNoteEditor && modalParams?.noteId !== undefined,
+        [currentModal, modalParams?.noteId]
     );
 
     if (!isOpen) {
@@ -30,7 +33,7 @@ export default function GameNoteEditorDialog() {
     return (
         <Dialog open={isOpen} onOpenChange={closeModal}>
             <DialogContent className="overflow-y-auto max-h-screen">
-                {isOpen && <DynamicGameNoteEditorDialogContent noteId={modalParams?.id} />}
+                {isOpen && <DynamicGameNoteEditorDialogContent noteId={modalParams?.noteId} />}
             </DialogContent>
         </Dialog>
     );

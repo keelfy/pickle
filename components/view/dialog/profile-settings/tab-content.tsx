@@ -12,8 +12,8 @@ const DynamicSecuritySettingsTab = dynamic(
     { loading: () => <LoadingSpinner /> }
 );
 
-const DynamicIntegrationsSettingsTab = dynamic(
-    () => import("./integrations-tab/integrations-settings-tab"),
+const DynamicTwitchSettingsTab = dynamic(
+    () => import("./twitch-integration-tab/twitch-settings-tab"),
     { loading: () => <LoadingSpinner /> }
 );
 
@@ -32,9 +32,9 @@ export type ProfileSettingsDialogTab =
     | "security"
     | "notifications"
     | "moderation"
-    | "integrations"
     | "suggestions"
-    | "payments";
+    | "payments"
+    | "twitch-integration";
 
 type Props = { tab: ProfileSettingsDialogTab };
 
@@ -47,8 +47,6 @@ export default function TabContent({ tab }: Props) {
             return <DynamicGeneralSettingsTab />;
         case "security":
             return <DynamicSecuritySettingsTab />;
-        case "integrations":
-            return <DynamicIntegrationsSettingsTab />;
         case "moderation":
             return <DynamicModerationSettingsTab />;
         case "notifications":
@@ -57,6 +55,8 @@ export default function TabContent({ tab }: Props) {
             return <DynamicSuggestionsSettingsTab />;
         case "payments":
             return <div />;
+        case "twitch-integration":
+            return <DynamicTwitchSettingsTab />;
     }
 
     return <div />;

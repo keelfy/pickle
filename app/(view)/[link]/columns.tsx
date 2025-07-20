@@ -138,7 +138,7 @@ const orderAuthorizedColumns: ColumnDef<Order>[] = [
                             openModal(ModalType.RejectOrder, {
                                 id: order.id,
                                 message: order.message,
-                                orderer: order.ordererUsername,
+                                orderer: order.ordererDisplayName,
                             });
                         }}
                     >

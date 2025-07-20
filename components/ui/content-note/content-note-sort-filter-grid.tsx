@@ -58,7 +58,7 @@ export default function ContentNoteSortFilterGrid<T extends ContentNoteSearchRes
                 limit: '20',
                 column: sortColumn,
                 direction: sortDirection,
-                posterSize: 'sm',
+                coverSize: 'sm',
             });
 
             // Only add cursor if it exists and we're not resetting the list

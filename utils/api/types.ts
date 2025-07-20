@@ -9,8 +9,8 @@ export type ProfileCounts = {
 
 export type Profile = {
     id: string;
+    displayName: string;
     username: string;
-    link: string;
     avatarUrl: string;
 }
 
@@ -60,6 +60,8 @@ export enum ContentCategoryEnum {
     Anime = 'anime',
     Series = 'series',
     Video = 'video',
+    Custom = 'custom',
+    Any = 'any',
 }
 
 export type ContentCategory = `${ContentCategoryEnum}`;
@@ -68,17 +70,22 @@ export const CONTENT_CATEGORIES: ContentCategory[] = Object.values(ContentCatego
 
 export type Content = {
     id: string;
-    name: string;
+    title: string;
+    releaseDate?: Date;
+    websites: ContentWebsite[];
     category: ContentCategory;
+    coverUrl: string;
+    sourceUrl?: string;
+    sourceType: string;
 }
 
 export interface ContentNote {
     id: string;
     createdAt: Date;
-    name: string;
+    status: ContentNoteStatus;
     rate?: number;
     comment?: string;
-    posterUrl: string;
+    content: Content;
 }
 
 export type GameNoteStatus = 'planned' | 'playing' | 'paused' | 'dropped' | 'finished' | 'skipped';
@@ -88,34 +95,36 @@ export type MovieNoteStatus = 'planned' | 'dropped' | 'watched' | 'skipped';
 export type ContentNoteStatus = GameNoteStatus | MovieNoteStatus;
 
 export type GameNote = ContentNote & {
-    releaseDate?: Date;
-    link?: string;
     status: GameNoteStatus;
     lastPlayedAt?: Date;
-    poster?: Partial<ImagePreview>;
-    posterUrl: string;
+    content: Game;
 };
 
 export type MovieNote = ContentNote & {
-    releaseDate?: Date;
     status: MovieNoteStatus;
     watchedAt?: Date;
+    content: Movie;
 }
 
 export interface ContentNoteSearchResult extends ContentNote {
-    status: GameNoteStatus;
-    initialOrdererUsername?: string;
+    title: string;
+    coverUrl: string;
+    status: ContentNoteStatus;
+    initialOrdererUserId?: string;
+    initialOrdererDisplayName?: string;
     ordererCount: number;
 }
 
 export type GameNoteSearchResult = ContentNoteSearchResult & {
-    releaseDate?: Date;
     lastPlayedAt?: Date;
+    releaseDate?: Date;
+    content: GameNoteStatus;
 }
 
 export type MovieNoteSearchResult = ContentNoteSearchResult & {
-    releaseDate?: Date;
     watchedAt?: Date;
+    releaseDate?: Date;
+    content: MovieNoteStatus;
 }
 
 export type Reaction = {
@@ -133,8 +142,9 @@ export type NoteReaction = {
 export type Orderer = {
     id: string;
     userId: string;
-    username: string;
-    anonymous: boolean;
+    displayName: string;
+    source: string;
+    referenceUserId: string;
 }
 
 export type OrderStatus = 'pending' | 'approved' | 'rejected';
@@ -147,13 +157,14 @@ export type Order = {
     receiverId: string;
     category: ContentCategory;
     ordererId: string;
-    ordererUsername: string;
+    ordererDisplayName: string;
     message: string;
     status: OrderStatus;
     amount: number;
     paymentType: number;
-    updatedCategory: ContentCategory;
-    updatedMessage: string;
+    source: string;
+    reference: string;
+    anonymous: boolean;
 };
 
 export type OrderUpdate = Order & Partial<{
@@ -182,6 +193,64 @@ export type CollectionItem = {
     id: string;
     createdAt: Date;
     collectionId: string;
-    posterUrl?: string;
+    coverUrl?: string;
     content: Content;
+}
+
+export type TwitchChannelReward = {
+    id: string;
+    title: string;
+    prompt: string;
+    backgroundColor: string;
+    cost: number;
+    isEnabled: boolean;
+    isPaused: boolean;
+    isInStock: boolean;
+    isUserInputRequired: boolean;
+    category: ContentCategory | undefined;
+}
+
+export type BroadcasterRewardPreferences = {
+    isActive: boolean;
+    trackedRewards: TwitchChannelReward[];
+    availableRewards: TwitchChannelReward[];
+}
+
+export type BroadcasterPreferences = {
+    rewards: BroadcasterRewardPreferences;
+}
+
+export type ExternalSearchResult = {
+    nameEn: string;
+    nameRu: string;
+    nameDe: string;
+    nameEs: string;
+    thumbnailUrl: string;
+}
+
+export type ContentWebsite = {
+    url: string;
+    type: string;
+}
+
+export type Game = {
+    id: string;
+    externalId: string;
+    title: string;
+    releaseDate?: Date;
+    websites: ContentWebsite[];
+    coverUrl?: string;
+    sourceUrl?: string;
+    sourceType: string;
+}
+
+export type Movie = {
+    id: string;
+    externalId: string;
+    title: string;
+    releaseDate?: Date;
+    websites: ContentWebsite[];
+    coverUrl?: string;
+    sourceUrl?: string;
+    sourceType: string;
 }

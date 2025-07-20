@@ -16,12 +16,12 @@ export default function OrdersDisabledSection({ profile }: Props) {
     return (
         <div className="grid gap-4 justify-items-center">
             <div className="text-sm font-medium">
-                Suggestions are disabled for {profile.username}.
+                Suggestions are disabled for {profile.displayName}.
             </div>
             {isOwner && (
                 <Button variant="link" size="sm" asChild>
                     <Link
-                        href={`/${myProfile.link}?modal=${ModalType.ProfileSettings}&modalParams=tab=suggestions`}
+                        href={`/${myProfile.username}?modal=${ModalType.ProfileSettings}&modalParams=tab=suggestions`}
                     >
                         You can enable this feature here.
                     </Link>

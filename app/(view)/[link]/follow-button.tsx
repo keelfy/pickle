@@ -2,13 +2,14 @@
 
 import { Button } from "@/components/ui/button";
 import { followProfile, unfollowProfile } from "@/hooks/api-endpoints-client";
+import useRedirectToLogin from "@/hooks/use-redirect-to-login";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/providers/auth-store";
 import { useProfileStore } from "@/providers/profile-store";
+import { isSessionActive } from "@/utils/session";
 import { HeartCrackIcon, HeartIcon } from "lucide-react";
 import React from "react";
-import useRedirectToLogin from "@/hooks/use-redirect-to-login";
 
 type Props = {
     className?: string;
@@ -16,14 +17,14 @@ type Props = {
 
 export function FollowButton({ className }: Props) {
     const { profile, update } = useProfileStore(state => state);
-    const user = useAuthStore(state => state.user);
+    const session = useAuthStore(state => state.session);
     const [isFollowing, setIsFollowing] = React.useState<boolean>(profile?.isFollowing ?? false);
     const [isHovering, setIsHovering] = React.useState<boolean>(false);
     const [isPending, startTransition] = React.useTransition();
     const redirectToLogin = useRedirectToLogin();
 
     const handleFollow = () => startTransition(async () => {
-        if (!user) {
+        if (!isSessionActive(session)) {
             redirectToLogin();
             return;
         }
@@ -44,7 +45,7 @@ export function FollowButton({ className }: Props) {
             }
         } catch (error: any) {
             toast({
-                title: "Failed to follow " + profile?.username,
+                title: "Failed to follow " + profile?.displayName,
                 description: error.message || "An error occurred",
                 variant: "destructive",
             });
@@ -53,7 +54,7 @@ export function FollowButton({ className }: Props) {
     });
 
     const handleUnfollow = () => startTransition(async () => {
-        if (user?.id === undefined || user?.id !== profile?.id) {
+        if (session?.identity?.id === undefined || session?.identity?.id !== profile?.id) {
             return;
         }
 
@@ -73,7 +74,7 @@ export function FollowButton({ className }: Props) {
             }
         } catch (error: any) {
             toast({
-                title: "Failed to unfollow " + profile?.username,
+                title: "Failed to unfollow " + profile?.displayName,
                 description: error.message || "An error occurred",
                 variant: "destructive",
             });

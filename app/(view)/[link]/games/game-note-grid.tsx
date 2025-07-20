@@ -11,8 +11,8 @@ const getCursorValue = (item: GameNoteSearchResult, column: string): string => {
             return new Date(item.createdAt).toISOString();
         case 'last_played_at':
             return item.lastPlayedAt ? new Date(item.lastPlayedAt).toISOString() : '';
-        case 'name':
-            return item.name;
+        case 'title':
+            return item.title;
         case 'rate':
             return item.rate?.toString() || '';
         default:
@@ -40,14 +40,6 @@ const SORT_OPTIONS: ContentNoteGridSortOption[] = [
     {
         label: "Worst Rated",
         value: "rate.asc",
-    },
-    {
-        label: "Name A-Z",
-        value: "name.asc",
-    },
-    {
-        label: "Name Z-A",
-        value: "name.desc",
     },
 ];
 

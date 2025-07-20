@@ -11,9 +11,9 @@ type Props = {
 }
 
 const sizes = {
-    sm: [100, 150],
-    md: [150, 225],
-    lg: [300, 450],
+    sm: [108, 144],
+    md: [168, 224],
+    lg: [336, 448],
 }
 
 const rounded = {

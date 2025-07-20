@@ -3,13 +3,18 @@ const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL;
 export async function apiFetcher<T>(
     url: string,
     token: string | undefined,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    cookies?: string
 ): Promise<T> {
     try {
         const headers = new Headers(options.headers);
 
         if (token) {
             headers.set("Authorization", `Bearer ${token}`);
+        }
+
+        if (cookies) {
+            headers.set("Cookie", cookies);
         }
 
         const response = await fetch(baseURL + url, {

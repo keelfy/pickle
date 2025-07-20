@@ -15,7 +15,7 @@ const DynamicGameNoteDialogContent = dynamic(
 );
 
 export type GameNoteDialogParams = {
-    id: string;
+    noteId: string;
 }
 
 export default function GameNoteDialog() {
@@ -27,8 +27,8 @@ export default function GameNoteDialog() {
     const isOpen = useMemo(
         () =>
             currentModal === ModalType.GameNote &&
-            modalParams?.id !== undefined,
-        [currentModal, modalParams?.id]
+            modalParams?.noteId !== undefined,
+        [currentModal, modalParams?.noteId]
     );
 
     if (!isOpen) {

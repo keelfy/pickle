@@ -32,10 +32,10 @@ export default function AddCollectionItemDialogContent() {
         () => (
             <>
                 Best matches for profile&nbsp;
-                <span className="font-bold">{profile?.username}</span>
+                <span className="font-bold">{profile?.displayName}</span>
             </>
         ),
-        [profile?.username]
+        [profile?.displayName]
     );
     const [selectedIndex, setSelectedIndex] = React.useState<number>(0);
 
@@ -101,7 +101,7 @@ export default function AddCollectionItemDialogContent() {
         if (sameNote) {
             toast({
                 title: `Already in collection`,
-                description: `"${source.name}" is already in the collection`,
+                description: `"${source.title}" is already in the collection`,
                 variant: "destructive",
             });
             return;
@@ -157,7 +157,7 @@ export default function AddCollectionItemDialogContent() {
                                     variant="ghost"
                                     onClick={() => handleItemClick(source)}
                                 >
-                                    <div className="text-md">{source.name}</div>
+                                    <div className="text-md">{source.title}</div>
                                     <Badge>
                                         {
                                             contentCategoryLabels.find(

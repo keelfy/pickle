@@ -7,9 +7,10 @@ import { ControllerRenderProps, FieldPath, FieldValues } from "react-hook-form";
 type Props<V extends FieldValues, N extends FieldPath<V>> = {
     field: ControllerRenderProps<V, N>;
     locale?: Locale;
+    disabled?: boolean;
 }
 
-export default function DayPickerFormItem<V extends FieldValues, N extends FieldPath<V>>({ field, locale }: Props<V, N>) {
+export default function DayPickerFormItem<V extends FieldValues, N extends FieldPath<V>>({ field, locale, disabled = false }: Props<V, N>) {
     return (
         <FormItem>
             <FormControl>
@@ -23,11 +24,12 @@ export default function DayPickerFormItem<V extends FieldValues, N extends Field
                         variant:
                             "ghost",
                         className:
-                            "w-full h-8",
+                            "w-full h-6 px-1",
                     }}
+                    disabled={disabled}
                     {...field}
                 >
-                    <EditableDate value={field.value} />
+                    <EditableDate value={field.value} disabled={disabled} />
                 </DateTimePicker>
             </FormControl>
         </FormItem>

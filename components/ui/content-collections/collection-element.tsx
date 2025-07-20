@@ -23,13 +23,13 @@ export default function CollectionElement({ item, className }: Props) {
         switch (item.content.category) {
             case 'games':
                 const params: GameNoteDialogParams = {
-                    id: item.content.id,
+                    noteId: item.content.id,
                 }
                 openModal(ModalType.GameNote, params);
                 break;
             case 'movies':
                 const movieParams: MovieNoteDialogParams = {
-                    id: item.content.id,
+                    noteId: item.content.id,
                 }
                 openModal(ModalType.MovieNote, movieParams);
                 break;
@@ -46,13 +46,13 @@ export default function CollectionElement({ item, className }: Props) {
                     >
                         <div className="flex flex-col gap-1">
                             <ContentNotePoster
-                                posterUrl={item.posterUrl}
+                                posterUrl={item.coverUrl}
                                 size="sm"
                                 className="cursor-pointer shadow-sm hover:shadow-2xl hover:scale-105 transition-all duration-300"
                             />
                             <div className="flex flex-col text-start whitespace-normal">
                                 <p className="text-xs max-w-[100px] line-clamp-2 whitespace-normal hover:underline underline-offset-2">
-                                    {item.content.name}
+                                    {item.content.title}
                                 </p>
                                 <p className="text-[0.7rem] text-muted-foreground">
                                     {localizeContentCategory(item.content.category)}
@@ -65,7 +65,7 @@ export default function CollectionElement({ item, className }: Props) {
                     <div className="flex items-center gap-1">
                         <ContentCategoryIcon category={item.content.category} className="w-4 h-4" />
                         <p>
-                            {item.content.name}
+                            {item.content.title}
                         </p>
                     </div>
                 </TooltipContent>

@@ -75,18 +75,18 @@ type ContentNoteCardHeaderNameProps = React.ComponentProps<"div"> & {
 
 function ContentNoteCardHeaderName({ title, startYear, endYear, className, ...props }: React.PropsWithChildren<ContentNoteCardHeaderNameProps>) {
     return (
-        <div className="flex items-center gap-2">
+        <p>
             <span className="font-bold text-md">
                 {title}
             </span>
             {startYear && (
                 <span className="text-muted-foreground text-sm">
-                    {startYear}
+                    &nbsp;&nbsp;{startYear}
                 </span>
             )}
             {startYear && endYear && (
                 <span className="text-muted-foreground text-sm">
-                    -
+                    &nbsp;-&nbsp;
                 </span>
             )}
             {endYear && (
@@ -94,7 +94,7 @@ function ContentNoteCardHeaderName({ title, startYear, endYear, className, ...pr
                     {endYear}
                 </span>
             )}
-        </div>
+        </p>
     )
 }
 ContentNoteCardHeaderName.displayName = "ContentNoteCardHeaderName";
@@ -168,7 +168,7 @@ export default function ContentNoteCard<T extends ContentNoteSearchResult>({ not
                     <ContentNoteCardHeaderSummary>
                         <div className="space-y-1">
                             <ContentNoteCardHeaderName
-                                title={note.name}
+                                title={note.title}
                                 startYear={releaseYear}
                                 endYear={finishedYear}
                             />

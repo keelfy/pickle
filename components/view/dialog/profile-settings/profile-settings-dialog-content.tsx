@@ -2,6 +2,7 @@
 
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { useModalStore } from "@/providers/modal";
 import {
     CreditCardIcon,
@@ -15,11 +16,11 @@ import {
 import React from "react";
 import { default as ProfileSettingsTabButton } from "./tab-button";
 import TabContent, { ProfileSettingsDialogTab } from "./tab-content";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { SiTwitch } from "@icons-pack/react-simple-icons";
 
 type Tab = {
     value: ProfileSettingsDialogTab;
-    icon: React.ReactNode;
+    icon: React.ComponentType<{ className?: string }>;
     label: string;
     disabled?: boolean;
 };
@@ -28,15 +29,15 @@ const tabCategories: { name: string; tabs: Tab[] }[] = [
     {
         name: "Profile",
         tabs: [
-            { value: "general", icon: <Settings />, label: "General" },
+            { value: "general", icon: Settings, label: "General" },
             {
                 value: "suggestions",
-                icon: <LightbulbIcon />,
+                icon: LightbulbIcon,
                 label: "Suggestions",
             },
             {
                 value: "moderation",
-                icon: <HandshakeIcon />,
+                icon: HandshakeIcon,
                 label: "Moderation",
             },
         ],
@@ -44,26 +45,27 @@ const tabCategories: { name: string; tabs: Tab[] }[] = [
     {
         name: "Account",
         tabs: [
-            { value: "security", icon: <Shield />, label: "Security" },
-            {
-                value: "integrations",
-                icon: <LayoutGrid />,
-                label: "Integrations",
-            },
+            { value: "security", icon: Shield, label: "Security" },
             {
                 value: "payments",
-                icon: <CreditCardIcon />,
+                icon: CreditCardIcon,
                 label: "Payments",
                 disabled: true,
             },
             {
                 value: "notifications",
-                icon: <MessageCircle />,
+                icon: MessageCircle,
                 label: "Notifications",
                 disabled: true,
             },
         ],
     },
+    {
+        name: "Integrations",
+        tabs: [
+            { value: "twitch-integration", icon: SiTwitch, label: "Twitch" },
+        ],
+    }
 ];
 
 export default function ProfileSettingsDialogContent() {
@@ -79,8 +81,8 @@ export default function ProfileSettingsDialogContent() {
 
     return (
         <>
-            <DialogHeader className="h-12">
-                <DialogTitle className="flex items-center h-full pl-6">
+            <DialogHeader>
+                <DialogTitle className="flex items-center pl-6 h-12">
                     Settings
                 </DialogTitle>
             </DialogHeader>

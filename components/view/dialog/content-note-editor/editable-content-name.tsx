@@ -4,15 +4,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Check } from "lucide-react";
 import React from "react";
-import { ControllerRenderProps, FieldValues, FieldPath, UseFormRegisterReturn } from "react-hook-form";
+import { ControllerRenderProps, FieldPath, FieldValues } from "react-hook-form";
 
 type Props<TFieldValues extends FieldValues, N extends FieldPath<TFieldValues>> = {
     value: string;
     field: ControllerRenderProps<TFieldValues, N>;
+    disabled?: boolean;
 }
 
-export default function EditableContentName<TFieldValues extends FieldValues, N extends FieldPath<TFieldValues>>({ value, field }: Props<TFieldValues, N>) {
+export default function EditableContentName<TFieldValues extends FieldValues, N extends FieldPath<TFieldValues>>({ value, field, disabled = false }: Props<TFieldValues, N>) {
     const [isEditingName, setIsEditingName] = React.useState(false);
+
+    const handleClick = () => {
+        if (disabled) return;
+        setIsEditingName(!isEditingName);
+    }
 
     if (!isEditingName) {
         return (
@@ -20,7 +26,7 @@ export default function EditableContentName<TFieldValues extends FieldValues, N 
                 variant="link"
                 className="p-0 text-start font-bold text-lg cursor-text whitespace-normal w-fit h-fit"
                 type="button"
-                onClick={() => setIsEditingName(!isEditingName)}
+                onClick={handleClick}
             >
                 {value.length > 0 ? value : "Untitled"}
             </Button>
@@ -35,7 +41,7 @@ export default function EditableContentName<TFieldValues extends FieldValues, N 
                 variant="secondary"
                 type="button"
                 className="text-green-500"
-                onClick={() => setIsEditingName(false)}
+                onClick={handleClick}
             >
                 <Check />
             </Button>

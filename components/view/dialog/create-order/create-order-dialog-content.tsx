@@ -48,7 +48,7 @@ export default function CreateOrderDialogContent() {
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            receiverLink: profile?.link ?? "",
+            receiverLink: profile?.username ?? "",
             paymentType: 0,
             amount: 0,
             ordererUsername: "",
@@ -59,9 +59,9 @@ export default function CreateOrderDialogContent() {
 
     useEffect(() => {
         form.reset({
-            receiverLink: profile?.link ?? "",
+            receiverLink: profile?.username ?? "",
         });
-    }, [profile?.link]);
+    }, [profile?.username]);
 
     const onSubmit = (data: z.infer<typeof formSchema>) => {
         startTransition(async () => {

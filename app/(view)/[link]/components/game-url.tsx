@@ -1,61 +1,25 @@
 "use client";
 
-import { cn } from "@/utils/cn";
-import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { ExternalLinkIcon } from "lucide-react";
+import Link from "next/link";
 import React from "react";
 
-type Props = {
+type Props = React.ComponentProps<typeof Button> & {
     url?: string;
     className?: string;
+    children?: React.ReactNode;
 };
 
-const GameUrl = ({ url, className }: Props) => {
-    const [faviconUrl, setFaviconUrl] = React.useState<string>();
-
-    const handleLoadFavicon = () => {
-        if (!url) {
-            setFaviconUrl(undefined);
-            return;
-        }
-
-        try {
-            const parsedUrl = new URL(url);
-            const favicon = `${parsedUrl.origin}/favicon.ico`;
-            setFaviconUrl(favicon);
-        } catch (error) {
-            setFaviconUrl(undefined);
-        }
-    };
-
-    React.useEffect(() => {
-        handleLoadFavicon();
-    }, [url]);
-
+const GameUrl = ({ url, className, ...props }: Props) => {
     return (
-        <div className={cn(className, "flex text-sm items-center")}>
-            {faviconUrl && (
-                <Image
-                    src={faviconUrl ?? null}
-                    alt="Link favicon"
-                    className="flex-shrink-0"
-                    width={16}
-                    height={16}
-                />
-            )}
-            {url && url.length > 0 ? (
-                <p
-                    className={cn(
-                        "truncate text-end text-muted-foreground",
-                        faviconUrl ? "w-20" : "w-24"
-                    )}
-                    dir="rtl"
-                >
-                    <span className="text-xs">{url}</span>
-                </p>
-            ) : (
-                <>&mdash;</>
-            )}
-        </div>
+        <Button variant="link" size="sm" asChild className={cn(className, "p-0")} {...props}>
+            <Link href={url ?? ""} target="_blank">
+                <ExternalLinkIcon className="w-4 h-4" />
+                IGDB
+            </Link>
+        </Button>
     );
 };
 

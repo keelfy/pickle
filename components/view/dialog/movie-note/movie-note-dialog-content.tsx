@@ -19,7 +19,7 @@ import ContentNoteDialogRated from "../content-note/content-note-dialog-rated";
 import ContentNoteDialogReview from "../content-note/content-note-dialog-review";
 
 export default function MovieNoteDialogContent() {
-    const { id: noteId } = useModalStore((state) => state.modalParams!);
+    const { noteId: noteId } = useModalStore((state) => state.modalParams!);
     const [contentNote, setContentNote] = React.useState<MovieNote>();
     const { profile } = useProfileStore((state) => state);
 
@@ -66,7 +66,7 @@ export default function MovieNoteDialogContent() {
 
             <div className="grid space-y-6">
                 <div className="flex items-start gap-4">
-                    <ContentNotePoster posterUrl={contentNote?.posterUrl} size="md" loading={isLoading} />
+                    <ContentNotePoster posterUrl={contentNote?.coverUrl} size="md" loading={isLoading} />
                     <div className="flex-1 flex flex-col gap-3 w-full justify-between">
                         <div className="font-bold text-lg">
                             {contentNote?.name}

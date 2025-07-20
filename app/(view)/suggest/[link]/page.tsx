@@ -63,7 +63,7 @@ export default async function SuggestPage({ params }: Props) {
             <div className="flex flex-col gap-4 max-w-2xl min-w-max mx-auto py-16">
                 <Card className="flex items-center gap-4 p-4 max-w-2xl min-w-max shadow-lg">
                     <Link
-                        href={`/${profile.link}`}
+                        href={`/${profile.username}`}
                         target="_blank"
                         legacyBehavior
                     >
@@ -76,15 +76,15 @@ export default async function SuggestPage({ params }: Props) {
                     <div className="space-y-2">
                         <div className="space-y-0">
                             <Link
-                                href={`/${profile.link}`}
+                                href={`/${profile.username}`}
                                 target="_blank"
                                 className="text-3xl font-bold cursor-pointer"
                                 legacyBehavior
                             >
-                                {profile?.username}
+                                {profile?.displayName}
                             </Link>
                             <div className="flex items-center gap-2 text-sm">
-                                <div>@{profile.link}</div>
+                                <div>@{profile.username}</div>
                                 <div className="text-muted-foreground">
                                     &bull;
                                 </div>

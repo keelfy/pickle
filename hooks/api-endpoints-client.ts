@@ -1,7 +1,7 @@
 import { fetchApi } from "@/utils/api/client";
-import { AddItemToCollectionReq, CreateCollectionReq, CreateOrderReq, UpdateCollectionReq } from "@/utils/api/request";
-import { ContentSearchHits, LinkValidation, Paginated } from "@/utils/api/response";
-import { Collection, CollectionItem, ContentCategory, ContentNote, ContentNoteSearchResult, GameNote, Image, ImagePreview, ImageSize, ModeratorProfile, NoteReaction, Order, OrderUpdate, Profile, PublicProfile, Reaction, SuggestionPreferences } from "@/utils/api/types";
+import { AddItemToCollectionReq, CreateCollectionReq, CreateContentNoteReq, CreateOrderReq, UpdateCollectionReq } from "@/utils/api/request";
+import { ContentSearchHits, ExternalSearchHits, LinkValidation, Paginated, SearchHit } from "@/utils/api/response";
+import { Collection, CollectionItem, ContentCategory, ContentNote, ContentNoteSearchResult, Game, Image, ImagePreview, ImageSize, ModeratorProfile, NoteReaction, Order, OrderUpdate, Profile, PublicProfile, Reaction, SuggestionPreferences } from "@/utils/api/types";
 
 // Profile
 
@@ -166,12 +166,8 @@ export async function fetchProfileContentNotes<T extends ContentNoteSearchResult
     return fetchApi<T[]>(`/v1/users/${profile.id}/content-notes/${category}?${params.toString()}`);
 }
 
-export async function fetchContentNotePoster(profile: Profile, category: ContentCategory, noteId: string, size: ImageSize = 'sm') {
-    return fetchApi<Image>(`/v1/users/${profile.id}/content-notes/${category}/${noteId}/posters?size=${size}`);
-}
-
-export async function fetchContentNote<T extends ContentNote>(profile: Profile, category: ContentCategory, noteId: string) {
-    return fetchApi<T>(`/v1/users/${profile.id}/content-notes/${category}/${noteId}`);
+export async function fetchContentNote<T extends ContentNote>(profile: Profile, category: ContentCategory, noteId: string, coverSize: ImageSize = 'md') {
+    return fetchApi<T>(`/v1/users/${profile.id}/content-notes/${category}/${noteId}?coverSize=${coverSize}`);
 }
 
 export async function deleteContentNote(profile: Profile, category: ContentCategory, noteId: string, resetApprovedOrders: boolean = true) {
@@ -180,14 +176,14 @@ export async function deleteContentNote(profile: Profile, category: ContentCateg
     });
 }
 
-export async function updateContentNote<T extends ContentNote>(profile: Profile, category: ContentCategory, noteId: string, note: any) {
+export async function updateContentNote<T extends ContentNote, R extends Partial<CreateContentNoteReq>>(profile: Profile, category: ContentCategory, noteId: string, note: R) {
     return fetchApi<T>(`/v1/users/${profile.id}/content-notes/${category}/${noteId}`, true, {
         method: "PATCH",
         body: JSON.stringify(note),
     });
 }
 
-export async function createContentNote<T extends ContentNote>(profile: Profile, category: ContentCategory, note: any) {
+export async function createContentNote<T extends ContentNote, R extends CreateContentNoteReq>(profile: Profile, category: ContentCategory, note: R) {
     return fetchApi<T>(`/v1/users/${profile.id}/content-notes/${category}`, true, {
         method: "POST",
         body: JSON.stringify(note),
@@ -234,4 +230,14 @@ export async function deleteContentNoteReaction(profile: Profile, category: Cont
         method: "DELETE",
         body: JSON.stringify(body),
     });
+}
+
+// Games
+
+export async function fetchIGDBSearch(query: string, page: number, size: number) {
+    return fetchApi<ExternalSearchHits>(`/v1/games?query=${query}&page=${page}&size=${size}`);
+}
+
+export async function fetchGameById(gameId: string, coverSize: ImageSize = 'md', locale: string = 'en') {
+    return fetchApi<Game>(`/v1/games/${gameId}?coverSize=${coverSize}&lang=${locale}`);
 }

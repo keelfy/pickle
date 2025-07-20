@@ -68,10 +68,10 @@ export default function ProfileSearchDialogContent() {
         () => (
             <>
                 Best matches for profile&nbsp;
-                <span className="font-bold">{profile?.username}</span>
+                <span className="font-bold">{profile?.displayName}</span>
             </>
         ),
-        [profile?.username]
+        [profile?.displayName]
     );
     const [selectedIndex, setSelectedIndex] = React.useState<number>(0);
 
@@ -102,10 +102,10 @@ export default function ProfileSearchDialogContent() {
     const handleEntryClick = ({ category, id }: Content) => {
         switch (category) {
             case "games":
-                openModal(ModalType.GameNote, { id });
+                openModal(ModalType.GameNote, { noteId: id });
                 break;
             case "movies":
-                openModal(ModalType.MovieNote, { id });
+                openModal(ModalType.MovieNote, { noteId: id });
                 break;
         }
     }
@@ -133,7 +133,7 @@ export default function ProfileSearchDialogContent() {
                                     variant="ghost"
                                     onClick={() => handleEntryClick(source)}
                                 >
-                                    <div className="text-md">{source.name}</div>
+                                    <div className="text-md">{source.title}</div>
                                     <Badge>
                                         {
                                             contentCategoryLabels.find(

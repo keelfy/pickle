@@ -5,8 +5,11 @@ const nextConfig = {
             { hostname: "flowbite.com" },
             { hostname: "cdn2.steamgriddb.com" },
             { hostname: "store.steampowered.com" },
-            { hostname: "mrdrnose.itch.io" },
+            { hostname: "itch.io" },
             { hostname: "imgproxy-staging.up.railway.app" },
+            { hostname: "images.igdb.com" },
+            { hostname: "www.igdb.com" },
+            { hostname: "wikipedia.org" },
         ],
     },
     experimental: {

@@ -22,7 +22,7 @@ type Props = {
 export default function OrderSenderName({ className, avatarUrl, onUsernameChange, onAnonymouslyChange, isAnonymously, allowedAnonymously, username }: Props) {
     const myProfile = useAuthStore(state => state.profile);
     const [isEditing, setIsEditing] = React.useState<boolean>(false);
-    const [typedName, setTypedName] = React.useState<string>(myProfile?.username ?? "");
+    const [typedName, setTypedName] = React.useState<string>(myProfile?.displayName ?? "");
 
     const handleClick = () => {
         setIsEditing(true);
@@ -41,9 +41,9 @@ export default function OrderSenderName({ className, avatarUrl, onUsernameChange
     const handleChange = () => {
         if (typedName?.length > 0) {
             onUsernameChange(typedName);
-        } else if (myProfile?.username !== undefined) {
-            onUsernameChange(myProfile.username);
-            setTypedName(myProfile.username);
+        } else if (myProfile?.displayName !== undefined) {
+            onUsernameChange(myProfile.displayName);
+            setTypedName(myProfile.displayName);
         } else {
             onUsernameChange("");
             setTypedName("");
@@ -103,7 +103,7 @@ export default function OrderSenderName({ className, avatarUrl, onUsernameChange
                 <Button variant="link" className={cn("text-start flex items-center gap-2 p-0", className)}
                     onClick={handleClick}
                 >
-                    <div className={cn(username !== myProfile?.username && !isAnonymously && "italic", "underline decoration-dashed decoration-muted-foreground")}>
+                    <div className={cn(username !== myProfile?.displayName && !isAnonymously && "italic", "underline decoration-dashed decoration-muted-foreground")}>
                         {isAnonymously ? "Send anonymously" : (username?.length == 0 ? "Someone" : username)}
                     </div>
                     <EditIcon size='1rem' />

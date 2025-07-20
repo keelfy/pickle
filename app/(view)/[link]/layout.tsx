@@ -18,6 +18,8 @@ import ProfileCard from "./profile-card";
 import ProfileNavigationMenu from "./profile-nav-menu";
 import MovieNoteDialog from "@/components/view/dialog/movie-note/movie-note-dialog";
 import ManualNoteCreationDialog from "@/components/view/dialog/manual-note-creation/manual-note-creation-dialog";
+import GameNoteCreatorDialog from "@/components/view/dialog/game-note-creator/game-note-creator-dialog";
+import SelectIGDBItemDialog from "@/components/view/dialog/select-igdb-item/select-igdb-item-dialog";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { link } = await params;
@@ -80,7 +82,7 @@ export default async function RootLayout({ children, params }: React.PropsWithCh
         <main className="min-h-screen bg-background grid gap-10">
             <div className="container max-w-7xl flex flex-col gap-10">
                 <nav className="mt-2">
-                    <ProfileNavigationMenu link={link} className="max-md:hidden" />
+                    <ProfileNavigationMenu link={link} username={ownerProfile.username} className="max-md:hidden" />
                 </nav>
 
                 <OrderStoreProvider>
@@ -106,6 +108,8 @@ export default async function RootLayout({ children, params }: React.PropsWithCh
                         <ManualNoteCreationDialog />
                         <GameNoteEditorDialog />
                         <MovieNoteEditorDialog />
+                        <GameNoteCreatorDialog />
+                        <SelectIGDBItemDialog />
                     </ProfileStoreProvider>
                 </OrderStoreProvider>
             </div>

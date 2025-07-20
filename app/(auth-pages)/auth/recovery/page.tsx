@@ -4,7 +4,6 @@ import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
-import { SmtpMessage } from "../smtp-message";
 
 type Props = {
     searchParams: Promise<Message>;
@@ -41,7 +40,6 @@ export default async function ForgotPassword({ searchParams }: Props) {
                     <AuthFormMessage message={message} />
                 </div>
             </form>
-            <SmtpMessage />
         </>
     );
 }

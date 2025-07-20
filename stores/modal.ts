@@ -29,6 +29,9 @@ export enum ModalType {
     AddCollectionItem = "add-collection-item",
     CreateCollection = "create-collection",
     DeleteCollectionAlert = "delete-collection-alert",
+
+    // IGDB
+    SelectIGDBItem = "select-igdb-item",
 }
 
 type Action = {

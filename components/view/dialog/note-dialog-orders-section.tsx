@@ -148,7 +148,7 @@ export const NoteDialogOrdersSection = ({
                                                     </TooltipContent>
                                                 </Tooltip>
                                             </td>
-                                            <td>{order.ordererUsername}</td>
+                                            <td>{order.ordererDisplayName}</td>
                                         </tr>
                                     ))}
                                 </tbody>

@@ -1,4 +1,5 @@
 import ContentNoteCard, { ContentNoteCardHeaderDataTableColumnGroup } from "@/components/ui/content-note/content-note-card";
+import { useProfileStore } from "@/providers/profile-store";
 import { MovieNoteSearchResult, Reaction } from "@/utils/api/types";
 import {
     History,
@@ -11,6 +12,7 @@ type Props = {
 }
 
 export default function MovieNoteCard({ note, defaultReactions }: Props) {
+    const profile = useProfileStore((state) => state.profile);
 
     const columnGroups: ContentNoteCardHeaderDataTableColumnGroup<MovieNoteSearchResult>[] = [{
         columns: [
@@ -25,10 +27,10 @@ export default function MovieNoteCard({ note, defaultReactions }: Props) {
             },
             {
                 icon: <UserPlus2 size={12} />,
-                label: "Requester",
+                label: note.initialOrdererUserId !== profile?.id ? "Requester" : "Added by",
                 value: (note) => (
                     <p>
-                        {note.initialOrdererUsername ?? (
+                        {note.initialOrdererDisplayName ?? (
                             <span className="text-muted-foreground">
                                 "N/A"
                             </span>

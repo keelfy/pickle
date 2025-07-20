@@ -128,19 +128,42 @@ func (s *igdbSyncService) SyncGames(ctx context.Context) error {
 			return fmt.Errorf("error marshalling websites: %w", err)
 		}
 
+		var releaseDate *time.Time
+		// for _, rd := range game.ReleaseDates {
+		// 	releaseDate = &rd.Date
+		// }
+		if game.FirstReleaseDate > 0 {
+			date := time.Unix(game.FirstReleaseDate, 0)
+			releaseDate = &date
+		}
+
+		var coverKey *string
+		if game.Cover.ImageID != "" {
+			coverKey = &game.Cover.ImageID
+		}
+
+		var sourceUrl *string
+		if game.URL != "" {
+			sourceUrl = &game.URL
+		}
+
 		id, err := qtx.UpsertGame(ctx, db.UpsertGameParams{
-			IgdbID:      game.ID,
-			ReleaseDate: time.Unix(game.ReleaseDate, 0),
-			Websites:    websites,
+			ExternalID:   game.ID,
+			ReleaseDate:  releaseDate,
+			Websites:     websites,
+			CoverKey:     coverKey,
+			CoverKeyType: db.NullImageKeyType{ImageKeyType: db.ImageKeyTypeIgdb, Valid: true},
+			SourceUrl:    sourceUrl,
+			SourceType:   db.ContentSourceIgdb,
 		})
 		if err != nil {
 			return fmt.Errorf("error upserting game: %w", err)
 		}
 
 		err = qtx.UpsertGameLocalization(ctx, db.UpsertGameLocalizationParams{
-			GameID: id,
-			Lang:   "en",
-			Title:  game.Name,
+			ContentID: id,
+			Lang:      "en",
+			Title:     game.Name,
 		})
 		if err != nil {
 			return fmt.Errorf("error upserting game localization: %w", err)
@@ -164,13 +187,20 @@ func (s *igdbSyncService) SyncGames(ctx context.Context) error {
 			}
 		}
 
+		var thumbnailURL *string
+		if game.Cover.URL != "" {
+			url := strings.Replace(game.Cover.URL, "t_cover_big", "t_micro", 1)
+			thumbnailURL = &url
+		}
+
 		documents[i%batchSize] = &storage.BulkIndexRequest{
 			ID: id.String(),
 			Doc: &models.ElasticIGDBGame{
-				EnglishName: names["en"],
-				RussianName: names["ru"],
-				GermanName:  names["de"],
-				SpanishName: names["es"],
+				ThumbnailURL: thumbnailURL,
+				EnglishName:  names["en"],
+				RussianName:  names["ru"],
+				GermanName:   names["de"],
+				SpanishName:  names["es"],
 			},
 		}
 	}

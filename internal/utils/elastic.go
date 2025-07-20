@@ -6,10 +6,11 @@ import (
 	"github.com/elastic/go-elasticsearch/v8/typedapi/core/search"
 	"github.com/jinzhu/copier"
 	"github.com/pickle.pw/monolith/internal/errors"
+	"github.com/pickle.pw/monolith/internal/models"
 	"github.com/pickle.pw/monolith/internal/types"
 )
 
-func ConvertElasticSearchResponseToRESTResponse[T any](searchResponse *search.Response, pagination *types.Pagination) (*types.PaginatedRes[types.SearchHitRes[T]], error) {
+func ConvertElasticContentSearchResToRESTRes[T any](searchResponse *search.Response, pagination *types.Pagination) (*types.PaginatedRes[types.SearchHitRes[T]], error) {
 	hits := []types.SearchHitRes[T]{}
 
 	for _, hit := range searchResponse.Hits.Hits {
@@ -29,6 +30,36 @@ func ConvertElasticSearchResponseToRESTResponse[T any](searchResponse *search.Re
 	}
 
 	res := &types.PaginatedRes[types.SearchHitRes[T]]{
+		Content:       hits,
+		Page:          pagination.Page,
+		Size:          pagination.Size,
+		TotalPages:    searchResponse.Hits.Total.Value / int64(pagination.Size),
+		TotalElements: searchResponse.Hits.Total.Value,
+	}
+	return res, nil
+}
+
+func ConvertElasticIGDBSearchResToRESTRes(searchResponse *search.Response, pagination *types.Pagination) (*types.PaginatedRes[types.SearchHitRes[types.IGDBGameRes]], error) {
+	hits := []types.SearchHitRes[types.IGDBGameRes]{}
+
+	for _, hit := range searchResponse.Hits.Hits {
+		rawSource := hit.Source_
+		var (
+			dbSource models.ElasticIGDBGame
+			source   types.SearchHitRes[types.IGDBGameRes]
+		)
+
+		if err := json.Unmarshal(rawSource, &dbSource); err != nil {
+			return nil, errors.NewInternalServerError("Error occurred during IGDB game search", err)
+		}
+
+		source.ID = *hit.Id_
+		source.Score = float64(*hit.Score_)
+		copier.Copy(&source.Source, &dbSource)
+		hits = append(hits, source)
+	}
+
+	res := &types.PaginatedRes[types.SearchHitRes[types.IGDBGameRes]]{
 		Content:       hits,
 		Page:          pagination.Page,
 		Size:          pagination.Size,

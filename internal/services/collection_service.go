@@ -25,8 +25,8 @@ type CollectionService interface {
 	GetByID(ctx context.Context, collectionID uuid.UUID) (*db.Collection, error)
 	GetByUserID(ctx context.Context, userID uuid.UUID) ([]*db.Collection, error)
 	GetItemByID(ctx context.Context, itemID uuid.UUID) (*db.CollectionItem, error)
-	GetItemsByCollectionID(ctx context.Context, collectionID uuid.UUID, pagination *types.Pagination) ([]*db.FindCollectionItemsByCollectionIDWithContentRow, error)
-	GetItemsByUserID(ctx context.Context, userID uuid.UUID, pagination *types.Pagination) ([]*db.FindCollectionItemsByUserIDWithContentLimitPerCollectionRow, error)
+	GetItemsByCollectionID(ctx context.Context, collectionID uuid.UUID, pagination *types.Pagination, locale string) ([]*db.FindCollectionItemsByCollectionIDWithContentRow, error)
+	GetItemsByUserID(ctx context.Context, userID uuid.UUID, pagination *types.Pagination, locale string) ([]*db.FindCollectionItemsByUserIDWithContentLimitPerCollectionRow, error)
 	CountCollectionItemsByCollectionID(ctx context.Context, collectionID uuid.UUID) (int64, error)
 }
 
@@ -51,7 +51,7 @@ func (service *collectionService) CreateCollection(ctx context.Context, userID u
 		return nil, errors.NewBadRequestError("invalid request", err)
 	}
 
-	authUserID, err := utils.UserIdFromContext(ctx)
+	authUserID, err := utils.GetUserIDFromCtx(ctx)
 	if err != nil {
 		return nil, errors.NewInternalServerError("failed to get user ID from context", err)
 	}
@@ -84,7 +84,7 @@ func (service *collectionService) DeleteCollection(ctx context.Context, collecti
 		return err
 	}
 
-	authUserID, err := utils.UserIdFromContext(ctx)
+	authUserID, err := utils.GetUserIDFromCtx(ctx)
 	if err != nil {
 		return errors.NewInternalServerError("failed to get user ID from context", err)
 	}
@@ -130,7 +130,7 @@ func (service *collectionService) UpdateCollection(ctx context.Context, collecti
 		return nil, err
 	}
 
-	authUserID, err := utils.UserIdFromContext(ctx)
+	authUserID, err := utils.GetUserIDFromCtx(ctx)
 	if err != nil {
 		return nil, errors.NewInternalServerError("failed to get user ID from context", err)
 	}
@@ -166,7 +166,7 @@ func (service *collectionService) UpdateCollection(ctx context.Context, collecti
 }
 
 func (service *collectionService) AddItemToCollection(ctx context.Context, collectionID uuid.UUID, content models.ContentNote) (*db.CollectionItem, error) {
-	authUserID, err := utils.UserIdFromContext(ctx)
+	authUserID, err := utils.GetUserIDFromCtx(ctx)
 	if err != nil {
 		return nil, errors.NewInternalServerError("failed to get user ID from context", err)
 	}
@@ -200,7 +200,7 @@ func (service *collectionService) AddItemToCollection(ctx context.Context, colle
 }
 
 func (service *collectionService) RemoveItemFromCollection(ctx context.Context, collectionID uuid.UUID, itemID uuid.UUID) error {
-	authUserID, err := utils.UserIdFromContext(ctx)
+	authUserID, err := utils.GetUserIDFromCtx(ctx)
 	if err != nil {
 		return errors.NewInternalServerError("failed to get user ID from context", err)
 	}
@@ -276,11 +276,12 @@ func (service *collectionService) GetItemByID(ctx context.Context, itemID uuid.U
 	return collectionItem, nil
 }
 
-func (service *collectionService) GetItemsByCollectionID(ctx context.Context, collectionID uuid.UUID, pagination *types.Pagination) ([]*db.FindCollectionItemsByCollectionIDWithContentRow, error) {
+func (service *collectionService) GetItemsByCollectionID(ctx context.Context, collectionID uuid.UUID, pagination *types.Pagination, locale string) ([]*db.FindCollectionItemsByCollectionIDWithContentRow, error) {
 	collectionItems, err := service.sqlDB.Queries().FindCollectionItemsByCollectionIDWithContent(ctx, db.FindCollectionItemsByCollectionIDWithContentParams{
 		CollectionID: collectionID,
 		Limit:        int32(pagination.Size),
 		Offset:       int32(pagination.From),
+		Lang:         db.Locale(locale),
 	})
 	if err != nil {
 		return nil, errors.NewInternalServerError("failed to get items by collection ID", err)
@@ -289,10 +290,11 @@ func (service *collectionService) GetItemsByCollectionID(ctx context.Context, co
 	return collectionItems, nil
 }
 
-func (service *collectionService) GetItemsByUserID(ctx context.Context, userID uuid.UUID, pagination *types.Pagination) ([]*db.FindCollectionItemsByUserIDWithContentLimitPerCollectionRow, error) {
+func (service *collectionService) GetItemsByUserID(ctx context.Context, userID uuid.UUID, pagination *types.Pagination, locale string) ([]*db.FindCollectionItemsByUserIDWithContentLimitPerCollectionRow, error) {
 	collectionItems, err := service.sqlDB.Queries().FindCollectionItemsByUserIDWithContentLimitPerCollection(ctx, db.FindCollectionItemsByUserIDWithContentLimitPerCollectionParams{
 		UserID: userID,
 		Limit:  int16(pagination.Size),
+		Lang:   db.Locale(locale),
 	})
 	if err != nil {
 		return nil, errors.NewInternalServerError("failed to get items by user ID", err)

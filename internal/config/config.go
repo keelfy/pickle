@@ -33,18 +33,10 @@ func GetContextTimeoutMs() time.Duration {
 	return time.Duration(value) * time.Millisecond
 }
 
-/** SUPABASE */
+/** Ory */
 
-func GetSupabaseUrl() string {
-	return os.Getenv("SUPABASE_URL")
-}
-
-func GetSupabaseKey() string {
-	return os.Getenv("SUPABASE_KEY")
-}
-
-func GetAccessTokenCookieName() string {
-	return os.Getenv("ACCESS_TOKEN_COOKIE_NAME")
+func GetOryUrl() string {
+	return os.Getenv("ORY_URL")
 }
 
 /** JWT */
@@ -135,12 +127,4 @@ func GetTwitchClientID() string {
 
 func GetTwitchClientSecret() string {
 	return os.Getenv("TWITCH_CLIENT_SECRET")
-}
-
-func GetTwitchRedirectURI() string {
-	return os.Getenv("TWITCH_REDIRECT_URI")
-}
-
-func GetTwitchAuthStateSecret() []byte {
-	return []byte(os.Getenv("TWITCH_AUTH_STATE_SECRET"))
 }

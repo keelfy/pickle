@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/pickle.pw/monolith/internal/logger"
@@ -70,6 +71,10 @@ func (service *migrationService) LoadElasticMigrations(folder string) ([]Migrati
 			if err != nil {
 				return err
 			}
+			if !strings.HasSuffix(info.Name(), ".json") {
+				return nil
+			}
+
 			var migration MigrationFile
 			if err := json.Unmarshal(data, &migration); err != nil {
 				return err

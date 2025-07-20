@@ -12,17 +12,18 @@ import (
 )
 
 const addMovieNoteReaction = `-- name: AddMovieNoteReaction :exec
-INSERT INTO "movie_note_reactions" (
-    "movie_note_id",
-    "user_id",
-    "emote_id",
-    "source"
-) VALUES (
-    $1::uuid,
-    $2::uuid,
-    $3::text,
-    $4::reaction_source
-)
+INSERT INTO movie_note_reactions (
+        movie_note_id,
+        user_id,
+        emote_id,
+        source
+    )
+VALUES (
+        $1::uuid,
+        $2::uuid,
+        $3::text,
+        $4::reaction_source
+    )
 `
 
 type AddMovieNoteReactionParams struct {
@@ -32,7 +33,6 @@ type AddMovieNoteReactionParams struct {
 	Source      ReactionSource `json:"source"`
 }
 
-// Author: Egor Kuzmin (keelfy)
 func (q *Queries) AddMovieNoteReaction(ctx context.Context, arg AddMovieNoteReactionParams) error {
 	_, err := q.db.Exec(ctx, addMovieNoteReaction,
 		arg.MovieNoteID,
@@ -43,52 +43,55 @@ func (q *Queries) AddMovieNoteReaction(ctx context.Context, arg AddMovieNoteReac
 	return err
 }
 
-const countMovieNoteReactionsByMovieNoteIdAndUserId = `-- name: CountMovieNoteReactionsByMovieNoteIdAndUserId :one
-SELECT COUNT(*) FROM "movie_note_reactions"
-WHERE "movie_note_id" = $1::uuid
-    AND "user_id" = $2::uuid
+const countMovieNoteReactionsByMovieNoteIDAndUserID = `-- name: CountMovieNoteReactionsByMovieNoteIDAndUserID :one
+SELECT COUNT(*)
+FROM movie_note_reactions
+WHERE movie_note_id = $1::uuid
+    AND user_id = $2::uuid
 `
 
-type CountMovieNoteReactionsByMovieNoteIdAndUserIdParams struct {
+type CountMovieNoteReactionsByMovieNoteIDAndUserIDParams struct {
 	MovieNoteID uuid.UUID `json:"movie_note_id"`
 	UserID      uuid.UUID `json:"user_id"`
 }
 
-// Author: Egor Kuzmin (keelfy)
-func (q *Queries) CountMovieNoteReactionsByMovieNoteIdAndUserId(ctx context.Context, arg CountMovieNoteReactionsByMovieNoteIdAndUserIdParams) (int64, error) {
-	row := q.db.QueryRow(ctx, countMovieNoteReactionsByMovieNoteIdAndUserId, arg.MovieNoteID, arg.UserID)
+func (q *Queries) CountMovieNoteReactionsByMovieNoteIDAndUserID(ctx context.Context, arg CountMovieNoteReactionsByMovieNoteIDAndUserIDParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countMovieNoteReactionsByMovieNoteIDAndUserID, arg.MovieNoteID, arg.UserID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
 }
 
-const getMovieNoteReactionsByMovieNoteIdInAndUserId = `-- name: GetMovieNoteReactionsByMovieNoteIdInAndUserId :many
-SELECT 
-    mnr."movie_note_id",
-    mnr."emote_id",
-    mnr."source",
-    COUNT(DISTINCT mnr."user_id") AS "count",
+const getMovieNoteReactionsByMovieNoteIDInAndUserID = `-- name: GetMovieNoteReactionsByMovieNoteIDInAndUserID :many
+SELECT mnr.movie_note_id,
+    mnr.emote_id,
+    mnr.source,
+    COUNT(DISTINCT mnr.user_id) AS count,
     COALESCE(
         (
             SELECT 1
-            FROM "movie_note_reactions" r2
-            WHERE r2."movie_note_id" = mnr."movie_note_id"
-                AND r2."user_id" = $1::uuid
-                AND r2."emote_id" = mnr."emote_id"
-                AND r2."source" = mnr."source"
-        ), 0) AS "reacted_by_user"
-FROM "movie_note_reactions" mnr
-WHERE mnr."movie_note_id" = ANY($2::uuid[])
-GROUP BY mnr."movie_note_id", mnr."emote_id", mnr."source"
-ORDER BY "count" DESC
+            FROM movie_note_reactions r2
+            WHERE r2.movie_note_id = mnr.movie_note_id
+                AND r2.user_id = $1::uuid
+                AND r2.emote_id = mnr.emote_id
+                AND r2.source = mnr.source
+        ),
+        0
+    ) AS reacted_by_user
+FROM movie_note_reactions mnr
+WHERE mnr.movie_note_id = ANY($2::uuid [])
+GROUP BY mnr.movie_note_id,
+    mnr.emote_id,
+    mnr.source
+ORDER BY count DESC
 `
 
-type GetMovieNoteReactionsByMovieNoteIdInAndUserIdParams struct {
-	UserID       uuid.UUID   `json:"user_id"`
+type GetMovieNoteReactionsByMovieNoteIDInAndUserIDParams struct {
+	UserID       *uuid.UUID  `json:"user_id"`
 	MovieNoteIds []uuid.UUID `json:"movie_note_ids"`
 }
 
-type GetMovieNoteReactionsByMovieNoteIdInAndUserIdRow struct {
+type GetMovieNoteReactionsByMovieNoteIDInAndUserIDRow struct {
 	MovieNoteID   uuid.UUID      `json:"movie_note_id"`
 	EmoteID       string         `json:"emote_id"`
 	Source        ReactionSource `json:"source"`
@@ -96,16 +99,15 @@ type GetMovieNoteReactionsByMovieNoteIdInAndUserIdRow struct {
 	ReactedByUser *int32         `json:"reacted_by_user"`
 }
 
-// Author: Egor Kuzmin (keelfy)
-func (q *Queries) GetMovieNoteReactionsByMovieNoteIdInAndUserId(ctx context.Context, arg GetMovieNoteReactionsByMovieNoteIdInAndUserIdParams) ([]*GetMovieNoteReactionsByMovieNoteIdInAndUserIdRow, error) {
-	rows, err := q.db.Query(ctx, getMovieNoteReactionsByMovieNoteIdInAndUserId, arg.UserID, arg.MovieNoteIds)
+func (q *Queries) GetMovieNoteReactionsByMovieNoteIDInAndUserID(ctx context.Context, arg GetMovieNoteReactionsByMovieNoteIDInAndUserIDParams) ([]*GetMovieNoteReactionsByMovieNoteIDInAndUserIDRow, error) {
+	rows, err := q.db.Query(ctx, getMovieNoteReactionsByMovieNoteIDInAndUserID, arg.UserID, arg.MovieNoteIds)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []*GetMovieNoteReactionsByMovieNoteIdInAndUserIdRow{}
+	items := []*GetMovieNoteReactionsByMovieNoteIDInAndUserIDRow{}
 	for rows.Next() {
-		var i GetMovieNoteReactionsByMovieNoteIdInAndUserIdRow
+		var i GetMovieNoteReactionsByMovieNoteIDInAndUserIDRow
 		if err := rows.Scan(
 			&i.MovieNoteID,
 			&i.EmoteID,
@@ -124,11 +126,11 @@ func (q *Queries) GetMovieNoteReactionsByMovieNoteIdInAndUserId(ctx context.Cont
 }
 
 const removeMovieNoteReaction = `-- name: RemoveMovieNoteReaction :exec
-DELETE FROM "movie_note_reactions"
-WHERE "movie_note_id" = $1::uuid
-    AND "user_id" = $2::uuid
-    AND "emote_id" = $3::text
-    AND "source" = $4::reaction_source
+DELETE FROM movie_note_reactions
+WHERE movie_note_id = $1::uuid
+    AND user_id = $2::uuid
+    AND emote_id = $3::text
+    AND source = $4::reaction_source
 `
 
 type RemoveMovieNoteReactionParams struct {
@@ -138,7 +140,6 @@ type RemoveMovieNoteReactionParams struct {
 	Source      ReactionSource `json:"source"`
 }
 
-// Author: Egor Kuzmin (keelfy)
 func (q *Queries) RemoveMovieNoteReaction(ctx context.Context, arg RemoveMovieNoteReactionParams) error {
 	_, err := q.db.Exec(ctx, removeMovieNoteReaction,
 		arg.MovieNoteID,

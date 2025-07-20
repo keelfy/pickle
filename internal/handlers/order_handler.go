@@ -52,7 +52,7 @@ func (handler *orderHandler) GetOrderByID(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	order, err := handler.orderService.GetOrderById(ctx, orderId)
+	order, err := handler.orderService.GetOrderByID(ctx, orderId)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
@@ -89,13 +89,13 @@ func (handler *orderHandler) GetSortedOrdersByUserID(w http.ResponseWriter, r *h
 	}
 
 	// Find receiver by link
-	receiver, err := handler.userService.GetProfileById(ctx, userId)
+	receiver, err := handler.userService.GetProfileByID(ctx, userId)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
 	}
 
-	orders, err := handler.orderService.GetSortedByReceiverId(ctx, receiver.UserID, sort)
+	orders, err := handler.orderService.GetSortedByReceiverID(ctx, receiver.UserID, sort)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
@@ -131,13 +131,13 @@ func (handler *orderHandler) CreateOrder(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	userId, err := utils.ReadPathUUIDVariable("userId", r)
+	userID, err := utils.ReadPathUUIDVariable("userId", r)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
 	}
 
-	_, err = handler.orderService.CreateOrder(ctx, userId, req)
+	_, err = handler.orderService.CreateOrder(ctx, userID, req)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
@@ -178,7 +178,7 @@ func (handler *orderHandler) UpdateOrderByID(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	updatedOrder, relatedContentID, err := handler.orderService.UpdateOrderByID(ctx, orderId, userId, req)
+	updatedOrder, relatedNoteID, err := handler.orderService.UpdateOrderByID(ctx, orderId, userId, req)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
@@ -186,7 +186,7 @@ func (handler *orderHandler) UpdateOrderByID(w http.ResponseWriter, r *http.Requ
 
 	response := &types.OrderUpdateRes{}
 	copier.Copy(response, updatedOrder)
-	response.ContentCreated = relatedContentID != uuid.Nil
-	response.ContentID = relatedContentID
+	response.NoteCreated = relatedNoteID != uuid.Nil
+	response.NoteID = relatedNoteID.String()
 	utils.WriteHttpJsonResponse(ctx, w, response)
 }

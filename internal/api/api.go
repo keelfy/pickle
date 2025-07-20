@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	jwtAuth "github.com/go-chi/jwtauth/v5"
+	"github.com/pickle.pw/monolith/internal/clients"
 	"github.com/pickle.pw/monolith/internal/config"
 	"github.com/pickle.pw/monolith/internal/handlers"
 	"github.com/pickle.pw/monolith/internal/logger"
@@ -23,45 +24,50 @@ type PickleAPI interface {
 }
 
 type pickleAPI struct {
-	profileHandler          handlers.ProfileHandler
-	statusHandler           handlers.StatusHandler
-	orderHandler            handlers.OrderHandler
-	contentNoteHandler      handlers.ContentNoteHandler
-	posterHandler           handlers.PosterHandler
-	migrationService        services.MigrationService
-	contentService          handlers.ContentHandler
-	collectionHandler       handlers.CollectionHandler
-	tokenAuth               *jwtAuth.JWTAuth
-	moderatorHandler        handlers.ModeratorHandler
-	igdbSyncScheduler       schedulers.IGDBScheduler
-	igdbSyncService         services.IGDBSyncService
-	twitchConnectionHandler handlers.TwitchConnectionHandler
-	authHandler             handlers.AuthHandler
+	profileHandler       handlers.ProfileHandler
+	statusHandler        handlers.StatusHandler
+	orderHandler         handlers.OrderHandler
+	contentNoteHandler   handlers.ContentNoteHandler
+	posterHandler        handlers.PosterHandler
+	migrationService     services.MigrationService
+	contentHandler       handlers.ContentHandler
+	collectionHandler    handlers.CollectionHandler
+	tokenAuth            *jwtAuth.JWTAuth
+	moderatorHandler     handlers.ModeratorHandler
+	profileEventsHandler handlers.ProfileEventsHandler
+	igdbSyncScheduler    schedulers.IGDBScheduler
+	igdbSyncService      services.IGDBSyncService
+	authHandler          handlers.AuthHandler
+	oryAPI               clients.OryAPI
+	gameHandler          handlers.GameHandler
 }
 
 func NewPickleAPI(
 	profileHandler handlers.ProfileHandler, statusHandler handlers.StatusHandler, orderHandler handlers.OrderHandler,
 	contentNoteHandler handlers.ContentNoteHandler, posterHandler handlers.PosterHandler,
-	migrationService services.MigrationService, contentService handlers.ContentHandler,
+	migrationService services.MigrationService, contentHandler handlers.ContentHandler,
 	collectionHandler handlers.CollectionHandler, moderatorHandler handlers.ModeratorHandler,
+	profileEventsHandler handlers.ProfileEventsHandler,
 	igdbSyncScheduler schedulers.IGDBScheduler, igdbSyncService services.IGDBSyncService,
-	twitchConnectionHandler handlers.TwitchConnectionHandler,
+	oryAPI clients.OryAPI, gameHandler handlers.GameHandler,
 ) PickleAPI {
 	return &pickleAPI{
-		profileHandler:          profileHandler,
-		statusHandler:           statusHandler,
-		orderHandler:            orderHandler,
-		contentNoteHandler:      contentNoteHandler,
-		posterHandler:           posterHandler,
-		migrationService:        migrationService,
-		contentService:          contentService,
-		collectionHandler:       collectionHandler,
-		moderatorHandler:        moderatorHandler,
-		igdbSyncScheduler:       igdbSyncScheduler,
-		igdbSyncService:         igdbSyncService,
-		twitchConnectionHandler: twitchConnectionHandler,
-		authHandler:             handlers.NewAuthHandler(),
-		tokenAuth:               jwtAuth.New("HS256", config.GetJWTSecret(), nil),
+		profileHandler:       profileHandler,
+		statusHandler:        statusHandler,
+		orderHandler:         orderHandler,
+		contentNoteHandler:   contentNoteHandler,
+		posterHandler:        posterHandler,
+		migrationService:     migrationService,
+		contentHandler:       contentHandler,
+		collectionHandler:    collectionHandler,
+		moderatorHandler:     moderatorHandler,
+		profileEventsHandler: profileEventsHandler,
+		igdbSyncScheduler:    igdbSyncScheduler,
+		igdbSyncService:      igdbSyncService,
+		oryAPI:               oryAPI,
+		authHandler:          handlers.NewAuthHandler(),
+		tokenAuth:            jwtAuth.New("HS256", config.GetJWTSecret(), nil),
+		gameHandler:          gameHandler,
 	}
 }
 
@@ -119,11 +125,11 @@ func (api *pickleAPI) applyElasticsearchMigrations(ctx context.Context) error {
 }
 
 func (api *pickleAPI) useProtectedRoutes(r chi.Router) {
-	r.Use(middleware.VerifierWithCookieSupport(api.tokenAuth), middleware.Authenticator(api.tokenAuth, true))
+	r.Use(middleware.SessionMiddleware(api.oryAPI, false))
 }
 
 func (api *pickleAPI) useUnprotectedRoutes(r chi.Router) {
-	r.Use(middleware.VerifierWithCookieSupport(api.tokenAuth), middleware.Authenticator(api.tokenAuth, false))
+	r.Use(middleware.SessionMiddleware(api.oryAPI, true))
 }
 
 func (api *pickleAPI) useApiKey(r chi.Router) {
@@ -140,22 +146,12 @@ func (api *pickleAPI) v1RouteHandler() http.Handler {
 		r.Post("/clear-cookie", api.authHandler.ClearJWTCookie)
 	})
 
-	r.Route("/supabase-webhooks", func(r chi.Router) {
+	r.Route("/webhooks", func(r chi.Router) {
 		api.useApiKey(r)
 
-		r.Post("/users", api.profileHandler.CreateProfileWebhook)
-	})
+		// r.Post("/users", api.profileHandler.CreateProfileWebhook)
 
-	r.Route("/twitch", func(r chi.Router) {
-		r.Group(func(r chi.Router) {
-			api.useProtectedRoutes(r)
-
-			r.Get("/connect", api.twitchConnectionHandler.ConnectTwitchRedemptions)
-		})
-
-		r.Group(func(r chi.Router) {
-			r.Get("/callback", api.twitchConnectionHandler.TwitchRedemptionsCallback)
-		})
+		r.Post("/orders/{userId}", api.orderHandler.CreateOrder)
 	})
 
 	r.Route("/triggers", func(r chi.Router) {
@@ -193,6 +189,12 @@ func (api *pickleAPI) v1RouteHandler() http.Handler {
 		})
 	})
 
+	r.Route("/games", func(r chi.Router) {
+		r.Get("/", api.contentHandler.SearchIGDBGames)
+
+		r.Get("/{id}", api.gameHandler.GetGameByID)
+	})
+
 	r.Route("/users", func(r chi.Router) {
 		r.Route("/me", func(r chi.Router) {
 			api.useProtectedRoutes(r)
@@ -217,6 +219,7 @@ func (api *pickleAPI) v1RouteHandler() http.Handler {
 
 			r.Route("/content-notes/{category}", func(r chi.Router) {
 				r.Get("/", api.contentNoteHandler.GetSortedContentNotesByUserID)
+				r.Get("/by-content-id/{contentId}", api.contentNoteHandler.GetNoteByContentID)
 
 				r.Group(func(r chi.Router) {
 					api.useProtectedRoutes(r)
@@ -233,14 +236,14 @@ func (api *pickleAPI) v1RouteHandler() http.Handler {
 				r.Route("/{noteId}", func(r chi.Router) {
 					r.Get("/", api.contentNoteHandler.GetContentNoteById)
 					r.Get("/orders", api.contentNoteHandler.GetOrdersByID)
-					r.Get("/posters", api.contentNoteHandler.GetPosterImageURL)
+					// r.Get("/posters", api.contentNoteHandler.GetPosterImageURL)
 
 					r.Group(func(r chi.Router) {
 						api.useProtectedRoutes(r)
 
 						r.Delete("/", api.contentNoteHandler.DeleteContentNote)
 						r.Patch("/", api.contentNoteHandler.UpdateContentNote)
-						r.Patch("/name", api.contentNoteHandler.UpdateContentNoteName)
+						// r.Patch("/name", api.contentNoteHandler.UpdateContentNoteName)
 					})
 
 					r.Route("/reactions", func(r chi.Router) {
@@ -267,6 +270,7 @@ func (api *pickleAPI) v1RouteHandler() http.Handler {
 					api.useProtectedRoutes(r)
 
 					r.Post("/", api.orderHandler.CreateOrder)
+					r.Get("/ws", api.profileEventsHandler.GetProfileOrdersWebSocket)
 				})
 
 				r.Route("/{orderId}", func(r chi.Router) {
@@ -290,7 +294,7 @@ func (api *pickleAPI) v1RouteHandler() http.Handler {
 			})
 
 			r.Route("/content", func(r chi.Router) {
-				r.Get("/", api.contentService.SearchContent)
+				r.Get("/", api.contentHandler.SearchContent)
 			})
 
 			r.Route("/collections", func(r chi.Router) {

@@ -42,10 +42,7 @@ func InitializeAPI(ctx context.Context) (api.PickleAPI, func(), error) {
 	avatarService := services.NewAvatarService(relationalStorage, cacheStorage, fileStorage, imageService)
 	followerService := services.NewFollowerService(relationalStorage, cacheStorage)
 	ordererService := services.NewOrdererService(relationalStorage)
-	twitchHelixClient := clients.NewTwitchHelixClient(ctx)
-	twitchService := services.NewTwitchService(relationalStorage, twitchHelixClient)
-	connectionService := services.NewConnectionService(twitchService)
-	profileService := services.NewProfileService(relationalStorage, fileStorage, cacheStorage, avatarService, followerService, ordererService, connectionService)
+	profileService := services.NewProfileService(relationalStorage, fileStorage, cacheStorage, avatarService, followerService, ordererService)
 	elasticStorage, err := storage.NewElasticStorage(ctx)
 	if err != nil {
 		cleanup()
@@ -54,9 +51,11 @@ func InitializeAPI(ctx context.Context) (api.PickleAPI, func(), error) {
 	posterService := services.NewPosterService(relationalStorage, fileStorage, cacheStorage, imageService, profileService)
 	moderatorService := services.NewModeratorService(relationalStorage, cacheStorage, avatarService, profileService)
 	permissionService := services.NewPermissionService(moderatorService)
-	contentNoteService := services.NewContentService(relationalStorage, elasticStorage, cacheStorage, posterService, ordererService, permissionService, profileService)
-	orderService := services.NewOrderService(relationalStorage, profileService, ordererService, contentNoteService, permissionService)
-	publicProfileService := services.NewPublicProfileService(avatarService, followerService, moderatorService, orderService, profileService, contentNoteService, connectionService)
+	gameService := services.NewGameService(relationalStorage)
+	contentNoteService := services.NewContentService(relationalStorage, elasticStorage, cacheStorage, posterService, ordererService, permissionService, profileService, gameService)
+	ordersBrokerService := services.NewOrdersBrokerService()
+	orderService := services.NewOrderService(relationalStorage, profileService, ordererService, contentNoteService, permissionService, ordersBrokerService)
+	publicProfileService := services.NewPublicProfileService(avatarService, followerService, moderatorService, orderService, profileService, contentNoteService)
 	profileHandler := handlers.NewUserHandler(profileService, avatarService, orderService, followerService, publicProfileService)
 	statusHandler := handlers.NewStatusHandler(relationalStorage, elasticStorage, cacheStorage)
 	orderHandler := handlers.NewOrdersHandler(orderService, profileService, contentNoteService)
@@ -68,11 +67,17 @@ func InitializeAPI(ctx context.Context) (api.PickleAPI, func(), error) {
 	collectionService := services.NewCollectionService(relationalStorage, cacheStorage, permissionService)
 	collectionHandler := handlers.NewCollectionHandler(collectionService, contentNoteService)
 	moderatorHandler := handlers.NewModeratorHandler(moderatorService, profileService)
+	profileEventsHandler := handlers.NewProfileEventsHandler(profileService)
 	igdbClient := clients.NewIGDBClient()
 	igdbSyncService := services.NewIGDBSyncService(relationalStorage, elasticStorage, igdbClient)
 	igdbScheduler := schedulers.NewIGDBScheduler(igdbSyncService, relationalStorage)
-	twitchConnectionHandler := handlers.NewTwitchConnectionHandler(twitchService, profileService)
-	pickleAPI := api.NewPickleAPI(profileHandler, statusHandler, orderHandler, contentNoteHandler, posterHandler, migrationService, contentHandler, collectionHandler, moderatorHandler, igdbScheduler, igdbSyncService, twitchConnectionHandler)
+	oryAPI, err := clients.NewOryAPI(ctx)
+	if err != nil {
+		cleanup()
+		return nil, nil, err
+	}
+	gameHandler := handlers.NewGameHandler(gameService, contentNoteService)
+	pickleAPI := api.NewPickleAPI(profileHandler, statusHandler, orderHandler, contentNoteHandler, posterHandler, migrationService, contentHandler, collectionHandler, moderatorHandler, profileEventsHandler, igdbScheduler, igdbSyncService, oryAPI, gameHandler)
 	return pickleAPI, func() {
 		cleanup()
 	}, nil

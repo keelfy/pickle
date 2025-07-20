@@ -10,7 +10,9 @@ import (
 )
 
 const findElasticsearchMigrationByName = `-- name: FindElasticsearchMigrationByName :one
-SELECT id, name, created_at FROM "es_migration_logs" WHERE name = $1
+SELECT id, name, created_at
+FROM es_migration_logs
+WHERE name = $1::text
 `
 
 func (q *Queries) FindElasticsearchMigrationByName(ctx context.Context, name string) (*EsMigrationLog, error) {
@@ -21,7 +23,8 @@ func (q *Queries) FindElasticsearchMigrationByName(ctx context.Context, name str
 }
 
 const insertElasticsearchMigration = `-- name: InsertElasticsearchMigration :exec
-INSERT INTO "es_migration_logs" (name, created_at) VALUES ($1, now())
+INSERT INTO es_migration_logs (name, created_at)
+VALUES ($1::text, now())
 `
 
 func (q *Queries) InsertElasticsearchMigration(ctx context.Context, name string) error {

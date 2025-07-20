@@ -13,7 +13,8 @@ import (
 )
 
 const deleteGame = `-- name: DeleteGame :exec
-DELETE FROM games WHERE id = $1::uuid
+DELETE FROM games
+WHERE id = $1::uuid
 `
 
 func (q *Queries) DeleteGame(ctx context.Context, id uuid.UUID) error {
@@ -22,17 +23,90 @@ func (q *Queries) DeleteGame(ctx context.Context, id uuid.UUID) error {
 }
 
 const deleteGameLocalization = `-- name: DeleteGameLocalization :exec
-DELETE FROM game_localizations WHERE game_id = $1::uuid AND lang = $2::text
+DELETE FROM game_localizations
+WHERE content_id = $1::uuid
+    AND lang = $2::locale
 `
 
 type DeleteGameLocalizationParams struct {
-	GameID uuid.UUID `json:"game_id"`
-	Lang   string    `json:"lang"`
+	ContentID uuid.UUID `json:"content_id"`
+	Lang      Locale    `json:"lang"`
 }
 
 func (q *Queries) DeleteGameLocalization(ctx context.Context, arg DeleteGameLocalizationParams) error {
-	_, err := q.db.Exec(ctx, deleteGameLocalization, arg.GameID, arg.Lang)
+	_, err := q.db.Exec(ctx, deleteGameLocalization, arg.ContentID, arg.Lang)
 	return err
+}
+
+const findGameByID = `-- name: FindGameByID :one
+SELECT id, external_id, release_date, websites, cover_key, cover_key_type, source_url, source_type, created_at, updated_at
+FROM games
+WHERE id = $1::uuid
+`
+
+func (q *Queries) FindGameByID(ctx context.Context, id uuid.UUID) (*Game, error) {
+	row := q.db.QueryRow(ctx, findGameByID, id)
+	var i Game
+	err := row.Scan(
+		&i.ID,
+		&i.ExternalID,
+		&i.ReleaseDate,
+		&i.Websites,
+		&i.CoverKey,
+		&i.CoverKeyType,
+		&i.SourceUrl,
+		&i.SourceType,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return &i, err
+}
+
+const findGameByIDWithLocalization = `-- name: FindGameByIDWithLocalization :one
+SELECT games.id, games.external_id, games.release_date, games.websites, games.cover_key, games.cover_key_type, games.source_url, games.source_type, games.created_at, games.updated_at,
+    game_localizations.title
+FROM games
+    INNER JOIN game_localizations ON games.id = game_localizations.content_id
+    AND game_localizations.lang = $1::locale
+WHERE games.id = $2::uuid
+`
+
+type FindGameByIDWithLocalizationParams struct {
+	Lang Locale    `json:"lang"`
+	ID   uuid.UUID `json:"id"`
+}
+
+type FindGameByIDWithLocalizationRow struct {
+	ID           uuid.UUID        `json:"id"`
+	ExternalID   int64            `json:"external_id"`
+	ReleaseDate  *time.Time       `json:"release_date"`
+	Websites     []byte           `json:"websites"`
+	CoverKey     *string          `json:"cover_key"`
+	CoverKeyType NullImageKeyType `json:"cover_key_type"`
+	SourceUrl    *string          `json:"source_url"`
+	SourceType   ContentSource    `json:"source_type"`
+	CreatedAt    time.Time        `json:"created_at"`
+	UpdatedAt    time.Time        `json:"updated_at"`
+	Title        string           `json:"title"`
+}
+
+func (q *Queries) FindGameByIDWithLocalization(ctx context.Context, arg FindGameByIDWithLocalizationParams) (*FindGameByIDWithLocalizationRow, error) {
+	row := q.db.QueryRow(ctx, findGameByIDWithLocalization, arg.Lang, arg.ID)
+	var i FindGameByIDWithLocalizationRow
+	err := row.Scan(
+		&i.ID,
+		&i.ExternalID,
+		&i.ReleaseDate,
+		&i.Websites,
+		&i.CoverKey,
+		&i.CoverKeyType,
+		&i.SourceUrl,
+		&i.SourceType,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Title,
+	)
+	return &i, err
 }
 
 const refreshLocalizedGameViews = `-- name: RefreshLocalizedGameViews :exec
@@ -46,56 +120,78 @@ func (q *Queries) RefreshLocalizedGameViews(ctx context.Context) error {
 
 const upsertGame = `-- name: UpsertGame :one
 INSERT INTO games (
-    igdb_id,
-    release_date,
-    websites
-) VALUES (
-    $1::bigint,
-    $2::timestamptz,
-    $3::jsonb
-) ON CONFLICT (igdb_id) DO 
-UPDATE SET 
-    release_date = $2::timestamptz, 
+        external_id,
+        release_date,
+        websites,
+        cover_key,
+        cover_key_type,
+        source_url,
+        source_type
+    )
+VALUES (
+        $1::bigint,
+        $2::timestamptz,
+        $3::jsonb,
+        $4::text,
+        $5::image_key_type,
+        $6::text,
+        $7::content_source
+    ) ON CONFLICT (external_id) DO
+UPDATE
+SET release_date = $2::timestamptz,
     websites = $3::jsonb,
+    cover_key = $4::text,
+    cover_key_type = $5::image_key_type,
+    source_url = $6::text,
+    source_type = $7::content_source,
     updated_at = now()
 RETURNING id
 `
 
 type UpsertGameParams struct {
-	IgdbID      int64     `json:"igdb_id"`
-	ReleaseDate time.Time `json:"release_date"`
-	Websites    []byte    `json:"websites"`
+	ExternalID   int64            `json:"external_id"`
+	ReleaseDate  *time.Time       `json:"release_date"`
+	Websites     []byte           `json:"websites"`
+	CoverKey     *string          `json:"cover_key"`
+	CoverKeyType NullImageKeyType `json:"cover_key_type"`
+	SourceUrl    *string          `json:"source_url"`
+	SourceType   ContentSource    `json:"source_type"`
 }
 
 func (q *Queries) UpsertGame(ctx context.Context, arg UpsertGameParams) (uuid.UUID, error) {
-	row := q.db.QueryRow(ctx, upsertGame, arg.IgdbID, arg.ReleaseDate, arg.Websites)
+	row := q.db.QueryRow(ctx, upsertGame,
+		arg.ExternalID,
+		arg.ReleaseDate,
+		arg.Websites,
+		arg.CoverKey,
+		arg.CoverKeyType,
+		arg.SourceUrl,
+		arg.SourceType,
+	)
 	var id uuid.UUID
 	err := row.Scan(&id)
 	return id, err
 }
 
 const upsertGameLocalization = `-- name: UpsertGameLocalization :exec
-INSERT INTO game_localizations (
-    game_id,
-    lang,
-    title
-) VALUES (
-    $1::uuid,
-    $2::text,
-    $3::text
-) ON CONFLICT (game_id, lang) DO 
-UPDATE SET 
-    title = $3::text,
+INSERT INTO game_localizations (content_id, lang, title)
+VALUES (
+        $1::uuid,
+        $2::locale,
+        $3::text
+    ) ON CONFLICT (content_id, lang) DO
+UPDATE
+SET title = $3::text,
     updated_at = now()
 `
 
 type UpsertGameLocalizationParams struct {
-	GameID uuid.UUID `json:"game_id"`
-	Lang   string    `json:"lang"`
-	Title  string    `json:"title"`
+	ContentID uuid.UUID `json:"content_id"`
+	Lang      Locale    `json:"lang"`
+	Title     string    `json:"title"`
 }
 
 func (q *Queries) UpsertGameLocalization(ctx context.Context, arg UpsertGameLocalizationParams) error {
-	_, err := q.db.Exec(ctx, upsertGameLocalization, arg.GameID, arg.Lang, arg.Title)
+	_, err := q.db.Exec(ctx, upsertGameLocalization, arg.ContentID, arg.Lang, arg.Title)
 	return err
 }

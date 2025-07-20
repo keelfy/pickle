@@ -8,6 +8,7 @@ definitions:
     - anime
     - series
     - custom
+    - any
     type: string
     x-enum-varnames:
     - ContentCategoryGames
@@ -16,6 +17,7 @@ definitions:
     - ContentCategoryAnime
     - ContentCategorySeries
     - ContentCategoryCustom
+    - ContentCategoryAny
   github_com_pickle_pw_monolith_db_sqlc.OrderStatus:
     enum:
     - pending
@@ -51,14 +53,14 @@ definitions:
         $ref: '#/definitions/github_com_pickle_pw_monolith_internal_models.PublicProfileCounts'
       description:
         type: string
+      displayName:
+        type: string
       id:
         type: string
       isAuthorized:
         type: boolean
       isFollowing:
         type: boolean
-      link:
-        type: string
       suggestionPreferences:
         $ref: '#/definitions/github_com_pickle_pw_monolith_internal_models.SuggestionPreferences'
       username:
@@ -123,11 +125,11 @@ definitions:
         type: string
       content:
         $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.ContentRes'
+      coverUrl:
+        type: string
       createdAt:
         type: string
       id:
-        type: string
-      posterUrl:
         type: string
     type: object
   github_com_pickle_pw_monolith_internal_types.CollectionRes:
@@ -150,7 +152,7 @@ definitions:
         $ref: '#/definitions/github_com_pickle_pw_monolith_db_sqlc.ContentCategory'
       id:
         type: string
-      name:
+      title:
         type: string
       userId:
         type: string
@@ -175,6 +177,12 @@ definitions:
       message:
         type: string
       ordererUsername:
+        type: string
+      reference:
+        type: string
+      referenceUserId:
+        type: string
+      source:
         type: string
     type: object
   github_com_pickle_pw_monolith_internal_types.ImagePreviewRes:
@@ -204,13 +212,13 @@ definitions:
         type: string
       status:
         $ref: '#/definitions/github_com_pickle_pw_monolith_db_sqlc.OrderStatus'
-      title:
-        type: string
     type: object
   github_com_pickle_pw_monolith_internal_types.OrderRes:
     properties:
       amount:
         type: number
+      anonymous:
+        type: boolean
       category:
         $ref: '#/definitions/github_com_pickle_pw_monolith_db_sqlc.ContentCategory'
       createdAt:
@@ -219,23 +227,21 @@ definitions:
         type: string
       message:
         type: string
-      orderer:
+      ordererId:
         type: string
       ordererUsername:
         type: string
       paymentType:
         type: integer
-      receiverId:
+      reference:
+        type: string
+      source:
         type: string
       status:
         $ref: '#/definitions/github_com_pickle_pw_monolith_db_sqlc.OrderStatus'
       updatedAt:
         type: string
       updatedBy:
-        type: string
-      updatedCategory:
-        $ref: '#/definitions/github_com_pickle_pw_monolith_db_sqlc.ContentCategory'
-      updatedMessage:
         type: string
     type: object
   github_com_pickle_pw_monolith_internal_types.PosterPreviewRes:
@@ -259,14 +265,14 @@ definitions:
         type: string
       description:
         type: string
+      displayName:
+        type: string
       id:
         type: string
       isAuthorized:
         type: boolean
       isFollowing:
         type: boolean
-      link:
-        type: string
       username:
         type: string
     type: object
@@ -295,10 +301,10 @@ definitions:
   github_com_pickle_pw_monolith_internal_types.SupabaseWebhookPayload:
     properties:
       old_record:
-        additionalProperties: true
+        additionalProperties: {}
         type: object
       record:
-        additionalProperties: true
+        additionalProperties: {}
         type: object
       schema:
         type: string
@@ -318,7 +324,7 @@ definitions:
     properties:
       description:
         type: string
-      link:
+      displayName:
         type: string
       username:
         type: string
@@ -579,6 +585,30 @@ paths:
       summary: Remove item from collection
       tags:
       - collections
+  /v1/games/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get game by ID
+      parameters:
+      - description: Game ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Locale
+        in: query
+        name: locale
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema: {}
+      summary: Get game by ID
+      tags:
+      - games
   /v1/health:
     get:
       consumes:
@@ -997,7 +1027,7 @@ paths:
     put:
       consumes:
       - application/json
-      description: Update a content note name
+      description: Update a content note
       parameters:
       - description: User ID
         in: path
@@ -1027,7 +1057,7 @@ paths:
           description: Internal Server Error
           schema:
             type: string
-      summary: Update a content note name
+      summary: Update a content note
       tags:
       - content-notes
   /v1/users/{userId}/content-notes/{category}/{noteId}/orders:
@@ -1064,45 +1094,6 @@ paths:
           schema:
             type: string
       summary: Get orders by content note ID
-      tags:
-      - content-notes
-  /v1/users/{userId}/content-notes/{category}/{noteId}/poster:
-    get:
-      consumes:
-      - application/json
-      description: Get poster image URL
-      parameters:
-      - description: User ID
-        in: path
-        name: userId
-        required: true
-        type: string
-      - description: Note ID
-        in: path
-        name: noteId
-        required: true
-        type: string
-      - description: Size
-        in: query
-        name: size
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.ImageRes'
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Get poster image URL
       tags:
       - content-notes
   /v1/users/{userId}/content-notes/{category}/{noteId}/reactions:

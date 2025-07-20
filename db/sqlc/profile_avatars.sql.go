@@ -13,11 +13,10 @@ import (
 
 const findProfileAvatarByUserId = `-- name: FindProfileAvatarByUserId :one
 SELECT user_id, created_at, created_by, updated_at, updated_by, avatar_key, avatar_url, avatar_preview_key
-FROM "profile_avatars"
-WHERE "user_id" = $1
+FROM profile_avatars
+WHERE user_id = $1::uuid
 `
 
-// Author: Egor Kuzmin (keelfy)
 func (q *Queries) FindProfileAvatarByUserId(ctx context.Context, userID uuid.UUID) (*ProfileAvatar, error) {
 	row := q.db.QueryRow(ctx, findProfileAvatarByUserId, userID)
 	var i ProfileAvatar
@@ -35,15 +34,22 @@ func (q *Queries) FindProfileAvatarByUserId(ctx context.Context, userID uuid.UUI
 }
 
 const insertProfileAvatar = `-- name: InsertProfileAvatar :one
-INSERT INTO "profile_avatars" (
-        "user_id",
-        "created_by",
-        "updated_by",
-        "avatar_key",
-        "avatar_url",
-        "avatar_preview_key"
+INSERT INTO profile_avatars (
+        user_id,
+        created_by,
+        updated_by,
+        avatar_key,
+        avatar_url,
+        avatar_preview_key
     )
-VALUES ($1, $2, $3, $4, $5, $6)
+VALUES (
+        $1::uuid,
+        $2::uuid,
+        $3::uuid,
+        $4::text,
+        $5::text,
+        $6::text
+    )
 RETURNING user_id, created_at, created_by, updated_at, updated_by, avatar_key, avatar_url, avatar_preview_key
 `
 
@@ -56,7 +62,6 @@ type InsertProfileAvatarParams struct {
 	AvatarPreviewKey *string    `json:"avatar_preview_key"`
 }
 
-// Author: Egor Kuzmin (keelfy)
 func (q *Queries) InsertProfileAvatar(ctx context.Context, arg InsertProfileAvatarParams) (*ProfileAvatar, error) {
 	row := q.db.QueryRow(ctx, insertProfileAvatar,
 		arg.UserID,
@@ -81,32 +86,31 @@ func (q *Queries) InsertProfileAvatar(ctx context.Context, arg InsertProfileAvat
 }
 
 const updateProfileAvatarByUserId = `-- name: UpdateProfileAvatarByUserId :one
-UPDATE "profile_avatars"
-SET "updated_at" = now(),
-    "updated_by" = $2,
-    "avatar_key" = $3,
-    "avatar_url" = $4,
-    "avatar_preview_key" = $5
-WHERE "user_id" = $1
+UPDATE profile_avatars
+SET updated_at = now(),
+    updated_by = $1::uuid,
+    avatar_key = $2::text,
+    avatar_url = $3::text,
+    avatar_preview_key = $4::text
+WHERE user_id = $5::uuid
 RETURNING user_id, created_at, created_by, updated_at, updated_by, avatar_key, avatar_url, avatar_preview_key
 `
 
 type UpdateProfileAvatarByUserIdParams struct {
-	UserID           uuid.UUID  `json:"user_id"`
 	UpdatedBy        *uuid.UUID `json:"updated_by"`
 	AvatarKey        *string    `json:"avatar_key"`
 	AvatarUrl        *string    `json:"avatar_url"`
 	AvatarPreviewKey *string    `json:"avatar_preview_key"`
+	UserID           uuid.UUID  `json:"user_id"`
 }
 
-// Author: Egor Kuzmin (keelfy)
 func (q *Queries) UpdateProfileAvatarByUserId(ctx context.Context, arg UpdateProfileAvatarByUserIdParams) (*ProfileAvatar, error) {
 	row := q.db.QueryRow(ctx, updateProfileAvatarByUserId,
-		arg.UserID,
 		arg.UpdatedBy,
 		arg.AvatarKey,
 		arg.AvatarUrl,
 		arg.AvatarPreviewKey,
+		arg.UserID,
 	)
 	var i ProfileAvatar
 	err := row.Scan(

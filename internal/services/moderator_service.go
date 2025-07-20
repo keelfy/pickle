@@ -98,7 +98,7 @@ func (s *moderatorService) GetModeratorByUserIDAndModeratorID(ctx context.Contex
 }
 
 func (s *moderatorService) AddModeratorByUserLink(ctx context.Context, userId uuid.UUID, userLink, avatarSize string) (*models.ModeratorProfile, error) {
-	authUserId, err := utils.UserIdFromContext(ctx)
+	authUserId, err := utils.GetUserIDFromCtx(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +110,7 @@ func (s *moderatorService) AddModeratorByUserLink(ctx context.Context, userId uu
 	linkParts := strings.Split(userLink, "/")
 	link := linkParts[len(linkParts)-1]
 
-	moderator, err := s.profileService.GetProfileByLink(ctx, link)
+	moderator, err := s.profileService.GetProfileByUsername(ctx, link)
 	if err != nil {
 		return nil, err
 	}
@@ -183,11 +183,11 @@ func (s *moderatorService) AddModeratorByUserLink(ctx context.Context, userId uu
 	}
 
 	profile := &models.ModeratorProfile{
-		ID:        moderator.UserID,
-		AddedAt:   insertedModerator.CreatedAt,
-		Username:  moderator.Username,
-		Link:      moderator.Link,
-		AvatarURL: avatarUrl,
+		ID:          moderator.UserID,
+		AddedAt:     insertedModerator.CreatedAt,
+		DisplayName: moderator.DisplayName,
+		Username:    moderator.Username,
+		AvatarURL:   avatarUrl,
 	}
 
 	s.clearModeratorsCache(ctx, userId)
@@ -195,7 +195,7 @@ func (s *moderatorService) AddModeratorByUserLink(ctx context.Context, userId uu
 }
 
 func (s *moderatorService) DeleteModerator(ctx context.Context, userID, moderatorID uuid.UUID) error {
-	authUserId, err := utils.UserIdFromContext(ctx)
+	authUserId, err := utils.GetUserIDFromCtx(ctx)
 	if err != nil {
 		return errors.NewInternalServerError("Error occurred during deleting moderator", err)
 	}
@@ -258,7 +258,7 @@ func (s *moderatorService) IsModeratorOf(ctx context.Context, userID, moderatorI
 }
 
 func (s *moderatorService) GetModeratorsByUserID(ctx context.Context, userID uuid.UUID, avatarSize string) ([]*models.ModeratorProfile, error) {
-	authUserId, err := utils.UserIdFromContext(ctx)
+	authUserId, err := utils.GetUserIDFromCtx(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -281,11 +281,11 @@ func (s *moderatorService) GetModeratorsByUserID(ctx context.Context, userID uui
 			defer group.Done()
 			avatarUrl, _ := s.avatarService.GetAvatarUrlById(ctx, moderator.UserID, avatarSize)
 			moderatorProfiles[i] = &models.ModeratorProfile{
-				ID:        moderator.UserID,
-				AddedAt:   moderator.AddedAt,
-				Username:  moderator.Username,
-				Link:      moderator.Link,
-				AvatarURL: avatarUrl,
+				ID:          moderator.UserID,
+				AddedAt:     moderator.AddedAt,
+				DisplayName: moderator.DisplayName,
+				Username:    moderator.Username,
+				AvatarURL:   avatarUrl,
 			}
 		}(i, moderator)
 	}

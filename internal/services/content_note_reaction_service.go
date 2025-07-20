@@ -14,7 +14,7 @@ import (
 type ContentNoteReactionService interface {
 	AddContentNoteReaction(ctx context.Context, category db.ContentCategory, contentNoteID uuid.UUID, emoteID string, source string) error
 	RemoveContentNoteReaction(ctx context.Context, category db.ContentCategory, contentNoteID uuid.UUID, emoteID string, source string) error
-	GetContentNoteReactionsByContentNoteIdsAndUserId(ctx context.Context, category db.ContentCategory, contentNoteIDs uuid.UUIDs, userID uuid.UUID) ([]*models.ReactionStack, error)
+	GetContentNoteReactionsByContentNoteIDsAndUserID(ctx context.Context, category db.ContentCategory, contentNoteIDs uuid.UUIDs, userID *uuid.UUID) ([]*models.ReactionStack, error)
 }
 
 type contentNoteReactionService struct {
@@ -26,7 +26,7 @@ func NewContentNoteReactionService(sqlDB storage.RelationalStorage) ContentNoteR
 }
 
 func (s *contentNoteReactionService) AddContentNoteReaction(ctx context.Context, category db.ContentCategory, noteID uuid.UUID, emoteID string, source string) error {
-	authUserID, err := utils.UserIdFromContext(ctx)
+	authUserID, err := utils.GetUserIDFromCtx(ctx)
 	if err != nil {
 		return errors.NewInternalServerError("failed to get user ID", err)
 	}
@@ -60,7 +60,7 @@ func (s *contentNoteReactionService) AddContentNoteReaction(ctx context.Context,
 }
 
 func (s *contentNoteReactionService) RemoveContentNoteReaction(ctx context.Context, category db.ContentCategory, contentNoteID uuid.UUID, emoteID string, source string) error {
-	authUserID, err := utils.UserIdFromContext(ctx)
+	authUserID, err := utils.GetUserIDFromCtx(ctx)
 	if err != nil {
 		return errors.NewInternalServerError("failed to get user ID", err)
 	}
@@ -78,8 +78,8 @@ func (s *contentNoteReactionService) RemoveContentNoteReaction(ctx context.Conte
 	return nil
 }
 
-func (s *contentNoteReactionService) GetContentNoteReactionsByContentNoteIdsAndUserId(ctx context.Context, category db.ContentCategory, contentNoteIDs uuid.UUIDs, userID uuid.UUID) ([]*models.ReactionStack, error) {
-	reactions, err := s.sqlDB.FindContentNoteReactionsByContentNoteIdsAndUserId(ctx, category, contentNoteIDs, userID)
+func (s *contentNoteReactionService) GetContentNoteReactionsByContentNoteIDsAndUserID(ctx context.Context, category db.ContentCategory, contentNoteIDs uuid.UUIDs, userID *uuid.UUID) ([]*models.ReactionStack, error) {
+	reactions, err := s.sqlDB.FindContentNoteReactionsByContentNoteIDsAndUserID(ctx, category, contentNoteIDs, userID)
 	if err != nil {
 		return nil, errors.NewInternalServerError("failed to get content note reactions", err)
 	}

@@ -24,23 +24,23 @@ type Pagination struct {
 type Filters = map[string]string
 
 type SupabaseWebhookPayload struct {
-	Type      string                  `json:"type"`
-	Table     string                  `json:"table"`
-	Schema    string                  `json:"schema"`
-	Record    *map[string]interface{} `json:"record"`
-	OldRecord *map[string]interface{} `json:"old_record"`
+	Type      string          `json:"type"`
+	Table     string          `json:"table"`
+	Schema    string          `json:"schema"`
+	Record    *map[string]any `json:"record"`
+	OldRecord *map[string]any `json:"old_record"`
 }
 
 type UpdateProfileReq struct {
+	DisplayName string `json:"displayName"`
 	Username    string `json:"username"`
-	Link        string `json:"link"`
 	Description string `json:"description"`
 }
 
 func (req *UpdateProfileReq) Validate() error {
 	return validation.ValidateStruct(req,
-		validation.Field(&req.Username, validation.Required, validation.Length(1, 50)),
-		validation.Field(&req.Link, validation.NilOrNotEmpty, validation.Length(0, 50)),
+		validation.Field(&req.DisplayName, validation.Required, validation.Length(1, 50)),
+		validation.Field(&req.Username, validation.NilOrNotEmpty, validation.Length(0, 50)),
 		validation.Field(&req.Description, validation.NilOrNotEmpty, validation.Length(0, 1000)),
 	)
 }
@@ -68,33 +68,36 @@ func (req *PosterReq) Validate() error {
 }
 
 type CreateOrderReq struct {
-	OrdererUsername string             `json:"ordererUsername"`
 	IsAnonymously   bool               `json:"isAnonymously"`
 	Category        db.ContentCategory `json:"category"`
 	Message         string             `json:"message"`
+	Source          string             `json:"source"`
+	OrdererUsername string             `json:"ordererUsername"`
+	Reference       *string            `json:"reference"`
+	ReferenceUserID *string            `json:"referenceUserId"`
 }
 
 func (req *CreateOrderReq) Validate() error {
 	return validation.ValidateStruct(req,
-		validation.Field(&req.OrdererUsername, validation.NilOrNotEmpty, validation.Length(0, 50)),
 		validation.Field(&req.Category, validation.Required, is2.IsContentCategory),
-		validation.Field(&req.Message, validation.NilOrNotEmpty, validation.Length(0, 150)),
+		validation.Field(&req.Message, validation.Required, validation.Length(0, 150)),
+		validation.Field(&req.Source, validation.Required, is2.IsOrderSource),
+		validation.Field(&req.OrdererUsername, validation.Required, validation.Length(0, 200)),
+		validation.Field(&req.Reference, validation.NilOrNotEmpty),
 	)
 }
 
 type OrderReq struct {
-	Status    db.OrderStatus      `json:"status"`
-	Title     *string             `json:"title,omitempty"`
-	Category  *db.ContentCategory `json:"category,omitempty"`
-	ContentID *uuid.UUID          `json:"contentId,omitempty"`
+	Status    db.OrderStatus     `json:"status"`
+	Category  db.ContentCategory `json:"category"`
+	ContentID uuid.UUID          `json:"contentId"`
 }
 
 func (req *OrderReq) Validate() error {
 	return validation.ValidateStruct(req,
 		validation.Field(&req.Status, validation.Required, is2.IsOrderStatus),
-		validation.Field(&req.Title, validation.NilOrNotEmpty, validation.Length(1, 100)),
-		validation.Field(&req.Category, validation.NilOrNotEmpty, is2.IsContentCategory),
-		validation.Field(&req.ContentID, validation.NilOrNotEmpty, is.UUID),
+		validation.Field(&req.Category, validation.Required, is2.IsContentCategory),
+		validation.Field(&req.ContentID, validation.Required, is.UUID),
 	)
 }
 

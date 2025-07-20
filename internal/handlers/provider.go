@@ -13,5 +13,6 @@ var ProviderSet = wire.NewSet(
 	NewPosterHandler,
 	NewCollectionHandler,
 	NewModeratorHandler,
-	NewTwitchConnectionHandler,
+	NewProfileEventsHandler,
+	NewGameHandler,
 )

@@ -27,6 +27,7 @@ type ElasticStorage interface {
 	Search(ctx context.Context, indexName string, query *esTypes.Query, pagination *types.Pagination) (*search.Response, error)
 	IndexContent(ctx context.Context, id uuid.UUID, name string, userId uuid.UUID, category db.ContentCategory) error
 	SearchContent(ctx context.Context, query string, userId uuid.UUID, pagination *types.Pagination) (*search.Response, error)
+	SearchIGDBGames(ctx context.Context, query string, pagination *types.Pagination) (*search.Response, error)
 	DeleteContentNoteByID(ctx context.Context, category db.ContentCategory, contentID uuid.UUID) error
 	DeleteContent(ctx context.Context, contentID uuid.UUID, category db.ContentCategory) error
 }
@@ -51,7 +52,7 @@ func NewElasticStorage(ctx context.Context) (ElasticStorage, error) {
 		client: client,
 	}
 
-	storage.logElasticsearchClusterInfo()
+	// storage.logElasticsearchClusterInfo()
 	logger.Infof(ctx, "%s", strings.Repeat("~", 37))
 	return storage, nil
 }
@@ -224,6 +225,56 @@ func (storage *elasticStorage) SearchContent(ctx context.Context, query string, 
 	}
 
 	logger.Debugf(ctx, "[ELASTIC] Content found: %d", response.Hits.Total.Value)
+	return response, nil
+}
+
+func (storage *elasticStorage) SearchIGDBGames(ctx context.Context, query string, pagination *types.Pagination) (*search.Response, error) {
+	esQuery := &esTypes.Query{
+		Bool: &esTypes.BoolQuery{
+			Filter: []esTypes.Query{
+				{
+					Match: map[string]esTypes.MatchQuery{
+						"name_en": {
+							Query:     query,
+							Fuzziness: "AUTO",
+						},
+					},
+				},
+				{
+					Match: map[string]esTypes.MatchQuery{
+						"name_ru": {
+							Query:     query,
+							Fuzziness: "AUTO",
+						},
+					},
+				},
+				{
+					Match: map[string]esTypes.MatchQuery{
+						"name_de": {
+							Query:     query,
+							Fuzziness: "AUTO",
+						},
+					},
+				},
+				{
+					Match: map[string]esTypes.MatchQuery{
+						"name_es": {
+							Query:     query,
+							Fuzziness: "AUTO",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	response, err := storage.Search(ctx, "igdb_games", esQuery, pagination)
+	if err != nil {
+		logger.Debugf(ctx, "[ELASTIC] Error searching IGDB games: %v", err)
+		return nil, err
+	}
+
+	logger.Debugf(ctx, "[ELASTIC] IGDB games found: %d", response.Hits.Total.Value)
 	return response, nil
 }
 

@@ -120,7 +120,7 @@ func (c *idgbClient) fetchIDGBGames(ctx context.Context, lastSyncTimestamp *time
 	query := strings.Builder{}
 	query.WriteString(`
 		fields id,name,updated_at,first_release_date,url,
-		cover.url,
+		cover.image_id,cover.url,
 		websites.trusted,websites.url,websites.type,websites.type.type,
 		alternative_names.comment,alternative_names.name;
 		where version_parent = null

@@ -10,14 +10,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const countCollectionItemsByCollectionID = `-- name: CountCollectionItemsByCollectionID :one
 SELECT COUNT(*)
-FROM "collection_items" ci
-INNER JOIN "collections" c ON ci."collection_id" = c."id"
-WHERE c."id" = $1
+FROM collection_items ci
+    INNER JOIN collections c ON ci.collection_id = c.id
+WHERE c.id = $1::uuid
 `
 
 func (q *Queries) CountCollectionItemsByCollectionID(ctx context.Context, id uuid.UUID) (int64, error) {
@@ -28,9 +27,8 @@ func (q *Queries) CountCollectionItemsByCollectionID(ctx context.Context, id uui
 }
 
 const deleteCollectionByID = `-- name: DeleteCollectionByID :exec
-DELETE 
-FROM "collections" 
-WHERE "id" = $1
+DELETE FROM collections
+WHERE id = $1::uuid
 `
 
 func (q *Queries) DeleteCollectionByID(ctx context.Context, id uuid.UUID) error {
@@ -39,9 +37,8 @@ func (q *Queries) DeleteCollectionByID(ctx context.Context, id uuid.UUID) error 
 }
 
 const deleteCollectionItemByID = `-- name: DeleteCollectionItemByID :exec
-DELETE 
-FROM "collection_items" 
-WHERE "id" = $1
+DELETE FROM collection_items
+WHERE id = $1::uuid
 `
 
 func (q *Queries) DeleteCollectionItemByID(ctx context.Context, id uuid.UUID) error {
@@ -50,9 +47,8 @@ func (q *Queries) DeleteCollectionItemByID(ctx context.Context, id uuid.UUID) er
 }
 
 const deleteCollectionItemsByCollectionID = `-- name: DeleteCollectionItemsByCollectionID :exec
-DELETE 
-FROM "collection_items" 
-WHERE "collection_id" = $1
+DELETE FROM collection_items
+WHERE collection_id = $1::uuid
 `
 
 func (q *Queries) DeleteCollectionItemsByCollectionID(ctx context.Context, collectionID uuid.UUID) error {
@@ -61,9 +57,9 @@ func (q *Queries) DeleteCollectionItemsByCollectionID(ctx context.Context, colle
 }
 
 const findCollectionByID = `-- name: FindCollectionByID :one
-SELECT id, created_at, created_by, updated_at, updated_by, name, user_id 
-FROM "collections" 
-WHERE "id" = $1
+SELECT id, created_at, created_by, updated_at, updated_by, name, user_id
+FROM collections
+WHERE id = $1::uuid
 `
 
 func (q *Queries) FindCollectionByID(ctx context.Context, id uuid.UUID) (*Collection, error) {
@@ -82,9 +78,9 @@ func (q *Queries) FindCollectionByID(ctx context.Context, id uuid.UUID) (*Collec
 }
 
 const findCollectionItemByID = `-- name: FindCollectionItemByID :one
-SELECT id, collection_id, note_id, category, created_at, created_by 
-FROM "collection_items" 
-WHERE "id" = $1
+SELECT id, collection_id, note_id, content_id, category, created_at, created_by
+FROM collection_items
+WHERE id = $1::uuid
 `
 
 func (q *Queries) FindCollectionItemByID(ctx context.Context, id uuid.UUID) (*CollectionItem, error) {
@@ -94,6 +90,7 @@ func (q *Queries) FindCollectionItemByID(ctx context.Context, id uuid.UUID) (*Co
 		&i.ID,
 		&i.CollectionID,
 		&i.NoteID,
+		&i.ContentID,
 		&i.Category,
 		&i.CreatedAt,
 		&i.CreatedBy,
@@ -102,9 +99,9 @@ func (q *Queries) FindCollectionItemByID(ctx context.Context, id uuid.UUID) (*Co
 }
 
 const findCollectionItemsByCollectionID = `-- name: FindCollectionItemsByCollectionID :many
-SELECT id, collection_id, note_id, category, created_at, created_by 
-FROM "collection_items" 
-WHERE "collection_id" = $1
+SELECT id, collection_id, note_id, content_id, category, created_at, created_by
+FROM collection_items
+WHERE collection_id = $1::uuid
 `
 
 func (q *Queries) FindCollectionItemsByCollectionID(ctx context.Context, collectionID uuid.UUID) ([]*CollectionItem, error) {
@@ -120,6 +117,7 @@ func (q *Queries) FindCollectionItemsByCollectionID(ctx context.Context, collect
 			&i.ID,
 			&i.CollectionID,
 			&i.NoteID,
+			&i.ContentID,
 			&i.Category,
 			&i.CreatedAt,
 			&i.CreatedBy,
@@ -135,99 +133,64 @@ func (q *Queries) FindCollectionItemsByCollectionID(ctx context.Context, collect
 }
 
 const findCollectionItemsByCollectionIDWithContent = `-- name: FindCollectionItemsByCollectionIDWithContent :many
-
-SELECT
-    ci.id, ci.collection_id, ci.note_id, ci.category, ci.created_at, ci.created_by,
+SELECT ci.id, ci.collection_id, ci.note_id, ci.content_id, ci.category, ci.created_at, ci.created_by,
     CASE
-        WHEN ci."category" = 'games' THEN g."name"
-        -- WHEN ci."category" = 'movie' THEN m."name"
-        -- WHEN ci."category" = 'anime' THEN a."name"
-        -- WHEN ci."category" = 'book' THEN b."name"
-        -- WHEN ci."category" = 'song' THEN s."name"
+        WHEN ci.category = 'games' THEN gl.title
+        WHEN ci.category = 'movies' THEN ml.title
         ELSE NULL
-    END AS "content_name",
-    CASE 
-        WHEN ci."category" = 'games' THEN g."poster_key"
+    END AS content_title,
+    CASE
+        WHEN ci.category = 'games' THEN g.cover_key
+        WHEN ci.category = 'movies' THEN m.cover_key
         ELSE NULL
-    END AS "poster_key",
-    CASE 
-        WHEN ci."category" = 'games' THEN g."poster_updated_at"
+    END AS cover_key,
+    CASE
+        WHEN ci.category = 'games' THEN g.cover_key_type
+        WHEN ci.category = 'movies' THEN m.cover_key_type
         ELSE NULL
-    END AS "poster_updated_at"
-FROM "collection_items" ci
-INNER JOIN "collections" c ON ci."collection_id" = c."id"
-LEFT JOIN "game_notes" g ON ci."category" = 'games' AND ci."note_id" = g."id"
-WHERE c."id" = $1::uuid
-ORDER BY ci."created_at" DESC
-LIMIT $3::int
-OFFSET $2::int
+    END AS cover_key_type
+FROM collection_items ci
+    INNER JOIN collections c ON ci.collection_id = c.id
+    LEFT JOIN games g ON ci.category = 'games'
+    AND ci.content_id = g.id
+    LEFT JOIN game_localizations gl ON g.id = gl.content_id
+    AND gl.lang = $1::locale
+    LEFT JOIN movies m ON ci.category = 'movies'
+    AND ci.content_id = m.id
+    LEFT JOIN movie_localizations ml ON m.id = ml.content_id
+    AND ml.lang = $1::locale
+WHERE c.id = $2::uuid
+ORDER BY ci.created_at DESC
+LIMIT $4::int OFFSET $3::int
 `
 
 type FindCollectionItemsByCollectionIDWithContentParams struct {
+	Lang         Locale    `json:"lang"`
 	CollectionID uuid.UUID `json:"collection_id"`
 	Offset       int32     `json:"offset"`
 	Limit        int32     `json:"limit"`
 }
 
 type FindCollectionItemsByCollectionIDWithContentRow struct {
-	ID              uuid.UUID          `json:"id"`
-	CollectionID    uuid.UUID          `json:"collection_id"`
-	NoteID          uuid.UUID          `json:"note_id"`
-	Category        ContentCategory    `json:"category"`
-	CreatedAt       time.Time          `json:"created_at"`
-	CreatedBy       uuid.UUID          `json:"created_by"`
-	ContentName     *string            `json:"content_name"`
-	PosterKey       *string            `json:"poster_key"`
-	PosterUpdatedAt pgtype.Timestamptz `json:"poster_updated_at"`
+	ID           uuid.UUID        `json:"id"`
+	CollectionID uuid.UUID        `json:"collection_id"`
+	NoteID       uuid.UUID        `json:"note_id"`
+	ContentID    uuid.UUID        `json:"content_id"`
+	Category     ContentCategory  `json:"category"`
+	CreatedAt    time.Time        `json:"created_at"`
+	CreatedBy    uuid.UUID        `json:"created_by"`
+	ContentTitle *string          `json:"content_title"`
+	CoverKey     *string          `json:"cover_key"`
+	CoverKeyType NullImageKeyType `json:"cover_key_type"`
 }
 
-// SELECT
-//
-//	ci.*,
-//	CASE
-//	    WHEN ci."category" = 'games' THEN g."name"
-//	    -- WHEN ci."category" = 'movie' THEN m."name"
-//	    -- WHEN ci."category" = 'anime' THEN a."name"
-//	    -- WHEN ci."category" = 'book' THEN b."name"
-//	    -- WHEN ci."category" = 'song' THEN s."name"
-//	    ELSE NULL
-//	END AS "content_name",
-//	CASE
-//	    WHEN ci."category" = 'games' THEN g."poster_key"
-//	    ELSE NULL
-//	END AS "poster_key",
-//	CASE
-//	    WHEN ci."category" = 'games' THEN g."poster_updated_at"
-//	    ELSE NULL
-//	END AS "poster_updated_at"
-//
-// FROM "collection_items" ci
-// INNER JOIN "collections" c ON ci."collection_id" = c."id"
-// LEFT JOIN "game_notes" g ON ci."category" = 'games' AND ci."note_id" = g."id"
-// WHERE c."user_id" = $1
-// ORDER BY ci."created_at" DESC
-// LIMIT $2;
-// LEFT JOIN
-//
-//	MovieNote m ON ci."category" = 'movie' AND ci."note_id" = m."id"
-//
-// LEFT JOIN
-//
-//	AnimeNote a ON ci."category" = 'anime' AND ci."note_id" = a."id"
-//
-// LEFT JOIN
-//
-//	BookNote b ON ci."category" = 'book' AND ci."note_id" = b."id"
-//
-// LEFT JOIN
-//
-//	SongNote s ON ci."category" = 'song' AND ci."note_id" = s."id"
-//
-// LEFT JOIN
-//
-//	ArticleNote ar ON ci."category" = 'article' AND ci."note_id" = ar."id";
 func (q *Queries) FindCollectionItemsByCollectionIDWithContent(ctx context.Context, arg FindCollectionItemsByCollectionIDWithContentParams) ([]*FindCollectionItemsByCollectionIDWithContentRow, error) {
-	rows, err := q.db.Query(ctx, findCollectionItemsByCollectionIDWithContent, arg.CollectionID, arg.Offset, arg.Limit)
+	rows, err := q.db.Query(ctx, findCollectionItemsByCollectionIDWithContent,
+		arg.Lang,
+		arg.CollectionID,
+		arg.Offset,
+		arg.Limit,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -239,12 +202,13 @@ func (q *Queries) FindCollectionItemsByCollectionIDWithContent(ctx context.Conte
 			&i.ID,
 			&i.CollectionID,
 			&i.NoteID,
+			&i.ContentID,
 			&i.Category,
 			&i.CreatedAt,
 			&i.CreatedBy,
-			&i.ContentName,
-			&i.PosterKey,
-			&i.PosterUpdatedAt,
+			&i.ContentTitle,
+			&i.CoverKey,
+			&i.CoverKeyType,
 		); err != nil {
 			return nil, err
 		}
@@ -257,10 +221,10 @@ func (q *Queries) FindCollectionItemsByCollectionIDWithContent(ctx context.Conte
 }
 
 const findCollectionItemsByUserID = `-- name: FindCollectionItemsByUserID :many
-SELECT ci.id, ci.collection_id, ci.note_id, ci.category, ci.created_at, ci.created_by 
-FROM "collection_items" ci
-INNER JOIN "collections" c ON ci."collection_id" = c."id"
-WHERE c."user_id" = $1
+SELECT ci.id, ci.collection_id, ci.note_id, ci.content_id, ci.category, ci.created_at, ci.created_by
+FROM collection_items ci
+    INNER JOIN collections c ON ci.collection_id = c.id
+WHERE c.user_id = $1::uuid
 `
 
 func (q *Queries) FindCollectionItemsByUserID(ctx context.Context, userID uuid.UUID) ([]*CollectionItem, error) {
@@ -276,6 +240,7 @@ func (q *Queries) FindCollectionItemsByUserID(ctx context.Context, userID uuid.U
 			&i.ID,
 			&i.CollectionID,
 			&i.NoteID,
+			&i.ContentID,
 			&i.Category,
 			&i.CreatedAt,
 			&i.CreatedBy,
@@ -291,57 +256,67 @@ func (q *Queries) FindCollectionItemsByUserID(ctx context.Context, userID uuid.U
 }
 
 const findCollectionItemsByUserIDWithContentLimitPerCollection = `-- name: FindCollectionItemsByUserIDWithContentLimitPerCollection :many
-WITH "ranked_items" AS (
-    SELECT 
-        ci.id, ci.collection_id, ci.note_id, ci.category, ci.created_at, ci.created_by,
+WITH ranked_items AS (
+    SELECT ci.id, ci.collection_id, ci.note_id, ci.content_id, ci.category, ci.created_at, ci.created_by,
         CASE
-            WHEN ci."category" = 'games' THEN g."name"
-            WHEN ci."category" = 'movies' THEN m."name"
+            WHEN ci.category = 'games' THEN gl.title
+            WHEN ci.category = 'movies' THEN ml.title
             ELSE NULL
-        END AS "content_name",
-        CASE 
-            WHEN ci."category" = 'games' THEN g."poster_key"
-            WHEN ci."category" = 'movies' THEN m."poster_key"
+        END AS content_title,
+        CASE
+            WHEN ci.category = 'games' THEN g.cover_key
+            WHEN ci.category = 'movies' THEN m.cover_key
             ELSE NULL
-        END AS "poster_key",
-        CASE 
-            WHEN ci."category" = 'games' THEN g."poster_updated_at"
-            WHEN ci."category" = 'movies' THEN m."poster_updated_at"
+        END AS cover_key,
+        CASE
+            WHEN ci.category = 'games' THEN g.cover_key_type
+            WHEN ci.category = 'movies' THEN m.cover_key_type
             ELSE NULL
-        END AS "poster_updated_at",
-        ROW_NUMBER() OVER (PARTITION BY ci."collection_id" ORDER BY ci."created_at" DESC) AS "rn"
-    FROM "collection_items" ci
-    INNER JOIN "collections" c ON ci."collection_id" = c."id"
-    LEFT JOIN "game_notes" g ON ci."category" = 'games' AND ci."note_id" = g."id"
-    LEFT JOIN "movie_notes" m ON ci."category" = 'movies' AND ci."note_id" = m."id"
-    WHERE c."user_id" = $2::uuid
+        END AS cover_key_type,
+        ROW_NUMBER() OVER (
+            PARTITION BY ci.collection_id
+            ORDER BY ci.created_at DESC
+        ) AS rn
+    FROM collection_items ci
+        INNER JOIN collections c ON ci.collection_id = c.id
+        LEFT JOIN games g ON ci.category = 'games'
+        AND ci.content_id = g.id
+        LEFT JOIN game_localizations gl ON g.id = gl.content_id
+        AND gl.lang = $2::locale
+        LEFT JOIN movies m ON ci.category = 'movies'
+        AND ci.content_id = m.id
+        LEFT JOIN movie_localizations ml ON m.id = ml.content_id
+        AND ml.lang = $2::locale
+    WHERE c.user_id = $3::uuid
 )
-SELECT ri.id, ri.collection_id, ri.note_id, ri.category, ri.created_at, ri.created_by, ri.content_name, ri.poster_key, ri.poster_updated_at, ri.rn
-FROM "ranked_items" ri
-WHERE ri."rn" <= $1::smallint
-ORDER BY ri."created_at" DESC
+SELECT ri.id, ri.collection_id, ri.note_id, ri.content_id, ri.category, ri.created_at, ri.created_by, ri.content_title, ri.cover_key, ri.cover_key_type, ri.rn
+FROM ranked_items ri
+WHERE ri.rn <= $1::smallint
+ORDER BY ri.created_at DESC
 `
 
 type FindCollectionItemsByUserIDWithContentLimitPerCollectionParams struct {
 	Limit  int16     `json:"limit"`
+	Lang   Locale    `json:"lang"`
 	UserID uuid.UUID `json:"user_id"`
 }
 
 type FindCollectionItemsByUserIDWithContentLimitPerCollectionRow struct {
-	ID              uuid.UUID          `json:"id"`
-	CollectionID    uuid.UUID          `json:"collection_id"`
-	NoteID          uuid.UUID          `json:"note_id"`
-	Category        ContentCategory    `json:"category"`
-	CreatedAt       time.Time          `json:"created_at"`
-	CreatedBy       uuid.UUID          `json:"created_by"`
-	ContentName     *string            `json:"content_name"`
-	PosterKey       *string            `json:"poster_key"`
-	PosterUpdatedAt pgtype.Timestamptz `json:"poster_updated_at"`
-	Rn              int64              `json:"rn"`
+	ID           uuid.UUID        `json:"id"`
+	CollectionID uuid.UUID        `json:"collection_id"`
+	NoteID       uuid.UUID        `json:"note_id"`
+	ContentID    uuid.UUID        `json:"content_id"`
+	Category     ContentCategory  `json:"category"`
+	CreatedAt    time.Time        `json:"created_at"`
+	CreatedBy    uuid.UUID        `json:"created_by"`
+	ContentTitle *string          `json:"content_title"`
+	CoverKey     *string          `json:"cover_key"`
+	CoverKeyType NullImageKeyType `json:"cover_key_type"`
+	Rn           int64            `json:"rn"`
 }
 
 func (q *Queries) FindCollectionItemsByUserIDWithContentLimitPerCollection(ctx context.Context, arg FindCollectionItemsByUserIDWithContentLimitPerCollectionParams) ([]*FindCollectionItemsByUserIDWithContentLimitPerCollectionRow, error) {
-	rows, err := q.db.Query(ctx, findCollectionItemsByUserIDWithContentLimitPerCollection, arg.Limit, arg.UserID)
+	rows, err := q.db.Query(ctx, findCollectionItemsByUserIDWithContentLimitPerCollection, arg.Limit, arg.Lang, arg.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -353,12 +328,13 @@ func (q *Queries) FindCollectionItemsByUserIDWithContentLimitPerCollection(ctx c
 			&i.ID,
 			&i.CollectionID,
 			&i.NoteID,
+			&i.ContentID,
 			&i.Category,
 			&i.CreatedAt,
 			&i.CreatedBy,
-			&i.ContentName,
-			&i.PosterKey,
-			&i.PosterUpdatedAt,
+			&i.ContentTitle,
+			&i.CoverKey,
+			&i.CoverKeyType,
 			&i.Rn,
 		); err != nil {
 			return nil, err
@@ -372,9 +348,9 @@ func (q *Queries) FindCollectionItemsByUserIDWithContentLimitPerCollection(ctx c
 }
 
 const findCollectionsByUserID = `-- name: FindCollectionsByUserID :many
-SELECT id, created_at, created_by, updated_at, updated_by, name, user_id 
-FROM "collections" 
-WHERE "user_id" = $1
+SELECT id, created_at, created_by, updated_at, updated_by, name, user_id
+FROM collections
+WHERE user_id = $1::uuid
 `
 
 func (q *Queries) FindCollectionsByUserID(ctx context.Context, userID uuid.UUID) ([]*Collection, error) {
@@ -406,12 +382,18 @@ func (q *Queries) FindCollectionsByUserID(ctx context.Context, userID uuid.UUID)
 }
 
 const insertCollection = `-- name: InsertCollection :one
-INSERT INTO "collections" (
-    "created_by", 
-    "updated_by", 
-    "name", 
-    "user_id"
-) VALUES ($1, $2, $3, $4)
+INSERT INTO collections (
+        created_by,
+        updated_by,
+        name,
+        user_id
+    )
+VALUES (
+        $1::uuid,
+        $2::uuid,
+        $3::text,
+        $4::uuid
+    )
 RETURNING id, created_at, created_by, updated_at, updated_by, name, user_id
 `
 
@@ -443,18 +425,27 @@ func (q *Queries) InsertCollection(ctx context.Context, arg InsertCollectionPara
 }
 
 const insertCollectionItem = `-- name: InsertCollectionItem :one
-INSERT INTO "collection_items" (
-    "collection_id", 
-    "note_id", 
-    "category",
-    "created_by"
-) VALUES ($1, $2, $3, $4)
-RETURNING id, collection_id, note_id, category, created_at, created_by
+INSERT INTO collection_items (
+        collection_id,
+        note_id,
+        content_id,
+        category,
+        created_by
+    )
+VALUES (
+        $1::uuid,
+        $2::uuid,
+        $3::uuid,
+        $4::content_category,
+        $5::uuid
+    )
+RETURNING id, collection_id, note_id, content_id, category, created_at, created_by
 `
 
 type InsertCollectionItemParams struct {
 	CollectionID uuid.UUID       `json:"collection_id"`
 	NoteID       uuid.UUID       `json:"note_id"`
+	ContentID    uuid.UUID       `json:"content_id"`
 	Category     ContentCategory `json:"category"`
 	CreatedBy    uuid.UUID       `json:"created_by"`
 }
@@ -463,6 +454,7 @@ func (q *Queries) InsertCollectionItem(ctx context.Context, arg InsertCollection
 	row := q.db.QueryRow(ctx, insertCollectionItem,
 		arg.CollectionID,
 		arg.NoteID,
+		arg.ContentID,
 		arg.Category,
 		arg.CreatedBy,
 	)
@@ -471,6 +463,7 @@ func (q *Queries) InsertCollectionItem(ctx context.Context, arg InsertCollection
 		&i.ID,
 		&i.CollectionID,
 		&i.NoteID,
+		&i.ContentID,
 		&i.Category,
 		&i.CreatedAt,
 		&i.CreatedBy,
@@ -479,22 +472,22 @@ func (q *Queries) InsertCollectionItem(ctx context.Context, arg InsertCollection
 }
 
 const updateCollectionByID = `-- name: UpdateCollectionByID :one
-UPDATE "collections" 
-SET "name" = $2,
-    "updated_by" = $3,
-    "updated_at" = now()
-WHERE "id" = $1
+UPDATE collections
+SET name = $1::text,
+    updated_by = $2::uuid,
+    updated_at = now()
+WHERE id = $3::uuid
 RETURNING id, created_at, created_by, updated_at, updated_by, name, user_id
 `
 
 type UpdateCollectionByIDParams struct {
-	ID        uuid.UUID `json:"id"`
 	Name      string    `json:"name"`
 	UpdatedBy uuid.UUID `json:"updated_by"`
+	ID        uuid.UUID `json:"id"`
 }
 
 func (q *Queries) UpdateCollectionByID(ctx context.Context, arg UpdateCollectionByIDParams) (*Collection, error) {
-	row := q.db.QueryRow(ctx, updateCollectionByID, arg.ID, arg.Name, arg.UpdatedBy)
+	row := q.db.QueryRow(ctx, updateCollectionByID, arg.Name, arg.UpdatedBy, arg.ID)
 	var i Collection
 	err := row.Scan(
 		&i.ID,

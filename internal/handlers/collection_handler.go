@@ -33,8 +33,14 @@ type collectionHandler struct {
 	contentService    services.ContentNoteService
 }
 
-func NewCollectionHandler(collectionService services.CollectionService, contentService services.ContentNoteService) CollectionHandler {
-	return &collectionHandler{collectionService: collectionService, contentService: contentService}
+func NewCollectionHandler(
+	collectionService services.CollectionService,
+	contentService services.ContentNoteService,
+) CollectionHandler {
+	return &collectionHandler{
+		collectionService: collectionService,
+		contentService:    contentService,
+	}
 }
 
 // @Summary Create collection
@@ -162,9 +168,10 @@ func (h *collectionHandler) AddItemToCollection(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	posterSize := utils.GetQueryParam(r, "posterSize", "sm")
+	// posterSize := utils.GetQueryParam(r, "posterSize", "sm")
+	locale := utils.GetQueryParam(r, "locale", "en")
 
-	content, err := h.contentService.GetContentNoteByID(ctx, req.NoteID, req.Category)
+	content, err := h.contentService.GetLocalizedNoteByID(ctx, req.NoteID, req.Category, locale)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
@@ -180,17 +187,17 @@ func (h *collectionHandler) AddItemToCollection(w http.ResponseWriter, r *http.R
 	copier.Copy(res, createdItem)
 	res.Content = types.ContentRes{
 		ID:       content.GetID(),
-		Name:     content.GetName(),
+		Title:    content.GetContent().GetTitle(),
 		UserID:   content.GetUserID(),
 		Category: content.GetCategory(),
 	}
 
-	posterURL, err := h.contentService.GetContentNotePosterImageURL1(ctx, posterSize, content)
-	if err != nil {
-		logger.Errorf(ctx, "failed to get poster image URL for %s %s: %v", content.GetCategory(), content.GetID(), err)
-	} else {
-		res.PosterURL = posterURL
-	}
+	// posterURL, err := h.contentService.GetContentNotePosterImageURL1(ctx, posterSize, content)
+	// if err != nil {
+	// 	logger.Errorf(ctx, "failed to get poster image URL for %s %s: %v", content.GetCategory(), content.GetID(), err)
+	// } else {
+	// 	res.PosterURL = posterURL
+	// }
 
 	utils.WriteHttpJsonResponse(ctx, w, res)
 }
@@ -276,7 +283,7 @@ func (h *collectionHandler) GetItemsByUserID(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	posterSize := utils.GetQueryParam(r, "posterSize", "sm")
+	// posterSize := utils.GetQueryParam(r, "posterSize", "sm")
 
 	pagination, err := utils.GetPagination(r)
 	if err != nil {
@@ -284,7 +291,9 @@ func (h *collectionHandler) GetItemsByUserID(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	items, err := h.collectionService.GetItemsByUserID(ctx, userID, pagination)
+	locale := utils.GetQueryParam(r, "locale", "en")
+
+	items, err := h.collectionService.GetItemsByUserID(ctx, userID, pagination, locale)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
@@ -299,17 +308,17 @@ func (h *collectionHandler) GetItemsByUserID(w http.ResponseWriter, r *http.Requ
 			collectionCount++
 		}
 
-		posterURL := ""
-		if item.PosterKey != nil {
-			posterURL, err = h.contentService.GetContentNotePosterImageURL(ctx, item.Category, posterSize, *item.PosterKey, item.PosterUpdatedAt.Time)
-			if err != nil {
-				logger.Errorf(ctx, "failed to get poster image URL for %s %s: %v", item.Category, item.NoteID, err)
-			}
-		}
+		// posterURL := ""
+		// if item.CoverUrl != nil {
+		// 	posterURL, err = h.contentService.GetContentNotePosterImageURL(ctx, item.Category, posterSize, *item.CoverUrl, item.CreatedAt)
+		// 	if err != nil {
+		// 		logger.Errorf(ctx, "failed to get poster image URL for %s %s: %v", item.Category, item.NoteID, err)
+		// 	}
+		// }
 
-		contentName := ""
-		if item.ContentName != nil {
-			contentName = *item.ContentName
+		title := ""
+		if item.ContentTitle != nil {
+			title = *item.ContentTitle
 		}
 
 		groupedItems[item.CollectionID] = append(groupedItems[item.CollectionID], types.CollectionItemRes{
@@ -317,11 +326,11 @@ func (h *collectionHandler) GetItemsByUserID(w http.ResponseWriter, r *http.Requ
 			CollectionID: item.CollectionID,
 			Content: types.ContentRes{
 				ID:       item.NoteID,
-				Name:     contentName,
+				Title:    title,
 				UserID:   userID,
 				Category: item.Category,
 			},
-			PosterURL: posterURL,
+			// PosterURL: posterURL,
 		})
 	}
 
@@ -412,6 +421,8 @@ func (h *collectionHandler) GetItemsByCollectionID(w http.ResponseWriter, r *htt
 		return
 	}
 
+	locale := utils.GetQueryParam(r, "locale", "en")
+
 	var (
 		group         errgroup.Group
 		totalElements int64
@@ -427,7 +438,7 @@ func (h *collectionHandler) GetItemsByCollectionID(w http.ResponseWriter, r *htt
 	})
 
 	group.Go(func() error {
-		items, err = h.collectionService.GetItemsByCollectionID(ctx, collectionID, pagination)
+		items, err = h.collectionService.GetItemsByCollectionID(ctx, collectionID, pagination, locale)
 		if err != nil {
 			return err
 		}
@@ -447,23 +458,23 @@ func (h *collectionHandler) GetItemsByCollectionID(w http.ResponseWriter, r *htt
 		copier.Copy(&itemRes, &item)
 
 		contentName := ""
-		if item.ContentName != nil {
-			contentName = *item.ContentName
+		if item.ContentTitle != nil {
+			contentName = *item.ContentTitle
 		}
 
 		itemRes.Content = types.ContentRes{
 			ID:       item.NoteID,
-			Name:     contentName,
+			Title:    contentName,
 			UserID:   uuid.Nil,
 			Category: item.Category,
 		}
 
-		if item.PosterKey != nil {
-			posterURL, err := h.contentService.GetContentNotePosterImageURL(ctx, item.Category, posterSize, *item.PosterKey, item.PosterUpdatedAt.Time)
+		if item.CoverKey != nil && item.CoverKeyType.Valid {
+			posterURL, err := h.contentService.GetContentNoteCoverImageURL(ctx, item.Category, posterSize, *item.CoverKey, item.CoverKeyType.ImageKeyType)
 			if err != nil {
 				logger.Errorf(ctx, "failed to get poster image URL for %s %s: %v", item.Category, item.NoteID, err)
 			} else {
-				itemRes.PosterURL = posterURL
+				itemRes.CoverURL = posterURL
 			}
 		}
 		res[i] = itemRes

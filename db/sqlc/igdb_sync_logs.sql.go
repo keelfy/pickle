@@ -12,9 +12,8 @@ import (
 )
 
 const completeIGDBSync = `-- name: CompleteIGDBSync :exec
-UPDATE igdb_sync_logs 
-SET 
-    status = 'completed',
+UPDATE igdb_sync_logs
+SET status = 'completed',
     completed_at = now(),
     games_processed = $1::bigint
 WHERE id = $2
@@ -31,9 +30,8 @@ func (q *Queries) CompleteIGDBSync(ctx context.Context, arg CompleteIGDBSyncPara
 }
 
 const completeIGDBSyncWithError = `-- name: CompleteIGDBSyncWithError :exec
-UPDATE igdb_sync_logs 
-SET 
-    status = 'failed',
+UPDATE igdb_sync_logs
+SET status = 'failed',
     completed_at = now(),
     error_message = $1::text
 WHERE id = $2
@@ -50,15 +48,12 @@ func (q *Queries) CompleteIGDBSyncWithError(ctx context.Context, arg CompleteIGD
 }
 
 const createIGDBSync = `-- name: CreateIGDBSync :one
-INSERT INTO igdb_sync_logs (
-    sync_type, 
-    started_at,
-    status
-) VALUES (
-    $1::igdb_sync_type, 
-    now(),
-    'pending'
-) 
+INSERT INTO igdb_sync_logs (sync_type, started_at, status)
+VALUES (
+        $1::igdb_sync_type,
+        now(),
+        'pending'
+    )
 RETURNING id, sync_type, status, started_at, games_processed, completed_at, error_message
 `
 
@@ -78,10 +73,10 @@ func (q *Queries) CreateIGDBSync(ctx context.Context, syncType IgdbSyncType) (*I
 }
 
 const getLastSuccessfulSync = `-- name: GetLastSuccessfulSync :one
-SELECT id, sync_type, status, started_at, games_processed, completed_at, error_message 
-FROM igdb_sync_logs 
-WHERE sync_type = $1::igdb_sync_type 
-ORDER BY started_at DESC 
+SELECT id, sync_type, status, started_at, games_processed, completed_at, error_message
+FROM igdb_sync_logs
+WHERE sync_type = $1::igdb_sync_type
+ORDER BY started_at DESC
 LIMIT 1
 `
 
@@ -101,7 +96,7 @@ func (q *Queries) GetLastSuccessfulSync(ctx context.Context, syncType IgdbSyncTy
 }
 
 const startIGDBSync = `-- name: StartIGDBSync :exec
-UPDATE igdb_sync_logs 
+UPDATE igdb_sync_logs
 SET status = 'in_progress'
 WHERE id = $1
 `

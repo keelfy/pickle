@@ -21,6 +21,7 @@ const (
 	ContentCategoryAnime  ContentCategory = "anime"
 	ContentCategorySeries ContentCategory = "series"
 	ContentCategoryCustom ContentCategory = "custom"
+	ContentCategoryAny    ContentCategory = "any"
 )
 
 func (e *ContentCategory) Scan(src interface{}) error {
@@ -56,6 +57,48 @@ func (ns NullContentCategory) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.ContentCategory), nil
+}
+
+type ContentSource string
+
+const (
+	ContentSourceIgdb ContentSource = "igdb"
+	ContentSourceTmdb ContentSource = "tmdb"
+)
+
+func (e *ContentSource) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ContentSource(s)
+	case string:
+		*e = ContentSource(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ContentSource: %T", src)
+	}
+	return nil
+}
+
+type NullContentSource struct {
+	ContentSource ContentSource `json:"content_source"`
+	Valid         bool          `json:"valid"` // Valid is true if ContentSource is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullContentSource) Scan(value interface{}) error {
+	if value == nil {
+		ns.ContentSource, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ContentSource.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullContentSource) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ContentSource), nil
 }
 
 type GameNoteStatus string
@@ -188,6 +231,93 @@ func (ns NullIgdbSyncType) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.IgdbSyncType), nil
+}
+
+type ImageKeyType string
+
+const (
+	ImageKeyTypeIgdb   ImageKeyType = "igdb"
+	ImageKeyTypeTmdb   ImageKeyType = "tmdb"
+	ImageKeyTypeCustom ImageKeyType = "custom"
+)
+
+func (e *ImageKeyType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ImageKeyType(s)
+	case string:
+		*e = ImageKeyType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ImageKeyType: %T", src)
+	}
+	return nil
+}
+
+type NullImageKeyType struct {
+	ImageKeyType ImageKeyType `json:"image_key_type"`
+	Valid        bool         `json:"valid"` // Valid is true if ImageKeyType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullImageKeyType) Scan(value interface{}) error {
+	if value == nil {
+		ns.ImageKeyType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ImageKeyType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullImageKeyType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ImageKeyType), nil
+}
+
+type Locale string
+
+const (
+	LocaleEn Locale = "en"
+	LocaleRu Locale = "ru"
+	LocaleDe Locale = "de"
+	LocaleEs Locale = "es"
+)
+
+func (e *Locale) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = Locale(s)
+	case string:
+		*e = Locale(s)
+	default:
+		return fmt.Errorf("unsupported scan type for Locale: %T", src)
+	}
+	return nil
+}
+
+type NullLocale struct {
+	Locale Locale `json:"locale"`
+	Valid  bool   `json:"valid"` // Valid is true if Locale is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullLocale) Scan(value interface{}) error {
+	if value == nil {
+		ns.Locale, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.Locale.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullLocale) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.Locale), nil
 }
 
 type MovieNoteStatus string
@@ -334,6 +464,7 @@ type CollectionItem struct {
 	ID           uuid.UUID       `json:"id"`
 	CollectionID uuid.UUID       `json:"collection_id"`
 	NoteID       uuid.UUID       `json:"note_id"`
+	ContentID    uuid.UUID       `json:"content_id"`
 	Category     ContentCategory `json:"category"`
 	CreatedAt    time.Time       `json:"created_at"`
 	CreatedBy    uuid.UUID       `json:"created_by"`
@@ -352,17 +483,21 @@ type Follower struct {
 }
 
 type Game struct {
-	ID          uuid.UUID  `json:"id"`
-	IgdbID      int64      `json:"igdb_id"`
-	ReleaseDate *time.Time `json:"release_date"`
-	Websites    []byte     `json:"websites"`
-	CreatedAt   time.Time  `json:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at"`
+	ID           uuid.UUID        `json:"id"`
+	ExternalID   int64            `json:"external_id"`
+	ReleaseDate  *time.Time       `json:"release_date"`
+	Websites     []byte           `json:"websites"`
+	CoverKey     *string          `json:"cover_key"`
+	CoverKeyType NullImageKeyType `json:"cover_key_type"`
+	SourceUrl    *string          `json:"source_url"`
+	SourceType   ContentSource    `json:"source_type"`
+	CreatedAt    time.Time        `json:"created_at"`
+	UpdatedAt    time.Time        `json:"updated_at"`
 }
 
 type GameLocalization struct {
-	GameID    uuid.UUID `json:"game_id"`
-	Lang      string    `json:"lang"`
+	ContentID uuid.UUID `json:"content_id"`
+	Lang      Locale    `json:"lang"`
 	Title     string    `json:"title"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
@@ -375,26 +510,21 @@ type GameNote struct {
 	UpdatedAt        time.Time      `json:"updated_at"`
 	UpdatedBy        uuid.UUID      `json:"updated_by"`
 	UserID           uuid.UUID      `json:"user_id"`
-	GameID           *uuid.UUID     `json:"game_id"`
-	Name             string         `json:"name"`
-	Link             *string        `json:"link"`
-	ReleaseDate      *time.Time     `json:"release_date"`
+	ContentID        uuid.UUID      `json:"content_id"`
 	Rate             *int16         `json:"rate"`
 	Comment          *string        `json:"comment"`
 	InitialOrdererID uuid.UUID      `json:"initial_orderer_id"`
 	Status           GameNoteStatus `json:"status"`
 	LastPlayedAt     *time.Time     `json:"last_played_at"`
-	PosterKey        *string        `json:"poster_key"`
-	PosterUpdatedAt  time.Time      `json:"poster_updated_at"`
 }
 
 type GameNoteOrder struct {
-	GameNoteID uuid.UUID `json:"game_note_id"`
-	OrderID    uuid.UUID `json:"order_id"`
-	CreatedAt  time.Time `json:"created_at"`
-	CreatedBy  uuid.UUID `json:"created_by"`
-	UpdatedAt  time.Time `json:"updated_at"`
-	UpdatedBy  uuid.UUID `json:"updated_by"`
+	GameNoteID uuid.UUID  `json:"game_note_id"`
+	OrderID    uuid.UUID  `json:"order_id"`
+	CreatedAt  time.Time  `json:"created_at"`
+	CreatedBy  *uuid.UUID `json:"created_by"`
+	UpdatedAt  time.Time  `json:"updated_at"`
+	UpdatedBy  *uuid.UUID `json:"updated_by"`
 }
 
 type GameNoteReaction struct {
@@ -408,7 +538,7 @@ type GameNoteReaction struct {
 
 type GamesViewEn struct {
 	ID          uuid.UUID  `json:"id"`
-	IgdbID      int64      `json:"igdb_id"`
+	ExternalID  int64      `json:"external_id"`
 	Title       string     `json:"title"`
 	ReleaseDate *time.Time `json:"release_date"`
 	Websites    []byte     `json:"websites"`
@@ -418,7 +548,7 @@ type GamesViewEn struct {
 
 type GamesViewRu struct {
 	ID          uuid.UUID  `json:"id"`
-	IgdbID      int64      `json:"igdb_id"`
+	ExternalID  int64      `json:"external_id"`
 	Title       string     `json:"title"`
 	ReleaseDate *time.Time `json:"release_date"`
 	Websites    []byte     `json:"websites"`
@@ -447,17 +577,21 @@ type Moderator struct {
 }
 
 type Movie struct {
-	ID          uuid.UUID  `json:"id"`
-	TmdbID      int64      `json:"tmdb_id"`
-	Title       string     `json:"title"`
-	ReleaseDate *time.Time `json:"release_date"`
-	CreatedAt   time.Time  `json:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at"`
+	ID           uuid.UUID        `json:"id"`
+	ExternalID   int64            `json:"external_id"`
+	ReleaseDate  *time.Time       `json:"release_date"`
+	Websites     []byte           `json:"websites"`
+	CoverKey     *string          `json:"cover_key"`
+	CoverKeyType NullImageKeyType `json:"cover_key_type"`
+	SourceUrl    *string          `json:"source_url"`
+	SourceType   ContentSource    `json:"source_type"`
+	CreatedAt    time.Time        `json:"created_at"`
+	UpdatedAt    time.Time        `json:"updated_at"`
 }
 
 type MovieLocalization struct {
-	MovieID   uuid.UUID `json:"movie_id"`
-	Lang      string    `json:"lang"`
+	ContentID uuid.UUID `json:"content_id"`
+	Lang      Locale    `json:"lang"`
 	Title     string    `json:"title"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
@@ -465,27 +599,26 @@ type MovieLocalization struct {
 
 type MovieNote struct {
 	ID               uuid.UUID       `json:"id"`
+	CreatedAt        time.Time       `json:"created_at"`
+	CreatedBy        uuid.UUID       `json:"created_by"`
+	UpdatedAt        time.Time       `json:"updated_at"`
+	UpdatedBy        uuid.UUID       `json:"updated_by"`
 	UserID           uuid.UUID       `json:"user_id"`
-	Name             string          `json:"name"`
-	ReleaseDate      *time.Time      `json:"release_date"`
+	ContentID        uuid.UUID       `json:"content_id"`
 	Rate             *int16          `json:"rate"`
 	Comment          *string         `json:"comment"`
 	Status           MovieNoteStatus `json:"status"`
 	InitialOrdererID uuid.UUID       `json:"initial_orderer_id"`
 	WatchedAt        *time.Time      `json:"watched_at"`
-	PosterKey        *string         `json:"poster_key"`
-	PosterUpdatedAt  time.Time       `json:"poster_updated_at"`
-	CreatedAt        time.Time       `json:"created_at"`
-	CreatedBy        uuid.UUID       `json:"created_by"`
-	UpdatedAt        time.Time       `json:"updated_at"`
-	UpdatedBy        uuid.UUID       `json:"updated_by"`
 }
 
 type MovieNoteOrder struct {
-	MovieNoteID uuid.UUID `json:"movie_note_id"`
-	OrderID     uuid.UUID `json:"order_id"`
-	CreatedAt   time.Time `json:"created_at"`
-	CreatedBy   uuid.UUID `json:"created_by"`
+	MovieNoteID uuid.UUID  `json:"movie_note_id"`
+	OrderID     uuid.UUID  `json:"order_id"`
+	CreatedAt   time.Time  `json:"created_at"`
+	CreatedBy   *uuid.UUID `json:"created_by"`
+	UpdatedAt   time.Time  `json:"updated_at"`
+	UpdatedBy   *uuid.UUID `json:"updated_by"`
 }
 
 type MovieNoteReaction struct {
@@ -493,47 +626,38 @@ type MovieNoteReaction struct {
 	UserID      uuid.UUID      `json:"user_id"`
 	EmoteID     string         `json:"emote_id"`
 	Source      ReactionSource `json:"source"`
-}
-
-type MoviesViewEn struct {
-	ID     uuid.UUID `json:"id"`
-	TmdbID int64     `json:"tmdb_id"`
-	Title  string    `json:"title"`
-}
-
-type MoviesViewRu struct {
-	ID     uuid.UUID `json:"id"`
-	TmdbID int64     `json:"tmdb_id"`
-	Title  string    `json:"title"`
+	CreatedAt   time.Time      `json:"created_at"`
+	CreatedBy   *uuid.UUID     `json:"created_by"`
 }
 
 type Order struct {
-	ID              uuid.UUID           `json:"id"`
-	CreatedAt       time.Time           `json:"created_at"`
-	CreatedBy       uuid.UUID           `json:"created_by"`
-	UpdatedAt       time.Time           `json:"updated_at"`
-	UpdatedBy       uuid.UUID           `json:"updated_by"`
-	ReceiverID      uuid.UUID           `json:"receiver_id"`
-	PaymentType     int16               `json:"payment_type"`
-	Amount          float32             `json:"amount"`
-	Status          OrderStatus         `json:"status"`
-	OrdererID       uuid.UUID           `json:"orderer_id"`
-	OrdererUsername string              `json:"orderer_username"`
-	Message         string              `json:"message"`
-	Category        ContentCategory     `json:"category"`
-	UpdatedMessage  *string             `json:"updated_message"`
-	UpdatedCategory NullContentCategory `json:"updated_category"`
+	ID          uuid.UUID       `json:"id"`
+	CreatedAt   time.Time       `json:"created_at"`
+	CreatedBy   *uuid.UUID      `json:"created_by"`
+	UpdatedAt   time.Time       `json:"updated_at"`
+	UpdatedBy   *uuid.UUID      `json:"updated_by"`
+	ReceiverID  uuid.UUID       `json:"receiver_id"`
+	PaymentType int16           `json:"payment_type"`
+	Amount      float32         `json:"amount"`
+	Status      OrderStatus     `json:"status"`
+	OrdererID   uuid.UUID       `json:"orderer_id"`
+	Message     string          `json:"message"`
+	Category    ContentCategory `json:"category"`
+	Anonymous   bool            `json:"anonymous"`
+	Source      string          `json:"source"`
+	Reference   []byte          `json:"reference"`
 }
 
 type Orderer struct {
-	ID        uuid.UUID  `json:"id"`
-	CreatedAt time.Time  `json:"created_at"`
-	CreatedBy *uuid.UUID `json:"created_by"`
-	UpdatedAt time.Time  `json:"updated_at"`
-	UpdatedBy *uuid.UUID `json:"updated_by"`
-	UserID    *uuid.UUID `json:"user_id"`
-	Username  string     `json:"username"`
-	Anonymous bool       `json:"anonymous"`
+	ID              uuid.UUID  `json:"id"`
+	CreatedAt       time.Time  `json:"created_at"`
+	CreatedBy       *uuid.UUID `json:"created_by"`
+	UpdatedAt       time.Time  `json:"updated_at"`
+	UpdatedBy       *uuid.UUID `json:"updated_by"`
+	UserID          *uuid.UUID `json:"user_id"`
+	DisplayName     string     `json:"display_name"`
+	Source          string     `json:"source"`
+	ReferenceUserID *string    `json:"reference_user_id"`
 }
 
 type PosterPreview struct {
@@ -548,8 +672,8 @@ type Profile struct {
 	CreatedAt             time.Time  `json:"created_at"`
 	UpdatedAt             time.Time  `json:"updated_at"`
 	UpdatedBy             *uuid.UUID `json:"updated_by"`
+	DisplayName           string     `json:"display_name"`
 	Username              string     `json:"username"`
-	Link                  string     `json:"link"`
 	Description           string     `json:"description"`
 	SuggestionPreferences []byte     `json:"suggestion_preferences"`
 }
@@ -563,13 +687,4 @@ type ProfileAvatar struct {
 	AvatarKey        *string    `json:"avatar_key"`
 	AvatarUrl        *string    `json:"avatar_url"`
 	AvatarPreviewKey *string    `json:"avatar_preview_key"`
-}
-
-type TwitchConnection struct {
-	OwnerID       uuid.UUID `json:"owner_id"`
-	BroadcasterID string    `json:"broadcaster_id"`
-	Login         string    `json:"login"`
-	AccessToken   string    `json:"access_token"`
-	RefreshToken  string    `json:"refresh_token"`
-	ExpiresAt     time.Time `json:"expires_at"`
 }

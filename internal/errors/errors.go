@@ -62,3 +62,7 @@ func NewForbiddenError(msg string, err error) error {
 func NewInternalServerError(msg string, err error) error {
 	return &CustomError{HttpStatus: http.StatusInternalServerError, Message: msg, OriginalError: err}
 }
+
+func NewConflictError(msg string, err error) error {
+	return &CustomError{HttpStatus: http.StatusConflict, Message: msg, OriginalError: err}
+}

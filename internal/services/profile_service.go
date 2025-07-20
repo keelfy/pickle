@@ -20,8 +20,8 @@ import (
 )
 
 type ProfileService interface {
-	GetProfileById(ctx context.Context, userId uuid.UUID) (*db.Profile, error)
-	GetProfileByLink(ctx context.Context, userLink string) (*db.Profile, error)
+	GetProfileByID(ctx context.Context, userID uuid.UUID) (*db.Profile, error)
+	GetProfileByUsername(ctx context.Context, username string) (*db.Profile, error)
 	GetMyProfile(ctx context.Context, avatarSize string) (*models.PublicProfile, error)
 	ValidateLink(ctx context.Context, link string) error
 	UpdateProfile(ctx context.Context, userId uuid.UUID, req *types.UpdateProfileReq) error
@@ -31,34 +31,31 @@ type ProfileService interface {
 }
 
 type profileService struct {
-	sqlDb             storage.RelationalStorage
-	s3Client          storage.FileStorage
-	cache             storage.CacheStorage
-	avatarService     AvatarService
-	group             singleflight.Group
-	followerService   FollowerService
-	ordererService    OrdererService
-	connectionService ConnectionService
+	sqlDb           storage.RelationalStorage
+	s3Client        storage.FileStorage
+	cache           storage.CacheStorage
+	avatarService   AvatarService
+	group           singleflight.Group
+	followerService FollowerService
+	ordererService  OrdererService
 }
 
 func NewProfileService(sqlDb storage.RelationalStorage, s3Client storage.FileStorage, cache storage.CacheStorage,
 	avatarService AvatarService, followerService FollowerService, ordererService OrdererService,
-	connectionService ConnectionService,
 ) ProfileService {
 	return &profileService{
-		sqlDb:             sqlDb,
-		s3Client:          s3Client,
-		cache:             cache,
-		avatarService:     avatarService,
-		group:             singleflight.Group{},
-		followerService:   followerService,
-		ordererService:    ordererService,
-		connectionService: connectionService,
+		sqlDb:           sqlDb,
+		s3Client:        s3Client,
+		cache:           cache,
+		avatarService:   avatarService,
+		group:           singleflight.Group{},
+		followerService: followerService,
+		ordererService:  ordererService,
 	}
 }
 
-func (service *profileService) GetProfileById(ctx context.Context, userId uuid.UUID) (*db.Profile, error) {
-	user, err := service.sqlDb.Queries().FindProfileById(ctx, userId)
+func (service *profileService) GetProfileByID(ctx context.Context, userID uuid.UUID) (*db.Profile, error) {
+	user, err := service.sqlDb.Queries().FindProfileByID(ctx, userID)
 	if err == pgx.ErrNoRows {
 		return nil, errors.NewNotFoundError("Profile not found", err)
 	} else if err != nil {
@@ -67,8 +64,8 @@ func (service *profileService) GetProfileById(ctx context.Context, userId uuid.U
 	return user, nil
 }
 
-func (service *profileService) GetProfileByLink(ctx context.Context, userLink string) (*db.Profile, error) {
-	user, err := service.sqlDb.Queries().FindProfileByLink(ctx, strings.ToLower(userLink))
+func (service *profileService) GetProfileByUsername(ctx context.Context, username string) (*db.Profile, error) {
+	user, err := service.sqlDb.Queries().FindProfileByUsername(ctx, strings.ToLower(username))
 	if err == pgx.ErrNoRows {
 		return nil, errors.NewNotFoundError("Profile not found", err)
 	} else if err != nil {
@@ -79,20 +76,20 @@ func (service *profileService) GetProfileByLink(ctx context.Context, userLink st
 }
 
 func (service *profileService) GetMyProfile(ctx context.Context, avatarSize string) (*models.PublicProfile, error) {
-	authUserID, err := utils.UserIdFromContext(ctx)
+	authUserID, err := utils.GetUserIDFromCtx(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	profile, err := service.GetProfileById(ctx, authUserID)
+	profile, err := service.GetProfileByID(ctx, authUserID)
 	if err != nil {
 		return nil, err
 	}
 
 	publicProfile := &models.PublicProfile{
 		ID:           profile.UserID,
+		DisplayName:  profile.DisplayName,
 		Username:     profile.Username,
-		Link:         profile.Link,
 		Description:  profile.Description,
 		IsFollowing:  authUserID == profile.UserID,
 		IsAuthorized: authUserID == profile.UserID,
@@ -118,16 +115,6 @@ func (service *profileService) GetMyProfile(ctx context.Context, avatarSize stri
 			logger.Errorf(ctx, "Error occurred during avatar url: %v", err)
 		}
 		publicProfile.AvatarURL = avatarUrl
-	}()
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		connections, err := service.connectionService.GetConnections(ctx, profile.UserID)
-		if err != nil {
-			logger.Errorf(ctx, err.Error())
-		}
-		publicProfile.Connections = connections
 	}()
 
 	wg.Wait()
@@ -173,7 +160,7 @@ func (service *profileService) ValidateLink(ctx context.Context, link string) er
 	}
 
 	// validate link uniqueness
-	_, err := service.sqlDb.Queries().FindProfileByLink(ctx, link)
+	_, err := service.sqlDb.Queries().FindProfileByUsername(ctx, link)
 	if err != nil && err != pgx.ErrNoRows {
 		return errors.NewInternalServerError("Error occurred looking for a profile by link", err)
 	} else if err == nil {
@@ -184,13 +171,13 @@ func (service *profileService) ValidateLink(ctx context.Context, link string) er
 }
 
 func (service *profileService) UpdateProfile(ctx context.Context, userId uuid.UUID, req *types.UpdateProfileReq) error {
-	profile, err := service.GetProfileById(ctx, userId)
+	profile, err := service.GetProfileByID(ctx, userId)
 	if err != nil {
 		return err
 	}
 
-	if profile.Link != req.Link {
-		err = service.ValidateLink(ctx, req.Link)
+	if profile.Username != req.Username {
+		err = service.ValidateLink(ctx, req.Username)
 		if err != nil {
 			return err
 		}
@@ -201,7 +188,7 @@ func (service *profileService) UpdateProfile(ctx context.Context, userId uuid.UU
 		return err
 	}
 
-	req.Link = strings.ToLower(req.Link)
+	req.Username = strings.ToLower(req.Username)
 
 	description := profile.Description
 	if len(req.Description) < 500 {
@@ -215,11 +202,11 @@ func (service *profileService) UpdateProfile(ctx context.Context, userId uuid.UU
 	defer tx.Rollback(ctx)
 	qtx := service.sqlDb.Queries().WithTx(tx)
 
-	err = qtx.UpdateProfileByUserId(ctx, db.UpdateProfileByUserIdParams{
+	err = qtx.UpdateProfileByUserID(ctx, db.UpdateProfileByUserIDParams{
 		UserID:      profile.UserID,
 		UpdatedBy:   profile.UserID,
-		Username:    req.Username,
-		Link:        strings.ToLower(req.Link),
+		DisplayName: req.DisplayName,
+		Username:    strings.ToLower(req.Username),
 		Description: description,
 	})
 	if err == pgx.ErrNoRows {
@@ -228,7 +215,7 @@ func (service *profileService) UpdateProfile(ctx context.Context, userId uuid.UU
 		return errors.NewInternalServerError("Error occurred updating profile", err)
 	}
 
-	if profile.Username != req.Username {
+	if profile.DisplayName != req.DisplayName {
 		err = service.ordererService.UpdateOrdererUsernameByUserIDWithTx(ctx, qtx, profile)
 		if err != nil {
 			return err
@@ -265,7 +252,7 @@ func (service *profileService) ParseSuggestionPreferences(ctx context.Context, p
 }
 
 func (service *profileService) UpdateSuggestionPreferences(ctx context.Context, userID uuid.UUID, req *models.SuggestionPreferences) error {
-	authUserID, err := utils.UserIdFromContext(ctx)
+	authUserID, err := utils.GetUserIDFromCtx(ctx)
 	if err != nil {
 		return err
 	}
@@ -284,7 +271,7 @@ func (service *profileService) UpdateSuggestionPreferences(ctx context.Context, 
 		return errors.NewBadRequestError("You are not allowed to update suggestion preferences for this profile", nil)
 	}
 
-	profile, err := service.GetProfileById(ctx, userID)
+	profile, err := service.GetProfileByID(ctx, userID)
 	if err != nil {
 		return err
 	}
@@ -317,15 +304,15 @@ func (service *profileService) CreateProfileWebhook(ctx context.Context, req *ty
 	}
 
 	var (
-		name      string
-		avatarUrl *string
+		displayName string
+		avatarUrl   *string
 	)
 
 	if rawMetadata, ok := (*req.Record)["raw_user_meta_data"]; ok {
 		metadata := rawMetadata.(map[string]interface{})
 
 		if rawName, ok := metadata["name"]; ok {
-			name = rawName.(string)
+			displayName = rawName.(string)
 		}
 
 		if rawAvatarUrl, ok := metadata["avatar_url"]; ok {
@@ -334,31 +321,31 @@ func (service *profileService) CreateProfileWebhook(ctx context.Context, req *ty
 		}
 	}
 
-	if len(name) < 1 {
+	if len(displayName) < 1 {
 		// Extract name from email before @
-		name = strings.Split(email, "@")[0]
-		if len(name) < 1 {
+		displayName = strings.Split(email, "@")[0]
+		if len(displayName) < 1 {
 			return nil, errors.NewBadRequestError("Invalid email format", nil)
 		}
 	}
 
 	// generate random username
-	link := strings.ToLower(petname.Generate(2, "-"))
+	username := strings.ToLower(petname.Generate(2, "-"))
 
 	// Set a limit for the number of attempts to generate a unique link
 	const maxAttempts = 10
 	attempts := 0
 
 	for {
-		err := service.ValidateLink(ctx, link)
+		err := service.ValidateLink(ctx, username)
 		if err == nil {
 			break
 		}
 		if attempts >= maxAttempts {
-			link = uuid.New().String()
+			username = uuid.New().String()
 			break
 		}
-		link = strings.ToLower(petname.Generate(2, "-"))
+		username = strings.ToLower(petname.Generate(2, "-"))
 		attempts++
 	}
 
@@ -381,9 +368,9 @@ func (service *profileService) CreateProfileWebhook(ctx context.Context, req *ty
 
 	createdProfile, err := service.sqlDb.Queries().InsertProfile(ctx, db.InsertProfileParams{
 		UserID:                userId,
-		Username:              name,
+		DisplayName:           displayName,
 		Description:           "",
-		Link:                  link,
+		Username:              username,
 		SuggestionPreferences: jsonb,
 	})
 	if err != nil {

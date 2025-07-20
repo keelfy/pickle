@@ -12,126 +12,264 @@ import (
 	"github.com/google/uuid"
 )
 
-const countWatchedMovieNotesByUserId = `-- name: CountWatchedMovieNotesByUserId :one
-SELECT COUNT(*) AS "count"
-FROM "movie_notes"
-WHERE "user_id" = $1::uuid
-    AND "status" = 'watched'
+const countWatchedMovieNotesByUserID = `-- name: CountWatchedMovieNotesByUserID :one
+SELECT COUNT(*) AS count
+FROM movie_notes
+WHERE user_id = $1::uuid
+    AND status = 'watched'
 `
 
-// Author: Egor Kuzmin (keelfy)
-func (q *Queries) CountWatchedMovieNotesByUserId(ctx context.Context, userID uuid.UUID) (int64, error) {
-	row := q.db.QueryRow(ctx, countWatchedMovieNotesByUserId, userID)
+func (q *Queries) CountWatchedMovieNotesByUserID(ctx context.Context, userID uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countWatchedMovieNotesByUserID, userID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
 }
 
-const deleteMovieNoteById = `-- name: DeleteMovieNoteById :exec
-DELETE FROM "movie_notes"
-WHERE "id" = $1::uuid
+const deleteMovieNoteByID = `-- name: DeleteMovieNoteByID :exec
+DELETE FROM movie_notes
+WHERE id = $1::uuid
 `
 
-// Author: Egor Kuzmin (keelfy)
-func (q *Queries) DeleteMovieNoteById(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.Exec(ctx, deleteMovieNoteById, id)
+func (q *Queries) DeleteMovieNoteByID(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteMovieNoteByID, id)
 	return err
 }
 
-const findMovieNoteById = `-- name: FindMovieNoteById :one
-SELECT id, user_id, name, release_date, rate, comment, status, initial_orderer_id, watched_at, poster_key, poster_updated_at, created_at, created_by, updated_at, updated_by
-FROM "movie_notes"
-WHERE "id" = $1::uuid
+const findDetailedMovieNoteByID = `-- name: FindDetailedMovieNoteByID :one
+SELECT mn.id, mn.created_at, mn.created_by, mn.updated_at, mn.updated_by, mn.user_id, mn.content_id, mn.rate, mn.comment, mn.status, mn.initial_orderer_id, mn.watched_at,
+    COALESCE(ml.title, 'Untitled Movie') AS title,
+    m.cover_key,
+    m.cover_key_type,
+    m.source_url,
+    m.source_type,
+    m.release_date
+FROM movie_notes mn
+    LEFT JOIN movies m ON mn.content_id = m.id
+    LEFT JOIN movie_localizations ml ON m.id = ml.content_id
+    AND ml.lang = $1::locale
+WHERE mn.id = $2::uuid
 `
 
-// Author: Egor Kuzmin (keelfy)
-func (q *Queries) FindMovieNoteById(ctx context.Context, id uuid.UUID) (*MovieNote, error) {
-	row := q.db.QueryRow(ctx, findMovieNoteById, id)
-	var i MovieNote
+type FindDetailedMovieNoteByIDParams struct {
+	Locale Locale    `json:"locale"`
+	ID     uuid.UUID `json:"id"`
+}
+
+type FindDetailedMovieNoteByIDRow struct {
+	ID               uuid.UUID         `json:"id"`
+	CreatedAt        time.Time         `json:"created_at"`
+	CreatedBy        uuid.UUID         `json:"created_by"`
+	UpdatedAt        time.Time         `json:"updated_at"`
+	UpdatedBy        uuid.UUID         `json:"updated_by"`
+	UserID           uuid.UUID         `json:"user_id"`
+	ContentID        uuid.UUID         `json:"content_id"`
+	Rate             *int16            `json:"rate"`
+	Comment          *string           `json:"comment"`
+	Status           MovieNoteStatus   `json:"status"`
+	InitialOrdererID uuid.UUID         `json:"initial_orderer_id"`
+	WatchedAt        *time.Time        `json:"watched_at"`
+	Title            string            `json:"title"`
+	CoverKey         *string           `json:"cover_key"`
+	CoverKeyType     NullImageKeyType  `json:"cover_key_type"`
+	SourceUrl        *string           `json:"source_url"`
+	SourceType       NullContentSource `json:"source_type"`
+	ReleaseDate      *time.Time        `json:"release_date"`
+}
+
+func (q *Queries) FindDetailedMovieNoteByID(ctx context.Context, arg FindDetailedMovieNoteByIDParams) (*FindDetailedMovieNoteByIDRow, error) {
+	row := q.db.QueryRow(ctx, findDetailedMovieNoteByID, arg.Locale, arg.ID)
+	var i FindDetailedMovieNoteByIDRow
 	err := row.Scan(
 		&i.ID,
+		&i.CreatedAt,
+		&i.CreatedBy,
+		&i.UpdatedAt,
+		&i.UpdatedBy,
 		&i.UserID,
-		&i.Name,
-		&i.ReleaseDate,
+		&i.ContentID,
 		&i.Rate,
 		&i.Comment,
 		&i.Status,
 		&i.InitialOrdererID,
 		&i.WatchedAt,
-		&i.PosterKey,
-		&i.PosterUpdatedAt,
-		&i.CreatedAt,
-		&i.CreatedBy,
-		&i.UpdatedAt,
-		&i.UpdatedBy,
+		&i.Title,
+		&i.CoverKey,
+		&i.CoverKeyType,
+		&i.SourceUrl,
+		&i.SourceType,
+		&i.ReleaseDate,
 	)
 	return &i, err
 }
 
-const findPaginatedMovieNotesByUserId = `-- name: FindPaginatedMovieNotesByUserId :many
-SELECT 
-    mn."id",
-    mn."created_at",
-    mn."name",
-    mn."status",
-    mn."rate",
-    mn."comment",
-    mn."release_date",
-    mn."watched_at",
-    o."username" AS "initial_orderer_username",
-    COALESCE(order_counts."count", 0) AS "orderer_count"
-FROM "movie_notes" mn
-LEFT JOIN "orderers" o ON mn."initial_orderer_id" = o."id"
-LEFT JOIN (
-    SELECT 
-        "movie_note_id",
-        COUNT(*) AS "count"
-    FROM "movie_note_orders"
-    GROUP BY "movie_note_id"
-) AS order_counts ON mn."id" = order_counts."movie_note_id"
-WHERE mn."user_id" = $1::uuid
-ORDER BY mn."created_at" DESC
+const findLocalizedMovieNoteByID = `-- name: FindLocalizedMovieNoteByID :one
+SELECT mn.id, mn.created_at, mn.created_by, mn.updated_at, mn.updated_by, mn.user_id, mn.content_id, mn.rate, mn.comment, mn.status, mn.initial_orderer_id, mn.watched_at,
+    COALESCE(ml.title, 'Untitled Movie') AS title
+FROM movie_notes mn
+    LEFT JOIN movie_localizations ml ON mn.content_id = ml.content_id
+    AND ml.lang = $1::locale
+WHERE mn.id = $2::uuid
+`
+
+type FindLocalizedMovieNoteByIDParams struct {
+	Locale Locale    `json:"locale"`
+	ID     uuid.UUID `json:"id"`
+}
+
+type FindLocalizedMovieNoteByIDRow struct {
+	ID               uuid.UUID       `json:"id"`
+	CreatedAt        time.Time       `json:"created_at"`
+	CreatedBy        uuid.UUID       `json:"created_by"`
+	UpdatedAt        time.Time       `json:"updated_at"`
+	UpdatedBy        uuid.UUID       `json:"updated_by"`
+	UserID           uuid.UUID       `json:"user_id"`
+	ContentID        uuid.UUID       `json:"content_id"`
+	Rate             *int16          `json:"rate"`
+	Comment          *string         `json:"comment"`
+	Status           MovieNoteStatus `json:"status"`
+	InitialOrdererID uuid.UUID       `json:"initial_orderer_id"`
+	WatchedAt        *time.Time      `json:"watched_at"`
+	Title            string          `json:"title"`
+}
+
+func (q *Queries) FindLocalizedMovieNoteByID(ctx context.Context, arg FindLocalizedMovieNoteByIDParams) (*FindLocalizedMovieNoteByIDRow, error) {
+	row := q.db.QueryRow(ctx, findLocalizedMovieNoteByID, arg.Locale, arg.ID)
+	var i FindLocalizedMovieNoteByIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.CreatedBy,
+		&i.UpdatedAt,
+		&i.UpdatedBy,
+		&i.UserID,
+		&i.ContentID,
+		&i.Rate,
+		&i.Comment,
+		&i.Status,
+		&i.InitialOrdererID,
+		&i.WatchedAt,
+		&i.Title,
+	)
+	return &i, err
+}
+
+const findMovieNoteByContentID = `-- name: FindMovieNoteByContentID :one
+SELECT id, created_at, created_by, updated_at, updated_by, user_id, content_id, rate, comment, status, initial_orderer_id, watched_at
+FROM movie_notes
+WHERE content_id = $1::uuid
+    AND user_id = $2::uuid
+`
+
+type FindMovieNoteByContentIDParams struct {
+	ContentID uuid.UUID `json:"content_id"`
+	UserID    uuid.UUID `json:"user_id"`
+}
+
+func (q *Queries) FindMovieNoteByContentID(ctx context.Context, arg FindMovieNoteByContentIDParams) (*MovieNote, error) {
+	row := q.db.QueryRow(ctx, findMovieNoteByContentID, arg.ContentID, arg.UserID)
+	var i MovieNote
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.CreatedBy,
+		&i.UpdatedAt,
+		&i.UpdatedBy,
+		&i.UserID,
+		&i.ContentID,
+		&i.Rate,
+		&i.Comment,
+		&i.Status,
+		&i.InitialOrdererID,
+		&i.WatchedAt,
+	)
+	return &i, err
+}
+
+const findMovieNoteByID = `-- name: FindMovieNoteByID :one
+SELECT id, created_at, created_by, updated_at, updated_by, user_id, content_id, rate, comment, status, initial_orderer_id, watched_at
+FROM movie_notes
+WHERE id = $1::uuid
+`
+
+func (q *Queries) FindMovieNoteByID(ctx context.Context, id uuid.UUID) (*MovieNote, error) {
+	row := q.db.QueryRow(ctx, findMovieNoteByID, id)
+	var i MovieNote
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.CreatedBy,
+		&i.UpdatedAt,
+		&i.UpdatedBy,
+		&i.UserID,
+		&i.ContentID,
+		&i.Rate,
+		&i.Comment,
+		&i.Status,
+		&i.InitialOrdererID,
+		&i.WatchedAt,
+	)
+	return &i, err
+}
+
+const findPaginatedMovieNotesByUserID = `-- name: FindPaginatedMovieNotesByUserID :many
+SELECT mn.id,
+    mn.created_at,
+    mn.content_id,
+    mn.status,
+    mn.rate,
+    mn.comment,
+    mn.watched_at,
+    o.display_name AS initial_orderer_display_name,
+    COALESCE(order_counts.count, 0) AS orderer_count
+FROM movie_notes mn
+    LEFT JOIN orderers o ON mn.initial_orderer_id = o.id
+    LEFT JOIN (
+        SELECT movie_note_id,
+            COUNT(*) AS count
+        FROM movie_note_orders
+        GROUP BY movie_note_id
+    ) AS order_counts ON mn.id = order_counts.movie_note_id
+WHERE mn.user_id = $1::uuid
+ORDER BY mn.created_at DESC
 LIMIT $2::int
 `
 
-type FindPaginatedMovieNotesByUserIdParams struct {
+type FindPaginatedMovieNotesByUserIDParams struct {
 	UserID uuid.UUID `json:"user_id"`
 	Limit  int32     `json:"limit"`
 }
 
-type FindPaginatedMovieNotesByUserIdRow struct {
-	ID                     uuid.UUID       `json:"id"`
-	CreatedAt              time.Time       `json:"created_at"`
-	Name                   string          `json:"name"`
-	Status                 MovieNoteStatus `json:"status"`
-	Rate                   *int16          `json:"rate"`
-	Comment                *string         `json:"comment"`
-	ReleaseDate            *time.Time      `json:"release_date"`
-	WatchedAt              *time.Time      `json:"watched_at"`
-	InitialOrdererUsername *string         `json:"initial_orderer_username"`
-	OrdererCount           int64           `json:"orderer_count"`
+type FindPaginatedMovieNotesByUserIDRow struct {
+	ID                        uuid.UUID       `json:"id"`
+	CreatedAt                 time.Time       `json:"created_at"`
+	ContentID                 uuid.UUID       `json:"content_id"`
+	Status                    MovieNoteStatus `json:"status"`
+	Rate                      *int16          `json:"rate"`
+	Comment                   *string         `json:"comment"`
+	WatchedAt                 *time.Time      `json:"watched_at"`
+	InitialOrdererDisplayName *string         `json:"initial_orderer_display_name"`
+	OrdererCount              int64           `json:"orderer_count"`
 }
 
-// Author: Egor Kuzmin (keelfy)
-func (q *Queries) FindPaginatedMovieNotesByUserId(ctx context.Context, arg FindPaginatedMovieNotesByUserIdParams) ([]*FindPaginatedMovieNotesByUserIdRow, error) {
-	rows, err := q.db.Query(ctx, findPaginatedMovieNotesByUserId, arg.UserID, arg.Limit)
+func (q *Queries) FindPaginatedMovieNotesByUserID(ctx context.Context, arg FindPaginatedMovieNotesByUserIDParams) ([]*FindPaginatedMovieNotesByUserIDRow, error) {
+	rows, err := q.db.Query(ctx, findPaginatedMovieNotesByUserID, arg.UserID, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []*FindPaginatedMovieNotesByUserIdRow{}
+	items := []*FindPaginatedMovieNotesByUserIDRow{}
 	for rows.Next() {
-		var i FindPaginatedMovieNotesByUserIdRow
+		var i FindPaginatedMovieNotesByUserIDRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.CreatedAt,
-			&i.Name,
+			&i.ContentID,
 			&i.Status,
 			&i.Rate,
 			&i.Comment,
-			&i.ReleaseDate,
 			&i.WatchedAt,
-			&i.InitialOrdererUsername,
+			&i.InitialOrdererDisplayName,
 			&i.OrdererCount,
 		); err != nil {
 			return nil, err
@@ -145,159 +283,137 @@ func (q *Queries) FindPaginatedMovieNotesByUserId(ctx context.Context, arg FindP
 }
 
 const insertMovieNote = `-- name: InsertMovieNote :one
-INSERT INTO "movie_notes" (
-    "user_id",
-    "name",
-    "release_date",
-    "rate",
-    "comment",
-    "status",
-    "initial_orderer_id",
-    "watched_at",
-    "poster_key",
-    "created_by",
-    "updated_by"
-) VALUES (
-    $1::uuid,
-    $2::text,
-    $3::timestamptz,
-    $4::smallint,
-    $5::text,
-    $6::movie_note_status,
-    $7::uuid,
-    $8::timestamptz,
-    $9::text,
-    $10::uuid,
-    $10::uuid
-)
-RETURNING id, user_id, name, release_date, rate, comment, status, initial_orderer_id, watched_at, poster_key, poster_updated_at, created_at, created_by, updated_at, updated_by
+INSERT INTO movie_notes (
+        user_id,
+        content_id,
+        rate,
+        comment,
+        status,
+        initial_orderer_id,
+        watched_at,
+        created_by,
+        updated_by
+    )
+VALUES (
+        $1::uuid,
+        $2::uuid,
+        $3::smallint,
+        $4::text,
+        $5::movie_note_status,
+        $6::uuid,
+        $7::timestamptz,
+        $8::uuid,
+        $8::uuid
+    )
+RETURNING id, created_at, created_by, updated_at, updated_by, user_id, content_id, rate, comment, status, initial_orderer_id, watched_at
 `
 
 type InsertMovieNoteParams struct {
 	UserID           uuid.UUID       `json:"user_id"`
-	Name             string          `json:"name"`
-	ReleaseDate      *time.Time      `json:"release_date"`
+	ContentID        uuid.UUID       `json:"content_id"`
 	Rate             *int16          `json:"rate"`
 	Comment          *string         `json:"comment"`
 	Status           MovieNoteStatus `json:"status"`
 	InitialOrdererID uuid.UUID       `json:"initial_orderer_id"`
 	WatchedAt        *time.Time      `json:"watched_at"`
-	PosterKey        *string         `json:"poster_key"`
 	CreatedBy        uuid.UUID       `json:"created_by"`
 }
 
-// Author: Egor Kuzmin (keelfy)
 func (q *Queries) InsertMovieNote(ctx context.Context, arg InsertMovieNoteParams) (*MovieNote, error) {
 	row := q.db.QueryRow(ctx, insertMovieNote,
 		arg.UserID,
-		arg.Name,
-		arg.ReleaseDate,
+		arg.ContentID,
 		arg.Rate,
 		arg.Comment,
 		arg.Status,
 		arg.InitialOrdererID,
 		arg.WatchedAt,
-		arg.PosterKey,
 		arg.CreatedBy,
 	)
 	var i MovieNote
 	err := row.Scan(
 		&i.ID,
+		&i.CreatedAt,
+		&i.CreatedBy,
+		&i.UpdatedAt,
+		&i.UpdatedBy,
 		&i.UserID,
-		&i.Name,
-		&i.ReleaseDate,
+		&i.ContentID,
 		&i.Rate,
 		&i.Comment,
 		&i.Status,
 		&i.InitialOrdererID,
 		&i.WatchedAt,
-		&i.PosterKey,
-		&i.PosterUpdatedAt,
-		&i.CreatedAt,
-		&i.CreatedBy,
-		&i.UpdatedAt,
-		&i.UpdatedBy,
 	)
 	return &i, err
 }
 
-const updateMovieNoteById = `-- name: UpdateMovieNoteById :exec
-UPDATE "movie_notes"
-SET "updated_by" = $1::uuid,
-    "updated_at" = now(),
-    "name" = $2::text,
-    "release_date" = $3::timestamptz,
-    "rate" = $4::smallint,
-    "comment" = $5::text,
-    "status" = $6::movie_note_status,
-    "watched_at" = $7::timestamptz,
-    "poster_key" = $8::text
-WHERE "id" = $9::uuid
+const updateMovieNoteByID = `-- name: UpdateMovieNoteByID :exec
+UPDATE movie_notes
+SET updated_by = $1::uuid,
+    updated_at = now(),
+    content_id = $2::uuid,
+    rate = $3::smallint,
+    comment = $4::text,
+    status = $5::movie_note_status,
+    watched_at = $6::timestamptz
+WHERE id = $7::uuid
 `
 
-type UpdateMovieNoteByIdParams struct {
-	UpdatedBy   uuid.UUID       `json:"updated_by"`
-	Name        string          `json:"name"`
-	ReleaseDate *time.Time      `json:"release_date"`
-	Rate        *int16          `json:"rate"`
-	Comment     *string         `json:"comment"`
-	Status      MovieNoteStatus `json:"status"`
-	WatchedAt   *time.Time      `json:"watched_at"`
-	PosterKey   *string         `json:"poster_key"`
-	ID          uuid.UUID       `json:"id"`
+type UpdateMovieNoteByIDParams struct {
+	UpdatedBy uuid.UUID       `json:"updated_by"`
+	ContentID uuid.UUID       `json:"content_id"`
+	Rate      *int16          `json:"rate"`
+	Comment   *string         `json:"comment"`
+	Status    MovieNoteStatus `json:"status"`
+	WatchedAt *time.Time      `json:"watched_at"`
+	ID        uuid.UUID       `json:"id"`
 }
 
-// Author: Egor Kuzmin (keelfy)
-func (q *Queries) UpdateMovieNoteById(ctx context.Context, arg UpdateMovieNoteByIdParams) error {
-	_, err := q.db.Exec(ctx, updateMovieNoteById,
+func (q *Queries) UpdateMovieNoteByID(ctx context.Context, arg UpdateMovieNoteByIDParams) error {
+	_, err := q.db.Exec(ctx, updateMovieNoteByID,
 		arg.UpdatedBy,
-		arg.Name,
-		arg.ReleaseDate,
+		arg.ContentID,
 		arg.Rate,
 		arg.Comment,
 		arg.Status,
 		arg.WatchedAt,
-		arg.PosterKey,
 		arg.ID,
 	)
 	return err
 }
 
-const updateMovieNoteName = `-- name: UpdateMovieNoteName :one
-UPDATE "movie_notes"
-SET "name" = $1::text,
-    "updated_by" = $2::uuid,
-    "updated_at" = now()
-WHERE "id" = $3::uuid
-RETURNING id, user_id, name, release_date, rate, comment, status, initial_orderer_id, watched_at, poster_key, poster_updated_at, created_at, created_by, updated_at, updated_by
+const updateMovieNoteContentID = `-- name: UpdateMovieNoteContentID :one
+UPDATE movie_notes
+SET content_id = $1::uuid,
+    updated_by = $2::uuid,
+    updated_at = now()
+WHERE id = $3::uuid
+RETURNING id, created_at, created_by, updated_at, updated_by, user_id, content_id, rate, comment, status, initial_orderer_id, watched_at
 `
 
-type UpdateMovieNoteNameParams struct {
-	Name      string    `json:"name"`
+type UpdateMovieNoteContentIDParams struct {
+	ContentID uuid.UUID `json:"content_id"`
 	UpdatedBy uuid.UUID `json:"updated_by"`
 	ID        uuid.UUID `json:"id"`
 }
 
-// Author: Egor Kuzmin (keelfy)
-func (q *Queries) UpdateMovieNoteName(ctx context.Context, arg UpdateMovieNoteNameParams) (*MovieNote, error) {
-	row := q.db.QueryRow(ctx, updateMovieNoteName, arg.Name, arg.UpdatedBy, arg.ID)
+func (q *Queries) UpdateMovieNoteContentID(ctx context.Context, arg UpdateMovieNoteContentIDParams) (*MovieNote, error) {
+	row := q.db.QueryRow(ctx, updateMovieNoteContentID, arg.ContentID, arg.UpdatedBy, arg.ID)
 	var i MovieNote
 	err := row.Scan(
 		&i.ID,
+		&i.CreatedAt,
+		&i.CreatedBy,
+		&i.UpdatedAt,
+		&i.UpdatedBy,
 		&i.UserID,
-		&i.Name,
-		&i.ReleaseDate,
+		&i.ContentID,
 		&i.Rate,
 		&i.Comment,
 		&i.Status,
 		&i.InitialOrdererID,
 		&i.WatchedAt,
-		&i.PosterKey,
-		&i.PosterUpdatedAt,
-		&i.CreatedAt,
-		&i.CreatedBy,
-		&i.UpdatedAt,
-		&i.UpdatedBy,
 	)
 	return &i, err
 }

@@ -15,6 +15,12 @@ var IsReactionSource = validation.In(
 	db.ReactionSourceUnicodeEmoji,
 )
 
+var IsOrderSource = validation.In(
+	"twitch-channel-points",
+	"suggestion",
+	"manual",
+)
+
 var IsOrderStatus = validation.In(
 	db.OrderStatusApproved,
 	db.OrderStatusRejected,

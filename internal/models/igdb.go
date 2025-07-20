@@ -1,10 +1,20 @@
 package models
 
+type IGDBPlatform struct {
+	Name string `json:"name"`
+}
+
+type IGDBReleaseDate struct {
+	Date     string       `json:"date"`
+	Platform IGDBPlatform `json:"platform"`
+}
+
 type IGDBGame struct {
 	ID               int64                 `json:"id"`
 	Name             string                `json:"name"`
 	UpdatedAt        int64                 `json:"updated_at"`
-	ReleaseDate      int64                 `json:"first_release_date,omitempty"`
+	FirstReleaseDate int64                 `json:"first_release_date"`
+	ReleaseDates     []IGDBReleaseDate     `json:"release_dates"`
 	URL              string                `json:"url"`
 	Websites         []IGDBWebsite         `json:"websites"`
 	Cover            IGDBCover             `json:"cover"`
@@ -43,7 +53,8 @@ type IGDBWebsiteType struct {
 }
 
 type IGDBCover struct {
-	URL string `json:"url"`
+	ImageID string `json:"image_id"`
+	URL     string `json:"url"`
 }
 
 type IGDBAlternativeName struct {

@@ -377,6 +377,42 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/games/{id}": {
+            "get": {
+                "description": "Get game by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "games"
+                ],
+                "summary": "Get game by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Game ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Locale",
+                        "name": "locale",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {}
+                    }
+                }
+            }
+        },
         "/v1/health": {
             "get": {
                 "description": "Get the health status of all system components including API, Database, Search, and Cache",
@@ -1212,7 +1248,7 @@ const docTemplate = `{
                 }
             },
             "put": {
-                "description": "Update a content note name",
+                "description": "Update a content note",
                 "consumes": [
                     "application/json"
                 ],
@@ -1222,7 +1258,7 @@ const docTemplate = `{
                 "tags": [
                     "content-notes"
                 ],
-                "summary": "Update a content note name",
+                "summary": "Update a content note",
                 "parameters": [
                     {
                         "type": "string",
@@ -1355,64 +1391,6 @@ const docTemplate = `{
                             "items": {
                                 "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.OrderRes"
                             }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/users/{userId}/content-notes/{category}/{noteId}/poster": {
-            "get": {
-                "description": "Get poster image URL",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "content-notes"
-                ],
-                "summary": "Get poster image URL",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "User ID",
-                        "name": "userId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Note ID",
-                        "name": "noteId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Size",
-                        "name": "size",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.ImageRes"
                         }
                     },
                     "400": {
@@ -2168,7 +2146,8 @@ const docTemplate = `{
                 "video",
                 "anime",
                 "series",
-                "custom"
+                "custom",
+                "any"
             ],
             "x-enum-varnames": [
                 "ContentCategoryGames",
@@ -2176,7 +2155,8 @@ const docTemplate = `{
                 "ContentCategoryVideo",
                 "ContentCategoryAnime",
                 "ContentCategorySeries",
-                "ContentCategoryCustom"
+                "ContentCategoryCustom",
+                "ContentCategoryAny"
             ]
         },
         "github_com_pickle_pw_monolith_db_sqlc.OrderStatus": {
@@ -2228,6 +2208,9 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
+                "displayName": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "string"
                 },
@@ -2236,9 +2219,6 @@ const docTemplate = `{
                 },
                 "isFollowing": {
                     "type": "boolean"
-                },
-                "link": {
-                    "type": "string"
                 },
                 "suggestionPreferences": {
                     "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_models.SuggestionPreferences"
@@ -2339,13 +2319,13 @@ const docTemplate = `{
                 "content": {
                     "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.ContentRes"
                 },
+                "coverUrl": {
+                    "type": "string"
+                },
                 "createdAt": {
                     "type": "string"
                 },
                 "id": {
-                    "type": "string"
-                },
-                "posterUrl": {
                     "type": "string"
                 }
             }
@@ -2381,7 +2361,7 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
-                "name": {
+                "title": {
                     "type": "string"
                 },
                 "userId": {
@@ -2419,6 +2399,15 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "ordererUsername": {
+                    "type": "string"
+                },
+                "reference": {
+                    "type": "string"
+                },
+                "referenceUserId": {
+                    "type": "string"
+                },
+                "source": {
                     "type": "string"
                 }
             }
@@ -2464,9 +2453,6 @@ const docTemplate = `{
                 },
                 "status": {
                     "$ref": "#/definitions/github_com_pickle_pw_monolith_db_sqlc.OrderStatus"
-                },
-                "title": {
-                    "type": "string"
                 }
             }
         },
@@ -2475,6 +2461,9 @@ const docTemplate = `{
             "properties": {
                 "amount": {
                     "type": "number"
+                },
+                "anonymous": {
+                    "type": "boolean"
                 },
                 "category": {
                     "$ref": "#/definitions/github_com_pickle_pw_monolith_db_sqlc.ContentCategory"
@@ -2488,7 +2477,7 @@ const docTemplate = `{
                 "message": {
                     "type": "string"
                 },
-                "orderer": {
+                "ordererId": {
                     "type": "string"
                 },
                 "ordererUsername": {
@@ -2497,7 +2486,10 @@ const docTemplate = `{
                 "paymentType": {
                     "type": "integer"
                 },
-                "receiverId": {
+                "reference": {
+                    "type": "string"
+                },
+                "source": {
                     "type": "string"
                 },
                 "status": {
@@ -2507,12 +2499,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "updatedBy": {
-                    "type": "string"
-                },
-                "updatedCategory": {
-                    "$ref": "#/definitions/github_com_pickle_pw_monolith_db_sqlc.ContentCategory"
-                },
-                "updatedMessage": {
                     "type": "string"
                 }
             }
@@ -2549,6 +2535,9 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
+                "displayName": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "string"
                 },
@@ -2557,9 +2546,6 @@ const docTemplate = `{
                 },
                 "isFollowing": {
                     "type": "boolean"
-                },
-                "link": {
-                    "type": "string"
                 },
                 "username": {
                     "type": "string"
@@ -2605,11 +2591,11 @@ const docTemplate = `{
             "properties": {
                 "old_record": {
                     "type": "object",
-                    "additionalProperties": true
+                    "additionalProperties": {}
                 },
                 "record": {
                     "type": "object",
-                    "additionalProperties": true
+                    "additionalProperties": {}
                 },
                 "schema": {
                     "type": "string"
@@ -2639,7 +2625,7 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
-                "link": {
+                "displayName": {
                     "type": "string"
                 },
                 "username": {

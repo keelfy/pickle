@@ -17,6 +17,7 @@ type PaginatedRes[T any] struct {
 }
 
 type SearchHitRes[T any] struct {
+	ID     string  `json:"id,omitempty"`
 	Source T       `json:"source"`
 	Score  float64 `json:"score"`
 }
@@ -58,8 +59,8 @@ type ConnectionsRes struct {
 type ProfileRes struct {
 	UserID       string          `json:"id"`
 	CreatedAt    time.Time       `json:"createdAt"`
+	DisplayName  string          `json:"displayName"`
 	Username     string          `json:"username"`
-	Link         string          `json:"link"`
 	Description  *string         `json:"description,omitempty"`
 	Counts       *CountsRes      `json:"counts,omitempty"`
 	IsFollowing  bool            `json:"isFollowing"`
@@ -69,55 +70,64 @@ type ProfileRes struct {
 }
 
 type ModeratorProfileRes struct {
-	UserID    string    `json:"id"`
-	AddedAt   time.Time `json:"addedAt"`
-	Username  string    `json:"username"`
-	Link      string    `json:"link"`
-	AvatarURL string    `json:"avatarUrl,omitempty"`
+	UserID      string    `json:"id"`
+	AddedAt     time.Time `json:"addedAt"`
+	DisplayName string    `json:"displayName"`
+	Username    string    `json:"username"`
+	AvatarURL   string    `json:"avatarUrl,omitempty"`
 }
 
 type ContentRes struct {
 	ID       uuid.UUID          `json:"id"`
-	Name     string             `json:"name"`
+	Title    string             `json:"title"`
 	UserID   uuid.UUID          `json:"userId,omitempty"`
 	Category db.ContentCategory `json:"category"`
 }
 
 type ContentSearchRes = PaginatedRes[SearchHitRes[ContentRes]]
 
+type IGDBGameRes struct {
+	ID           string `json:"id"`
+	ThumbnailURL string `json:"thumbnailUrl"`
+	EnglishName  string `json:"nameEn"`
+	RussianName  string `json:"nameRu"`
+	GermanName   string `json:"nameDe"`
+	SpanishName  string `json:"nameEs"`
+}
+
 type BatchNoteReactionsRes struct {
-	NoteID    uuid.UUID               `json:"noteId"`
+	NoteID    string                  `json:"noteId"`
 	Reactions []*models.ReactionStack `json:"reactions"`
 }
 
 type OrdererRes struct {
-	ID        uuid.UUID  `json:"id"`
-	UserID    *uuid.UUID `json:"userId,omitempty"`
-	Username  string     `json:"name"`
-	Anonymous bool       `json:"anonymous"`
+	ID        string  `json:"id"`
+	UserID    *string `json:"userId,omitempty"`
+	Username  string  `json:"name"`
+	Anonymous bool    `json:"anonymous"`
 }
 
 type OrderRes struct {
-	ID              string             `json:"id"`
-	CreatedAt       time.Time          `json:"createdAt"`
-	UpdatedAt       time.Time          `json:"updatedAt"`
-	UpdatedBy       string             `json:"updatedBy"`
-	ReceiverID      string             `json:"receiverId"`
-	PaymentType     int16              `json:"paymentType"`
-	Amount          float32            `json:"amount"`
-	Orderer         uuid.UUID          `json:"orderer,omitempty"`
-	OrdererUsername string             `json:"ordererUsername,omitempty"`
-	Status          db.OrderStatus     `json:"status"`
-	Category        db.ContentCategory `json:"category"`
-	Message         string             `json:"message"`
-	UpdatedCategory db.ContentCategory `json:"updatedCategory"`
-	UpdatedMessage  string             `json:"updatedMessage"`
+	ID                 uuid.UUID          `json:"id"`
+	CreatedAt          time.Time          `json:"createdAt"`
+	UpdatedAt          time.Time          `json:"updatedAt"`
+	UpdatedBy          *uuid.UUID         `json:"updatedBy"`
+	PaymentType        int16              `json:"paymentType"`
+	Amount             float32            `json:"amount"`
+	OrdererID          uuid.UUID          `json:"ordererId,omitempty"`
+	OrdererDisplayName *string            `json:"ordererDisplayName,omitempty"`
+	Status             db.OrderStatus     `json:"status"`
+	Category           db.ContentCategory `json:"category"`
+	Message            string             `json:"message"`
+	Source             string             `json:"source"`
+	Reference          string             `json:"reference"`
+	Anonymous          bool               `json:"anonymous"`
 }
 
 type OrderUpdateRes struct {
 	OrderRes
-	ContentCreated bool      `json:"contentCreated"`
-	ContentID      uuid.UUID `json:"contentId,omitempty"`
+	NoteCreated bool   `json:"noteCreated"`
+	NoteID      string `json:"noteId,omitempty"`
 }
 
 type LinkValidationRes struct {
@@ -145,7 +155,7 @@ type CollectionItemRes struct {
 	ID           uuid.UUID  `json:"id"`
 	CreatedAt    time.Time  `json:"createdAt"`
 	CollectionID uuid.UUID  `json:"collectionId"`
-	PosterURL    string     `json:"posterUrl,omitempty"`
+	CoverURL     string     `json:"coverUrl,omitempty"`
 	Content      ContentRes `json:"content"`
 }
 

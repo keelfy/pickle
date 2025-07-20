@@ -12,12 +12,11 @@ import (
 )
 
 const countFollowers = `-- name: CountFollowers :one
-SELECT COUNT(*) 
-FROM "followers" 
-WHERE "user_id" = $1
+SELECT COUNT(*)
+FROM followers
+WHERE user_id = $1::uuid
 `
 
-// Author: Egor Kuzmin (keelfy)
 func (q *Queries) CountFollowers(ctx context.Context, userID uuid.UUID) (int64, error) {
 	row := q.db.QueryRow(ctx, countFollowers, userID)
 	var count int64
@@ -26,7 +25,9 @@ func (q *Queries) CountFollowers(ctx context.Context, userID uuid.UUID) (int64, 
 }
 
 const deleteFollower = `-- name: DeleteFollower :exec
-DELETE FROM "followers" WHERE "user_id" = $1 AND "follower_id" = $2
+DELETE FROM followers
+WHERE user_id = $1::uuid
+    AND follower_id = $2::uuid
 `
 
 type DeleteFollowerParams struct {
@@ -34,14 +35,17 @@ type DeleteFollowerParams struct {
 	FollowerID uuid.UUID `json:"follower_id"`
 }
 
-// Author: Egor Kuzmin (keelfy)
 func (q *Queries) DeleteFollower(ctx context.Context, arg DeleteFollowerParams) error {
 	_, err := q.db.Exec(ctx, deleteFollower, arg.UserID, arg.FollowerID)
 	return err
 }
 
 const insertFollower = `-- name: InsertFollower :exec
-INSERT INTO "followers" ("user_id", "follower_id") VALUES ($1, $2)
+INSERT INTO followers (user_id, follower_id)
+VALUES (
+        $1::uuid,
+        $2::uuid
+    )
 `
 
 type InsertFollowerParams struct {
@@ -49,17 +53,16 @@ type InsertFollowerParams struct {
 	FollowerID uuid.UUID `json:"follower_id"`
 }
 
-// Author: Egor Kuzmin (keelfy)
 func (q *Queries) InsertFollower(ctx context.Context, arg InsertFollowerParams) error {
 	_, err := q.db.Exec(ctx, insertFollower, arg.UserID, arg.FollowerID)
 	return err
 }
 
 const isFollowing = `-- name: IsFollowing :one
-SELECT COUNT(*) 
-FROM "followers" 
-WHERE "user_id" = $1 
-    AND "follower_id" = $2
+SELECT COUNT(*)
+FROM followers
+WHERE user_id = $1::uuid
+    AND follower_id = $2::uuid
 `
 
 type IsFollowingParams struct {
@@ -67,7 +70,6 @@ type IsFollowingParams struct {
 	FollowerID uuid.UUID `json:"follower_id"`
 }
 
-// Author: Egor Kuzmin (keelfy)
 func (q *Queries) IsFollowing(ctx context.Context, arg IsFollowingParams) (int64, error) {
 	row := q.db.QueryRow(ctx, isFollowing, arg.UserID, arg.FollowerID)
 	var count int64

@@ -1,21 +1,19 @@
--- Author: Egor Kuzmin (keelfy)
 -- name: InsertFollower :exec
-INSERT INTO "followers" ("user_id", "follower_id") VALUES ($1, $2);
-
--- Author: Egor Kuzmin (keelfy)
+INSERT INTO followers (user_id, follower_id)
+VALUES (
+        @user_id::uuid,
+        @follower_id::uuid
+    );
 -- name: CountFollowers :one
-SELECT COUNT(*) 
-FROM "followers" 
-WHERE "user_id" = $1;
-
--- Author: Egor Kuzmin (keelfy)
+SELECT COUNT(*)
+FROM followers
+WHERE user_id = @user_id::uuid;
 -- name: DeleteFollower :exec
-DELETE FROM "followers" WHERE "user_id" = $1 AND "follower_id" = $2;
-
--- Author: Egor Kuzmin (keelfy)
+DELETE FROM followers
+WHERE user_id = @user_id::uuid
+    AND follower_id = @follower_id::uuid;
 -- name: IsFollowing :one
-SELECT COUNT(*) 
-FROM "followers" 
-WHERE "user_id" = $1 
-    AND "follower_id" = $2;
-
+SELECT COUNT(*)
+FROM followers
+WHERE user_id = @user_id::uuid
+    AND follower_id = @follower_id::uuid;

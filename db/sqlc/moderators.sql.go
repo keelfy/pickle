@@ -13,12 +13,12 @@ import (
 )
 
 const deleteModeratorByUserIDAndModeratorID = `-- name: DeleteModeratorByUserIDAndModeratorID :exec
-UPDATE "moderators"
-SET "deleted_at" = now(),
-    "deleted_by" = $1::uuid
-WHERE "user_id" = $2::uuid
-    AND "moderator_id" = $3::uuid
-    AND "deleted_at" IS NULL
+UPDATE moderators
+SET deleted_at = now(),
+    deleted_by = $1::uuid
+WHERE user_id = $2::uuid
+    AND moderator_id = $3::uuid
+    AND deleted_at IS NULL
 `
 
 type DeleteModeratorByUserIDAndModeratorIDParams struct {
@@ -34,9 +34,9 @@ func (q *Queries) DeleteModeratorByUserIDAndModeratorID(ctx context.Context, arg
 
 const findModeratorByUserIDAndModeratorID = `-- name: FindModeratorByUserIDAndModeratorID :one
 SELECT id, created_at, created_by, deleted_at, deleted_by, user_id, moderator_id
-FROM "moderators"
-WHERE "user_id" = $1::uuid
-    AND "moderator_id" = $2::uuid
+FROM moderators
+WHERE user_id = $1::uuid
+    AND moderator_id = $2::uuid
 `
 
 type FindModeratorByUserIDAndModeratorIDParams struct {
@@ -61,10 +61,10 @@ func (q *Queries) FindModeratorByUserIDAndModeratorID(ctx context.Context, arg F
 
 const findModeratorByUserIDAndModeratorIDAndNotDeleted = `-- name: FindModeratorByUserIDAndModeratorIDAndNotDeleted :one
 SELECT id, created_at, created_by, deleted_at, deleted_by, user_id, moderator_id
-FROM "moderators"
-WHERE "user_id" = $1::uuid
-    AND "moderator_id" = $2::uuid
-    AND "deleted_at" IS NULL
+FROM moderators
+WHERE user_id = $1::uuid
+    AND moderator_id = $2::uuid
+    AND deleted_at IS NULL
 `
 
 type FindModeratorByUserIDAndModeratorIDAndNotDeletedParams struct {
@@ -88,20 +88,17 @@ func (q *Queries) FindModeratorByUserIDAndModeratorIDAndNotDeleted(ctx context.C
 }
 
 const findModeratorProfileByUserIDAndModeratorID = `-- name: FindModeratorProfileByUserIDAndModeratorID :one
-SELECT 
-    p."user_id",
-    p."username",
-    p."link",
-    m."created_at" AS "added_at",
-    pa."avatar_url"
-FROM "profiles" p
-INNER JOIN "moderators" m ON 
-    p."user_id" = m."moderator_id"
-    AND m."deleted_at" IS NULL
-INNER JOIN "profile_avatars" pa ON 
-    p."user_id" = pa."user_id"
-WHERE m."user_id" = $1::uuid
-    AND m."moderator_id" = $2::uuid
+SELECT p.user_id,
+    p.display_name,
+    p.username,
+    m.created_at AS added_at,
+    pa.avatar_url
+FROM profiles p
+    INNER JOIN moderators m ON p.user_id = m.moderator_id
+    AND m.deleted_at IS NULL
+    INNER JOIN profile_avatars pa ON p.user_id = pa.user_id
+WHERE m.user_id = $1::uuid
+    AND m.moderator_id = $2::uuid
 `
 
 type FindModeratorProfileByUserIDAndModeratorIDParams struct {
@@ -110,11 +107,11 @@ type FindModeratorProfileByUserIDAndModeratorIDParams struct {
 }
 
 type FindModeratorProfileByUserIDAndModeratorIDRow struct {
-	UserID    uuid.UUID `json:"user_id"`
-	Username  string    `json:"username"`
-	Link      string    `json:"link"`
-	AddedAt   time.Time `json:"added_at"`
-	AvatarUrl *string   `json:"avatar_url"`
+	UserID      uuid.UUID `json:"user_id"`
+	DisplayName string    `json:"display_name"`
+	Username    string    `json:"username"`
+	AddedAt     time.Time `json:"added_at"`
+	AvatarUrl   *string   `json:"avatar_url"`
 }
 
 func (q *Queries) FindModeratorProfileByUserIDAndModeratorID(ctx context.Context, arg FindModeratorProfileByUserIDAndModeratorIDParams) (*FindModeratorProfileByUserIDAndModeratorIDRow, error) {
@@ -122,8 +119,8 @@ func (q *Queries) FindModeratorProfileByUserIDAndModeratorID(ctx context.Context
 	var i FindModeratorProfileByUserIDAndModeratorIDRow
 	err := row.Scan(
 		&i.UserID,
+		&i.DisplayName,
 		&i.Username,
-		&i.Link,
 		&i.AddedAt,
 		&i.AvatarUrl,
 	)
@@ -131,28 +128,25 @@ func (q *Queries) FindModeratorProfileByUserIDAndModeratorID(ctx context.Context
 }
 
 const findModeratorProfilesByUserID = `-- name: FindModeratorProfilesByUserID :many
-SELECT 
-    p."user_id",
-    p."username",
-    p."link",
-    m."created_at" AS "added_at",
-    pa."avatar_url"
-FROM "profiles" p
-INNER JOIN "moderators" m ON 
-    p."user_id" = m."moderator_id"
-    AND m."deleted_at" IS NULL
-INNER JOIN "profile_avatars" pa ON 
-    p."user_id" = pa."user_id"
-WHERE m."user_id" = $1::uuid
-ORDER BY m."created_at" DESC
+SELECT p.user_id,
+    p.display_name,
+    p.username,
+    m.created_at AS added_at,
+    pa.avatar_url
+FROM profiles p
+    INNER JOIN moderators m ON p.user_id = m.moderator_id
+    AND m.deleted_at IS NULL
+    INNER JOIN profile_avatars pa ON p.user_id = pa.user_id
+WHERE m.user_id = $1::uuid
+ORDER BY m.created_at DESC
 `
 
 type FindModeratorProfilesByUserIDRow struct {
-	UserID    uuid.UUID `json:"user_id"`
-	Username  string    `json:"username"`
-	Link      string    `json:"link"`
-	AddedAt   time.Time `json:"added_at"`
-	AvatarUrl *string   `json:"avatar_url"`
+	UserID      uuid.UUID `json:"user_id"`
+	DisplayName string    `json:"display_name"`
+	Username    string    `json:"username"`
+	AddedAt     time.Time `json:"added_at"`
+	AvatarUrl   *string   `json:"avatar_url"`
 }
 
 func (q *Queries) FindModeratorProfilesByUserID(ctx context.Context, userID uuid.UUID) ([]*FindModeratorProfilesByUserIDRow, error) {
@@ -166,8 +160,8 @@ func (q *Queries) FindModeratorProfilesByUserID(ctx context.Context, userID uuid
 		var i FindModeratorProfilesByUserIDRow
 		if err := rows.Scan(
 			&i.UserID,
+			&i.DisplayName,
 			&i.Username,
-			&i.Link,
 			&i.AddedAt,
 			&i.AvatarUrl,
 		); err != nil {
@@ -182,10 +176,10 @@ func (q *Queries) FindModeratorProfilesByUserID(ctx context.Context, userID uuid
 }
 
 const findModeratorsByUserID = `-- name: FindModeratorsByUserID :many
-SELECT id, created_at, created_by, deleted_at, deleted_by, user_id, moderator_id 
-FROM "moderators"
-WHERE "user_id" = $1::uuid
-    AND "deleted_at" IS NULL
+SELECT id, created_at, created_by, deleted_at, deleted_by, user_id, moderator_id
+FROM moderators
+WHERE user_id = $1::uuid
+    AND deleted_at IS NULL
 `
 
 func (q *Queries) FindModeratorsByUserID(ctx context.Context, userID uuid.UUID) ([]*Moderator, error) {
@@ -217,24 +211,22 @@ func (q *Queries) FindModeratorsByUserID(ctx context.Context, userID uuid.UUID) 
 }
 
 const findProfilesByModeratorID = `-- name: FindProfilesByModeratorID :many
-SELECT 
-    p."user_id", 
-    p."username",
-    p."link",
-    m."created_at"
-FROM "profiles" p
-INNER JOIN "moderators" m ON 
-    p."user_id" = m."user_id"
-    AND m."deleted_at" IS NULL
-WHERE m."moderator_id" = $1::uuid
-ORDER BY m."created_at" DESC
+SELECT p.user_id,
+    p.display_name,
+    p.username,
+    m.created_at
+FROM profiles p
+    INNER JOIN moderators m ON p.user_id = m.user_id
+    AND m.deleted_at IS NULL
+WHERE m.moderator_id = $1::uuid
+ORDER BY m.created_at DESC
 `
 
 type FindProfilesByModeratorIDRow struct {
-	UserID    uuid.UUID `json:"user_id"`
-	Username  string    `json:"username"`
-	Link      string    `json:"link"`
-	CreatedAt time.Time `json:"created_at"`
+	UserID      uuid.UUID `json:"user_id"`
+	DisplayName string    `json:"display_name"`
+	Username    string    `json:"username"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 func (q *Queries) FindProfilesByModeratorID(ctx context.Context, moderatorID uuid.UUID) ([]*FindProfilesByModeratorIDRow, error) {
@@ -248,8 +240,8 @@ func (q *Queries) FindProfilesByModeratorID(ctx context.Context, moderatorID uui
 		var i FindProfilesByModeratorIDRow
 		if err := rows.Scan(
 			&i.UserID,
+			&i.DisplayName,
 			&i.Username,
-			&i.Link,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -263,15 +255,12 @@ func (q *Queries) FindProfilesByModeratorID(ctx context.Context, moderatorID uui
 }
 
 const insertModerator = `-- name: InsertModerator :one
-INSERT INTO "moderators" (
-    "user_id",
-    "moderator_id",
-    "created_by"
-) VALUES (
-    $1::uuid, 
-    $2::uuid, 
-    $3::uuid
-)
+INSERT INTO moderators (user_id, moderator_id, created_by)
+VALUES (
+        $1::uuid,
+        $2::uuid,
+        $3::uuid
+    )
 RETURNING id, created_at, created_by, deleted_at, deleted_by, user_id, moderator_id
 `
 
@@ -297,11 +286,11 @@ func (q *Queries) InsertModerator(ctx context.Context, arg InsertModeratorParams
 }
 
 const revertModeratorByUserIDAndModeratorID = `-- name: RevertModeratorByUserIDAndModeratorID :exec
-UPDATE "moderators"
-SET "deleted_at" = NULL,
-    "deleted_by" = NULL
-WHERE "user_id" = $1::uuid
-    AND "moderator_id" = $2::uuid
+UPDATE moderators
+SET deleted_at = NULL,
+    deleted_by = NULL
+WHERE user_id = $1::uuid
+    AND moderator_id = $2::uuid
 `
 
 type RevertModeratorByUserIDAndModeratorIDParams struct {

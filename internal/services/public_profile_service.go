@@ -24,14 +24,12 @@ type publicProfileService struct {
 	orderService       OrderService
 	profileService     ProfileService
 	contentNoteService ContentNoteService
-	connectionService  ConnectionService
 }
 
 func NewPublicProfileService(
 	avatarService AvatarService, followerService FollowerService,
 	moderatorService ModeratorService, orderService OrderService,
 	profileService ProfileService, contentNoteService ContentNoteService,
-	connectionService ConnectionService,
 ) PublicProfileService {
 	return &publicProfileService{
 		avatarService:      avatarService,
@@ -40,12 +38,11 @@ func NewPublicProfileService(
 		orderService:       orderService,
 		profileService:     profileService,
 		contentNoteService: contentNoteService,
-		connectionService:  connectionService,
 	}
 }
 
 func (s *publicProfileService) GetPublicProfileByID(ctx context.Context, userID uuid.UUID, avatarSize string) (*models.PublicProfile, error) {
-	profile, err := s.profileService.GetProfileById(ctx, userID)
+	profile, err := s.profileService.GetProfileByID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +50,7 @@ func (s *publicProfileService) GetPublicProfileByID(ctx context.Context, userID 
 }
 
 func (s *publicProfileService) GetPublicProfileByLink(ctx context.Context, userLink, avatarSize string) (*models.PublicProfile, error) {
-	profile, err := s.profileService.GetProfileByLink(ctx, userLink)
+	profile, err := s.profileService.GetProfileByUsername(ctx, userLink)
 	if err != nil {
 		return nil, err
 	}
@@ -61,18 +58,18 @@ func (s *publicProfileService) GetPublicProfileByLink(ctx context.Context, userL
 }
 
 func (s *publicProfileService) GetPublicProfile(ctx context.Context, profile *db.Profile, avatarSize string) (*models.PublicProfile, error) {
-	authUserId := utils.UserIdFromContextOrNil(ctx)
+	authUserId := utils.GetUserIDFromContextOrNil(ctx)
 
 	var wg sync.WaitGroup
 
 	counts := &models.PublicProfileCounts{}
 	publicProfile := &models.PublicProfile{
 		ID:           profile.UserID,
+		DisplayName:  profile.DisplayName,
 		Username:     profile.Username,
-		Link:         profile.Link,
 		Description:  profile.Description,
-		IsFollowing:  authUserId == profile.UserID,
-		IsAuthorized: authUserId == profile.UserID,
+		IsFollowing:  authUserId != nil && *authUserId == profile.UserID,
+		IsAuthorized: authUserId != nil && *authUserId == profile.UserID,
 	}
 
 	wg.Add(1)
@@ -110,7 +107,7 @@ func (s *publicProfileService) GetPublicProfile(ctx context.Context, profile *db
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		orderedCount, orderedErr := s.orderService.CountOrdersByReceiverId(ctx, profile.UserID)
+		orderedCount, orderedErr := s.orderService.CountOrdersByReceiverID(ctx, profile.UserID)
 		if orderedErr != nil {
 			logger.Errorf(ctx, "Error occurred during ordered count: %v", orderedErr)
 			return
@@ -140,11 +137,11 @@ func (s *publicProfileService) GetPublicProfile(ctx context.Context, profile *db
 		publicProfile.AvatarURL = avatarUrl
 	}()
 
-	if authUserId != uuid.Nil {
+	if authUserId != nil {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			isFollowing, isFollowingErr := s.followerService.IsFollowing(ctx, profile.UserID, authUserId)
+			isFollowing, isFollowingErr := s.followerService.IsFollowing(ctx, profile.UserID, *authUserId)
 			if isFollowingErr != nil {
 				logger.Errorf(ctx, "Error occurred during following status check: %v", isFollowingErr)
 				return
@@ -155,11 +152,11 @@ func (s *publicProfileService) GetPublicProfile(ctx context.Context, profile *db
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			isModerator, isModeratorErr := s.moderatorService.IsModeratorOf(ctx, profile.UserID, authUserId)
+			isModerator, isModeratorErr := s.moderatorService.IsModeratorOf(ctx, profile.UserID, *authUserId)
 			if isModeratorErr != nil {
 				logger.Errorf(ctx, "Error occurred during authorization check: %v", isModeratorErr)
 			}
-			publicProfile.IsAuthorized = isModerator || authUserId == profile.UserID
+			publicProfile.IsAuthorized = isModerator || *authUserId == profile.UserID
 		}()
 	}
 

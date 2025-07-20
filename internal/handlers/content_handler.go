@@ -11,6 +11,7 @@ import (
 
 type ContentHandler interface {
 	SearchContent(w http.ResponseWriter, r *http.Request)
+	SearchIGDBGames(w http.ResponseWriter, r *http.Request)
 }
 
 type contentHandler struct {
@@ -61,7 +62,37 @@ func (h *contentHandler) SearchContent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res, err := utils.ConvertElasticSearchResponseToRESTResponse[types.ContentRes](content, pagination)
+	res, err := utils.ConvertElasticContentSearchResToRESTRes[types.ContentRes](content, pagination)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
+	utils.WriteHttpJsonResponse(ctx, w, res)
+}
+
+func (h *contentHandler) SearchIGDBGames(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	query, err := utils.GetRequiredQueryParam(r, "query")
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
+	pagination, err := utils.GetPagination(r)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
+	games, err := h.elastic.SearchIGDBGames(ctx, query, pagination)
+	if err != nil {
+		utils.HttpError(ctx, err, w)
+		return
+	}
+
+	res, err := utils.ConvertElasticIGDBSearchResToRESTRes(games, pagination)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return

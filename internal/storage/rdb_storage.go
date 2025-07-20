@@ -19,12 +19,12 @@ type RelationalStorage interface {
 	Queries() *db.Queries
 	Begin(ctx context.Context) (pgx.Tx, error)
 	Ping(ctx context.Context) error
-	FindPaginatedContentNotesByUserID(ctx context.Context, category db.ContentCategory, userID uuid.UUID, sort *types.CursorSort, filters types.Filters) ([]models.ContentNoteSearchResult, error)
-	FindSortedOrdersByReceiverId(ctx context.Context, receiverID uuid.UUID, sort *types.CursorSort) ([]*db.Order, error)
+	FindPaginatedContentNotesByUserID(ctx context.Context, category db.ContentCategory, userID uuid.UUID, sort *types.CursorSort, filters types.Filters, locale string) ([]models.ContentNoteSearchResult, error)
+	FindSortedOrdersByReceiverId(ctx context.Context, receiverID uuid.UUID, sort *types.CursorSort) ([]*models.Order, error)
 	CountNoteReactionsByNoteIDAndUserID(ctx context.Context, category db.ContentCategory, noteID uuid.UUID, userID uuid.UUID) (int64, error)
 	InsertContentNoteReaction(ctx context.Context, category db.ContentCategory, reaction *models.Reaction, by uuid.UUID) error
 	DeleteContentNoteReaction(ctx context.Context, category db.ContentCategory, reaction *models.Reaction) error
-	FindContentNoteReactionsByContentNoteIdsAndUserId(ctx context.Context, category db.ContentCategory, contentNoteIDs uuid.UUIDs, userID uuid.UUID) ([]*models.ReactionStack, error)
+	FindContentNoteReactionsByContentNoteIDsAndUserID(ctx context.Context, category db.ContentCategory, contentNoteIDs uuid.UUIDs, userID *uuid.UUID) ([]*models.ReactionStack, error)
 }
 
 type relationalStorage struct {
@@ -82,38 +82,62 @@ func getNoteTableNameByCategory(category db.ContentCategory) (string, error) {
 	}
 }
 
+func getContentTableNameByCategory(category db.ContentCategory) (string, error) {
+	switch category {
+	case db.ContentCategoryGames:
+		return "games", nil
+	case db.ContentCategoryMovies:
+		return "movies", nil
+	default:
+		return "", fmt.Errorf("invalid content category: %s", category)
+	}
+}
+
+func getContentLocalizationTableNameByCategory(category db.ContentCategory) (string, error) {
+	switch category {
+	case db.ContentCategoryGames:
+		return "game_localizations", nil
+	case db.ContentCategoryMovies:
+		return "movie_localizations", nil
+	}
+	return "", fmt.Errorf("invalid content category: %s", category)
+}
+
 const findPaginatedContentNotesByUserIDQuery = `
 	WITH filtered_notes AS (
 		SELECT note.*
-		FROM "%s" note
-		WHERE note."user_id" = $1 
-			AND ($2::text IS NULL OR note."%s" %s $2::%s)
+		FROM %s note
+		WHERE note.user_id = $1 
+			AND ($2::text IS NULL OR note.%s %s $2::%s)
 			%s -- conditional filters
 	)
 	SELECT DISTINCT 
-		note."id",
-		note."created_at",
-		note."name",
-		note."status",
-		note."rate",
-		note."comment",
-		note."poster_key",
-		note."poster_updated_at",
+		note.id,
+		note.created_at,
+		localizations.title,
+		note.status,
+		note.rate,
+		note.comment,
+		content.cover_key,
+		content.cover_key_type,
 		%s -- content specific columns
-		o."username" AS initial_orderer_username,
-		COALESCE(order_counts."count", 0) AS orderer_count
+		o.user_id AS initial_orderer_user_id,
+		o.display_name AS initial_orderer_display_name,
+		COALESCE(order_counts.count, 0) AS orderer_count
 	FROM filtered_notes note
-		INNER JOIN "orderers" o ON note."initial_orderer_id" = o."id"
+		INNER JOIN %s content ON note.content_id = content.id
+		INNER JOIN %s localizations ON content.id = localizations.content_id AND localizations.lang = $4::locale
+		INNER JOIN orderers o ON note.initial_orderer_id = o.id
 		%s -- optional joins
 		LEFT JOIN LATERAL(
 			SELECT 
 				COUNT(*) as count,
-				"%s_id" AS note_id
-			FROM "%s_orders" 
-			WHERE "%s_id" = note."id"
-			GROUP BY "%s_id"
-		) order_counts ON note."id" = order_counts.note_id
-	ORDER BY note."%s" %s 
+				%s_id AS note_id
+			FROM %s_orders 
+			WHERE %s_id = note.id
+			GROUP BY %s_id
+		) order_counts ON note.id = order_counts.note_id
+	ORDER BY note.%s %s 
 	LIMIT $3
 `
 
@@ -131,9 +155,9 @@ func getContentNotePrefix(category db.ContentCategory) (string, error) {
 func getContentNoteSelectedColumns(category db.ContentCategory) (string, error) {
 	switch category {
 	case db.ContentCategoryGames:
-		return "note.\"release_date\", note.\"last_played_at\",", nil
+		return "content.release_date, note.last_played_at,", nil
 	case db.ContentCategoryMovies:
-		return "note.\"release_date\", note.\"watched_at\",", nil
+		return "content.release_date, note.watched_at,", nil
 	default:
 		return "", fmt.Errorf("invalid content category: %s", category)
 	}
@@ -157,16 +181,26 @@ func getContentNoteFilterQuery(filters types.Filters) string {
 	for key, value := range filters {
 		switch key {
 		case "status":
-			query += fmt.Sprintf(` AND note."%s" = '%s'`, key, value)
-		case "requester":
-			query += fmt.Sprintf(` AND orders."orderer_username" ILIKE '%s'`, value)
+			query += fmt.Sprintf(` AND note.%s = '%s'`, key, value)
+		case "requester": // TODO: orderer_display_name IS REMOVED
+			query += fmt.Sprintf(` AND orders.orderer_username ILIKE '%s'`, value)
 		}
 	}
 	return query
 }
 
-func (sqlDb *relationalStorage) FindPaginatedContentNotesByUserID(ctx context.Context, category db.ContentCategory, userID uuid.UUID, sort *types.CursorSort, filters types.Filters) ([]models.ContentNoteSearchResult, error) {
+func (sqlDb *relationalStorage) FindPaginatedContentNotesByUserID(ctx context.Context, category db.ContentCategory, userID uuid.UUID, sort *types.CursorSort, filters types.Filters, locale string) ([]models.ContentNoteSearchResult, error) {
 	tableName, err := getNoteTableNameByCategory(category)
+	if err != nil {
+		return nil, err
+	}
+
+	contentTableName, err := getContentTableNameByCategory(category)
+	if err != nil {
+		return nil, err
+	}
+
+	contentLocalizationTableName, err := getContentLocalizationTableNameByCategory(category)
 	if err != nil {
 		return nil, err
 	}
@@ -187,8 +221,8 @@ func (sqlDb *relationalStorage) FindPaginatedContentNotesByUserID(ctx context.Co
 	joins := ""
 	if filters["requester"] != "" {
 		joins = fmt.Sprintf(`
-			INNER JOIN "%s_orders" note_orders ON note."id" = note_orders."%s_id"
-			INNER JOIN orders ON note_orders."order_id" = orders."id"
+			INNER JOIN %s_orders note_orders ON note.id = note_orders.%s_id
+			INNER JOIN orders ON note_orders.order_id = orders.id
 		`, prefix, prefix)
 	}
 
@@ -198,19 +232,21 @@ func (sqlDb *relationalStorage) FindPaginatedContentNotesByUserID(ctx context.Co
 	}
 
 	query := fmt.Sprintf(findPaginatedContentNotesByUserIDQuery,
-		tableName,                      // content note table name
-		strings.ToLower(sort.Column),   // sort column
-		comparisonOperator,             // sort comparison type
-		columnType,                     // sort column type
-		conditionalFilters,             // conditional filters
-		selectedColumns,                // content specific columns
+		tableName,                    // content note table name
+		strings.ToLower(sort.Column), // sort column
+		comparisonOperator,           // sort comparison type
+		columnType,                   // sort column type
+		conditionalFilters,           // conditional filters
+		selectedColumns,              // content specific columns
+		contentTableName,
+		contentLocalizationTableName,
 		joins,                          // optional joins
 		prefix, prefix, prefix, prefix, // note orders table name
 		strings.ToLower(sort.Column),
 		strings.ToUpper(sort.Direction),
 	)
 
-	rows, err := sqlDb.conn.Query(ctx, query, userID, sort.Cursor, sort.Limit)
+	rows, err := sqlDb.conn.Query(ctx, query, userID, sort.Cursor, sort.Limit, db.Locale(locale))
 	if err != nil {
 		return nil, err
 	}
@@ -234,15 +270,16 @@ func (sqlDB *relationalStorage) ReadGameNoteSearchResults(rows pgx.Rows) ([]mode
 		if err := rows.Scan(
 			&i.ID,
 			&i.CreatedAt,
-			&i.Name,
+			&i.Title,
 			&i.Status,
 			&i.Rate,
 			&i.Comment,
-			&i.PosterKey,
-			&i.PosterUpdatedAt,
+			&i.CoverKey,
+			&i.CoverKeyType,
 			&i.ReleaseDate,
 			&i.LastPlayedAt,
-			&i.InitialOrdererUsername,
+			&i.InitialOrdererUserID,
+			&i.InitialOrdererDisplayName,
 			&i.OrdererCount,
 		); err != nil {
 			return nil, err
@@ -264,15 +301,16 @@ func (sqlDB *relationalStorage) ReadMovieNoteSearchResults(rows pgx.Rows) ([]mod
 		if err := rows.Scan(
 			&i.ID,
 			&i.CreatedAt,
-			&i.Name,
+			&i.Title,
 			&i.Status,
 			&i.Rate,
 			&i.Comment,
-			&i.PosterKey,
-			&i.PosterUpdatedAt,
+			&i.CoverKey,
+			&i.CoverKeyType,
 			&i.ReleaseDate,
 			&i.WatchedAt,
-			&i.InitialOrdererUsername,
+			&i.InitialOrdererUserID,
+			&i.InitialOrdererDisplayName,
 			&i.OrdererCount,
 		); err != nil {
 			return nil, err
@@ -287,16 +325,29 @@ func (sqlDB *relationalStorage) ReadMovieNoteSearchResults(rows pgx.Rows) ([]mod
 }
 
 const findOrdersByReceiverIdQuery = `
-	SELECT id, created_at, payment_type, amount, status, orderer_username, message, category, updated_message, updated_category
-	FROM "orders"
-	WHERE "receiver_id" = $1 
-		AND "%s" %s $2 
-	ORDER BY "%s" %s 
+	SELECT 
+		orders.id,
+		orders.created_at,
+		orders.payment_type,
+		orders.amount,
+		orders.status,
+		orders.orderer_id,
+		orderers.display_name AS orderer_display_name,
+		orders.message, 
+		orders.category,
+		orders.source, 
+		orders.reference, 
+		orders.anonymous
+	FROM orders
+	LEFT JOIN orderers ON orderers.id = orders.orderer_id
+	WHERE receiver_id = $1 
+		AND %s %s $2 
+	ORDER BY %s %s 
 	LIMIT $3
 `
 
 // Queries orders by receiver id with cursor pagination and dynamic sorting
-func (sqlDb *relationalStorage) FindSortedOrdersByReceiverId(ctx context.Context, receiverID uuid.UUID, sort *types.CursorSort) ([]*db.Order, error) {
+func (sqlDb *relationalStorage) FindSortedOrdersByReceiverId(ctx context.Context, receiverID uuid.UUID, sort *types.CursorSort) ([]*models.Order, error) {
 	comparisonOperator := "<"
 	if strings.ToUpper(sort.Direction) == "DESC" {
 		comparisonOperator = ">"
@@ -308,20 +359,22 @@ func (sqlDb *relationalStorage) FindSortedOrdersByReceiverId(ctx context.Context
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*db.Order
+	var items []*models.Order
 	for rows.Next() {
-		var i db.Order
+		var i models.Order
 		if err := rows.Scan(
 			&i.ID,
 			&i.CreatedAt,
 			&i.PaymentType,
 			&i.Amount,
 			&i.Status,
-			&i.OrdererUsername,
+			&i.OrdererID,
+			&i.OrdererDisplayName,
 			&i.Message,
 			&i.Category,
-			&i.UpdatedMessage,
-			&i.UpdatedCategory,
+			&i.Source,
+			&i.Reference,
+			&i.Anonymous,
 		); err != nil {
 			return nil, err
 		}
@@ -341,12 +394,12 @@ func (sqlDB *relationalStorage) CountNoteReactionsByNoteIDAndUserID(ctx context.
 
 	switch category {
 	case db.ContentCategoryGames:
-		count, err = sqlDB.Queries().CountGameNoteReactionsByGameNoteIdAndUserId(ctx, db.CountGameNoteReactionsByGameNoteIdAndUserIdParams{
+		count, err = sqlDB.Queries().CountGameNoteReactionsByGameNoteIDAndUserID(ctx, db.CountGameNoteReactionsByGameNoteIDAndUserIDParams{
 			GameNoteID: noteID,
 			UserID:     userID,
 		})
 	case db.ContentCategoryMovies:
-		count, err = sqlDB.Queries().CountMovieNoteReactionsByMovieNoteIdAndUserId(ctx, db.CountMovieNoteReactionsByMovieNoteIdAndUserIdParams{
+		count, err = sqlDB.Queries().CountMovieNoteReactionsByMovieNoteIDAndUserID(ctx, db.CountMovieNoteReactionsByMovieNoteIDAndUserIDParams{
 			MovieNoteID: noteID,
 			UserID:      userID,
 		})
@@ -399,10 +452,10 @@ func (sqlDB *relationalStorage) DeleteContentNoteReaction(ctx context.Context, c
 	}
 }
 
-func (sqlDB *relationalStorage) FindContentNoteReactionsByContentNoteIdsAndUserId(ctx context.Context, category db.ContentCategory, contentNoteIDs uuid.UUIDs, userID uuid.UUID) ([]*models.ReactionStack, error) {
+func (sqlDB *relationalStorage) FindContentNoteReactionsByContentNoteIDsAndUserID(ctx context.Context, category db.ContentCategory, contentNoteIDs uuid.UUIDs, userID *uuid.UUID) ([]*models.ReactionStack, error) {
 	switch category {
 	case db.ContentCategoryGames:
-		rows, err := sqlDB.Queries().GetGameNoteReactionsByGameNoteIdInAndUserId(ctx, db.GetGameNoteReactionsByGameNoteIdInAndUserIdParams{
+		rows, err := sqlDB.Queries().GetGameNoteReactionsByGameNoteIDInAndUserID(ctx, db.GetGameNoteReactionsByGameNoteIDInAndUserIDParams{
 			GameNoteIds: contentNoteIDs,
 			UserID:      userID,
 		})
@@ -422,7 +475,7 @@ func (sqlDB *relationalStorage) FindContentNoteReactionsByContentNoteIdsAndUserI
 		}
 		return stack, nil
 	case db.ContentCategoryMovies:
-		rows, err := sqlDB.Queries().GetMovieNoteReactionsByMovieNoteIdInAndUserId(ctx, db.GetMovieNoteReactionsByMovieNoteIdInAndUserIdParams{
+		rows, err := sqlDB.Queries().GetMovieNoteReactionsByMovieNoteIDInAndUserID(ctx, db.GetMovieNoteReactionsByMovieNoteIDInAndUserIDParams{
 			MovieNoteIds: contentNoteIDs,
 			UserID:       userID,
 		})

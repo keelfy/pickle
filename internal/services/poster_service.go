@@ -25,7 +25,8 @@ type PosterService interface {
 	EmbedPosterForPreview(ctx context.Context, userId uuid.UUID, size, embeddedUrl string) (uuid.UUID, string, error)
 	GetLatestPosterPreviewByUserId(ctx context.Context, userId uuid.UUID) ([]*db.PosterPreview, error)
 	ConfirmS3PosterPreviewByID(ctx context.Context, id uuid.UUID, prefix string) (*string, error)
-	GetPosterImageURL(ctx context.Context, prefix, size, imageKey string, cbTime time.Time) (string, error)
+	GetCoverImageURL(ctx context.Context, prefix, size, imageKey string, imageType db.ImageKeyType) (string, error)
+	GetPosterImageURL(ctx context.Context, prefix, size, imageKey string, cbTime *time.Time) (string, error)
 	GetPosterPreviewImageURL(ctx context.Context, id uuid.UUID, size string) (string, error)
 	DeletePosterKey(ctx context.Context, prefix, posterKey string) error
 	DeletePosterPreview(ctx context.Context, id uuid.UUID, userId uuid.UUID) error
@@ -52,10 +53,10 @@ func NewPosterService(
 	}
 }
 
-var posterSizes = map[string][]int{
-	"sm": {100, 150},
-	"md": {150, 225},
-	"lg": {300, 450},
+var coverDimensions = map[string][]int{
+	"sm": {108, 144},
+	"md": {168, 224},
+	"lg": {336, 448},
 }
 
 func (s *posterService) GetPosterPreviewByID(ctx context.Context, id uuid.UUID) (*db.PosterPreview, error) {
@@ -81,11 +82,11 @@ func (s *posterService) GetPosterPreviews(ctx context.Context, userId uuid.UUID)
 }
 
 func (s *posterService) uploadPosterForPreview(ctx context.Context, userId uuid.UUID, size string, fileReader io.Reader, fileExtension string) (uuid.UUID, string, error) {
-	if _, ok := posterSizes[size]; !ok {
+	if _, ok := coverDimensions[size]; !ok {
 		return uuid.Nil, "", errors.NewBadRequestError("Invalid size", nil)
 	}
 
-	profile, err := s.profileService.GetProfileById(ctx, userId)
+	profile, err := s.profileService.GetProfileByID(ctx, userId)
 	if err != nil {
 		return uuid.Nil, "", err
 	}
@@ -144,7 +145,7 @@ func (s *posterService) uploadPosterForPreview(ctx context.Context, userId uuid.
 
 	// generate imgproxy URL for preview
 
-	imageUrl, err := s.GetPosterImageURL(ctx, "preview", size, objectKey, posterPreview.CreatedAt)
+	imageUrl, err := s.GetPosterImageURL(ctx, "preview", size, objectKey, &posterPreview.CreatedAt)
 	if err != nil {
 		return uuid.Nil, "", errors.NewInternalServerError("Error occurred getting poster preview URL", err)
 	}
@@ -153,7 +154,7 @@ func (s *posterService) uploadPosterForPreview(ctx context.Context, userId uuid.
 }
 
 func (s *posterService) UploadPosterForPreview(ctx context.Context, userId uuid.UUID, size string, file multipart.File, fileHeader *multipart.FileHeader) (uuid.UUID, string, error) {
-	if _, ok := posterSizes[size]; !ok {
+	if _, ok := coverDimensions[size]; !ok {
 		return uuid.Nil, "", errors.NewBadRequestError("Invalid size", nil)
 	}
 
@@ -166,7 +167,7 @@ func (s *posterService) UploadPosterForPreview(ctx context.Context, userId uuid.
 }
 
 func (s *posterService) EmbedPosterForPreview(ctx context.Context, userId uuid.UUID, size, embeddedUrl string) (uuid.UUID, string, error) {
-	if _, ok := posterSizes[size]; !ok {
+	if _, ok := coverDimensions[size]; !ok {
 		return uuid.Nil, "", errors.NewBadRequestError("Invalid size", nil)
 	}
 
@@ -210,8 +211,35 @@ func (s *posterService) ConfirmS3PosterPreviewByID(ctx context.Context, id uuid.
 	return &posterPreview.ObjectKey, nil
 }
 
-func (service *posterService) GetPosterImageURL(ctx context.Context, prefix, size, imageKey string, cbTime time.Time) (string, error) {
-	if _, ok := posterSizes[size]; !ok {
+func (s *posterService) GetCoverImageURL(ctx context.Context, prefix, size, imageKey string, imageType db.ImageKeyType) (string, error) {
+	if _, ok := coverDimensions[size]; !ok {
+		return "", errors.NewBadRequestError("Invalid poster size", nil)
+	}
+
+	switch imageType {
+	case db.ImageKeyTypeCustom:
+		return s.GetPosterImageURL(ctx, prefix, size, imageKey, nil)
+	case db.ImageKeyTypeIgdb:
+		dims := coverDimensions[size]
+		imageUrl := fmt.Sprintf("https://images.igdb.com/igdb/image/upload/t_cover_big/%s.jpg", imageKey)
+		resizedImageUrl, err := s.imageService.GetResizedImageUrl(imageUrl, dims[0], dims[1], nil)
+		if err != nil {
+			return "", err
+		}
+
+		cacheKey := fmt.Sprintf("igdb_cover:%s:%s", imageKey, size)
+		expiration := config.GetPosterPreviewStoreTime()
+		if err := s.cache.SetKey(ctx, cacheKey, resizedImageUrl, expiration); err != nil {
+			return "", err
+		}
+		return resizedImageUrl, nil
+	}
+
+	return "", errors.NewBadRequestError("Unsupported cover image type", nil)
+}
+
+func (service *posterService) GetPosterImageURL(ctx context.Context, prefix, size, imageKey string, cbTime *time.Time) (string, error) {
+	if _, ok := coverDimensions[size]; !ok {
 		return "", errors.NewBadRequestError("Invalid poster size", nil)
 	}
 
@@ -222,9 +250,9 @@ func (service *posterService) GetPosterImageURL(ctx context.Context, prefix, siz
 	}
 
 	bucket := config.GetContentPosterBucketName()
-	dims := posterSizes[size]
+	dims := coverDimensions[size]
 	key := fmt.Sprintf("%s/%s", prefix, imageKey)
-	imageUrl, err := service.imageService.GetResizedImageUrlFromS3(bucket, key, dims[0], dims[1], &cbTime)
+	imageUrl, err := service.imageService.GetResizedImageUrlFromS3(bucket, key, dims[0], dims[1], cbTime)
 	if err != nil {
 		return "", err
 	}
@@ -242,7 +270,7 @@ func (s *posterService) GetPosterPreviewImageURL(ctx context.Context, id uuid.UU
 		return "", err
 	}
 
-	return s.GetPosterImageURL(ctx, "preview", size, posterPreview.ObjectKey, posterPreview.CreatedAt)
+	return s.GetPosterImageURL(ctx, "preview", size, posterPreview.ObjectKey, &posterPreview.CreatedAt)
 }
 
 func (s *posterService) DeletePosterKey(ctx context.Context, prefix, posterKey string) error {
@@ -254,7 +282,7 @@ func (s *posterService) DeletePosterKey(ctx context.Context, prefix, posterKey s
 		return errors.NewInternalServerError("Error occurred deleting previous poster", err)
 	}
 
-	for sizeName := range posterSizes {
+	for sizeName := range coverDimensions {
 		cacheKey := fmt.Sprintf("poster:%s:%s:%s", prefix, posterKey, sizeName)
 		err = s.cache.DeleteKey(ctx, cacheKey)
 		if err != nil {

@@ -12,10 +12,11 @@ import (
 )
 
 const findOrdererByID = `-- name: FindOrdererByID :one
-SELECT id, created_at, created_by, updated_at, updated_by, user_id, username, anonymous FROM "orderers" WHERE "id" = $1
+SELECT id, created_at, created_by, updated_at, updated_by, user_id, display_name, source, reference_user_id
+FROM orderers
+WHERE id = $1::uuid
 `
 
-// Author: Egor Kuzmin (keelfy)
 func (q *Queries) FindOrdererByID(ctx context.Context, id uuid.UUID) (*Orderer, error) {
 	row := q.db.QueryRow(ctx, findOrdererByID, id)
 	var i Orderer
@@ -26,18 +27,49 @@ func (q *Queries) FindOrdererByID(ctx context.Context, id uuid.UUID) (*Orderer, 
 		&i.UpdatedAt,
 		&i.UpdatedBy,
 		&i.UserID,
-		&i.Username,
-		&i.Anonymous,
+		&i.DisplayName,
+		&i.Source,
+		&i.ReferenceUserID,
+	)
+	return &i, err
+}
+
+const findOrdererBySourceAndReferenceUserID = `-- name: FindOrdererBySourceAndReferenceUserID :one
+SELECT id, created_at, created_by, updated_at, updated_by, user_id, display_name, source, reference_user_id
+FROM orderers
+WHERE source = $1::text
+    AND reference_user_id = $2::text
+`
+
+type FindOrdererBySourceAndReferenceUserIDParams struct {
+	Source          string `json:"source"`
+	ReferenceUserID string `json:"reference_user_id"`
+}
+
+func (q *Queries) FindOrdererBySourceAndReferenceUserID(ctx context.Context, arg FindOrdererBySourceAndReferenceUserIDParams) (*Orderer, error) {
+	row := q.db.QueryRow(ctx, findOrdererBySourceAndReferenceUserID, arg.Source, arg.ReferenceUserID)
+	var i Orderer
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.CreatedBy,
+		&i.UpdatedAt,
+		&i.UpdatedBy,
+		&i.UserID,
+		&i.DisplayName,
+		&i.Source,
+		&i.ReferenceUserID,
 	)
 	return &i, err
 }
 
 const findOrdererByUserID = `-- name: FindOrdererByUserID :one
-SELECT id, created_at, created_by, updated_at, updated_by, user_id, username, anonymous FROM "orderers" WHERE "user_id" = $1
+SELECT id, created_at, created_by, updated_at, updated_by, user_id, display_name, source, reference_user_id
+FROM orderers
+WHERE user_id = $1::uuid
 `
 
-// Author: Egor Kuzmin (keelfy)
-func (q *Queries) FindOrdererByUserID(ctx context.Context, userID *uuid.UUID) (*Orderer, error) {
+func (q *Queries) FindOrdererByUserID(ctx context.Context, userID uuid.UUID) (*Orderer, error) {
 	row := q.db.QueryRow(ctx, findOrdererByUserID, userID)
 	var i Orderer
 	err := row.Scan(
@@ -47,45 +79,55 @@ func (q *Queries) FindOrdererByUserID(ctx context.Context, userID *uuid.UUID) (*
 		&i.UpdatedAt,
 		&i.UpdatedBy,
 		&i.UserID,
-		&i.Username,
-		&i.Anonymous,
+		&i.DisplayName,
+		&i.Source,
+		&i.ReferenceUserID,
 	)
 	return &i, err
 }
 
-const insertOrderer = `-- name: InsertOrderer :one
-INSERT INTO "orderers" (
-    "created_by",
-    "updated_by",
-    "user_id",
-    "username",
-    "anonymous"
-) VALUES (
-    $1,
-    $2,
-    $3,
-    $4,
-    $5
-)
-RETURNING id, created_at, created_by, updated_at, updated_by, user_id, username, anonymous
+const insertOrdererManually = `-- name: InsertOrdererManually :one
+INSERT INTO orderers (
+        created_by,
+        updated_by,
+        user_id,
+        display_name,
+        source,
+        reference_user_id
+    )
+VALUES (
+        $1::uuid,
+        $2::uuid,
+        $3::uuid,
+        $4::text,
+        $5::text,
+        $6::text
+    ) ON CONFLICT (user_id, reference_user_id, source) DO
+UPDATE
+SET updated_at = now(),
+    updated_by = $2::uuid,
+    display_name = $4::text,
+    reference_user_id = $6::text
+RETURNING id, created_at, created_by, updated_at, updated_by, user_id, display_name, source, reference_user_id
 `
 
-type InsertOrdererParams struct {
-	CreatedBy *uuid.UUID `json:"created_by"`
-	UpdatedBy *uuid.UUID `json:"updated_by"`
-	UserID    *uuid.UUID `json:"user_id"`
-	Username  string     `json:"username"`
-	Anonymous bool       `json:"anonymous"`
+type InsertOrdererManuallyParams struct {
+	CreatedBy       *uuid.UUID `json:"created_by"`
+	UpdatedBy       *uuid.UUID `json:"updated_by"`
+	UserID          *uuid.UUID `json:"user_id"`
+	DisplayName     string     `json:"display_name"`
+	Source          string     `json:"source"`
+	ReferenceUserID *string    `json:"reference_user_id"`
 }
 
-// Author: Egor Kuzmin (keelfy)
-func (q *Queries) InsertOrderer(ctx context.Context, arg InsertOrdererParams) (*Orderer, error) {
-	row := q.db.QueryRow(ctx, insertOrderer,
+func (q *Queries) InsertOrdererManually(ctx context.Context, arg InsertOrdererManuallyParams) (*Orderer, error) {
+	row := q.db.QueryRow(ctx, insertOrdererManually,
 		arg.CreatedBy,
 		arg.UpdatedBy,
 		arg.UserID,
-		arg.Username,
-		arg.Anonymous,
+		arg.DisplayName,
+		arg.Source,
+		arg.ReferenceUserID,
 	)
 	var i Orderer
 	err := row.Scan(
@@ -95,28 +137,95 @@ func (q *Queries) InsertOrderer(ctx context.Context, arg InsertOrdererParams) (*
 		&i.UpdatedAt,
 		&i.UpdatedBy,
 		&i.UserID,
-		&i.Username,
-		&i.Anonymous,
+		&i.DisplayName,
+		&i.Source,
+		&i.ReferenceUserID,
+	)
+	return &i, err
+}
+
+const insertReferencedOrderer = `-- name: InsertReferencedOrderer :one
+INSERT INTO orderers (
+        created_by,
+        updated_by,
+        user_id,
+        display_name,
+        source,
+        reference_user_id
+    )
+VALUES (
+        $1::uuid,
+        $2::uuid,
+        $3::uuid,
+        $4::text,
+        $5::text,
+        $6::text
+    ) ON CONFLICT (user_id, reference_user_id, source) DO
+UPDATE
+SET updated_at = now(),
+    updated_by = $2::uuid,
+    display_name = $4::text
+RETURNING id, created_at, created_by, updated_at, updated_by, user_id, display_name, source, reference_user_id
+`
+
+type InsertReferencedOrdererParams struct {
+	CreatedBy       *uuid.UUID `json:"created_by"`
+	UpdatedBy       *uuid.UUID `json:"updated_by"`
+	UserID          *uuid.UUID `json:"user_id"`
+	DisplayName     string     `json:"display_name"`
+	Source          string     `json:"source"`
+	ReferenceUserID *string    `json:"reference_user_id"`
+}
+
+func (q *Queries) InsertReferencedOrderer(ctx context.Context, arg InsertReferencedOrdererParams) (*Orderer, error) {
+	row := q.db.QueryRow(ctx, insertReferencedOrderer,
+		arg.CreatedBy,
+		arg.UpdatedBy,
+		arg.UserID,
+		arg.DisplayName,
+		arg.Source,
+		arg.ReferenceUserID,
+	)
+	var i Orderer
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.CreatedBy,
+		&i.UpdatedAt,
+		&i.UpdatedBy,
+		&i.UserID,
+		&i.DisplayName,
+		&i.Source,
+		&i.ReferenceUserID,
 	)
 	return &i, err
 }
 
 const updateOrdererByUserID = `-- name: UpdateOrdererByUserID :exec
-UPDATE "orderers"
-SET "updated_at" = now(),
-    "updated_by" = $2,
-    "username" = $3
-WHERE "user_id" = $1
+UPDATE orderers
+SET updated_at = now(),
+    updated_by = $1::uuid,
+    display_name = $2::text,
+    source = $3::text,
+    reference_user_id = $4::text
+WHERE user_id = $5::uuid
 `
 
 type UpdateOrdererByUserIDParams struct {
-	UserID    *uuid.UUID `json:"user_id"`
-	UpdatedBy *uuid.UUID `json:"updated_by"`
-	Username  string     `json:"username"`
+	UpdatedBy       uuid.UUID `json:"updated_by"`
+	DisplayName     string    `json:"display_name"`
+	Source          string    `json:"source"`
+	ReferenceUserID string    `json:"reference_user_id"`
+	UserID          uuid.UUID `json:"user_id"`
 }
 
-// Author: Egor Kuzmin (keelfy)
 func (q *Queries) UpdateOrdererByUserID(ctx context.Context, arg UpdateOrdererByUserIDParams) error {
-	_, err := q.db.Exec(ctx, updateOrdererByUserID, arg.UserID, arg.UpdatedBy, arg.Username)
+	_, err := q.db.Exec(ctx, updateOrdererByUserID,
+		arg.UpdatedBy,
+		arg.DisplayName,
+		arg.Source,
+		arg.ReferenceUserID,
+		arg.UserID,
+	)
 	return err
 }

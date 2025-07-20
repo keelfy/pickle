@@ -43,7 +43,7 @@ func NewPosterHandler(posterService services.PosterService) PosterHandler {
 func (h *posterHandler) UploadPosterPreview(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	size := utils.GetQueryParam(r, "size", "sm")
-	userId, err := utils.UserIdFromContext(ctx)
+	userId, err := utils.GetUserIDFromCtx(ctx)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
@@ -137,7 +137,7 @@ func (h *posterHandler) GetPosterPreview(w http.ResponseWriter, r *http.Request)
 // @Router /v1/users/{userId}/posters/previews [get]
 func (h *posterHandler) GetPosterPreviews(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userId, err := utils.UserIdFromContext(ctx)
+	userId, err := utils.GetUserIDFromCtx(ctx)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
@@ -153,7 +153,7 @@ func (h *posterHandler) GetPosterPreviews(w http.ResponseWriter, r *http.Request
 
 	res := make([]*types.PosterPreviewRes, len(previews))
 	for i, preview := range previews {
-		imageURL, err := h.posterService.GetPosterImageURL(ctx, "preview", size, preview.ObjectKey, preview.CreatedAt)
+		imageURL, err := h.posterService.GetPosterImageURL(ctx, "preview", size, preview.ObjectKey, &preview.CreatedAt)
 		if err != nil {
 			logger.Errorf(ctx, "Error occurred getting poster preview image URL: %v", err)
 			continue
@@ -214,7 +214,7 @@ func (h *posterHandler) GetPosterPreviewImageURL(w http.ResponseWriter, r *http.
 func (h *posterHandler) DeletePosterPreview(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	userId, err := utils.UserIdFromContext(ctx)
+	userId, err := utils.GetUserIDFromCtx(ctx)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return

@@ -9,35 +9,37 @@ import (
 
 type ContentNoteSearchResult interface {
 	GetID() uuid.UUID
-	GetName() string
+	GetTitle() string
 	GetCategory() db.ContentCategory
 	GetStatus() string
 	GetCreatedAt() time.Time
-	GetInitialOrdererUsername() string
+	GetInitialOrdererUserID() uuid.UUID
+	GetInitialOrdererDisplayName() string
 	GetOrdererCount() int64
-	GetPosterKey() *string
-	GetPosterUpdatedAt() time.Time
+	GetCoverKey() string
+	GetCoverKeyType() db.NullImageKeyType
 }
 
 type BasicNoteSearchResult struct {
-	ID                     uuid.UUID         `json:"id"`
-	CreatedAt              time.Time         `json:"createdAt"`
-	Name                   string            `json:"name"`
-	Status                 db.GameNoteStatus `json:"status"`
-	Rate                   *int16            `json:"rate,omitempty"`
-	Comment                *string           `json:"comment,omitempty"`
-	InitialOrdererUsername string            `json:"initialOrdererUsername"`
-	OrdererCount           int64             `json:"ordererCount"`
-	PosterKey              *string           `json:"posterKey,omitempty"`
-	PosterUpdatedAt        *time.Time        `json:"posterUpdatedAt,omitempty"`
+	ID                        uuid.UUID           `json:"id"`
+	CreatedAt                 time.Time           `json:"createdAt"`
+	Title                     string              `json:"title"`
+	Status                    db.GameNoteStatus   `json:"status"`
+	Rate                      *int16              `json:"rate,omitempty"`
+	Comment                   *string             `json:"comment,omitempty"`
+	InitialOrdererUserID      uuid.UUID           `json:"initialOrdererUserId"`
+	InitialOrdererDisplayName string              `json:"initialOrdererDisplayName"`
+	OrdererCount              int64               `json:"ordererCount"`
+	CoverKey                  string              `json:"coverKey"`
+	CoverKeyType              db.NullImageKeyType `json:"coverKeyType"`
 }
 
 func (b *BasicNoteSearchResult) GetID() uuid.UUID {
 	return b.ID
 }
 
-func (b *BasicNoteSearchResult) GetName() string {
-	return b.Name
+func (b *BasicNoteSearchResult) GetTitle() string {
+	return b.Title
 }
 
 func (b *BasicNoteSearchResult) GetStatus() string {
@@ -48,20 +50,24 @@ func (b *BasicNoteSearchResult) GetCreatedAt() time.Time {
 	return b.CreatedAt
 }
 
-func (b *BasicNoteSearchResult) GetInitialOrdererUsername() string {
-	return b.InitialOrdererUsername
+func (b *BasicNoteSearchResult) GetInitialOrdererUserID() uuid.UUID {
+	return b.InitialOrdererUserID
+}
+
+func (b *BasicNoteSearchResult) GetInitialOrdererDisplayName() string {
+	return b.InitialOrdererDisplayName
 }
 
 func (b *BasicNoteSearchResult) GetOrdererCount() int64 {
 	return b.OrdererCount
 }
 
-func (b *BasicNoteSearchResult) GetPosterKey() *string {
-	return b.PosterKey
+func (b *BasicNoteSearchResult) GetCoverKey() string {
+	return b.CoverKey
 }
 
-func (b *BasicNoteSearchResult) GetPosterUpdatedAt() time.Time {
-	return *b.PosterUpdatedAt
+func (b *BasicNoteSearchResult) GetCoverKeyType() db.NullImageKeyType {
+	return b.CoverKeyType
 }
 
 type GameNoteSearchResult struct {

@@ -12,12 +12,11 @@ import (
 )
 
 const countOrdersByGameNoteId = `-- name: CountOrdersByGameNoteId :one
-SELECT COUNT(*) AS "total"
-FROM "game_note_orders"
-WHERE "game_note_id" = $1::uuid
+SELECT COUNT(*) AS total
+FROM game_note_orders
+WHERE game_note_id = $1::uuid
 `
 
-// Author: Egor Kuzmin (keelfy)
 func (q *Queries) CountOrdersByGameNoteId(ctx context.Context, gameNoteID uuid.UUID) (int64, error) {
 	row := q.db.QueryRow(ctx, countOrdersByGameNoteId, gameNoteID)
 	var total int64
@@ -26,17 +25,18 @@ func (q *Queries) CountOrdersByGameNoteId(ctx context.Context, gameNoteID uuid.U
 }
 
 const insertGameNoteOrder = `-- name: InsertGameNoteOrder :one
-INSERT INTO "game_note_orders" (
-    "game_note_id",
-    "order_id",
-    "created_by",
-    "updated_by"
-) VALUES (
-    $1::uuid,
-    $2::uuid,
-    $3::uuid,
-    $4::uuid
-)
+INSERT INTO game_note_orders (
+        game_note_id,
+        order_id,
+        created_by,
+        updated_by
+    )
+VALUES (
+        $1::uuid,
+        $2::uuid,
+        $3::uuid,
+        $4::uuid
+    )
 RETURNING game_note_id, order_id, created_at, created_by, updated_at, updated_by
 `
 
@@ -47,7 +47,6 @@ type InsertGameNoteOrderParams struct {
 	UpdatedBy  uuid.UUID `json:"updated_by"`
 }
 
-// Author: Egor Kuzmin (keelfy)
 func (q *Queries) InsertGameNoteOrder(ctx context.Context, arg InsertGameNoteOrderParams) (*GameNoteOrder, error) {
 	row := q.db.QueryRow(ctx, insertGameNoteOrder,
 		arg.GameNoteID,
@@ -68,16 +67,15 @@ func (q *Queries) InsertGameNoteOrder(ctx context.Context, arg InsertGameNoteOrd
 }
 
 const resetApprovedOrdersByGameNoteId = `-- name: ResetApprovedOrdersByGameNoteId :exec
-UPDATE "orders"
-SET "status" = 'pending'
-WHERE "id" IN (
-    SELECT "order_id"
-    FROM "game_note_orders"
-    WHERE "game_note_id" = $1::uuid
-)
+UPDATE orders
+SET status = 'pending'
+WHERE id IN (
+        SELECT order_id
+        FROM game_note_orders
+        WHERE game_note_id = $1::uuid
+    )
 `
 
-// Author: Egor Kuzmin (keelfy)
 func (q *Queries) ResetApprovedOrdersByGameNoteId(ctx context.Context, gameNoteID uuid.UUID) error {
 	_, err := q.db.Exec(ctx, resetApprovedOrdersByGameNoteId, gameNoteID)
 	return err

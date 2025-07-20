@@ -12,42 +12,115 @@ import (
 	"github.com/google/uuid"
 )
 
-const countPlayedGameNotesByUserId = `-- name: CountPlayedGameNotesByUserId :one
-SELECT COUNT(*) AS "count"
-FROM "game_notes"
-WHERE "user_id" = $1::uuid
-    AND "status" IN ('playing', 'finished', 'dropped', 'paused')
-GROUP BY "user_id"
+const countPlayedGameNotesByUserID = `-- name: CountPlayedGameNotesByUserID :one
+SELECT COUNT(*) AS count
+FROM game_notes
+WHERE user_id = $1::uuid
+    AND status IN ('playing', 'finished', 'dropped', 'paused')
+GROUP BY user_id
 `
 
-// Author: Egor Kuzmin (keelfy)
-func (q *Queries) CountPlayedGameNotesByUserId(ctx context.Context, userID uuid.UUID) (int64, error) {
-	row := q.db.QueryRow(ctx, countPlayedGameNotesByUserId, userID)
+func (q *Queries) CountPlayedGameNotesByUserID(ctx context.Context, userID uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countPlayedGameNotesByUserID, userID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
 }
 
-const deleteGameNoteById = `-- name: DeleteGameNoteById :exec
-DELETE FROM "game_notes"
-WHERE "id" = $1::uuid
+const deleteGameNoteByID = `-- name: DeleteGameNoteByID :exec
+DELETE FROM game_notes
+WHERE id = $1::uuid
 `
 
-// Author: Egor Kuzmin (keelfy)
-func (q *Queries) DeleteGameNoteById(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.Exec(ctx, deleteGameNoteById, id)
+func (q *Queries) DeleteGameNoteByID(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteGameNoteByID, id)
 	return err
 }
 
-const findGameNoteById = `-- name: FindGameNoteById :one
-SELECT id, created_at, created_by, updated_at, updated_by, user_id, game_id, name, link, release_date, rate, comment, initial_orderer_id, status, last_played_at, poster_key, poster_updated_at
-FROM "game_notes"
-WHERE "id" = $1::uuid
+const findDetailedGameNoteByID = `-- name: FindDetailedGameNoteByID :one
+SELECT gn.id, gn.created_at, gn.created_by, gn.updated_at, gn.updated_by, gn.user_id, gn.content_id, gn.rate, gn.comment, gn.initial_orderer_id, gn.status, gn.last_played_at,
+    COALESCE(gl.title, 'Untitled Game') AS title,
+    g.cover_key,
+    g.cover_key_type,
+    g.source_url,
+    g.source_type,
+    g.websites,
+    g.release_date
+FROM game_notes gn
+    LEFT JOIN games g ON gn.content_id = g.id
+    LEFT JOIN game_localizations gl ON g.id = gl.content_id
+    AND gl.lang = $1::locale
+WHERE gn.id = $2::uuid
 `
 
-// Author: Egor Kuzmin (keelfy)
-func (q *Queries) FindGameNoteById(ctx context.Context, id uuid.UUID) (*GameNote, error) {
-	row := q.db.QueryRow(ctx, findGameNoteById, id)
+type FindDetailedGameNoteByIDParams struct {
+	Locale Locale    `json:"locale"`
+	ID     uuid.UUID `json:"id"`
+}
+
+type FindDetailedGameNoteByIDRow struct {
+	ID               uuid.UUID         `json:"id"`
+	CreatedAt        time.Time         `json:"created_at"`
+	CreatedBy        uuid.UUID         `json:"created_by"`
+	UpdatedAt        time.Time         `json:"updated_at"`
+	UpdatedBy        uuid.UUID         `json:"updated_by"`
+	UserID           uuid.UUID         `json:"user_id"`
+	ContentID        uuid.UUID         `json:"content_id"`
+	Rate             *int16            `json:"rate"`
+	Comment          *string           `json:"comment"`
+	InitialOrdererID uuid.UUID         `json:"initial_orderer_id"`
+	Status           GameNoteStatus    `json:"status"`
+	LastPlayedAt     *time.Time        `json:"last_played_at"`
+	Title            string            `json:"title"`
+	CoverKey         *string           `json:"cover_key"`
+	CoverKeyType     NullImageKeyType  `json:"cover_key_type"`
+	SourceUrl        *string           `json:"source_url"`
+	SourceType       NullContentSource `json:"source_type"`
+	Websites         []byte            `json:"websites"`
+	ReleaseDate      *time.Time        `json:"release_date"`
+}
+
+func (q *Queries) FindDetailedGameNoteByID(ctx context.Context, arg FindDetailedGameNoteByIDParams) (*FindDetailedGameNoteByIDRow, error) {
+	row := q.db.QueryRow(ctx, findDetailedGameNoteByID, arg.Locale, arg.ID)
+	var i FindDetailedGameNoteByIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.CreatedBy,
+		&i.UpdatedAt,
+		&i.UpdatedBy,
+		&i.UserID,
+		&i.ContentID,
+		&i.Rate,
+		&i.Comment,
+		&i.InitialOrdererID,
+		&i.Status,
+		&i.LastPlayedAt,
+		&i.Title,
+		&i.CoverKey,
+		&i.CoverKeyType,
+		&i.SourceUrl,
+		&i.SourceType,
+		&i.Websites,
+		&i.ReleaseDate,
+	)
+	return &i, err
+}
+
+const findGameNoteByContentID = `-- name: FindGameNoteByContentID :one
+SELECT id, created_at, created_by, updated_at, updated_by, user_id, content_id, rate, comment, initial_orderer_id, status, last_played_at
+FROM game_notes
+WHERE content_id = $1::uuid
+    AND user_id = $2::uuid
+`
+
+type FindGameNoteByContentIDParams struct {
+	ContentID uuid.UUID `json:"content_id"`
+	UserID    uuid.UUID `json:"user_id"`
+}
+
+func (q *Queries) FindGameNoteByContentID(ctx context.Context, arg FindGameNoteByContentIDParams) (*GameNote, error) {
+	row := q.db.QueryRow(ctx, findGameNoteByContentID, arg.ContentID, arg.UserID)
 	var i GameNote
 	err := row.Scan(
 		&i.ID,
@@ -56,85 +129,153 @@ func (q *Queries) FindGameNoteById(ctx context.Context, id uuid.UUID) (*GameNote
 		&i.UpdatedAt,
 		&i.UpdatedBy,
 		&i.UserID,
-		&i.GameID,
-		&i.Name,
-		&i.Link,
-		&i.ReleaseDate,
+		&i.ContentID,
 		&i.Rate,
 		&i.Comment,
 		&i.InitialOrdererID,
 		&i.Status,
 		&i.LastPlayedAt,
-		&i.PosterKey,
-		&i.PosterUpdatedAt,
 	)
 	return &i, err
 }
 
-const findPaginatedGameNotesByUserId = `-- name: FindPaginatedGameNotesByUserId :many
-SELECT 
-    gn."id",
-    gn."created_at",
-    gn."name",
-    gn."status",
-    gn."rate",
-    gn."comment",
-    gn."release_date",
-    gn."last_played_at",
-    o."username" AS "initial_orderer_username",
-    COALESCE(order_counts."count", 0) AS "orderer_count"
-FROM "game_notes" gn
-    INNER JOIN "orderers" o ON gn."initial_orderer_id" = o."id"
+const findGameNoteByID = `-- name: FindGameNoteByID :one
+SELECT id, created_at, created_by, updated_at, updated_by, user_id, content_id, rate, comment, initial_orderer_id, status, last_played_at
+FROM game_notes
+WHERE id = $1::uuid
+`
+
+func (q *Queries) FindGameNoteByID(ctx context.Context, id uuid.UUID) (*GameNote, error) {
+	row := q.db.QueryRow(ctx, findGameNoteByID, id)
+	var i GameNote
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.CreatedBy,
+		&i.UpdatedAt,
+		&i.UpdatedBy,
+		&i.UserID,
+		&i.ContentID,
+		&i.Rate,
+		&i.Comment,
+		&i.InitialOrdererID,
+		&i.Status,
+		&i.LastPlayedAt,
+	)
+	return &i, err
+}
+
+const findLocalizedGameNoteByID = `-- name: FindLocalizedGameNoteByID :one
+SELECT gn.id, gn.created_at, gn.created_by, gn.updated_at, gn.updated_by, gn.user_id, gn.content_id, gn.rate, gn.comment, gn.initial_orderer_id, gn.status, gn.last_played_at,
+    COALESCE(gl.title, 'Untitled Game') AS title
+FROM game_notes gn
+    LEFT JOIN game_localizations gl ON gn.content_id = gl.content_id
+    AND gl.lang = $1::locale
+WHERE gn.id = $2::uuid
+`
+
+type FindLocalizedGameNoteByIDParams struct {
+	Locale Locale    `json:"locale"`
+	ID     uuid.UUID `json:"id"`
+}
+
+type FindLocalizedGameNoteByIDRow struct {
+	ID               uuid.UUID      `json:"id"`
+	CreatedAt        time.Time      `json:"created_at"`
+	CreatedBy        uuid.UUID      `json:"created_by"`
+	UpdatedAt        time.Time      `json:"updated_at"`
+	UpdatedBy        uuid.UUID      `json:"updated_by"`
+	UserID           uuid.UUID      `json:"user_id"`
+	ContentID        uuid.UUID      `json:"content_id"`
+	Rate             *int16         `json:"rate"`
+	Comment          *string        `json:"comment"`
+	InitialOrdererID uuid.UUID      `json:"initial_orderer_id"`
+	Status           GameNoteStatus `json:"status"`
+	LastPlayedAt     *time.Time     `json:"last_played_at"`
+	Title            string         `json:"title"`
+}
+
+func (q *Queries) FindLocalizedGameNoteByID(ctx context.Context, arg FindLocalizedGameNoteByIDParams) (*FindLocalizedGameNoteByIDRow, error) {
+	row := q.db.QueryRow(ctx, findLocalizedGameNoteByID, arg.Locale, arg.ID)
+	var i FindLocalizedGameNoteByIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.CreatedBy,
+		&i.UpdatedAt,
+		&i.UpdatedBy,
+		&i.UserID,
+		&i.ContentID,
+		&i.Rate,
+		&i.Comment,
+		&i.InitialOrdererID,
+		&i.Status,
+		&i.LastPlayedAt,
+		&i.Title,
+	)
+	return &i, err
+}
+
+const findPaginatedGameNotesByUserID = `-- name: FindPaginatedGameNotesByUserID :many
+SELECT gn.id,
+    gn.created_at,
+    gn.content_id,
+    gn.status,
+    gn.rate,
+    gn.comment,
+    gn.last_played_at,
+    o.display_name AS initial_orderer_display_name,
+    COALESCE(order_counts.count, 0) AS orderer_count
+FROM game_notes gn
+    INNER JOIN orderers o ON gn.initial_orderer_id = o.id
     LEFT JOIN (
-        SELECT "game_note_id", COUNT(*) as "count" 
-        FROM "game_note_orders" 
-        GROUP BY "game_note_id"
-    ) order_counts ON gn."id" = order_counts."game_note_id"
-WHERE gn."user_id" = $1::uuid
-    AND gn."updated_at" < $2::timestamptz
-ORDER BY gn."updated_at" DESC
+        SELECT game_note_id,
+            COUNT(*) as count
+        FROM game_note_orders
+        GROUP BY game_note_id
+    ) order_counts ON gn.id = order_counts.game_note_id
+WHERE gn.user_id = $1::uuid
+    AND gn.updated_at < $2::timestamptz
+ORDER BY gn.updated_at DESC
 LIMIT $3::int
 `
 
-type FindPaginatedGameNotesByUserIdParams struct {
+type FindPaginatedGameNotesByUserIDParams struct {
 	UserID    uuid.UUID `json:"user_id"`
 	UpdatedAt time.Time `json:"updated_at"`
 	Limit     int32     `json:"limit"`
 }
 
-type FindPaginatedGameNotesByUserIdRow struct {
-	ID                     uuid.UUID      `json:"id"`
-	CreatedAt              time.Time      `json:"created_at"`
-	Name                   string         `json:"name"`
-	Status                 GameNoteStatus `json:"status"`
-	Rate                   *int16         `json:"rate"`
-	Comment                *string        `json:"comment"`
-	ReleaseDate            *time.Time     `json:"release_date"`
-	LastPlayedAt           *time.Time     `json:"last_played_at"`
-	InitialOrdererUsername string         `json:"initial_orderer_username"`
-	OrdererCount           int64          `json:"orderer_count"`
+type FindPaginatedGameNotesByUserIDRow struct {
+	ID                        uuid.UUID      `json:"id"`
+	CreatedAt                 time.Time      `json:"created_at"`
+	ContentID                 uuid.UUID      `json:"content_id"`
+	Status                    GameNoteStatus `json:"status"`
+	Rate                      *int16         `json:"rate"`
+	Comment                   *string        `json:"comment"`
+	LastPlayedAt              *time.Time     `json:"last_played_at"`
+	InitialOrdererDisplayName string         `json:"initial_orderer_display_name"`
+	OrdererCount              int64          `json:"orderer_count"`
 }
 
-// Author: Egor Kuzmin (keelfy)
-func (q *Queries) FindPaginatedGameNotesByUserId(ctx context.Context, arg FindPaginatedGameNotesByUserIdParams) ([]*FindPaginatedGameNotesByUserIdRow, error) {
-	rows, err := q.db.Query(ctx, findPaginatedGameNotesByUserId, arg.UserID, arg.UpdatedAt, arg.Limit)
+func (q *Queries) FindPaginatedGameNotesByUserID(ctx context.Context, arg FindPaginatedGameNotesByUserIDParams) ([]*FindPaginatedGameNotesByUserIDRow, error) {
+	rows, err := q.db.Query(ctx, findPaginatedGameNotesByUserID, arg.UserID, arg.UpdatedAt, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []*FindPaginatedGameNotesByUserIdRow{}
+	items := []*FindPaginatedGameNotesByUserIDRow{}
 	for rows.Next() {
-		var i FindPaginatedGameNotesByUserIdRow
+		var i FindPaginatedGameNotesByUserIDRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.CreatedAt,
-			&i.Name,
+			&i.ContentID,
 			&i.Status,
 			&i.Rate,
 			&i.Comment,
-			&i.ReleaseDate,
 			&i.LastPlayedAt,
-			&i.InitialOrdererUsername,
+			&i.InitialOrdererDisplayName,
 			&i.OrdererCount,
 		); err != nil {
 			return nil, err
@@ -148,68 +289,52 @@ func (q *Queries) FindPaginatedGameNotesByUserId(ctx context.Context, arg FindPa
 }
 
 const insertGameNote = `-- name: InsertGameNote :one
-INSERT INTO "game_notes" (
-    "created_by",
-    "updated_by",
-    "name",
-    "link",
-    "release_date",
-    "game_id",
-    "user_id",
-    "rate",
-    "comment",
-    "initial_orderer_id",
-    "status",
-    "last_played_at",
-    "poster_key"
-) VALUES (
-    $1::uuid,
-    $1::uuid,
-    $2::text,
-    $3::text,
-    $4::timestamptz,
-    $5::uuid,
-    $6::uuid,
-    $7::smallint,
-    $8::text,
-    $9::uuid,
-    $10::game_note_status,
-    $11::timestamptz,
-    $12::text
-)
-RETURNING id, created_at, created_by, updated_at, updated_by, user_id, game_id, name, link, release_date, rate, comment, initial_orderer_id, status, last_played_at, poster_key, poster_updated_at
+INSERT INTO game_notes (
+        created_by,
+        updated_by,
+        content_id,
+        user_id,
+        rate,
+        comment,
+        initial_orderer_id,
+        status,
+        last_played_at
+    )
+VALUES (
+        $1::uuid,
+        $1::uuid,
+        $2::uuid,
+        $3::uuid,
+        $4::smallint,
+        $5::text,
+        $6::uuid,
+        $7::game_note_status,
+        $8::timestamptz
+    )
+RETURNING id, created_at, created_by, updated_at, updated_by, user_id, content_id, rate, comment, initial_orderer_id, status, last_played_at
 `
 
 type InsertGameNoteParams struct {
 	CreatedBy        uuid.UUID      `json:"created_by"`
-	Name             string         `json:"name"`
-	Link             *string        `json:"link"`
-	ReleaseDate      *time.Time     `json:"release_date"`
-	GameID           uuid.UUID      `json:"game_id"`
+	ContentID        uuid.UUID      `json:"content_id"`
 	UserID           uuid.UUID      `json:"user_id"`
 	Rate             *int16         `json:"rate"`
 	Comment          *string        `json:"comment"`
 	InitialOrdererID uuid.UUID      `json:"initial_orderer_id"`
 	Status           GameNoteStatus `json:"status"`
 	LastPlayedAt     *time.Time     `json:"last_played_at"`
-	PosterKey        *string        `json:"poster_key"`
 }
 
-// Author: Egor Kuzmin (keelfy)
 func (q *Queries) InsertGameNote(ctx context.Context, arg InsertGameNoteParams) (*GameNote, error) {
 	row := q.db.QueryRow(ctx, insertGameNote,
 		arg.CreatedBy,
-		arg.Name,
-		arg.Link,
-		arg.ReleaseDate,
-		arg.GameID,
+		arg.ContentID,
 		arg.UserID,
 		arg.Rate,
 		arg.Comment,
 		arg.InitialOrdererID,
 		arg.Status,
 		arg.LastPlayedAt,
-		arg.PosterKey,
 	)
 	var i GameNote
 	err := row.Scan(
@@ -219,103 +344,44 @@ func (q *Queries) InsertGameNote(ctx context.Context, arg InsertGameNoteParams) 
 		&i.UpdatedAt,
 		&i.UpdatedBy,
 		&i.UserID,
-		&i.GameID,
-		&i.Name,
-		&i.Link,
-		&i.ReleaseDate,
+		&i.ContentID,
 		&i.Rate,
 		&i.Comment,
 		&i.InitialOrdererID,
 		&i.Status,
 		&i.LastPlayedAt,
-		&i.PosterKey,
-		&i.PosterUpdatedAt,
 	)
 	return &i, err
 }
 
-const updateGameNoteById = `-- name: UpdateGameNoteById :exec
-UPDATE "game_notes"
-SET "updated_by" = $1::uuid, 
-    "updated_at" = now(),
-    "name" = $2::text,
-    "link" = $3::text,
-    "release_date" = $4::timestamptz,
-    "rate" = $5::smallint,
-    "comment" = $6::text,
-    "status" = $7::game_note_status,
-    "last_played_at" = $8::timestamptz,
-    "poster_key" = $9::text
-WHERE "id" = $10::uuid
+const updateGameNoteByID = `-- name: UpdateGameNoteByID :exec
+UPDATE game_notes
+SET updated_by = $1::uuid,
+    updated_at = now(),
+    rate = $2::smallint,
+    comment = $3::text,
+    status = $4::game_note_status,
+    last_played_at = $5::timestamptz
+WHERE id = $6::uuid
 `
 
-type UpdateGameNoteByIdParams struct {
+type UpdateGameNoteByIDParams struct {
 	UpdatedBy    uuid.UUID      `json:"updated_by"`
-	Name         string         `json:"name"`
-	Link         *string        `json:"link"`
-	ReleaseDate  *time.Time     `json:"release_date"`
 	Rate         *int16         `json:"rate"`
 	Comment      *string        `json:"comment"`
 	Status       GameNoteStatus `json:"status"`
 	LastPlayedAt *time.Time     `json:"last_played_at"`
-	PosterKey    *string        `json:"poster_key"`
 	ID           uuid.UUID      `json:"id"`
 }
 
-// Author: Egor Kuzmin (keelfy)
-func (q *Queries) UpdateGameNoteById(ctx context.Context, arg UpdateGameNoteByIdParams) error {
-	_, err := q.db.Exec(ctx, updateGameNoteById,
+func (q *Queries) UpdateGameNoteByID(ctx context.Context, arg UpdateGameNoteByIDParams) error {
+	_, err := q.db.Exec(ctx, updateGameNoteByID,
 		arg.UpdatedBy,
-		arg.Name,
-		arg.Link,
-		arg.ReleaseDate,
 		arg.Rate,
 		arg.Comment,
 		arg.Status,
 		arg.LastPlayedAt,
-		arg.PosterKey,
 		arg.ID,
 	)
 	return err
-}
-
-const updateGameNoteName = `-- name: UpdateGameNoteName :one
-UPDATE "game_notes"
-SET "name" = $1::text,
-    "updated_by" = $2::uuid,
-    "updated_at" = now()
-WHERE "id" = $3::uuid
-RETURNING id, created_at, created_by, updated_at, updated_by, user_id, game_id, name, link, release_date, rate, comment, initial_orderer_id, status, last_played_at, poster_key, poster_updated_at
-`
-
-type UpdateGameNoteNameParams struct {
-	Name      string    `json:"name"`
-	UpdatedBy uuid.UUID `json:"updated_by"`
-	ID        uuid.UUID `json:"id"`
-}
-
-// Author: Egor Kuzmin (keelfy)
-func (q *Queries) UpdateGameNoteName(ctx context.Context, arg UpdateGameNoteNameParams) (*GameNote, error) {
-	row := q.db.QueryRow(ctx, updateGameNoteName, arg.Name, arg.UpdatedBy, arg.ID)
-	var i GameNote
-	err := row.Scan(
-		&i.ID,
-		&i.CreatedAt,
-		&i.CreatedBy,
-		&i.UpdatedAt,
-		&i.UpdatedBy,
-		&i.UserID,
-		&i.GameID,
-		&i.Name,
-		&i.Link,
-		&i.ReleaseDate,
-		&i.Rate,
-		&i.Comment,
-		&i.InitialOrdererID,
-		&i.Status,
-		&i.LastPlayedAt,
-		&i.PosterKey,
-		&i.PosterUpdatedAt,
-	)
-	return &i, err
 }

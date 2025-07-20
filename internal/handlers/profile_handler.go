@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/google/uuid"
 	"github.com/jinzhu/copier"
 	"github.com/pickle.pw/monolith/internal/config"
 	"github.com/pickle.pw/monolith/internal/logger"
@@ -69,7 +68,7 @@ func (h *profileHandler) GetProfileById(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	profile, err := h.profileService.GetProfileById(ctx, profileId)
+	profile, err := h.profileService.GetProfileByID(ctx, profileId)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
@@ -150,7 +149,7 @@ func (handler *profileHandler) GetMyProfile(w http.ResponseWriter, r *http.Reque
 // @Router /v1/users/me [patch]
 func (handler *profileHandler) UpdateSettings(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userId, err := utils.UserIdFromContext(ctx)
+	userId, err := utils.GetUserIDFromCtx(ctx)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
@@ -181,7 +180,7 @@ func (handler *profileHandler) UpdateSettings(w http.ResponseWriter, r *http.Req
 // @Router /v1/users/me/suggestion-preferences [patch]
 func (handler *profileHandler) UpdateSuggestionPreferences(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userId, err := utils.UserIdFromContext(ctx)
+	userId, err := utils.GetUserIDFromCtx(ctx)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
@@ -280,7 +279,7 @@ func (handler *profileHandler) GetProfileAvatarUrl(w http.ResponseWriter, r *htt
 // @Router /v1/users/me/avatar [get]
 func (handler *profileHandler) GetMyProfileAvatarUrl(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userId, err := utils.UserIdFromContext(ctx)
+	userId, err := utils.GetUserIDFromCtx(ctx)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
@@ -313,7 +312,7 @@ func (handler *profileHandler) GetMyProfileAvatarUrl(w http.ResponseWriter, r *h
 // @Router /v1/users/me/avatar [post]
 func (handler *profileHandler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userId, err := utils.UserIdFromContext(ctx)
+	userId, err := utils.GetUserIDFromCtx(ctx)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
@@ -344,7 +343,6 @@ func (handler *profileHandler) UploadAvatar(w http.ResponseWriter, r *http.Reque
 	}
 
 	res := &types.ImagePreviewRes{
-		PreviewID:  uuid.Nil,
 		PreviewURL: url,
 	}
 	utils.WriteHttpJsonResponse(ctx, w, res)
@@ -388,7 +386,7 @@ func (handler *profileHandler) CreateProfileWebhook(w http.ResponseWriter, r *ht
 // @Router /v1/users/{userId}/follows [post]
 func (handler *profileHandler) FollowProfile(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	authUserId, err := utils.UserIdFromContext(ctx)
+	authUserId, err := utils.GetUserIDFromCtx(ctx)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return
@@ -421,7 +419,7 @@ func (handler *profileHandler) FollowProfile(w http.ResponseWriter, r *http.Requ
 // @Router /v1/users/{userId}/follows [delete]
 func (handler *profileHandler) UnfollowProfile(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	authUserId, err := utils.UserIdFromContext(ctx)
+	authUserId, err := utils.GetUserIDFromCtx(ctx)
 	if err != nil {
 		utils.HttpError(ctx, err, w)
 		return

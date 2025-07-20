@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	db "github.com/pickle.pw/monolith/db/sqlc"
 	"github.com/pickle.pw/monolith/internal/errors"
 	"github.com/pickle.pw/monolith/internal/storage"
@@ -12,8 +13,8 @@ import (
 
 type OrdererService interface {
 	GetOrdererById(ctx context.Context, id uuid.UUID) (*db.Orderer, error)
-	CreateOrderer(ctx context.Context, username string, creator *db.Profile, isAnonymous bool) (*db.Orderer, error)
-	CreateOrdererWithTx(ctx context.Context, qtx *db.Queries, username string, creator *db.Profile, isAnonymous bool) (*db.Orderer, error)
+	CreateReferencedOrdererIfNotExists(ctx context.Context, qtx *db.Queries, initiator *db.Profile, displayName, source, referenceUserID string) (*db.Orderer, error)
+	CreateOrdererManuallyIfNotExists(ctx context.Context, qtx *db.Queries, initiator *db.Profile, displayName, source string) (*db.Orderer, error)
 	UpdateOrdererUsernameByUserIDWithTx(ctx context.Context, qtx *db.Queries, profile *db.Profile) error
 }
 
@@ -35,22 +36,59 @@ func (service *ordererService) GetOrdererById(ctx context.Context, id uuid.UUID)
 	return orderer, nil
 }
 
-func (service *ordererService) CreateOrderer(ctx context.Context, username string, creator *db.Profile, isAnonymous bool) (*db.Orderer, error) {
-	return service.CreateOrdererWithTx(ctx, service.sqlDb.Queries(), username, creator, isAnonymous)
-}
-
-func (service *ordererService) CreateOrdererWithTx(ctx context.Context, qtx *db.Queries, username string, creator *db.Profile, isAnonymous bool) (*db.Orderer, error) {
-	var creatorUuid *uuid.UUID
-	if creator != nil {
-		creatorUuid = &creator.UserID
+func (service *ordererService) CreateReferencedOrdererIfNotExists(ctx context.Context, qtx *db.Queries, initiator *db.Profile, displayName, source, referenceUserID string) (*db.Orderer, error) {
+	var initiatorUUID *uuid.UUID
+	if initiator != nil {
+		initiatorUUID = &initiator.UserID
 	}
 
-	orderer, err := qtx.InsertOrderer(ctx, db.InsertOrdererParams{
-		CreatedBy: creatorUuid,
-		UpdatedBy: creatorUuid,
-		Username:  username,
-		UserID:    creatorUuid,
-		Anonymous: isAnonymous,
+	orderer, err := qtx.FindOrdererBySourceAndReferenceUserID(ctx, db.FindOrdererBySourceAndReferenceUserIDParams{
+		Source:          source,
+		ReferenceUserID: referenceUserID,
+	})
+	if err != nil && err != pgx.ErrNoRows {
+		return nil, err
+	}
+	if orderer != nil {
+		return orderer, nil
+	}
+
+	orderer, err = qtx.InsertReferencedOrderer(ctx, db.InsertReferencedOrdererParams{
+		CreatedBy:       initiatorUUID,
+		UpdatedBy:       initiatorUUID,
+		DisplayName:     displayName,
+		UserID:          initiatorUUID,
+		Source:          source,
+		ReferenceUserID: &referenceUserID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return orderer, nil
+}
+
+func (service *ordererService) CreateOrdererManuallyIfNotExists(ctx context.Context, qtx *db.Queries, initiator *db.Profile, displayName, source string) (*db.Orderer, error) {
+	var initiatorUUID *uuid.UUID
+	if initiator != nil {
+		initiatorUUID = &initiator.UserID
+	}
+
+	orderer, err := qtx.FindOrdererByUserID(ctx, *initiatorUUID)
+	if err != nil && err != pgx.ErrNoRows {
+		return nil, err
+	}
+
+	if orderer != nil {
+		return orderer, nil
+	}
+
+	orderer, err = qtx.InsertOrdererManually(ctx, db.InsertOrdererManuallyParams{
+		CreatedBy:       initiatorUUID,
+		UpdatedBy:       initiatorUUID,
+		DisplayName:     displayName,
+		UserID:          initiatorUUID,
+		Source:          source,
+		ReferenceUserID: nil,
 	})
 	if err != nil {
 		return nil, err
@@ -59,15 +97,15 @@ func (service *ordererService) CreateOrdererWithTx(ctx context.Context, qtx *db.
 }
 
 func (service *ordererService) UpdateOrdererUsernameByUserIDWithTx(ctx context.Context, qtx *db.Queries, profile *db.Profile) error {
-	authUserID, err := utils.UserIdFromContext(ctx)
+	authUserID, err := utils.GetUserIDFromCtx(ctx)
 	if err != nil {
 		return errors.NewInternalServerError("Error occurred during user ID extraction", err)
 	}
 
 	err = qtx.UpdateOrdererByUserID(ctx, db.UpdateOrdererByUserIDParams{
-		UserID:    &profile.UserID,
-		UpdatedBy: &authUserID,
-		Username:  profile.Username,
+		UserID:      profile.UserID,
+		UpdatedBy:   authUserID,
+		DisplayName: profile.DisplayName,
 	})
 	if err != nil {
 		return errors.NewInternalServerError("Error occurred during orderer update", err)

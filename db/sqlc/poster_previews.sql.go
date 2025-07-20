@@ -13,7 +13,8 @@ import (
 )
 
 const deletePosterPreview = `-- name: DeletePosterPreview :exec
-DELETE FROM "poster_previews" WHERE "id" = $1::uuid
+DELETE FROM poster_previews
+WHERE id = $1::uuid
 `
 
 func (q *Queries) DeletePosterPreview(ctx context.Context, id uuid.UUID) error {
@@ -22,11 +23,11 @@ func (q *Queries) DeletePosterPreview(ctx context.Context, id uuid.UUID) error {
 }
 
 const findPosterPreviewByCreatedAtAfterAndCreatedBy = `-- name: FindPosterPreviewByCreatedAtAfterAndCreatedBy :many
-SELECT id, created_at, created_by, object_key 
-FROM "poster_previews" 
-WHERE "created_at" > $1::timestamptz
-    AND "created_by" = $2::uuid
-ORDER BY "created_at" DESC
+SELECT id, created_at, created_by, object_key
+FROM poster_previews
+WHERE created_at > $1::timestamptz
+    AND created_by = $2::uuid
+ORDER BY created_at DESC
 LIMIT $3::int
 `
 
@@ -62,10 +63,10 @@ func (q *Queries) FindPosterPreviewByCreatedAtAfterAndCreatedBy(ctx context.Cont
 }
 
 const findPosterPreviewByCreatedBy = `-- name: FindPosterPreviewByCreatedBy :many
-SELECT id, created_at, created_by, object_key 
-FROM "poster_previews" 
-WHERE "created_by" = $1::uuid
-ORDER BY "created_at" DESC
+SELECT id, created_at, created_by, object_key
+FROM poster_previews
+WHERE created_by = $1::uuid
+ORDER BY created_at DESC
 `
 
 func (q *Queries) FindPosterPreviewByCreatedBy(ctx context.Context, createdBy uuid.UUID) ([]*PosterPreview, error) {
@@ -94,7 +95,9 @@ func (q *Queries) FindPosterPreviewByCreatedBy(ctx context.Context, createdBy uu
 }
 
 const findPosterPreviewById = `-- name: FindPosterPreviewById :one
-SELECT id, created_at, created_by, object_key FROM "poster_previews" WHERE "id" = $1::uuid
+SELECT id, created_at, created_by, object_key
+FROM poster_previews
+WHERE id = $1::uuid
 `
 
 func (q *Queries) FindPosterPreviewById(ctx context.Context, id uuid.UUID) (*PosterPreview, error) {
@@ -110,15 +113,12 @@ func (q *Queries) FindPosterPreviewById(ctx context.Context, id uuid.UUID) (*Pos
 }
 
 const insertPosterPreview = `-- name: InsertPosterPreview :one
-INSERT INTO "poster_previews" (
-    "id",
-    "created_by",
-    "object_key"
-) VALUES (
-    $1::uuid,
-    $2::uuid,
-    $3::text
-)
+INSERT INTO poster_previews (id, created_by, object_key)
+VALUES (
+        $1::uuid,
+        $2::uuid,
+        $3::text
+    )
 RETURNING id, created_at, created_by, object_key
 `
 

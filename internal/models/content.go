@@ -7,94 +7,110 @@ import (
 	db "github.com/pickle.pw/monolith/db/sqlc"
 )
 
-type ContentNote interface {
+type Content interface {
 	GetID() uuid.UUID
-	GetName() string
-	GetUserID() uuid.UUID
+	GetExternalID() int64
+	GetTitle() string
+	GetWebsites() *[]IGDBWebsite
+	GetCoverKey() *string
+	GetCoverKeyType() db.NullImageKeyType
+	GetSourceURL() *string
+	GetSourceType() db.ContentSource
 	GetCategory() db.ContentCategory
-	GetStatus() string
-	GetCreatedAt() time.Time
-	GetInitialOrdererID() uuid.UUID
-	GetPosterKey() *string
-	GetPosterUpdatedAt() time.Time
 }
 
-type GameNote struct {
-	db.GameNote
+type Game struct {
+	ID           uuid.UUID           `json:"id"`
+	ExternalID   int64               `json:"externalId,omitempty"`
+	Title        string              `json:"title,omitempty"`
+	ReleaseDate  *time.Time          `json:"releaseDate,omitempty"`
+	Websites     *[]IGDBWebsite      `json:"websites,omitempty"`
+	CoverKey     *string             `json:"coverKey,omitempty"`
+	CoverKeyType db.NullImageKeyType `json:"coverKeyType,omitempty"`
+	SourceURL    *string             `json:"sourceUrl,omitempty"`
+	SourceType   db.ContentSource    `json:"sourceType,omitempty"`
 }
 
-func (g *GameNote) GetID() uuid.UUID {
+func (g *Game) GetID() uuid.UUID {
 	return g.ID
 }
 
-func (g *GameNote) GetName() string {
-	return g.Name
+func (g *Game) GetExternalID() int64 {
+	return g.ExternalID
 }
 
-func (g *GameNote) GetUserID() uuid.UUID {
-	return g.UserID
+func (g *Game) GetTitle() string {
+	return g.Title
 }
 
-func (g *GameNote) GetCategory() db.ContentCategory {
+func (g *Game) GetWebsites() *[]IGDBWebsite {
+	return g.Websites
+}
+
+func (g *Game) GetCoverKey() *string {
+	return g.CoverKey
+}
+
+func (g *Game) GetCoverKeyType() db.NullImageKeyType {
+	return g.CoverKeyType
+}
+
+func (g *Game) GetSourceURL() *string {
+	return g.SourceURL
+}
+
+func (g *Game) GetSourceType() db.ContentSource {
+	return g.SourceType
+}
+
+func (g *Game) GetCategory() db.ContentCategory {
 	return db.ContentCategoryGames
 }
 
-func (g *GameNote) GetInitialOrdererID() uuid.UUID {
-	return g.InitialOrdererID
+type Movie struct {
+	ID           uuid.UUID           `json:"id"`
+	ExternalID   int64               `json:"externalId,omitempty"`
+	Title        string              `json:"title,omitempty"`
+	ReleaseDate  *time.Time          `json:"releaseDate,omitempty"`
+	Websites     *[]IGDBWebsite      `json:"websites,omitempty"`
+	CoverKey     *string             `json:"coverKey,omitempty"`
+	CoverKeyType db.NullImageKeyType `json:"coverKeyType,omitempty"`
+	SourceURL    *string             `json:"sourceUrl,omitempty"`
+	SourceType   db.ContentSource    `json:"sourceType,omitempty"`
 }
 
-func (g *GameNote) GetStatus() string {
-	return string(g.Status)
-}
-
-func (g *GameNote) GetCreatedAt() time.Time {
-	return g.CreatedAt
-}
-
-func (g *GameNote) GetPosterKey() *string {
-	return g.PosterKey
-}
-
-func (g *GameNote) GetPosterUpdatedAt() time.Time {
-	return g.PosterUpdatedAt
-}
-
-type MovieNote struct {
-	db.MovieNote
-}
-
-func (m *MovieNote) GetID() uuid.UUID {
+func (m *Movie) GetID() uuid.UUID {
 	return m.ID
 }
 
-func (m *MovieNote) GetName() string {
-	return m.Name
+func (m *Movie) GetExternalID() int64 {
+	return m.ExternalID
 }
 
-func (m *MovieNote) GetUserID() uuid.UUID {
-	return m.UserID
+func (m *Movie) GetTitle() string {
+	return m.Title
 }
 
-func (m *MovieNote) GetCategory() db.ContentCategory {
+func (m *Movie) GetWebsites() *[]IGDBWebsite {
+	return m.Websites
+}
+
+func (m *Movie) GetCoverKey() *string {
+	return m.CoverKey
+}
+
+func (m *Movie) GetCoverKeyType() db.NullImageKeyType {
+	return m.CoverKeyType
+}
+
+func (m *Movie) GetSourceURL() *string {
+	return m.SourceURL
+}
+
+func (m *Movie) GetSourceType() db.ContentSource {
+	return m.SourceType
+}
+
+func (m *Movie) GetCategory() db.ContentCategory {
 	return db.ContentCategoryMovies
-}
-
-func (m *MovieNote) GetInitialOrdererID() uuid.UUID {
-	return m.InitialOrdererID
-}
-
-func (m *MovieNote) GetStatus() string {
-	return string(m.Status)
-}
-
-func (m *MovieNote) GetCreatedAt() time.Time {
-	return m.CreatedAt
-}
-
-func (m *MovieNote) GetPosterKey() *string {
-	return m.PosterKey
-}
-
-func (m *MovieNote) GetPosterUpdatedAt() time.Time {
-	return m.PosterUpdatedAt
 }

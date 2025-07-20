@@ -12,12 +12,11 @@ import (
 )
 
 const countOrdersByMovieNoteId = `-- name: CountOrdersByMovieNoteId :one
-SELECT COUNT(*) AS "total"
-FROM "movie_note_orders"
-WHERE "movie_note_id" = $1::uuid
+SELECT COUNT(*) AS total
+FROM movie_note_orders
+WHERE movie_note_id = $1::uuid
 `
 
-// Author: Egor Kuzmin (keelfy)
 func (q *Queries) CountOrdersByMovieNoteId(ctx context.Context, movieNoteID uuid.UUID) (int64, error) {
 	row := q.db.QueryRow(ctx, countOrdersByMovieNoteId, movieNoteID)
 	var total int64
@@ -26,16 +25,17 @@ func (q *Queries) CountOrdersByMovieNoteId(ctx context.Context, movieNoteID uuid
 }
 
 const insertMovieNoteOrder = `-- name: InsertMovieNoteOrder :one
-INSERT INTO "movie_note_orders" (
-    "movie_note_id",
-    "order_id",
-    "created_by"
-) VALUES (
-    $1::uuid,
-    $2::uuid,
-    $3::uuid
-)
-RETURNING movie_note_id, order_id, created_at, created_by
+INSERT INTO movie_note_orders (
+        movie_note_id,
+        order_id,
+        created_by
+    )
+VALUES (
+        $1::uuid,
+        $2::uuid,
+        $3::uuid
+    )
+RETURNING movie_note_id, order_id, created_at, created_by, updated_at, updated_by
 `
 
 type InsertMovieNoteOrderParams struct {
@@ -44,7 +44,6 @@ type InsertMovieNoteOrderParams struct {
 	CreatedBy   uuid.UUID `json:"created_by"`
 }
 
-// Author: Egor Kuzmin (keelfy)
 func (q *Queries) InsertMovieNoteOrder(ctx context.Context, arg InsertMovieNoteOrderParams) (*MovieNoteOrder, error) {
 	row := q.db.QueryRow(ctx, insertMovieNoteOrder, arg.MovieNoteID, arg.OrderID, arg.CreatedBy)
 	var i MovieNoteOrder
@@ -53,21 +52,22 @@ func (q *Queries) InsertMovieNoteOrder(ctx context.Context, arg InsertMovieNoteO
 		&i.OrderID,
 		&i.CreatedAt,
 		&i.CreatedBy,
+		&i.UpdatedAt,
+		&i.UpdatedBy,
 	)
 	return &i, err
 }
 
 const resetApprovedOrdersByMovieNoteId = `-- name: ResetApprovedOrdersByMovieNoteId :exec
-UPDATE "orders"
-SET "status" = 'pending'
-WHERE "id" IN (
-    SELECT "order_id"
-    FROM "movie_note_orders"
-    WHERE "movie_note_id" = $1::uuid
-)
+UPDATE orders
+SET status = 'pending'
+WHERE id IN (
+        SELECT order_id
+        FROM movie_note_orders
+        WHERE movie_note_id = $1::uuid
+    )
 `
 
-// Author: Egor Kuzmin (keelfy)
 func (q *Queries) ResetApprovedOrdersByMovieNoteId(ctx context.Context, movieNoteID uuid.UUID) error {
 	_, err := q.db.Exec(ctx, resetApprovedOrdersByMovieNoteId, movieNoteID)
 	return err

@@ -1,6 +1,6 @@
 {
-  "id": "06012025_1_content_index",
-  "index": "content",
+  "id": "06012025_1_content_note_index",
+  "index": "content_note",
   "query": {
     "settings": {
       "number_of_shards": 1,

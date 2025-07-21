@@ -1,0 +1,2 @@
+ALTER TABLE games
+ALTER COLUMN websites DROP NOT NULL;

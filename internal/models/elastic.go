@@ -1,9 +1,12 @@
 package models
 
-type ElasticIGDBGame struct {
-	ThumbnailURL *string `json:"thumbnail_url"`
-	EnglishName  string  `json:"name_en"`
-	RussianName  string  `json:"name_ru"`
-	GermanName   string  `json:"name_de"`
-	SpanishName  string  `json:"name_es"`
+import db "github.com/pickle.pw/monolith/db/sqlc"
+
+type BasicElasticContent struct {
+	ImageKey     *string         `json:"image_key"`
+	ImageKeyType db.ImageKeyType `json:"image_key_type"`
+	EnglishName  string          `json:"name_en"`
+	RussianName  string          `json:"name_ru"`
+	GermanName   string          `json:"name_de"`
+	SpanishName  string          `json:"name_es"`
 }

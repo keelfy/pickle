@@ -123,34 +123,56 @@ func (s *igdbSyncService) SyncGames(ctx context.Context) error {
 			qtx = s.sqlDB.Queries().WithTx(tx)
 		}
 
-		websites, err := json.Marshal(game.Websites)
-		if err != nil {
-			return fmt.Errorf("error marshalling websites: %w", err)
+		var websites []models.ContentWebsite
+		var serializedWebsites *[]byte
+
+		if game.Websites != nil {
+			websites = make([]models.ContentWebsite, len(*game.Websites))
+
+			for _, website := range *game.Websites {
+				if !website.Trusted {
+					continue
+				}
+
+				websites = append(websites, models.ContentWebsite{
+					Trusted: website.Trusted,
+					URL:     website.URL,
+					Type:    website.Type.Type,
+				})
+			}
+
+			if len(websites) > 0 {
+				json, err := json.Marshal(websites)
+				if err != nil {
+					return fmt.Errorf("error marshalling websites: %w", err)
+				}
+				serializedWebsites = &json
+			}
 		}
 
 		var releaseDate *time.Time
 		// for _, rd := range game.ReleaseDates {
 		// 	releaseDate = &rd.Date
 		// }
-		if game.FirstReleaseDate > 0 {
-			date := time.Unix(game.FirstReleaseDate, 0)
+		if game.FirstReleaseDate != nil && *game.FirstReleaseDate > 0 {
+			date := time.Unix(*game.FirstReleaseDate, 0)
 			releaseDate = &date
 		}
 
-		var coverKey *string
-		if game.Cover.ImageID != "" {
-			coverKey = &game.Cover.ImageID
+		var sourceUrl *string
+		if game.URL != nil {
+			sourceUrl = game.URL
 		}
 
-		var sourceUrl *string
-		if game.URL != "" {
-			sourceUrl = &game.URL
+		var coverKey *string
+		if game.Cover != nil && game.Cover.ImageID != nil {
+			coverKey = game.Cover.ImageID
 		}
 
 		id, err := qtx.UpsertGame(ctx, db.UpsertGameParams{
 			ExternalID:   game.ID,
 			ReleaseDate:  releaseDate,
-			Websites:     websites,
+			Websites:     serializedWebsites,
 			CoverKey:     coverKey,
 			CoverKeyType: db.NullImageKeyType{ImageKeyType: db.ImageKeyTypeIgdb, Valid: true},
 			SourceUrl:    sourceUrl,
@@ -174,29 +196,26 @@ func (s *igdbSyncService) SyncGames(ctx context.Context) error {
 			names[locale] = game.Name
 		}
 
-		for _, altName := range game.AlternativeNames {
-			comment := strings.ToLower(altName.Comment)
-			if strings.Contains(comment, "russian") {
-				names["ru"] = altName.Name
-			} else if strings.Contains(comment, "german") {
-				names["de"] = altName.Name
-			} else if strings.Contains(comment, "spanish") {
-				names["es"] = altName.Name
-			} else if strings.Contains(comment, "english") {
-				names["en"] = altName.Name
+		if game.AlternativeNames != nil {
+			for _, altName := range *game.AlternativeNames {
+				comment := strings.ToLower(altName.Comment)
+				if strings.Contains(comment, "russian") {
+					names["ru"] = altName.Name
+				} else if strings.Contains(comment, "german") {
+					names["de"] = altName.Name
+				} else if strings.Contains(comment, "spanish") {
+					names["es"] = altName.Name
+				} else if strings.Contains(comment, "english") {
+					names["en"] = altName.Name
+				}
 			}
-		}
-
-		var thumbnailURL *string
-		if game.Cover.URL != "" {
-			url := strings.Replace(game.Cover.URL, "t_cover_big", "t_micro", 1)
-			thumbnailURL = &url
 		}
 
 		documents[i%batchSize] = &storage.BulkIndexRequest{
 			ID: id.String(),
-			Doc: &models.ElasticIGDBGame{
-				ThumbnailURL: thumbnailURL,
+			Doc: &models.BasicElasticContent{
+				ImageKey:     coverKey,
+				ImageKeyType: db.ImageKeyTypeIgdb,
 				EnglishName:  names["en"],
 				RussianName:  names["ru"],
 				GermanName:   names["de"],

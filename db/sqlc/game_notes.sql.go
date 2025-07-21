@@ -76,7 +76,7 @@ type FindDetailedGameNoteByIDRow struct {
 	CoverKeyType     NullImageKeyType  `json:"cover_key_type"`
 	SourceUrl        *string           `json:"source_url"`
 	SourceType       NullContentSource `json:"source_type"`
-	Websites         []byte            `json:"websites"`
+	Websites         *[]byte           `json:"websites"`
 	ReleaseDate      *time.Time        `json:"release_date"`
 }
 
@@ -163,6 +163,32 @@ func (q *Queries) FindGameNoteByID(ctx context.Context, id uuid.UUID) (*GameNote
 		&i.LastPlayedAt,
 	)
 	return &i, err
+}
+
+const findGameNoteContentIDsByUserID = `-- name: FindGameNoteContentIDsByUserID :many
+SELECT DISTINCT content_id
+FROM game_notes
+WHERE user_id = $1::uuid
+`
+
+func (q *Queries) FindGameNoteContentIDsByUserID(ctx context.Context, userID uuid.UUID) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, findGameNoteContentIDsByUserID, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var content_id uuid.UUID
+		if err := rows.Scan(&content_id); err != nil {
+			return nil, err
+		}
+		items = append(items, content_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const findLocalizedGameNoteByID = `-- name: FindLocalizedGameNoteByID :one

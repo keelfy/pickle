@@ -41,3 +41,8 @@ sql:
               type: "Time"
               pointer: true
             nullable: true
+          - db_type: "jsonb"
+            go_type:
+              type: "[]byte"
+              pointer: true
+            nullable: true

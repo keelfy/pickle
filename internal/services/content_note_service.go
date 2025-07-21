@@ -33,9 +33,6 @@ type ContentNoteService interface {
 	AttachOrderToNoteByID(ctx context.Context, order *models.Order, noteID uuid.UUID, category db.ContentCategory, initiatorID uuid.UUID) error
 	AttachOrderToNoteByIDWithTx(ctx context.Context, qtx *db.Queries, order *models.Order, noteID uuid.UUID, category db.ContentCategory, initiatorID uuid.UUID) error
 
-	// posters
-	GetContentNoteCoverImageURL(ctx context.Context, category db.ContentCategory, size string, coverKey string, coverKeyType db.ImageKeyType) (string, error)
-
 	// read operations
 	GetContentNoteByID(ctx context.Context, id uuid.UUID, category db.ContentCategory) (models.ContentNote, error)
 	GetLocalizedNoteByID(ctx context.Context, id uuid.UUID, category db.ContentCategory, locale string) (models.ContentNote, error)
@@ -72,7 +69,7 @@ type contentNoteService struct {
 	countWatchedSFG   singleflight.Group
 }
 
-func NewContentService(
+func NewContentNoteService(
 	sqlDB storage.RelationalStorage, elastic storage.ElasticStorage, cache storage.CacheStorage,
 	posterService PosterService, ordererService OrdererService, permissionService PermissionService,
 	profileService ProfileService, gameService GameService,
@@ -89,22 +86,6 @@ func NewContentService(
 		countPlayedSFG:    singleflight.Group{},
 		countWatchedSFG:   singleflight.Group{},
 	}
-}
-
-func (service *contentNoteService) getContentCategoryPrefix(contentType db.ContentCategory) (string, error) {
-	switch contentType {
-	case db.ContentCategoryGames:
-		return "game-note", nil
-	case db.ContentCategoryMovies:
-		return "movie-note", nil
-	case db.ContentCategoryAnime:
-		return "anime-note", nil
-	case db.ContentCategorySeries:
-		return "series-note", nil
-	case db.ContentCategoryVideo:
-		return "video-note", nil
-	}
-	return "", errors.New("invalid content type")
 }
 
 func (s *contentNoteService) CreateContentNote(ctx context.Context, category db.ContentCategory, userID, creatorID uuid.UUID, req requests.CreateContentNoteReq) (models.ContentNote, error) {
@@ -394,14 +375,6 @@ func (service *contentNoteService) AttachOrderToNoteByIDWithTx(ctx context.Conte
 	return errors.New("invalid content type")
 }
 
-func (s *contentNoteService) GetContentNoteCoverImageURL(ctx context.Context, category db.ContentCategory, size string, coverKey string, coverKeyType db.ImageKeyType) (string, error) {
-	prefix, err := s.getContentCategoryPrefix(category)
-	if err != nil {
-		return "", err
-	}
-	return s.posterService.GetCoverImageURL(ctx, prefix, size, coverKey, coverKeyType)
-}
-
 func (service *contentNoteService) GetContentNoteByID(ctx context.Context, id uuid.UUID, category db.ContentCategory) (models.ContentNote, error) {
 	switch category {
 	case db.ContentCategoryGames:
@@ -497,9 +470,9 @@ func (service *contentNoteService) GetDetailedNoteByID(ctx context.Context, id u
 			return nil, cerrors.NewInternalServerError("Error occurred during game note fetching", err)
 		}
 
-		var websites *[]models.IGDBWebsite
-		if gameNote.Websites != nil && len(gameNote.Websites) > 0 {
-			err = json.Unmarshal(gameNote.Websites, &websites)
+		var websites *[]models.ContentWebsite
+		if gameNote.Websites != nil {
+			err = json.Unmarshal(*gameNote.Websites, &websites)
 			if err != nil {
 				return nil, cerrors.NewInternalServerError("Error occurred during game note fetching", err)
 			}

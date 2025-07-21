@@ -46,6 +46,20 @@ func GetQueryParam(r *http.Request, key, defaultValue string) string {
 	return decodedValue
 }
 
+func GetQueryParamAsUUID(r *http.Request, key string) (uuid.UUID, error) {
+	value := GetQueryParam(r, key, "")
+
+	if value == "" {
+		return uuid.Nil, nil
+	}
+
+	uid, err := ParseUUIDFromString(value)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	return uid, nil
+}
+
 func GetQueryParamAsUUIDs(r *http.Request, key string) ([]uuid.UUID, error) {
 	value := GetQueryParam(r, key, "")
 	uuids := []uuid.UUID{}

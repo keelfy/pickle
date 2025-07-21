@@ -7,11 +7,17 @@ import (
 	db "github.com/pickle.pw/monolith/db/sqlc"
 )
 
+type ContentWebsite struct {
+	Trusted bool   `json:"trusted"`
+	URL     string `json:"url"`
+	Type    string `json:"type"`
+}
+
 type Content interface {
 	GetID() uuid.UUID
 	GetExternalID() int64
 	GetTitle() string
-	GetWebsites() *[]IGDBWebsite
+	GetWebsites() *[]ContentWebsite
 	GetCoverKey() *string
 	GetCoverKeyType() db.NullImageKeyType
 	GetSourceURL() *string
@@ -24,7 +30,7 @@ type Game struct {
 	ExternalID   int64               `json:"externalId,omitempty"`
 	Title        string              `json:"title,omitempty"`
 	ReleaseDate  *time.Time          `json:"releaseDate,omitempty"`
-	Websites     *[]IGDBWebsite      `json:"websites,omitempty"`
+	Websites     *[]ContentWebsite   `json:"websites,omitempty"`
 	CoverKey     *string             `json:"coverKey,omitempty"`
 	CoverKeyType db.NullImageKeyType `json:"coverKeyType,omitempty"`
 	SourceURL    *string             `json:"sourceUrl,omitempty"`
@@ -43,7 +49,7 @@ func (g *Game) GetTitle() string {
 	return g.Title
 }
 
-func (g *Game) GetWebsites() *[]IGDBWebsite {
+func (g *Game) GetWebsites() *[]ContentWebsite {
 	return g.Websites
 }
 
@@ -72,7 +78,7 @@ type Movie struct {
 	ExternalID   int64               `json:"externalId,omitempty"`
 	Title        string              `json:"title,omitempty"`
 	ReleaseDate  *time.Time          `json:"releaseDate,omitempty"`
-	Websites     *[]IGDBWebsite      `json:"websites,omitempty"`
+	Websites     *[]ContentWebsite   `json:"websites"`
 	CoverKey     *string             `json:"coverKey,omitempty"`
 	CoverKeyType db.NullImageKeyType `json:"coverKeyType,omitempty"`
 	SourceURL    *string             `json:"sourceUrl,omitempty"`
@@ -91,7 +97,7 @@ func (m *Movie) GetTitle() string {
 	return m.Title
 }
 
-func (m *Movie) GetWebsites() *[]IGDBWebsite {
+func (m *Movie) GetWebsites() *[]ContentWebsite {
 	return m.Websites
 }
 

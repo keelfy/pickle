@@ -7,7 +7,7 @@ var ProviderSet = wire.NewSet(
 	NewProfileService,
 	NewOrdererService,
 	NewOrderService,
-	NewContentService,
+	NewContentNoteService,
 	NewContentNoteReactionService,
 	NewImageService,
 	NewAvatarService,
@@ -20,5 +20,6 @@ var ProviderSet = wire.NewSet(
 	NewIGDBSyncService,
 	NewKratosService,
 	NewOrdersBrokerService,
+	NewContentService,
 	NewGameService,
 )

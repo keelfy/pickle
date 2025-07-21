@@ -10,15 +10,15 @@ type IGDBReleaseDate struct {
 }
 
 type IGDBGame struct {
-	ID               int64                 `json:"id"`
-	Name             string                `json:"name"`
-	UpdatedAt        int64                 `json:"updated_at"`
-	FirstReleaseDate int64                 `json:"first_release_date"`
-	ReleaseDates     []IGDBReleaseDate     `json:"release_dates"`
-	URL              string                `json:"url"`
-	Websites         []IGDBWebsite         `json:"websites"`
-	Cover            IGDBCover             `json:"cover"`
-	AlternativeNames []IGDBAlternativeName `json:"alternative_names"`
+	ID               int64                  `json:"id"`
+	Name             string                 `json:"name"`
+	UpdatedAt        int64                  `json:"updated_at"`
+	FirstReleaseDate *int64                 `json:"first_release_date"`
+	ReleaseDates     *[]IGDBReleaseDate     `json:"release_dates"`
+	URL              *string                `json:"url"`
+	Websites         *[]IGDBWebsite         `json:"websites"`
+	Cover            *IGDBCover             `json:"cover"`
+	AlternativeNames *[]IGDBAlternativeName `json:"alternative_names"`
 }
 
 var (
@@ -53,8 +53,8 @@ type IGDBWebsiteType struct {
 }
 
 type IGDBCover struct {
-	ImageID string `json:"image_id"`
-	URL     string `json:"url"`
+	ImageID *string `json:"image_id"`
+	URL     string  `json:"url"`
 }
 
 type IGDBAlternativeName struct {

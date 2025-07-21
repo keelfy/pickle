@@ -43,9 +43,9 @@ func (s *gameService) GetGameByIDWithLocalization(ctx context.Context, id uuid.U
 		return nil, cerrors.NewInternalServerError("Error occurred during game fetching", err)
 	}
 
-	var websites *[]models.IGDBWebsite
-	if game.Websites != nil && len(game.Websites) > 0 {
-		if err := json.Unmarshal(game.Websites, &websites); err != nil {
+	var websites *[]models.ContentWebsite
+	if game.Websites != nil {
+		if err := json.Unmarshal(*game.Websites, &websites); err != nil {
 			return nil, cerrors.NewInternalServerError("Error occurred during game fetching", err)
 		}
 	}

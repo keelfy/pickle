@@ -52,7 +52,7 @@ func InitializeAPI(ctx context.Context) (api.PickleAPI, func(), error) {
 	moderatorService := services.NewModeratorService(relationalStorage, cacheStorage, avatarService, profileService)
 	permissionService := services.NewPermissionService(moderatorService)
 	gameService := services.NewGameService(relationalStorage)
-	contentNoteService := services.NewContentService(relationalStorage, elasticStorage, cacheStorage, posterService, ordererService, permissionService, profileService, gameService)
+	contentNoteService := services.NewContentNoteService(relationalStorage, elasticStorage, cacheStorage, posterService, ordererService, permissionService, profileService, gameService)
 	ordersBrokerService := services.NewOrdersBrokerService()
 	orderService := services.NewOrderService(relationalStorage, profileService, ordererService, contentNoteService, permissionService, ordersBrokerService)
 	publicProfileService := services.NewPublicProfileService(avatarService, followerService, moderatorService, orderService, profileService, contentNoteService)
@@ -63,9 +63,10 @@ func InitializeAPI(ctx context.Context) (api.PickleAPI, func(), error) {
 	contentNoteHandler := handlers.NewContentNoteHandler(profileService, orderService, posterService, contentNoteService, contentNoteReactionService)
 	posterHandler := handlers.NewPosterHandler(posterService)
 	migrationService := services.NewMigrationService(relationalStorage, elasticStorage)
-	contentHandler := handlers.NewContentHandler(elasticStorage, contentNoteService)
+	contentService := services.NewContentService(relationalStorage, elasticStorage, posterService, gameService)
+	contentHandler := handlers.NewContentHandler(elasticStorage, contentNoteService, contentService)
 	collectionService := services.NewCollectionService(relationalStorage, cacheStorage, permissionService)
-	collectionHandler := handlers.NewCollectionHandler(collectionService, contentNoteService)
+	collectionHandler := handlers.NewCollectionHandler(collectionService, contentNoteService, posterService)
 	moderatorHandler := handlers.NewModeratorHandler(moderatorService, profileService)
 	profileEventsHandler := handlers.NewProfileEventsHandler(profileService)
 	igdbClient := clients.NewIGDBClient()
@@ -76,8 +77,7 @@ func InitializeAPI(ctx context.Context) (api.PickleAPI, func(), error) {
 		cleanup()
 		return nil, nil, err
 	}
-	gameHandler := handlers.NewGameHandler(gameService, contentNoteService)
-	pickleAPI := api.NewPickleAPI(profileHandler, statusHandler, orderHandler, contentNoteHandler, posterHandler, migrationService, contentHandler, collectionHandler, moderatorHandler, profileEventsHandler, igdbScheduler, igdbSyncService, oryAPI, gameHandler)
+	pickleAPI := api.NewPickleAPI(profileHandler, statusHandler, orderHandler, contentNoteHandler, posterHandler, migrationService, contentHandler, collectionHandler, moderatorHandler, profileEventsHandler, igdbScheduler, igdbSyncService, oryAPI)
 	return pickleAPI, func() {
 		cleanup()
 	}, nil

@@ -31,15 +31,18 @@ type CollectionHandler interface {
 type collectionHandler struct {
 	collectionService services.CollectionService
 	contentService    services.ContentNoteService
+	posterService     services.PosterService
 }
 
 func NewCollectionHandler(
 	collectionService services.CollectionService,
 	contentService services.ContentNoteService,
+	posterService services.PosterService,
 ) CollectionHandler {
 	return &collectionHandler{
 		collectionService: collectionService,
 		contentService:    contentService,
+		posterService:     posterService,
 	}
 }
 
@@ -470,7 +473,7 @@ func (h *collectionHandler) GetItemsByCollectionID(w http.ResponseWriter, r *htt
 		}
 
 		if item.CoverKey != nil && item.CoverKeyType.Valid {
-			posterURL, err := h.contentService.GetContentNoteCoverImageURL(ctx, item.Category, posterSize, *item.CoverKey, item.CoverKeyType.ImageKeyType)
+			posterURL, err := h.posterService.GetCoverImageURL(ctx, posterSize, *item.CoverKey, item.CoverKeyType.ImageKeyType)
 			if err != nil {
 				logger.Errorf(ctx, "failed to get poster image URL for %s %s: %v", item.Category, item.NoteID, err)
 			} else {

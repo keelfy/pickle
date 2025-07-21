@@ -39,7 +39,6 @@ type pickleAPI struct {
 	igdbSyncService      services.IGDBSyncService
 	authHandler          handlers.AuthHandler
 	oryAPI               clients.OryAPI
-	gameHandler          handlers.GameHandler
 }
 
 func NewPickleAPI(
@@ -49,7 +48,7 @@ func NewPickleAPI(
 	collectionHandler handlers.CollectionHandler, moderatorHandler handlers.ModeratorHandler,
 	profileEventsHandler handlers.ProfileEventsHandler,
 	igdbSyncScheduler schedulers.IGDBScheduler, igdbSyncService services.IGDBSyncService,
-	oryAPI clients.OryAPI, gameHandler handlers.GameHandler,
+	oryAPI clients.OryAPI,
 ) PickleAPI {
 	return &pickleAPI{
 		profileHandler:       profileHandler,
@@ -67,7 +66,6 @@ func NewPickleAPI(
 		oryAPI:               oryAPI,
 		authHandler:          handlers.NewAuthHandler(),
 		tokenAuth:            jwtAuth.New("HS256", config.GetJWTSecret(), nil),
-		gameHandler:          gameHandler,
 	}
 }
 
@@ -189,10 +187,9 @@ func (api *pickleAPI) v1RouteHandler() http.Handler {
 		})
 	})
 
-	r.Route("/games", func(r chi.Router) {
-		r.Get("/", api.contentHandler.SearchIGDBGames)
-
-		r.Get("/{id}", api.gameHandler.GetGameByID)
+	r.Route("/content/{category}", func(r chi.Router) {
+		r.Get("/", api.contentHandler.SearchContent)
+		r.Get("/{id}", api.contentHandler.GetContentByID)
 	})
 
 	r.Route("/users", func(r chi.Router) {

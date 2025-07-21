@@ -377,9 +377,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/games/{id}": {
+        "/v1/content/{category}": {
             "get": {
-                "description": "Get game by ID",
+                "description": "Search content",
                 "consumes": [
                     "application/json"
                 ],
@@ -387,14 +387,27 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "games"
+                    "content"
                 ],
-                "summary": "Get game by ID",
+                "summary": "Search content",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Game ID",
-                        "name": "id",
+                        "description": "Query",
+                        "name": "query",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "userId",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category",
+                        "name": "category",
                         "in": "path",
                         "required": true
                     },
@@ -403,14 +416,75 @@ const docTemplate = `{
                         "description": "Locale",
                         "name": "locale",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Page",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Size",
+                        "name": "size",
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
-                        "schema": {}
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.ContentRes"
+                            }
+                        }
                     }
                 }
+            }
+        },
+        "/v1/content/{category}/{id}": {
+            "get": {
+                "description": "Get content by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "content"
+                ],
+                "summary": "Get content by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Content ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category",
+                        "name": "category",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Locale",
+                        "name": "locale",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cover Size",
+                        "name": "coverSize",
+                        "in": "query"
+                    }
+                ],
+                "responses": {}
             }
         },
         "/v1/health": {
@@ -1177,6 +1251,54 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {}
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/users/{userId}/content-notes/{category}/by-content-id/{contentId}": {
+            "get": {
+                "description": "Search content note by content ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "content-notes"
+                ],
+                "summary": "Search content note by content ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Content ID",
+                        "name": "contentId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category",
+                        "name": "category",
+                        "in": "path",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -2477,10 +2599,10 @@ const docTemplate = `{
                 "message": {
                     "type": "string"
                 },
-                "ordererId": {
+                "ordererDisplayName": {
                     "type": "string"
                 },
-                "ordererUsername": {
+                "ordererId": {
                     "type": "string"
                 },
                 "paymentType": {

@@ -212,6 +212,32 @@ func (q *Queries) FindMovieNoteByID(ctx context.Context, id uuid.UUID) (*MovieNo
 	return &i, err
 }
 
+const findMovieNoteContentIDsByUserID = `-- name: FindMovieNoteContentIDsByUserID :many
+SELECT DISTINCT content_id
+FROM movie_notes
+WHERE user_id = $1::uuid
+`
+
+func (q *Queries) FindMovieNoteContentIDsByUserID(ctx context.Context, userID uuid.UUID) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, findMovieNoteContentIDsByUserID, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var content_id uuid.UUID
+		if err := rows.Scan(&content_id); err != nil {
+			return nil, err
+		}
+		items = append(items, content_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const findPaginatedMovieNotesByUserID = `-- name: FindPaginatedMovieNotesByUserID :many
 SELECT mn.id,
     mn.created_at,

@@ -84,17 +84,6 @@ type ContentRes struct {
 	Category db.ContentCategory `json:"category"`
 }
 
-type ContentSearchRes = PaginatedRes[SearchHitRes[ContentRes]]
-
-type IGDBGameRes struct {
-	ID           string `json:"id"`
-	ThumbnailURL string `json:"thumbnailUrl"`
-	EnglishName  string `json:"nameEn"`
-	RussianName  string `json:"nameRu"`
-	GermanName   string `json:"nameDe"`
-	SpanishName  string `json:"nameEs"`
-}
-
 type BatchNoteReactionsRes struct {
 	NoteID    string                  `json:"noteId"`
 	Reactions []*models.ReactionStack `json:"reactions"`

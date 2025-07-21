@@ -8,6 +8,14 @@
     },
     "mappings": {
       "properties": {
+        "image_key": {
+          "type": "text",
+          "index": false
+        },
+        "image_key_type": {
+          "type": "text",
+          "index": false
+        },
         "name_en": {
           "type": "text",
           "analyzer": "english"
@@ -23,10 +31,6 @@
         "name_es": {
           "type": "text",
           "analyzer": "spanish"
-        },
-        "game_id": {
-          "type": "text",
-          "index": false
         }
       }
     }

@@ -128,3 +128,7 @@ func GetTwitchClientID() string {
 func GetTwitchClientSecret() string {
 	return os.Getenv("TWITCH_CLIENT_SECRET")
 }
+
+func GetIGDBImageURLFormat() string {
+	return os.Getenv("IGDB_IMAGE_URL_FORMAT")
+}

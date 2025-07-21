@@ -80,7 +80,7 @@ type FindMovieByIDWithLocalizationRow struct {
 	ID           uuid.UUID        `json:"id"`
 	ExternalID   int64            `json:"external_id"`
 	ReleaseDate  *time.Time       `json:"release_date"`
-	Websites     []byte           `json:"websites"`
+	Websites     *[]byte          `json:"websites"`
 	CoverKey     *string          `json:"cover_key"`
 	CoverKeyType NullImageKeyType `json:"cover_key_type"`
 	SourceUrl    *string          `json:"source_url"`
@@ -141,7 +141,7 @@ RETURNING id
 type UpsertMovieParams struct {
 	ExternalID   int64            `json:"external_id"`
 	ReleaseDate  *time.Time       `json:"release_date"`
-	Websites     []byte           `json:"websites"`
+	Websites     *[]byte          `json:"websites"`
 	CoverKey     *string          `json:"cover_key"`
 	CoverKeyType NullImageKeyType `json:"cover_key_type"`
 	SourceUrl    *string          `json:"source_url"`

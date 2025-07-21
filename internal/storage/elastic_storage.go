@@ -26,8 +26,8 @@ type ElasticStorage interface {
 	BulkIndexDocuments(ctx context.Context, indexName string, requests []*BulkIndexRequest) error
 	Search(ctx context.Context, indexName string, query *esTypes.Query, pagination *types.Pagination) (*search.Response, error)
 	IndexContent(ctx context.Context, id uuid.UUID, name string, userId uuid.UUID, category db.ContentCategory) error
-	SearchContent(ctx context.Context, query string, userId uuid.UUID, pagination *types.Pagination) (*search.Response, error)
-	SearchIGDBGames(ctx context.Context, query string, pagination *types.Pagination) (*search.Response, error)
+	SearchProfileContent(ctx context.Context, query string, userId uuid.UUID, pagination *types.Pagination) (*search.Response, error)
+	SearchGames(ctx context.Context, query string, pagination *types.Pagination) (*search.Response, error)
 	DeleteContentNoteByID(ctx context.Context, category db.ContentCategory, contentID uuid.UUID) error
 	DeleteContent(ctx context.Context, contentID uuid.UUID, category db.ContentCategory) error
 }
@@ -193,7 +193,7 @@ func (service *elasticStorage) IndexContent(ctx context.Context, id uuid.UUID, n
 	return nil
 }
 
-func (storage *elasticStorage) SearchContent(ctx context.Context, query string, userId uuid.UUID, pagination *types.Pagination) (*search.Response, error) {
+func (storage *elasticStorage) SearchProfileContent(ctx context.Context, query string, userId uuid.UUID, pagination *types.Pagination) (*search.Response, error) {
 	esQuery := &esTypes.Query{
 		Bool: &esTypes.BoolQuery{
 			Filter: []esTypes.Query{
@@ -228,7 +228,7 @@ func (storage *elasticStorage) SearchContent(ctx context.Context, query string, 
 	return response, nil
 }
 
-func (storage *elasticStorage) SearchIGDBGames(ctx context.Context, query string, pagination *types.Pagination) (*search.Response, error) {
+func (storage *elasticStorage) SearchGames(ctx context.Context, query string, pagination *types.Pagination) (*search.Response, error) {
 	esQuery := &esTypes.Query{
 		Bool: &esTypes.BoolQuery{
 			Filter: []esTypes.Query{

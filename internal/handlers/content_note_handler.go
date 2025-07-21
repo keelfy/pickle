@@ -222,7 +222,7 @@ func (h *contentNoteHandler) GetSortedContentNotesByUserID(w http.ResponseWriter
 			wg.Add(1)
 			go func(i int) {
 				defer wg.Done()
-				posterUrl, err := h.contentNoteService.GetContentNoteCoverImageURL(ctx, category, coverSize, contentNotes[i].GetCoverKey(), contentNotes[i].GetCoverKeyType().ImageKeyType)
+				posterUrl, err := h.posterService.GetCoverImageURL(ctx, coverSize, contentNotes[i].GetCoverKey(), contentNotes[i].GetCoverKeyType().ImageKeyType)
 				if err != nil {
 					return
 				}
@@ -278,7 +278,7 @@ func (h *contentNoteHandler) GetContentNoteById(w http.ResponseWriter, r *http.R
 	coverKey := contentNote.GetContent().GetCoverKey()
 	coverKeyType := contentNote.GetContent().GetCoverKeyType()
 	if coverKey != nil && *coverKey != "" && coverKeyType.Valid {
-		url, err := h.contentNoteService.GetContentNoteCoverImageURL(ctx, category, coverSize, *coverKey, coverKeyType.ImageKeyType)
+		url, err := h.posterService.GetCoverImageURL(ctx, coverSize, *coverKey, coverKeyType.ImageKeyType)
 		if err != nil {
 			logger.Errorf(ctx, "Error getting poster URL: %v", err)
 		} else {

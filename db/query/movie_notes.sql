@@ -97,3 +97,7 @@ FROM movie_notes mn
     LEFT JOIN movie_localizations ml ON m.id = ml.content_id
     AND ml.lang = @locale::locale
 WHERE mn.id = @id::uuid;
+-- name: FindMovieNoteContentIDsByUserID :many
+SELECT DISTINCT content_id
+FROM movie_notes
+WHERE user_id = @user_id::uuid;

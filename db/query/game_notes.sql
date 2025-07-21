@@ -92,3 +92,7 @@ FROM game_notes gn
     LEFT JOIN game_localizations gl ON g.id = gl.content_id
     AND gl.lang = @locale::locale
 WHERE gn.id = @id::uuid;
+-- name: FindGameNoteContentIDsByUserID :many
+SELECT DISTINCT content_id
+FROM game_notes
+WHERE user_id = @user_id::uuid;

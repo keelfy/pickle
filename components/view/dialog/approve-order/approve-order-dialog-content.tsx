@@ -33,7 +33,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { fetchContentSearch, fetchIGDBSearch, fetchOrderById, updateOrder } from "@/hooks/api-endpoints-client";
+import { fetchProfileContentSearch, fetchContentSearch, fetchOrderById, updateOrder } from "@/hooks/api-endpoints-client";
 import { toast } from "@/hooks/use-toast";
 import { localizeContentCategory } from "@/lib/localize-types";
 import { useModalStore } from "@/providers/modal";
@@ -119,10 +119,22 @@ export default function ApproveOrderDialogContent() {
             return;
         }
 
+        // (async () => {
+        //     try {
+        //         const response = await fetchProfileContentSearch(profile, debouncedContentQuery, contentSearchPage, 5);
+        //         setContentSearchResults(response);
+        //     } catch (error: any) {
+        //         toast({
+        //             title: "Failed to fetch search results",
+        //             description: error.message ?? "An error occurred",
+        //         });
+        //     }
+        // })();
+
         (async () => {
             try {
-                const response = await fetchContentSearch(profile, debouncedContentQuery, contentSearchPage, 5);
-                setContentSearchResults(response);
+                const response = await fetchContentSearch(form.watch("category"), debouncedContentQuery, contentSearchPage, 5, profile?.id);
+                setExternalSearchResults(response);
             } catch (error: any) {
                 toast({
                     title: "Failed to fetch search results",
@@ -131,19 +143,6 @@ export default function ApproveOrderDialogContent() {
             }
         })();
 
-        if (form.watch("category") === "games") {
-            (async () => {
-                try {
-                    const response = await fetchIGDBSearch(debouncedContentQuery, contentSearchPage, 5);
-                    setExternalSearchResults(response);
-                } catch (error: any) {
-                    toast({
-                        title: "Failed to fetch search results",
-                        description: error.message ?? "An error occurred",
-                    });
-                }
-            })();
-        }
     }, [debouncedContentQuery]);
 
     React.useEffect(() => {
@@ -151,20 +150,44 @@ export default function ApproveOrderDialogContent() {
             return;
         }
 
+        // (async () => {
+        //     try {
+        //         const response = await fetchProfileContentSearch(profile, debouncedContentQuery, contentSearchPage, 5);
+
+        //         if (contentSearchResults?.content && response?.content) {
+        //             setContentSearchResults({
+        //                 ...response,
+        //                 content: [
+        //                     ...contentSearchResults.content,
+        //                     ...response.content,
+        //                 ],
+        //             });
+        //         } else {
+        //             setContentSearchResults(response);
+        //         }
+        //     } catch (error: any) {
+        //         toast({
+        //             title: "Failed to fetch search results",
+        //             description: error.message ?? "An error occurred",
+        //         });
+        //     }
+        // })();
+
         (async () => {
             try {
-                const response = await fetchContentSearch(profile, debouncedContentQuery, contentSearchPage, 5);
-
-                if (contentSearchResults?.content && response?.content) {
-                    setContentSearchResults({
-                        ...response,
-                        content: [
-                            ...contentSearchResults.content,
-                            ...response.content,
-                        ],
-                    });
-                } else {
-                    setContentSearchResults(response);
+                const response = await fetchContentSearch(form.watch("category"), debouncedContentQuery, contentSearchPage, 5, profile?.id);
+                if (response?.content) {
+                    if (externalSearchResults?.content) {
+                        setExternalSearchResults({
+                            ...response,
+                            content: [
+                                ...externalSearchResults.content,
+                                ...response.content,
+                            ],
+                        });
+                    } else {
+                        setExternalSearchResults(response);
+                    }
                 }
             } catch (error: any) {
                 toast({
@@ -173,32 +196,6 @@ export default function ApproveOrderDialogContent() {
                 });
             }
         })();
-
-        if (form.watch("category") === "games") {
-            (async () => {
-                try {
-                    const response = await fetchIGDBSearch(debouncedContentQuery, contentSearchPage, 5);
-                    if (response?.content) {
-                        if (externalSearchResults?.content) {
-                            setExternalSearchResults({
-                                ...response,
-                                content: [
-                                    ...externalSearchResults.content,
-                                    ...response.content,
-                                ],
-                            });
-                        } else {
-                            setExternalSearchResults(response);
-                        }
-                    }
-                } catch (error: any) {
-                    toast({
-                        title: "Failed to fetch search results",
-                        description: error.message ?? "An error occurred",
-                    });
-                }
-            })();
-        }
     }, [contentSearchPage]);
 
     React.useEffect(() => {
@@ -366,7 +363,7 @@ export default function ApproveOrderDialogContent() {
                                         <div className="flex items-center gap-2">
                                             {field.value.thumbnailUrl && (
                                                 <Image
-                                                    src={field.value.thumbnailUrl ?? ""}
+                                                    src={field.value.thumbnailUrl}
                                                     alt={field.value.title ?? ""}
                                                     width={35}
                                                     height={35}
@@ -412,26 +409,28 @@ export default function ApproveOrderDialogContent() {
                                         ({ id, source }) => (
                                             <CommandItem
                                                 key={id}
-                                                value={source.nameEn}
+                                                value={source.title}
                                                 onSelect={() => {
                                                     form.setValue("category", "games");
                                                     form.setValue("content", {
                                                         id,
-                                                        title: source.nameEn,
-                                                        thumbnailUrl: source.thumbnailUrl ? "https:" + source.thumbnailUrl.replace("t_thumb", "t_micro") : undefined
+                                                        title: source.title,
+                                                        thumbnailUrl: source.thumbnailUrl
                                                     });
                                                     form.setFocus("content");
                                                 }}
                                                 className="flex items-center justify-start gap-1"
                                             >
-                                                <Image
-                                                    src={source.thumbnailUrl ? "https:" + source.thumbnailUrl.replace("t_thumb", "t_micro") : ""}
-                                                    alt={source.nameEn}
-                                                    width={35}
-                                                    height={35}
-                                                    className="rounded-md p-1 h-8 w-8"
-                                                />
-                                                {source.nameEn}
+                                                {source.thumbnailUrl && (
+                                                    <Image
+                                                        src={source.thumbnailUrl}
+                                                        alt={source.title}
+                                                        width={35}
+                                                        height={35}
+                                                        className="rounded-md p-1 h-8 w-8"
+                                                    />
+                                                )}
+                                                {source.title}
                                             </CommandItem>
                                         )
                                     )}

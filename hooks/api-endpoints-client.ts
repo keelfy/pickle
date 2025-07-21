@@ -38,7 +38,7 @@ export async function fetchMyAvatar(size: ImageSize = 'md') {
 
 // Profile Search
 
-export async function fetchContentSearch(profile: PublicProfile | undefined, query: string, page: number, size: number) {
+export async function fetchProfileContentSearch(profile: PublicProfile | undefined, query: string, page: number, size: number) {
     if (!profile) return undefined;
     return fetchApi<ContentSearchHits>(`/v1/users/${profile.id}/content?query=${query}&page=${page}&size=${size}`);
 }
@@ -234,8 +234,15 @@ export async function deleteContentNoteReaction(profile: Profile, category: Cont
 
 // Games
 
-export async function fetchIGDBSearch(query: string, page: number, size: number) {
-    return fetchApi<ExternalSearchHits>(`/v1/games?query=${query}&page=${page}&size=${size}`);
+export async function fetchContentSearch(category: ContentCategory, query: string, page: number, size: number, userId?: string, coverSize: ImageSize = 'sm', locale: string = 'en') {
+    const params = new URLSearchParams();
+    params.set("locale", locale);
+    if (userId) params.set("userId", userId);
+    params.set("query", query);
+    params.set("page", page.toString());
+    params.set("size", size.toString());
+    params.set("coverSize", coverSize);
+    return fetchApi<ExternalSearchHits>(`/v1/content/${category}?${params.toString()}`);
 }
 
 export async function fetchGameById(gameId: string, coverSize: ImageSize = 'md', locale: string = 'en') {

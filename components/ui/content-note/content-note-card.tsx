@@ -35,7 +35,7 @@ ContentNoteCardHeader.displayName = "ContentNoteCardHeader";
 export { ContentNoteCardHeader, type ContentNoteCardHeaderProps };
 
 type ContentNoteCardHeaderInfoProps = React.ComponentProps<"div"> & {
-    note: ContentNote;
+    note: ContentNoteSearchResult;
     category: ContentCategory;
 };
 
@@ -43,7 +43,8 @@ function ContentNoteCardHeaderInfo({ note, category, children, className, ...pro
     return (
         <div className={cn("flex gap-4", className)} {...props}>
             <ContentNoteClickablePoster
-                content={note}
+                contentId={note.id}
+                coverUrl={note.coverUrl}
                 category={category}
             />
             {children}

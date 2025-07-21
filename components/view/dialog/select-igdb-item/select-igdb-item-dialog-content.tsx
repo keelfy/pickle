@@ -8,16 +8,18 @@ import {
     CommandItem,
     CommandList,
 } from "@/components/ui/command";
-import { fetchIGDBSearch } from "@/hooks/api-endpoints-client";
+import { fetchContentSearch } from "@/hooks/api-endpoints-client";
 import { useDebounce } from "@/hooks/use-debounce";
 import { toast } from "@/hooks/use-toast";
 import { useModalStore } from "@/providers/modal";
+import { useProfileStore } from "@/providers/profile-store";
 import { ModalType } from "@/stores/modal";
 import { ExternalSearchHits } from "@/utils/api/response";
 import Image from "next/image";
 import React from "react";
 
 export default function SelectIGDBItemDialogContent() {
+    const profile = useProfileStore((state) => state.profile);
     const { modalParams, setModalParams, openModal } = useModalStore((state) => state);
     const [query, setQuery] = React.useState<string>(modalParams?.query ?? "");
     const debouncedQuery = useDebounce(query, 300);
@@ -41,7 +43,7 @@ export default function SelectIGDBItemDialogContent() {
 
         (async () => {
             try {
-                const response = await fetchIGDBSearch(debouncedQuery, 0, 10);
+                const response = await fetchContentSearch("games", debouncedQuery, 0, 10, profile?.id);
                 setResult(response);
             } catch (error: any) {
                 toast({
@@ -103,14 +105,16 @@ export default function SelectIGDBItemDialogContent() {
                                     variant="ghost"
                                     onClick={() => handleItemClick(id)}
                                 >
-                                    <Image
-                                        src={source.thumbnailUrl ? "https:" + source.thumbnailUrl.replace("t_thumb", "t_micro") : ""}
-                                        alt={source.nameEn}
-                                        width={35}
-                                        height={35}
-                                        className="rounded-md p-1"
-                                    />
-                                    <div className="text-md">{source.nameEn}</div>
+                                    {source.thumbnailUrl && (
+                                        <Image
+                                            src={source.thumbnailUrl}
+                                            alt={source.title}
+                                            width={35}
+                                            height={35}
+                                            className="rounded-md p-1"
+                                        />
+                                    )}
+                                    <div className="text-md">{source.title}</div>
                                 </Button>
                             </CommandItem>
                         ))}

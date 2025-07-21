@@ -9,7 +9,7 @@ import {
     CommandItem,
     CommandList,
 } from "@/components/ui/command";
-import { fetchAddCollectionItem, fetchContentSearch } from "@/hooks/api-endpoints-client";
+import { fetchAddCollectionItem, fetchProfileContentSearch } from "@/hooks/api-endpoints-client";
 import { useDebounce } from "@/hooks/use-debounce";
 import { toast } from "@/hooks/use-toast";
 import { useModalStore } from "@/providers/modal";
@@ -55,7 +55,7 @@ export default function AddCollectionItemDialogContent() {
 
         (async () => {
             try {
-                const response = await fetchContentSearch(profile, debouncedQuery, 0, 10);
+                const response = await fetchProfileContentSearch(profile, debouncedQuery, 0, 10);
                 setResult(response);
             } catch (error: any) {
                 toast({

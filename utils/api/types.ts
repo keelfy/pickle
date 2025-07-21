@@ -118,13 +118,11 @@ export interface ContentNoteSearchResult extends ContentNote {
 export type GameNoteSearchResult = ContentNoteSearchResult & {
     lastPlayedAt?: Date;
     releaseDate?: Date;
-    content: GameNoteStatus;
 }
 
 export type MovieNoteSearchResult = ContentNoteSearchResult & {
     watchedAt?: Date;
     releaseDate?: Date;
-    content: MovieNoteStatus;
 }
 
 export type Reaction = {
@@ -221,11 +219,9 @@ export type BroadcasterPreferences = {
 }
 
 export type ExternalSearchResult = {
-    nameEn: string;
-    nameRu: string;
-    nameDe: string;
-    nameEs: string;
+    title: string;
     thumbnailUrl: string;
+    isNoted: boolean;
 }
 
 export type ContentWebsite = {

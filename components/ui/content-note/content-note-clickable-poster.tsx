@@ -9,7 +9,8 @@ import ContentNotePoster from "./content-note-poster";
 import { MovieNoteDialogParams } from "@/components/view/dialog/movie-note/movie-note-dialog";
 
 type Props = {
-    content: ContentNote;
+    contentId: string;
+    coverUrl: string;
     category: ContentCategory;
     size?: "sm" | "md" | "lg";
     className?: string;
@@ -17,20 +18,20 @@ type Props = {
     alt?: string;
 }
 
-export default function ContentNoteClickablePoster({ size = "sm", className, loading = false, content, category, alt }: Props) {
+export default function ContentNoteClickablePoster({ size = "sm", className, loading = false, contentId, coverUrl, category, alt }: Props) {
     const openModal = useModalStore(state => state.openModal);
 
     const handleClick = () => {
         switch (category) {
             case 'games':
                 const gameParams: GameNoteDialogParams = {
-                    noteId: content.id,
+                    noteId: contentId,
                 }
                 openModal(ModalType.GameNote, gameParams);
                 break;
             case 'movies':
                 const movieParams: MovieNoteDialogParams = {
-                    noteId: content.id,
+                    noteId: contentId,
                 }
                 openModal(ModalType.MovieNote, movieParams);
                 break;
@@ -43,7 +44,7 @@ export default function ContentNoteClickablePoster({ size = "sm", className, loa
             className={cn("border-none p-0 hover:shadow-2xl hover:scale-105 transition-all duration-300 rounded-md", className)}
         >
             <ContentNotePoster
-                posterUrl={content.content.coverUrl?.replace("t_thumb", "t_cover_big")}
+                posterUrl={coverUrl?.replace("t_thumb", "t_cover_big")}
                 size={size}
                 loading={loading}
                 className="cursor-pointer"

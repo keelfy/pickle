@@ -1,57 +1,39 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import {
-    Collapsible,
-    CollapsibleContent
-} from "@/components/ui/collapsible";
 import ContentCategoryIcon from "@/components/ui/content-category-icon";
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { localizeContentCategory } from "@/lib/localize-types";
 import { useModalStore } from "@/providers/modal";
 import { ModalType } from "@/stores/modal";
 import { CONTENT_CATEGORIES, ContentCategory } from "@/utils/api/types";
-import { ArrowRightIcon, SearchIcon } from "lucide-react";
 import React from "react";
+
+const ENABLED_CATEGORIES = ["games", "movies"];
 
 export default function ManualNoteCreationDialogContent() {
     const { openModal } = useModalStore((state) => state);
 
-    const [selectedCategory, setSelectedCategory] =
-        React.useState<ContentCategory>();
+    // const [selectedCategory, setSelectedCategory] =
+    //     React.useState<ContentCategory>();
 
-    const handleManualCreationClick = () => {
-        switch (selectedCategory) {
-            case "games":
-                openModal(ModalType.GameNoteCreator);
-                break;
-            case "movies":
-                openModal(ModalType.MovieNoteCreator);
-                break;
-            default:
-                break;
-        }
-    };
+    // const handleManualCreationClick = () => {
+    //     switch (selectedCategory) {
+    //         case "games":
+    //             openModal(ModalType.GameNoteCreator);
+    //             break;
+    //         case "movies":
+    //             openModal(ModalType.MovieNoteCreator);
+    //             break;
+    //         default:
+    //             break;
+    //     }
+    // };
 
-    const handleExternalSearchClick = (category: ContentCategory) => {
-        switch (category) {
-            case "games":
-                openModal(ModalType.SelectIGDBItem, { category: "games" });
-                break;
-            default:
-                break;
-        }
-    };
+    const handleExternalSearchClick = (category: ContentCategory) =>
+        openModal(ModalType.SelectContentItem, { category });
 
-    const isDisabled = (category: ContentCategory) => {
-        switch (category) {
-            case "games":
-            case "movies":
-                return false;
-            default:
-                return true;
-        }
-    };
+    const isDisabled = React.useCallback((category: ContentCategory) => !ENABLED_CATEGORIES.includes(category), []);
 
     return (
         <>

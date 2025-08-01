@@ -13,14 +13,15 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { localizeContentCategory } from "@/lib/localize-types";
 import { cn } from "@/lib/utils";
-import { ModalType } from "@/stores/modal";
-import { CONTENT_CATEGORIES } from "@/utils/api/types";
 import { Bell, Search } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import ProfileDropdownMenu from "../profile-dropdown-menu";
 import MenuItemUnderline from "./menu-item-underline";
 import OpenModalButton from "./open-modal-button";
+import { ContentCategoryEnum } from "@/utils/api/types";
+import { ModalType } from "@/stores/modal";
+import { Label } from "@/components/ui/label";
 
 type Props = {
     link: string;
@@ -28,7 +29,28 @@ type Props = {
     className?: string;
 };
 
-const ENABLED_CATEGORIES = ["games", "movies"];
+const CATEGORIES = [
+    {
+        category: ContentCategoryEnum.Games,
+        enabled: true,
+    },
+    {
+        category: ContentCategoryEnum.Movies,
+        enabled: true,
+    },
+    {
+        category: ContentCategoryEnum.Anime,
+        enabled: false,
+    },
+    {
+        category: ContentCategoryEnum.Series,
+        enabled: false,
+    },
+    {
+        category: ContentCategoryEnum.Video,
+        enabled: false,
+    }
+];
 
 export default function ProfileNavigationMenu({ link, username, className }: Props) {
     return (
@@ -55,35 +77,45 @@ export default function ProfileNavigationMenu({ link, username, className }: Pro
                     <div className="px-3">
                         <Separator orientation="vertical" className="h-8" />
                     </div>
-                    {CONTENT_CATEGORIES.map((category) => (
+                    {CATEGORIES.map(({ category, enabled }) => (
                         <NavigationMenuItem
                             key={category}
                             className={cn(
-                                !ENABLED_CATEGORIES.includes(category) &&
+                                !enabled &&
                                 "opacity-50 text-muted-foreground"
                             )}
                         >
                             <MenuItemUnderline link={`/${link}/${category}`}>
-                                <NavigationMenuLink
-                                    className={navigationMenuTriggerStyle()}
-                                    asChild
-                                >
-                                    <Link
-                                        href={
-                                            ENABLED_CATEGORIES.includes(
-                                                category
-                                            )
-                                                ? `/${link}/${category}`
-                                                : "#"
-                                        }
-                                        passHref
+                                {enabled ? (
+                                    <NavigationMenuLink
+                                        className={navigationMenuTriggerStyle()}
+                                        asChild
                                     >
-                                        {localizeContentCategory(
-                                            category,
-                                            true
-                                        )}
-                                    </Link>
-                                </NavigationMenuLink>
+                                        <Link
+                                            href={
+                                                enabled
+                                                    ? `/${link}/${category}`
+                                                    : "#"
+                                            }
+                                        >
+                                            {localizeContentCategory(
+                                                category,
+                                                true
+                                            )}
+                                        </Link>
+                                    </NavigationMenuLink>
+                                ) : (
+                                    <NavigationMenuLink
+                                        className={navigationMenuTriggerStyle()}
+                                    >
+                                        <Label>
+                                            {localizeContentCategory(
+                                                category,
+                                                true
+                                            )}
+                                        </Label>
+                                    </NavigationMenuLink>
+                                )}
                             </MenuItemUnderline>
                         </NavigationMenuItem>
                     ))}

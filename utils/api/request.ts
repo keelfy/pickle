@@ -18,6 +18,10 @@ export type CreateGameNoteReq = CreateContentNoteReq & {
 	lastPlayedAt?: Date;
 }
 
+export type CreateMovieNoteReq = CreateContentNoteReq & {
+	watchedAt?: Date;
+}
+
 export type CreateCollectionReq = {
 	name: string;
 }

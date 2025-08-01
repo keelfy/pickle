@@ -7,23 +7,23 @@ import dynamic from "next/dynamic";
 import React from "react";
 import LoadingDialogContent from "../loading-dialog-content";
 
-const DynamicMovieNoteEditorDialogContent = dynamic(
-    () => import("./movie-note-editor-dialog-content"),
+const DynamicMovieNoteCreatorDialogContent = dynamic(
+    () => import("./movie-note-creator-dialog-content"),
     { loading: () => <LoadingDialogContent /> }
 );
 
-export type MovieNoteEditorDialogParams = {
-    noteId: string;
+export type MovieNoteCreatorDialogParams = {
+    movieId: string;
 }
 
-export default function MovieNoteEditorDialog() {
+export default function MovieNoteCreatorDialog() {
     const { currentModal, modalParams, closeModal } = useModalStore(
         (state) => state
     );
 
     const isOpen = React.useMemo(
-        () => currentModal === ModalType.MovieNoteEditor && modalParams?.noteId !== undefined,
-        [currentModal, modalParams?.noteId]
+        () => currentModal === ModalType.MovieNoteCreator,
+        [currentModal, modalParams?.movieId]
     );
 
     if (!isOpen) {
@@ -33,7 +33,7 @@ export default function MovieNoteEditorDialog() {
     return (
         <Dialog open={isOpen} onOpenChange={closeModal}>
             <DialogContent className="overflow-y-auto max-h-screen">
-                {isOpen && <DynamicMovieNoteEditorDialogContent noteId={modalParams?.noteId} />}
+                {isOpen && <DynamicMovieNoteCreatorDialogContent movieId={modalParams?.movieId} />}
             </DialogContent>
         </Dialog>
     );

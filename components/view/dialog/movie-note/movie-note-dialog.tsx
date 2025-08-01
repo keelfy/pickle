@@ -23,6 +23,7 @@ export default function MovieNoteDialog() {
         (state) => state
     );
 
+    // modalParams contains an id of the note
     const isOpen = useMemo(
         () =>
             currentModal === ModalType.MovieNote &&

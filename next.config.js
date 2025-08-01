@@ -8,6 +8,7 @@ const nextConfig = {
             { hostname: "itch.io" },
             { hostname: "imgproxy-staging.up.railway.app" },
             { hostname: "images.igdb.com" },
+            { hostname: "image.tmdb.org" },
             { hostname: "www.igdb.com" },
             { hostname: "wikipedia.org" },
         ],

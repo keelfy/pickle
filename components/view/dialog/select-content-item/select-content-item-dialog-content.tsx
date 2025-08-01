@@ -18,7 +18,7 @@ import { ExternalSearchHits } from "@/utils/api/response";
 import Image from "next/image";
 import React from "react";
 
-export default function SelectIGDBItemDialogContent() {
+export default function SelectContentItemDialogContent() {
     const profile = useProfileStore((state) => state.profile);
     const { modalParams, setModalParams, openModal } = useModalStore((state) => state);
     const [query, setQuery] = React.useState<string>(modalParams?.query ?? "");
@@ -43,7 +43,7 @@ export default function SelectIGDBItemDialogContent() {
 
         (async () => {
             try {
-                const response = await fetchContentSearch("games", debouncedQuery, 0, 10, profile?.id);
+                const response = await fetchContentSearch(modalParams.category, debouncedQuery, 0, 10, profile?.id);
                 setResult(response);
             } catch (error: any) {
                 toast({
@@ -78,14 +78,38 @@ export default function SelectIGDBItemDialogContent() {
         [result?.content, selectedIndex, openModal]
     );
 
-    const handleItemClick = (id: string) => openModal(ModalType.GameNoteCreator, {
-        gameId: id,
-    });
+    const handleItemClick = (id: string) => {
+        switch (modalParams.category) {
+            case "games":
+                openModal(ModalType.GameNoteCreator, {
+                    gameId: id,
+                });
+                break;
+            case "movies":
+                openModal(ModalType.MovieNoteCreator, {
+                    movieId: id,
+                });
+                break;
+            default:
+                break;
+        }
+    }
+
+    const getPlaceholder = () => {
+        switch (modalParams.category) {
+            case "games":
+                return "Search for a game in IGDB";
+            case "movies":
+                return "Search for a movie in TMDB";
+            default:
+                return "Search for a content";
+        }
+    }
 
     return (
         <>
             <CommandInput
-                placeholder="Search for a game in IGDB"
+                placeholder={getPlaceholder()}
                 onValueChange={setQuery}
                 value={query}
                 onKeyDown={handleKeyDown}
@@ -121,9 +145,13 @@ export default function SelectIGDBItemDialogContent() {
                     </CommandGroup>
                 )}
             </CommandList>
-            <Button variant="link" className="text-sm text-muted-foreground w-full" onClick={() => openModal(ModalType.GameNoteCreator)}>
-                I can't find the game I'm looking for. Let me add it manually.
-            </Button>
+            {/* <Button
+                variant="link"
+                className="text-sm text-muted-foreground w-full"
+                onClick={() => openModal(ModalType.ManualNoteCreation, { category: modalParams.category })}
+            >
+                I can't find the content I'm looking for. Let me add it manually.
+            </Button> */}
         </>
     );
 }

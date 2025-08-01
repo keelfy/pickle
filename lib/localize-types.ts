@@ -1,16 +1,16 @@
-import { ContentCategory, ContentNoteStatus } from "@/utils/api/types";
+import { ContentCategory, ContentCategoryEnum, ContentNoteStatus } from "@/utils/api/types";
 
 export const localizeContentCategory = (category: ContentCategory, plural: boolean = false) => {
     switch (category) {
-        case "games":
+        case ContentCategoryEnum.Games:
             return plural ? "Games" : "Game";
-        case "video":
+        case ContentCategoryEnum.Video:
             return plural ? "Videos" : "Video";
-        case "movies":
+        case ContentCategoryEnum.Movies:
             return plural ? "Movies" : "Movie";
-        case "series":
+        case ContentCategoryEnum.Series:
             return plural ? "Series" : "Series";
-        case "anime":
+        case ContentCategoryEnum.Anime:
             return plural ? "Anime" : "Anime";
         default:
             return plural ? "Content" : "Content";

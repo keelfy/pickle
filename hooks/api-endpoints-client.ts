@@ -1,7 +1,7 @@
 import { fetchApi } from "@/utils/api/client";
 import { AddItemToCollectionReq, CreateCollectionReq, CreateContentNoteReq, CreateOrderReq, UpdateCollectionReq } from "@/utils/api/request";
 import { ContentSearchHits, ExternalSearchHits, LinkValidation, Paginated, SearchHit } from "@/utils/api/response";
-import { Collection, CollectionItem, ContentCategory, ContentNote, ContentNoteSearchResult, Game, Image, ImagePreview, ImageSize, ModeratorProfile, NoteReaction, Order, OrderUpdate, Profile, PublicProfile, Reaction, SuggestionPreferences } from "@/utils/api/types";
+import { Collection, CollectionItem, ContentCategory, ContentNote, ContentNoteSearchResult, Game, Image, ImagePreview, ImageSize, ModeratorProfile, Movie, NoteReaction, Order, OrderUpdate, Profile, PublicProfile, Reaction, SuggestionPreferences } from "@/utils/api/types";
 
 // Profile
 
@@ -245,6 +245,6 @@ export async function fetchContentSearch(category: ContentCategory, query: strin
     return fetchApi<ExternalSearchHits>(`/v1/content/${category}?${params.toString()}`);
 }
 
-export async function fetchGameById(gameId: string, coverSize: ImageSize = 'md', locale: string = 'en') {
-    return fetchApi<Game>(`/v1/games/${gameId}?coverSize=${coverSize}&lang=${locale}`);
+export async function fetchContentById(category: ContentCategory, id: string, coverSize: ImageSize = 'md', locale: string = 'en') {
+    return fetchApi<Game | Movie>(`/v1/content/${category}/${id}?coverSize=${coverSize}&lang=${locale}`);
 }

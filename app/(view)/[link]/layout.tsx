@@ -1,7 +1,12 @@
 import DeleteContentAlertDialog from "@/components/view/dialog/delete-content-alert/delete-content-alert-dialog";
+import GameNoteCreatorDialog from "@/components/view/dialog/game-note-creator/game-note-creator-dialog";
 import GameNoteEditorDialog from "@/components/view/dialog/game-note-editor/game-note-editor-dialog";
 import GameNoteDialog from "@/components/view/dialog/game-note/game-note-dialog";
+import ManualNoteCreationDialog from "@/components/view/dialog/manual-note-creation/manual-note-creation-dialog";
+import MovieNoteCreatorDialog from "@/components/view/dialog/movie-note-creator/movie-note-creator-dialog";
 import MovieNoteEditorDialog from "@/components/view/dialog/movie-note-editor/movie-note-editor-dialog";
+import MovieNoteDialog from "@/components/view/dialog/movie-note/movie-note-dialog";
+import SelectContentItemDialog from "@/components/view/dialog/select-content-item/select-content-item-dialog";
 import {
     fetchProfileByLink
 } from "@/hooks/api-endpoints-server";
@@ -16,10 +21,6 @@ import DenyOrderDialog from "../../../components/view/dialog/deny-order/deny-ord
 import ProfileSearchDialog from "../../../components/view/dialog/profile-search/profile-search-dialog";
 import ProfileCard from "./profile-card";
 import ProfileNavigationMenu from "./profile-nav-menu";
-import MovieNoteDialog from "@/components/view/dialog/movie-note/movie-note-dialog";
-import ManualNoteCreationDialog from "@/components/view/dialog/manual-note-creation/manual-note-creation-dialog";
-import GameNoteCreatorDialog from "@/components/view/dialog/game-note-creator/game-note-creator-dialog";
-import SelectIGDBItemDialog from "@/components/view/dialog/select-igdb-item/select-igdb-item-dialog";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { link } = await params;
@@ -109,7 +110,8 @@ export default async function RootLayout({ children, params }: React.PropsWithCh
                         <GameNoteEditorDialog />
                         <MovieNoteEditorDialog />
                         <GameNoteCreatorDialog />
-                        <SelectIGDBItemDialog />
+                        <MovieNoteCreatorDialog />
+                        <SelectContentItemDialog />
                     </ProfileStoreProvider>
                 </OrderStoreProvider>
             </div>

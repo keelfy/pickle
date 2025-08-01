@@ -11,7 +11,6 @@ import {
     Form,
     FormField
 } from "@/components/ui/form";
-import IGDBIcon from "@/components/ui/icons/igdb-icon";
 import { Label } from "@/components/ui/label";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -23,10 +22,10 @@ import { toast } from "@/hooks/use-toast";
 import { useModalStore } from "@/providers/modal";
 import { useProfileStore } from "@/providers/profile-store";
 import { gameNoteStatusLabels } from "@/utils/api/constants";
-import { CreateGameNoteReq } from "@/utils/api/request";
-import { Game, GameNote, GameNoteStatus, ContentWebsite } from "@/utils/api/types";
+import { CreateMovieNoteReq } from "@/utils/api/request";
+import { ContentWebsite, Movie, MovieNote, MovieNoteStatus } from "@/utils/api/types";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { SiDiscord, SiDiscordHex, SiItchdotio, SiItchdotioHex, SiReddit, SiRedditHex, SiSteam, SiSteamHex, SiTwitch, SiTwitchHex, SiWikipedia, SiWikipediaHex, SiYoutube, SiYoutubeHex } from "@icons-pack/react-simple-icons";
+import { SiImdb, SiImdbHex, SiThemoviedatabase, SiThemoviedatabaseHex, SiWikipedia, SiWikipediaHex } from "@icons-pack/react-simple-icons";
 import {
     Check,
     CheckIcon,
@@ -44,70 +43,40 @@ import DayPickerFormItem from "../content-note-editor/day-picker-form-item";
 import RateFormItem from "../content-note-editor/rate-form-item";
 import StatusSelectFormItem from "../content-note-editor/status-select-form-item";
 import { NoteDialogOrdersSection } from "../note-dialog-orders-section";
-import { GameNoteCreatorDialogParams } from "./game-note-creator-dialog";
+import { MovieNoteCreatorDialogParams } from "./movie-note-creator-dialog";
 
 const formSchema = z.object({
-    status: z.custom<GameNoteStatus>(),
-    lastPlayedAt: z.date().optional(),
+    status: z.custom<MovieNoteStatus>(),
+    watchedAt: z.date().optional(),
     comment: z.string().optional(),
     rate: z.number().max(10).min(1).optional(),
     contentId: z.string(),
 });
 
-type Props = GameNoteCreatorDialogParams;
+type Props = MovieNoteCreatorDialogParams;
 
-export const getSourceLinks = (websites: ContentWebsite[]) => websites?.map(w => {
+export const getMovieSourceLinks = (websites: ContentWebsite[]) => websites?.map(w => {
     switch (w.type.toLowerCase()) {
-        case 'steam':
+        case 'tmdb':
             return (
                 <Link href={w.url} target="_blank" key={w.type}>
-                    <SiSteam className="size-5 dark:invert" color={SiSteamHex} />
+                    <SiThemoviedatabase className="size-7" color={SiThemoviedatabaseHex} />
                 </Link>
             );
-        case 'wikipedia':
+        case 'imdb':
             return (
                 <Link href={w.url} target="_blank" key={w.type}>
-                    <SiWikipedia className="size-5 dark:invert" color={SiWikipediaHex} />
-                </Link>
-            );
-        case 'itch':
-            return (
-                <Link href={w.url} target="_blank" key={w.type}>
-                    <SiItchdotio className="size-5" color={SiItchdotioHex} />
-                </Link>
-            );
-        case 'twitch':
-            return (
-                <Link href={w.url} target="_blank" key={w.type}>
-                    <SiTwitch className="size-5" color={SiTwitchHex} />
-                </Link>
-            );
-        case 'subreddit':
-            return (
-                <Link href={w.url} target="_blank" key={w.type}>
-                    <SiReddit className="size-5" color={SiRedditHex} />
-                </Link>
-            );
-        case 'youtube':
-            return (
-                <Link href={w.url} target="_blank" key={w.type}>
-                    <SiYoutube className="size-5" color={SiYoutubeHex} />
-                </Link>
-            );
-        case 'discord':
-            return (
-                <Link href={w.url} target="_blank" key={w.type}>
-                    <SiDiscord className="size-5" color={SiDiscordHex} />
+                    <SiImdb className="size-7" color={SiImdbHex} />
                 </Link>
             );
     }
 })
 
-export default function GameNoteCreatorDialogContent({ gameId }: Props) {
+export default function MovieNoteCreatorDialogContent({ movieId }: Props) {
     const closeModal = useModalStore((state) => state.closeModal);
     const profile = useProfileStore((state) => state.profile);
 
-    const [game, setGame] = React.useState<Game>();
+    const [movie, setMovie] = React.useState<Movie>();
     const [isLoading, startTransition] = React.useTransition();
 
     const form = useForm<z.infer<typeof formSchema>>({
@@ -116,55 +85,55 @@ export default function GameNoteCreatorDialogContent({ gameId }: Props) {
             status: "planned",
             comment: "",
             rate: undefined,
-            contentId: gameId,
+            contentId: movieId,
         },
     });
 
     React.useEffect(() => {
-        if (game) {
+        if (movie) {
             form.reset({
                 status: 'planned',
-                lastPlayedAt: undefined,
+                watchedAt: undefined,
                 comment: "",
                 rate: undefined,
-                contentId: gameId,
+                contentId: movieId,
             });
         } else {
             form.reset();
         }
-    }, [game?.id]);
+    }, [movie?.id]);
 
     React.useEffect(() => {
-        if (!gameId || !profile?.id) return;
-        fetchContentById("games", gameId, 'lg')
-            .then(setGame)
+        if (!movieId || !profile?.id) return;
+        fetchContentById("movies", movieId, 'lg')
+            .then(setMovie)
             .catch((err) => {
                 console.error(err);
                 toast({
-                    title: "Failed to fetch game",
+                    title: "Failed to fetch movie",
                     description: "Try again later.",
                 });
             });
-    }, [gameId, profile?.id]);
+    }, [movieId, profile?.id]);
 
     const onSubmit = form.handleSubmit((values) => {
         if (!profile?.id) return;
 
         startTransition(async () => {
             try {
-                await createContentNote<GameNote, CreateGameNoteReq>(
+                await createContentNote<MovieNote, CreateMovieNoteReq>(
                     profile,
-                    "games",
+                    "movies",
                     values
                 );
                 toast({
-                    title: game?.title ?? "Untitled game",
-                    description: "The game note was created.",
+                    title: movie?.title ?? "Untitled movie",
+                    description: "The movie note was created.",
                 });
                 closeModal();
             } catch (error: any) {
                 toast({
-                    title: "Failed to create game note",
+                    title: "Failed to create movie note",
                     description: error.message ?? "An error occurred.",
                     variant: "destructive",
                 });
@@ -176,7 +145,7 @@ export default function GameNoteCreatorDialogContent({ gameId }: Props) {
         <>
             <div className="hidden">
                 <DialogHeader>
-                    <DialogTitle>{game?.title}</DialogTitle>
+                    <DialogTitle>{movie?.title}</DialogTitle>
                 </DialogHeader>
             </div>
 
@@ -185,19 +154,19 @@ export default function GameNoteCreatorDialogContent({ gameId }: Props) {
                     <div className="space-y-6">
                         <div className="flex items-start space-x-4">
                             <ContentNotePoster
-                                posterUrl={game?.coverUrl}
+                                posterUrl={movie?.coverUrl}
                                 size="md"
                                 loading={isLoading}
                             />
                             <div className="grid min-h-[225px] w-full">
                                 <div className="flex flex-col gap-0">
                                     <div className="font-bold text-lg line-clamp-3">
-                                        {game?.title}
+                                        {movie?.title}
                                     </div>
-                                    {game?.releaseDate && (
+                                    {movie?.releaseDate && (
                                         <div className="text-sm whitespace-nowrap flex items-center gap-1">
                                             <RocketIcon className="size-3" />
-                                            {new Date(game?.releaseDate).toLocaleDateString(
+                                            {new Date(movie?.releaseDate).toLocaleDateString(
                                                 undefined,
                                                 {
                                                     year: "numeric"
@@ -227,12 +196,12 @@ export default function GameNoteCreatorDialogContent({ gameId }: Props) {
 
                                         <div className="text-sm font-semibold flex items-center gap-2 whitespace-nowrap">
                                             <HistoryIcon size={12} />
-                                            Last played
+                                            Watched at
                                         </div>
                                         <div>
                                             <FormField
                                                 control={form.control}
-                                                name="lastPlayedAt"
+                                                name="watchedAt"
                                                 render={({ field }) => (
                                                     <DayPickerFormItem
                                                         field={field}
@@ -243,12 +212,12 @@ export default function GameNoteCreatorDialogContent({ gameId }: Props) {
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-3 mt-auto mb-1">
-                                    {game?.sourceUrl && (
-                                        <Link href={game?.sourceUrl} target="_blank">
-                                            <IGDBIcon className="w-12" />
+                                    {movie?.sourceUrl && (
+                                        <Link href={movie?.sourceUrl} target="_blank">
+                                            <SiThemoviedatabase className="size-7" color={SiThemoviedatabaseHex} />
                                         </Link>
                                     )}
-                                    {game?.websites && getSourceLinks(game.websites)}
+                                    {movie?.websites && getMovieSourceLinks(movie.websites)}
                                 </div>
                             </div>
                         </div>
@@ -288,10 +257,10 @@ export default function GameNoteCreatorDialogContent({ gameId }: Props) {
                             </ScrollArea>
                         </div>
 
-                        {gameId && (
+                        {movieId && (
                             <NoteDialogOrdersSection
-                                noteId={gameId}
-                                category="games"
+                                noteId={movieId}
+                                category="movies"
                             />
                         )}
                     </div>
@@ -304,7 +273,7 @@ export default function GameNoteCreatorDialogContent({ gameId }: Props) {
                             <X />
                             Cancel
                         </Button>
-                        {gameId && (
+                        {movieId && (
                             <Button
                                 variant="secondary"
                                 type="button"
@@ -320,7 +289,7 @@ export default function GameNoteCreatorDialogContent({ gameId }: Props) {
                             disabled={isLoading}
                         >
                             {isLoading ? <LoadingSpinner /> : <Check />}
-                            {gameId ? "Confirm" : "Create"}
+                            {movieId ? "Confirm" : "Create"}
                         </Button>
                     </DialogFooter>
                 </form>

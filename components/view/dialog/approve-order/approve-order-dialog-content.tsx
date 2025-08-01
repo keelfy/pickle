@@ -411,7 +411,6 @@ export default function ApproveOrderDialogContent() {
                                                 key={id}
                                                 value={source.title}
                                                 onSelect={() => {
-                                                    form.setValue("category", "games");
                                                     form.setValue("content", {
                                                         id,
                                                         title: source.title,

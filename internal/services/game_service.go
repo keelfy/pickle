@@ -37,13 +37,13 @@ func (s *gameService) GetGameByID(ctx context.Context, id uuid.UUID) (*db.Game, 
 func (s *gameService) GetGameByIDWithLocalization(ctx context.Context, id uuid.UUID, lang string) (*models.Game, error) {
 	game, err := s.sqlDB.Queries().FindGameByIDWithLocalization(ctx, db.FindGameByIDWithLocalizationParams{
 		ID:   id,
-		Lang: db.Locale(lang),
+		Lang: lang,
 	})
 	if err != nil {
 		return nil, cerrors.NewInternalServerError("Error occurred during game fetching", err)
 	}
 
-	var websites *[]models.ContentWebsite
+	var websites []models.ContentWebsite
 	if game.Websites != nil {
 		if err := json.Unmarshal(*game.Websites, &websites); err != nil {
 			return nil, cerrors.NewInternalServerError("Error occurred during game fetching", err)

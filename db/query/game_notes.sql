@@ -76,7 +76,7 @@ SELECT gn.*,
     COALESCE(gl.title, 'Untitled Game') AS title
 FROM game_notes gn
     LEFT JOIN game_localizations gl ON gn.content_id = gl.content_id
-    AND gl.lang = @locale::locale
+    AND gl.lang = @locale::text
 WHERE gn.id = @id::uuid;
 -- name: FindDetailedGameNoteByID :one
 SELECT gn.*,
@@ -90,7 +90,7 @@ SELECT gn.*,
 FROM game_notes gn
     LEFT JOIN games g ON gn.content_id = g.id
     LEFT JOIN game_localizations gl ON g.id = gl.content_id
-    AND gl.lang = @locale::locale
+    AND gl.lang = @locale::text
 WHERE gn.id = @id::uuid;
 -- name: FindGameNoteContentIDsByUserID :many
 SELECT DISTINCT content_id

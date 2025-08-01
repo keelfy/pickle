@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/google/uuid"
@@ -65,6 +66,7 @@ type contentNoteService struct {
 	ordererService    OrdererService
 	profileService    ProfileService
 	gameService       GameService
+	movieService      MovieService
 	countPlayedSFG    singleflight.Group
 	countWatchedSFG   singleflight.Group
 }
@@ -72,7 +74,7 @@ type contentNoteService struct {
 func NewContentNoteService(
 	sqlDB storage.RelationalStorage, elastic storage.ElasticStorage, cache storage.CacheStorage,
 	posterService PosterService, ordererService OrdererService, permissionService PermissionService,
-	profileService ProfileService, gameService GameService,
+	profileService ProfileService, gameService GameService, movieService MovieService,
 ) ContentNoteService {
 	return &contentNoteService{
 		sqlDB:             sqlDB,
@@ -83,6 +85,7 @@ func NewContentNoteService(
 		ordererService:    ordererService,
 		profileService:    profileService,
 		gameService:       gameService,
+		movieService:      movieService,
 		countPlayedSFG:    singleflight.Group{},
 		countWatchedSFG:   singleflight.Group{},
 	}
@@ -112,8 +115,8 @@ func (s *contentNoteService) CreateContentNote(ctx context.Context, category db.
 	//
 
 	existingNote, err := s.GetNoteByContentID(ctx, category, req.GetContentID(), userID)
-	if err != nil && err != pgx.ErrNoRows {
-		return nil, cerrors.NewInternalServerError("Error occurred during content note fetching", err)
+	if err != nil && err.(*cerrors.CustomError).HttpStatus != http.StatusNotFound {
+		return nil, err
 	}
 	if existingNote != nil {
 		return nil, cerrors.NewConflictError("Note with this content already exists", nil)
@@ -121,7 +124,7 @@ func (s *contentNoteService) CreateContentNote(ctx context.Context, category db.
 
 	creator, err := s.profileService.GetProfileByID(ctx, creatorID)
 	if err != nil {
-		return nil, cerrors.NewInternalServerError("Error occurred during creator fetching", err)
+		return nil, err
 	}
 
 	tx, err := s.sqlDB.Begin(ctx)
@@ -133,7 +136,7 @@ func (s *contentNoteService) CreateContentNote(ctx context.Context, category db.
 
 	initialOrderer, err := s.ordererService.CreateOrdererManuallyIfNotExists(ctx, qtx, creator, creator.DisplayName, "manual")
 	if err != nil {
-		return nil, cerrors.NewInternalServerError("Error occurred during initial orderer creation", err)
+		return nil, err
 	}
 
 	contentID := uuid.Nil
@@ -142,7 +145,13 @@ func (s *contentNoteService) CreateContentNote(ctx context.Context, category db.
 	case db.ContentCategoryGames:
 		content, err := s.gameService.GetGameByID(ctx, req.GetContentID())
 		if err != nil {
-			return nil, cerrors.NewInternalServerError("Error occurred during game fetching", err)
+			return nil, err
+		}
+		contentID = content.ID
+	case db.ContentCategoryMovies:
+		content, err := s.movieService.GetMovieByID(ctx, req.GetContentID())
+		if err != nil {
+			return nil, err
 		}
 		contentID = content.ID
 	}
@@ -413,7 +422,7 @@ func (service *contentNoteService) GetLocalizedNoteByID(ctx context.Context, id 
 	case db.ContentCategoryGames:
 		gameNote, err := service.sqlDB.Queries().FindLocalizedGameNoteByID(ctx, db.FindLocalizedGameNoteByIDParams{
 			ID:     id,
-			Locale: db.Locale(locale),
+			Locale: locale,
 		})
 		if err != nil {
 			return nil, cerrors.NewInternalServerError("Error occurred during game note fetching", err)
@@ -435,7 +444,7 @@ func (service *contentNoteService) GetLocalizedNoteByID(ctx context.Context, id 
 	case db.ContentCategoryMovies:
 		movieNote, err := service.sqlDB.Queries().FindLocalizedMovieNoteByID(ctx, db.FindLocalizedMovieNoteByIDParams{
 			ID:     id,
-			Locale: db.Locale(locale),
+			Locale: locale,
 		})
 		if err != nil {
 			return nil, cerrors.NewInternalServerError("Error occurred during movie note fetching", err)
@@ -459,18 +468,18 @@ func (service *contentNoteService) GetLocalizedNoteByID(ctx context.Context, id 
 	}
 }
 
-func (service *contentNoteService) GetDetailedNoteByID(ctx context.Context, id uuid.UUID, category db.ContentCategory, locale string) (models.ContentNote, error) {
+func (s *contentNoteService) GetDetailedNoteByID(ctx context.Context, id uuid.UUID, category db.ContentCategory, locale string) (models.ContentNote, error) {
 	switch category {
 	case db.ContentCategoryGames:
-		gameNote, err := service.sqlDB.Queries().FindDetailedGameNoteByID(ctx, db.FindDetailedGameNoteByIDParams{
+		gameNote, err := s.sqlDB.Queries().FindDetailedGameNoteByID(ctx, db.FindDetailedGameNoteByIDParams{
 			ID:     id,
-			Locale: db.Locale(locale),
+			Locale: locale,
 		})
 		if err != nil {
 			return nil, cerrors.NewInternalServerError("Error occurred during game note fetching", err)
 		}
 
-		var websites *[]models.ContentWebsite
+		var websites []models.ContentWebsite
 		if gameNote.Websites != nil {
 			err = json.Unmarshal(*gameNote.Websites, &websites)
 			if err != nil {
@@ -498,14 +507,21 @@ func (service *contentNoteService) GetDetailedNoteByID(ctx context.Context, id u
 			},
 		}, nil
 	case db.ContentCategoryMovies:
-		movieNote, err := service.sqlDB.Queries().FindDetailedMovieNoteByID(ctx, db.FindDetailedMovieNoteByIDParams{
+		movieNote, err := s.sqlDB.Queries().FindDetailedMovieNoteByID(ctx, db.FindDetailedMovieNoteByIDParams{
 			ID:     id,
-			Locale: db.Locale(locale),
+			Locale: locale,
 		})
 		if err != nil {
 			return nil, cerrors.NewInternalServerError("Error occurred during movie note fetching", err)
 		}
 
+		var websites []models.ContentWebsite
+		if movieNote.Websites != nil {
+			err = json.Unmarshal(*movieNote.Websites, &websites)
+			if err != nil {
+				return nil, cerrors.NewInternalServerError("Error occurred during game note fetching", err)
+			}
+		}
 		return &models.MovieNote{
 			ID:               movieNote.ID,
 			UserID:           movieNote.UserID,
@@ -516,10 +532,10 @@ func (service *contentNoteService) GetDetailedNoteByID(ctx context.Context, id u
 			CreatedAt:        movieNote.CreatedAt,
 			UpdatedAt:        movieNote.UpdatedAt,
 			Content: &models.Movie{
-				ID:          movieNote.ContentID,
-				Title:       movieNote.Title,
-				ReleaseDate: movieNote.ReleaseDate,
-				// Websites:    websites,
+				ID:           movieNote.ContentID,
+				Title:        movieNote.Title,
+				ReleaseDate:  movieNote.ReleaseDate,
+				Websites:     websites,
 				CoverKey:     movieNote.CoverKey,
 				CoverKeyType: movieNote.CoverKeyType,
 				SourceURL:    movieNote.SourceUrl,
@@ -863,8 +879,10 @@ func (service *contentNoteService) GetNoteByContentID(ctx context.Context, categ
 			ContentID: contentID,
 			UserID:    userID,
 		})
-		if err != nil {
+		if err != nil && err != pgx.ErrNoRows {
 			return nil, cerrors.NewInternalServerError("Error occurred during game note search", err)
+		} else if err == pgx.ErrNoRows {
+			return nil, cerrors.NewNotFoundError("Game note not found", nil)
 		}
 		return &models.GameNote{
 			ID:               gameNote.ID,
@@ -879,8 +897,10 @@ func (service *contentNoteService) GetNoteByContentID(ctx context.Context, categ
 			ContentID: contentID,
 			UserID:    userID,
 		})
-		if err != nil {
+		if err != nil && err != pgx.ErrNoRows {
 			return nil, cerrors.NewInternalServerError("Error occurred during movie note search", err)
+		} else if err == pgx.ErrNoRows {
+			return nil, cerrors.NewNotFoundError("Movie note not found", nil)
 		}
 		return &models.MovieNote{
 			ID:               movieNote.ID,

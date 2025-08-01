@@ -7,30 +7,21 @@ package db
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
 )
 
-const deleteMovie = `-- name: DeleteMovie :exec
-DELETE FROM movies
-WHERE id = $1::uuid
-`
-
-func (q *Queries) DeleteMovie(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.Exec(ctx, deleteMovie, id)
-	return err
-}
-
 const deleteMovieLocalization = `-- name: DeleteMovieLocalization :exec
 DELETE FROM movie_localizations
 WHERE content_id = $1::uuid
-    AND lang = $2::locale
+    AND lang = $2::text
 `
 
 type DeleteMovieLocalizationParams struct {
 	ContentID uuid.UUID `json:"content_id"`
-	Lang      Locale    `json:"lang"`
+	Lang      string    `json:"lang"`
 }
 
 func (q *Queries) DeleteMovieLocalization(ctx context.Context, arg DeleteMovieLocalizationParams) error {
@@ -67,12 +58,12 @@ SELECT movies.id, movies.external_id, movies.release_date, movies.websites, movi
     movie_localizations.title AS title
 FROM movies
     JOIN movie_localizations ON movies.id = movie_localizations.content_id
-    AND movie_localizations.lang = $1::locale
+    AND movie_localizations.lang = $1::text
 WHERE movies.id = $2::uuid
 `
 
 type FindMovieByIDWithLocalizationParams struct {
-	Lang Locale    `json:"lang"`
+	Lang string    `json:"lang"`
 	ID   uuid.UUID `json:"id"`
 }
 
@@ -80,7 +71,7 @@ type FindMovieByIDWithLocalizationRow struct {
 	ID           uuid.UUID        `json:"id"`
 	ExternalID   int64            `json:"external_id"`
 	ReleaseDate  *time.Time       `json:"release_date"`
-	Websites     *[]byte          `json:"websites"`
+	Websites     *json.RawMessage `json:"websites"`
 	CoverKey     *string          `json:"cover_key"`
 	CoverKeyType NullImageKeyType `json:"cover_key_type"`
 	SourceUrl    *string          `json:"source_url"`
@@ -109,31 +100,41 @@ func (q *Queries) FindMovieByIDWithLocalization(ctx context.Context, arg FindMov
 	return &i, err
 }
 
+const refreshLocalizedMovieViews = `-- name: RefreshLocalizedMovieViews :exec
+DELETE FROM movies
+WHERE id = $1::uuid
+`
+
+// REFRESH MATERIALIZED VIEW CONCURRENTLY localized_movies;
+func (q *Queries) RefreshLocalizedMovieViews(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, refreshLocalizedMovieViews, id)
+	return err
+}
+
 const upsertMovie = `-- name: UpsertMovie :one
 INSERT INTO movies (
-        external_id,
-        release_date,
-        websites,
-        cover_key,
-        cover_key_type,
-        source_url,
-        source_type
-    )
-VALUES (
-        $1::bigint,
-        $2::timestamptz,
-        $3::jsonb,
-        $4::text,
-        $5::image_key_type,
-        $6::text,
-        $7::content_source
-    ) ON CONFLICT (external_id) DO
-UPDATE
-SET release_date = $2::timestamptz,
-    cover_key = $4::text,
-    cover_key_type = $5::image_key_type,
-    source_url = $6::text,
-    source_type = $7::content_source,
+    external_id,
+    release_date,
+    websites,
+    cover_key,
+    cover_key_type,
+    source_url,
+    source_type
+) VALUES (
+    $1,
+    $2::timestamptz,
+    $3::jsonb,
+    $4::text,
+    $5::image_key_type,
+    $6::text,
+    $7
+)
+ON CONFLICT (external_id, source_type) DO UPDATE SET
+    release_date = EXCLUDED.release_date,
+    websites = EXCLUDED.websites,
+    cover_key = EXCLUDED.cover_key,
+    cover_key_type = EXCLUDED.cover_key_type,
+    source_url = EXCLUDED.source_url,
     updated_at = now()
 RETURNING id
 `
@@ -141,7 +142,7 @@ RETURNING id
 type UpsertMovieParams struct {
 	ExternalID   int64            `json:"external_id"`
 	ReleaseDate  *time.Time       `json:"release_date"`
-	Websites     *[]byte          `json:"websites"`
+	Websites     *json.RawMessage `json:"websites"`
 	CoverKey     *string          `json:"cover_key"`
 	CoverKeyType NullImageKeyType `json:"cover_key_type"`
 	SourceUrl    *string          `json:"source_url"`
@@ -164,20 +165,23 @@ func (q *Queries) UpsertMovie(ctx context.Context, arg UpsertMovieParams) (uuid.
 }
 
 const upsertMovieLocalization = `-- name: UpsertMovieLocalization :exec
-INSERT INTO movie_localizations (content_id, lang, title)
-VALUES (
-        $1::uuid,
-        $2::locale,
-        $3::text
-    ) ON CONFLICT (content_id, lang) DO
-UPDATE
-SET title = $3::text,
+INSERT INTO movie_localizations (
+    content_id,
+    lang,
+    title
+) VALUES (
+    $1::uuid,
+    $2::text,
+    $3::text
+)
+ON CONFLICT (content_id, lang) DO UPDATE SET
+    title = EXCLUDED.title,
     updated_at = now()
 `
 
 type UpsertMovieLocalizationParams struct {
 	ContentID uuid.UUID `json:"content_id"`
-	Lang      Locale    `json:"lang"`
+	Lang      string    `json:"lang"`
 	Title     string    `json:"title"`
 }
 

@@ -37,6 +37,8 @@ type pickleAPI struct {
 	profileEventsHandler handlers.ProfileEventsHandler
 	igdbSyncScheduler    schedulers.IGDBScheduler
 	igdbSyncService      services.IGDBSyncService
+	tmdbSyncScheduler    schedulers.TMDBScheduler
+	tmdbSyncService      services.TMDBSyncService
 	authHandler          handlers.AuthHandler
 	oryAPI               clients.OryAPI
 }
@@ -48,6 +50,7 @@ func NewPickleAPI(
 	collectionHandler handlers.CollectionHandler, moderatorHandler handlers.ModeratorHandler,
 	profileEventsHandler handlers.ProfileEventsHandler,
 	igdbSyncScheduler schedulers.IGDBScheduler, igdbSyncService services.IGDBSyncService,
+	tmdbSyncScheduler schedulers.TMDBScheduler, tmdbSyncService services.TMDBSyncService,
 	oryAPI clients.OryAPI,
 ) PickleAPI {
 	return &pickleAPI{
@@ -63,6 +66,8 @@ func NewPickleAPI(
 		profileEventsHandler: profileEventsHandler,
 		igdbSyncScheduler:    igdbSyncScheduler,
 		igdbSyncService:      igdbSyncService,
+		tmdbSyncScheduler:    tmdbSyncScheduler,
+		tmdbSyncService:      tmdbSyncService,
 		oryAPI:               oryAPI,
 		authHandler:          handlers.NewAuthHandler(),
 		tokenAuth:            jwtAuth.New("HS256", config.GetJWTSecret(), nil),
@@ -84,6 +89,13 @@ func (api *pickleAPI) BuildAPI(ctx context.Context) (*chi.Mux, error) {
 	}
 	logger.Info(ctx, "IGDB sync scheduler setup completed")
 
+	// Setup TMDB sync scheduler
+	err = api.tmdbSyncScheduler.SetupTMDBSync(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("Error occurred during TMDB sync scheduler setup: %v", err)
+	}
+	logger.Info(ctx, "TMDB sync scheduler setup completed")
+
 	r := chi.NewRouter()
 
 	// middlewares
@@ -95,7 +107,7 @@ func (api *pickleAPI) BuildAPI(ctx context.Context) (*chi.Mux, error) {
 	r.Use(chiMiddleware.Timeout(config.GetContextTimeoutMs() * time.Millisecond))
 
 	// /v1 routes
-	r.Mount("/v1", api.v1RouteHandler())
+	r.Mount("/v1", api.v1RouteHandler(ctx))
 
 	// swagger endpoint
 	r.Get("/swagger/*", httpSwagger.Handler(
@@ -134,7 +146,7 @@ func (api *pickleAPI) useApiKey(r chi.Router) {
 	r.Use(middleware.ApiKey())
 }
 
-func (api *pickleAPI) v1RouteHandler() http.Handler {
+func (api *pickleAPI) v1RouteHandler(ctx context.Context) http.Handler {
 	r := chi.NewRouter()
 
 	r.Get("/health", api.statusHandler.Health)
@@ -156,6 +168,9 @@ func (api *pickleAPI) v1RouteHandler() http.Handler {
 		api.useApiKey(r)
 
 		r.Post("/igdb-sync", api.igdbSyncService.TriggerGamesSync)
+		r.Post("/tmdb-sync", func(w http.ResponseWriter, r *http.Request) {
+			api.tmdbSyncService.TriggerMoviesSync(ctx, w, r)
+		})
 	})
 
 	r.Route("/profiles", func(r chi.Router) {

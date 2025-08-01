@@ -281,7 +281,7 @@ func (service *collectionService) GetItemsByCollectionID(ctx context.Context, co
 		CollectionID: collectionID,
 		Limit:        int32(pagination.Size),
 		Offset:       int32(pagination.From),
-		Lang:         db.Locale(locale),
+		Lang:         locale,
 	})
 	if err != nil {
 		return nil, errors.NewInternalServerError("failed to get items by collection ID", err)
@@ -294,7 +294,7 @@ func (service *collectionService) GetItemsByUserID(ctx context.Context, userID u
 	collectionItems, err := service.sqlDB.Queries().FindCollectionItemsByUserIDWithContentLimitPerCollection(ctx, db.FindCollectionItemsByUserIDWithContentLimitPerCollectionParams{
 		UserID: userID,
 		Limit:  int16(pagination.Size),
-		Lang:   db.Locale(locale),
+		Lang:   locale,
 	})
 	if err != nil {
 		return nil, errors.NewInternalServerError("failed to get items by user ID", err)

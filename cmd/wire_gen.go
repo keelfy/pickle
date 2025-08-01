@@ -52,7 +52,8 @@ func InitializeAPI(ctx context.Context) (api.PickleAPI, func(), error) {
 	moderatorService := services.NewModeratorService(relationalStorage, cacheStorage, avatarService, profileService)
 	permissionService := services.NewPermissionService(moderatorService)
 	gameService := services.NewGameService(relationalStorage)
-	contentNoteService := services.NewContentNoteService(relationalStorage, elasticStorage, cacheStorage, posterService, ordererService, permissionService, profileService, gameService)
+	movieService := services.NewMovieService(relationalStorage)
+	contentNoteService := services.NewContentNoteService(relationalStorage, elasticStorage, cacheStorage, posterService, ordererService, permissionService, profileService, gameService, movieService)
 	ordersBrokerService := services.NewOrdersBrokerService()
 	orderService := services.NewOrderService(relationalStorage, profileService, ordererService, contentNoteService, permissionService, ordersBrokerService)
 	publicProfileService := services.NewPublicProfileService(avatarService, followerService, moderatorService, orderService, profileService, contentNoteService)
@@ -63,7 +64,7 @@ func InitializeAPI(ctx context.Context) (api.PickleAPI, func(), error) {
 	contentNoteHandler := handlers.NewContentNoteHandler(profileService, orderService, posterService, contentNoteService, contentNoteReactionService)
 	posterHandler := handlers.NewPosterHandler(posterService)
 	migrationService := services.NewMigrationService(relationalStorage, elasticStorage)
-	contentService := services.NewContentService(relationalStorage, elasticStorage, posterService, gameService)
+	contentService := services.NewContentService(relationalStorage, elasticStorage, posterService, gameService, movieService)
 	contentHandler := handlers.NewContentHandler(elasticStorage, contentNoteService, contentService)
 	collectionService := services.NewCollectionService(relationalStorage, cacheStorage, permissionService)
 	collectionHandler := handlers.NewCollectionHandler(collectionService, contentNoteService, posterService)
@@ -72,12 +73,15 @@ func InitializeAPI(ctx context.Context) (api.PickleAPI, func(), error) {
 	igdbClient := clients.NewIGDBClient()
 	igdbSyncService := services.NewIGDBSyncService(relationalStorage, elasticStorage, igdbClient)
 	igdbScheduler := schedulers.NewIGDBScheduler(igdbSyncService, relationalStorage)
+	tmdbClient := clients.NewTMDBClient()
+	tmdbSyncService := services.NewTMDBSyncService(relationalStorage, elasticStorage, tmdbClient)
+	tmdbScheduler := schedulers.NewTMDBScheduler(tmdbSyncService, relationalStorage)
 	oryAPI, err := clients.NewOryAPI(ctx)
 	if err != nil {
 		cleanup()
 		return nil, nil, err
 	}
-	pickleAPI := api.NewPickleAPI(profileHandler, statusHandler, orderHandler, contentNoteHandler, posterHandler, migrationService, contentHandler, collectionHandler, moderatorHandler, profileEventsHandler, igdbScheduler, igdbSyncService, oryAPI)
+	pickleAPI := api.NewPickleAPI(profileHandler, statusHandler, orderHandler, contentNoteHandler, posterHandler, migrationService, contentHandler, collectionHandler, moderatorHandler, profileEventsHandler, igdbScheduler, igdbSyncService, tmdbScheduler, tmdbSyncService, oryAPI)
 	return pickleAPI, func() {
 		cleanup()
 	}, nil

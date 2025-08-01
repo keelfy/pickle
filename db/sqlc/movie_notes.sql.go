@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -43,16 +44,17 @@ SELECT mn.id, mn.created_at, mn.created_by, mn.updated_at, mn.updated_by, mn.use
     m.cover_key_type,
     m.source_url,
     m.source_type,
-    m.release_date
+    m.release_date,
+    m.websites
 FROM movie_notes mn
     LEFT JOIN movies m ON mn.content_id = m.id
     LEFT JOIN movie_localizations ml ON m.id = ml.content_id
-    AND ml.lang = $1::locale
+    AND ml.lang = $1::text
 WHERE mn.id = $2::uuid
 `
 
 type FindDetailedMovieNoteByIDParams struct {
-	Locale Locale    `json:"locale"`
+	Locale string    `json:"locale"`
 	ID     uuid.UUID `json:"id"`
 }
 
@@ -75,6 +77,7 @@ type FindDetailedMovieNoteByIDRow struct {
 	SourceUrl        *string           `json:"source_url"`
 	SourceType       NullContentSource `json:"source_type"`
 	ReleaseDate      *time.Time        `json:"release_date"`
+	Websites         *json.RawMessage  `json:"websites"`
 }
 
 func (q *Queries) FindDetailedMovieNoteByID(ctx context.Context, arg FindDetailedMovieNoteByIDParams) (*FindDetailedMovieNoteByIDRow, error) {
@@ -99,6 +102,7 @@ func (q *Queries) FindDetailedMovieNoteByID(ctx context.Context, arg FindDetaile
 		&i.SourceUrl,
 		&i.SourceType,
 		&i.ReleaseDate,
+		&i.Websites,
 	)
 	return &i, err
 }
@@ -108,12 +112,12 @@ SELECT mn.id, mn.created_at, mn.created_by, mn.updated_at, mn.updated_by, mn.use
     COALESCE(ml.title, 'Untitled Movie') AS title
 FROM movie_notes mn
     LEFT JOIN movie_localizations ml ON mn.content_id = ml.content_id
-    AND ml.lang = $1::locale
+    AND ml.lang = $1::text
 WHERE mn.id = $2::uuid
 `
 
 type FindLocalizedMovieNoteByIDParams struct {
-	Locale Locale    `json:"locale"`
+	Locale string    `json:"locale"`
 	ID     uuid.UUID `json:"id"`
 }
 

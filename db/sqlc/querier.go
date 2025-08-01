@@ -15,6 +15,8 @@ type Querier interface {
 	AddMovieNoteReaction(ctx context.Context, arg AddMovieNoteReactionParams) error
 	CompleteIGDBSync(ctx context.Context, arg CompleteIGDBSyncParams) error
 	CompleteIGDBSyncWithError(ctx context.Context, arg CompleteIGDBSyncWithErrorParams) error
+	CompleteTMDBSync(ctx context.Context, arg CompleteTMDBSyncParams) error
+	CompleteTMDBSyncWithError(ctx context.Context, arg CompleteTMDBSyncWithErrorParams) error
 	CountCollectionItemsByCollectionID(ctx context.Context, id uuid.UUID) (int64, error)
 	CountFollowers(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountGameNoteReactionsByGameNoteIDAndUserID(ctx context.Context, arg CountGameNoteReactionsByGameNoteIDAndUserIDParams) (int64, error)
@@ -25,6 +27,7 @@ type Querier interface {
 	CountPlayedGameNotesByUserID(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountWatchedMovieNotesByUserID(ctx context.Context, userID uuid.UUID) (int64, error)
 	CreateIGDBSync(ctx context.Context, syncType IgdbSyncType) (*IgdbSyncLog, error)
+	CreateTMDBSync(ctx context.Context, syncType IgdbSyncType) (*TmdbSyncLog, error)
 	DeleteCollectionByID(ctx context.Context, id uuid.UUID) error
 	DeleteCollectionItemByID(ctx context.Context, id uuid.UUID) error
 	DeleteCollectionItemsByCollectionID(ctx context.Context, collectionID uuid.UUID) error
@@ -33,7 +36,6 @@ type Querier interface {
 	DeleteGameLocalization(ctx context.Context, arg DeleteGameLocalizationParams) error
 	DeleteGameNoteByID(ctx context.Context, id uuid.UUID) error
 	DeleteModeratorByUserIDAndModeratorID(ctx context.Context, arg DeleteModeratorByUserIDAndModeratorIDParams) error
-	DeleteMovie(ctx context.Context, id uuid.UUID) error
 	DeleteMovieLocalization(ctx context.Context, arg DeleteMovieLocalizationParams) error
 	DeleteMovieNoteByID(ctx context.Context, id uuid.UUID) error
 	DeletePosterPreview(ctx context.Context, id uuid.UUID) error
@@ -83,6 +85,7 @@ type Querier interface {
 	FindProfilesByModeratorID(ctx context.Context, moderatorID uuid.UUID) ([]*FindProfilesByModeratorIDRow, error)
 	GetGameNoteReactionsByGameNoteIDInAndUserID(ctx context.Context, arg GetGameNoteReactionsByGameNoteIDInAndUserIDParams) ([]*GetGameNoteReactionsByGameNoteIDInAndUserIDRow, error)
 	GetLastSuccessfulSync(ctx context.Context, syncType IgdbSyncType) (*IgdbSyncLog, error)
+	GetLastSuccessfulTMDBsync(ctx context.Context, syncType IgdbSyncType) (*TmdbSyncLog, error)
 	GetMovieNoteReactionsByMovieNoteIDInAndUserID(ctx context.Context, arg GetMovieNoteReactionsByMovieNoteIDInAndUserIDParams) ([]*GetMovieNoteReactionsByMovieNoteIDInAndUserIDRow, error)
 	GetUserFollows(ctx context.Context, followerID uuid.UUID) ([]*Profile, error)
 	InsertCollection(ctx context.Context, arg InsertCollectionParams) (*Collection, error)
@@ -102,12 +105,15 @@ type Querier interface {
 	InsertReferencedOrderer(ctx context.Context, arg InsertReferencedOrdererParams) (*Orderer, error)
 	IsFollowing(ctx context.Context, arg IsFollowingParams) (int64, error)
 	RefreshLocalizedGameViews(ctx context.Context) error
+	// REFRESH MATERIALIZED VIEW CONCURRENTLY localized_movies;
+	RefreshLocalizedMovieViews(ctx context.Context, id uuid.UUID) error
 	RemoveGameNoteReaction(ctx context.Context, arg RemoveGameNoteReactionParams) error
 	RemoveMovieNoteReaction(ctx context.Context, arg RemoveMovieNoteReactionParams) error
 	ResetApprovedOrdersByGameNoteId(ctx context.Context, gameNoteID uuid.UUID) error
 	ResetApprovedOrdersByMovieNoteId(ctx context.Context, movieNoteID uuid.UUID) error
 	RevertModeratorByUserIDAndModeratorID(ctx context.Context, arg RevertModeratorByUserIDAndModeratorIDParams) error
 	StartIGDBSync(ctx context.Context, id uuid.UUID) error
+	StartTMDBSync(ctx context.Context, id uuid.UUID) error
 	UpdateCollectionByID(ctx context.Context, arg UpdateCollectionByIDParams) (*Collection, error)
 	UpdateGameNoteByID(ctx context.Context, arg UpdateGameNoteByIDParams) error
 	UpdateMovieNoteByID(ctx context.Context, arg UpdateMovieNoteByIDParams) error

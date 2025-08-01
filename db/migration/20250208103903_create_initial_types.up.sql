@@ -36,7 +36,7 @@ CREATE TYPE movie_note_status AS ENUM (
     'watched',
     'skipped'
 );
--- igdb sync
+-- sync
 CREATE TYPE igdb_sync_status AS ENUM ('pending', 'in_progress', 'completed', 'failed');
 CREATE TYPE igdb_sync_type AS ENUM ('full', 'incremental');
 -- content sources

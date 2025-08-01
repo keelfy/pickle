@@ -82,7 +82,7 @@ SELECT mn.*,
     COALESCE(ml.title, 'Untitled Movie') AS title
 FROM movie_notes mn
     LEFT JOIN movie_localizations ml ON mn.content_id = ml.content_id
-    AND ml.lang = @locale::locale
+    AND ml.lang = @locale::text
 WHERE mn.id = @id::uuid;
 -- name: FindDetailedMovieNoteByID :one
 SELECT mn.*,
@@ -91,11 +91,12 @@ SELECT mn.*,
     m.cover_key_type,
     m.source_url,
     m.source_type,
-    m.release_date
+    m.release_date,
+    m.websites
 FROM movie_notes mn
     LEFT JOIN movies m ON mn.content_id = m.id
     LEFT JOIN movie_localizations ml ON m.id = ml.content_id
-    AND ml.lang = @locale::locale
+    AND ml.lang = @locale::text
 WHERE mn.id = @id::uuid;
 -- name: FindMovieNoteContentIDsByUserID :many
 SELECT DISTINCT content_id

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"slices"
 
-	"github.com/elastic/go-elasticsearch/v8/typedapi/core/search"
 	"github.com/google/uuid"
 	db "github.com/pickle.pw/monolith/db/sqlc"
 	"github.com/pickle.pw/monolith/internal/errors"
@@ -27,6 +26,7 @@ type contentService struct {
 	elastic       storage.ElasticStorage
 	posterService PosterService
 	gameService   GameService
+	movieService  MovieService
 }
 
 func NewContentService(
@@ -34,12 +34,14 @@ func NewContentService(
 	elastic storage.ElasticStorage,
 	posterService PosterService,
 	gameService GameService,
+	movieService MovieService,
 ) ContentService {
 	return &contentService{
 		sqlDB:         sqlDB,
 		elastic:       elastic,
 		posterService: posterService,
 		gameService:   gameService,
+		movieService:  movieService,
 	}
 }
 
@@ -59,17 +61,7 @@ func (s *contentService) getTitleFromElasticContent(ctx context.Context, dbSourc
 }
 
 func (s *contentService) SearchContent(ctx context.Context, category db.ContentCategory, query string, userID uuid.UUID, locale string, pagination *types.Pagination) (*responses.ContentSearchRes, error) {
-	var (
-		searchResponse *search.Response
-		err            error
-	)
-
-	switch category {
-	case db.ContentCategoryGames:
-		searchResponse, err = s.elastic.SearchGames(ctx, query, pagination)
-	default:
-		return nil, cerrors.NewInternalServerError("Unsupported content category", nil)
-	}
+	searchResponse, err := s.elastic.SearchIndexedContent(ctx, category, query, pagination)
 
 	if err != nil {
 		logger.Errorf(ctx, "err searching content: %v", err)
@@ -82,6 +74,8 @@ func (s *contentService) SearchContent(ctx context.Context, category db.ContentC
 		switch category {
 		case db.ContentCategoryGames:
 			notedContentIDs, err = s.sqlDB.Queries().FindGameNoteContentIDsByUserID(ctx, userID)
+		case db.ContentCategoryMovies:
+			notedContentIDs, err = s.sqlDB.Queries().FindMovieNoteContentIDsByUserID(ctx, userID)
 		default:
 			return nil, cerrors.NewInternalServerError("Unsupported content category", nil)
 		}
@@ -176,12 +170,14 @@ func (s *contentService) GetLocalizedContentByID(ctx context.Context, category d
 	switch category {
 	case db.ContentCategoryGames:
 		content, err = s.gameService.GetGameByIDWithLocalization(ctx, id, locale)
+	case db.ContentCategoryMovies:
+		content, err = s.movieService.GetMovieByIDWithLocalization(ctx, id, locale)
 	default:
 		return nil, cerrors.NewInternalServerError("unsupported content category", nil)
 	}
 
 	if err != nil {
-		return nil, cerrors.NewInternalServerError("failed to get content by ID", err)
+		return nil, err
 	}
 
 	var res responses.ContentRes
@@ -204,13 +200,18 @@ func (s *contentService) GetLocalizedContentByID(ctx context.Context, category d
 		SourceType: content.GetSourceType(),
 	}
 
-	switch content.(type) {
+	switch content := content.(type) {
 	case *models.Game:
-		game := content.(*models.Game)
 		res = &responses.GameRes{
 			BasicContentRes: basicRes,
-			ReleaseDate:     game.ReleaseDate,
-			Websites:        game.Websites,
+			ReleaseDate:     content.ReleaseDate,
+			Websites:        content.Websites,
+		}
+	case *models.Movie:
+		res = &responses.MovieRes{
+			BasicContentRes: basicRes,
+			ReleaseDate:     content.ReleaseDate,
+			Websites:        content.Websites,
 		}
 	}
 

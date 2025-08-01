@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	db "github.com/pickle.pw/monolith/db/sqlc"
 	"github.com/pickle.pw/monolith/internal/clients"
 	"github.com/pickle.pw/monolith/internal/logger"
@@ -17,7 +18,7 @@ import (
 )
 
 type IGDBSyncService interface {
-	SyncGames(ctx context.Context) error
+	SyncGames(ctx context.Context, syncType db.IgdbSyncType) error
 	TriggerGamesSync(w http.ResponseWriter, r *http.Request)
 }
 
@@ -40,7 +41,7 @@ func (s *igdbSyncService) TriggerGamesSync(w http.ResponseWriter, r *http.Reques
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Hour)
 		defer cancel()
 
-		err := s.SyncGames(ctx)
+		err := s.SyncGames(ctx, db.IgdbSyncTypeFull)
 		if err != nil {
 			logger.Errorf(ctx, "[IGDB Sync] Sync failed: %v", err)
 		}
@@ -48,8 +49,8 @@ func (s *igdbSyncService) TriggerGamesSync(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (s *igdbSyncService) SyncGames(ctx context.Context) error {
-	syncLog, err := s.sqlDB.Queries().CreateIGDBSync(ctx, "incremental")
+func (s *igdbSyncService) SyncGames(ctx context.Context, syncType db.IgdbSyncType) error {
+	syncLog, err := s.sqlDB.Queries().CreateIGDBSync(ctx, syncType)
 	if err != nil {
 		return err
 	}
@@ -73,15 +74,19 @@ func (s *igdbSyncService) SyncGames(ctx context.Context) error {
 		}
 	}()
 
+	var beginTime *time.Time
+
 	// Get last successful sync timestamp
 	lastSync, err := s.sqlDB.Queries().GetLastSuccessfulSync(ctx, "incremental")
-	if err != nil {
+	if err != nil && err != pgx.ErrNoRows {
 		return err
+	} else if lastSync != nil {
+		beginTime = lastSync.CompletedAt
+		logger.Debugf(ctx, "[IGDB Sync] Last successful sync: %v", lastSync.CompletedAt)
 	}
-	logger.Debugf(ctx, "[IGDB Sync] Last successful sync: %v", lastSync.CompletedAt)
 
 	// Fetch games from IGDB
-	games, err := s.igdbClient.GetUpdatedGames(ctx, lastSync.CompletedAt)
+	games, err := s.igdbClient.GetUpdatedGames(ctx, beginTime)
 	if err != nil {
 		return err
 	}
@@ -124,7 +129,7 @@ func (s *igdbSyncService) SyncGames(ctx context.Context) error {
 		}
 
 		var websites []models.ContentWebsite
-		var serializedWebsites *[]byte
+		var serializedWebsites *json.RawMessage
 
 		if game.Websites != nil {
 			websites = make([]models.ContentWebsite, len(*game.Websites))
@@ -142,11 +147,12 @@ func (s *igdbSyncService) SyncGames(ctx context.Context) error {
 			}
 
 			if len(websites) > 0 {
-				json, err := json.Marshal(websites)
+				jsonBytes, err := json.Marshal(websites)
 				if err != nil {
 					return fmt.Errorf("error marshalling websites: %w", err)
 				}
-				serializedWebsites = &json
+				rawMessage := json.RawMessage(jsonBytes)
+				serializedWebsites = &rawMessage
 			}
 		}
 
@@ -227,9 +233,9 @@ func (s *igdbSyncService) SyncGames(ctx context.Context) error {
 	tx.Commit(ctx)
 
 	// Refresh materialized views
-	if err = s.sqlDB.Queries().RefreshLocalizedGameViews(ctx); err != nil {
-		return err
-	}
+	// if err = s.sqlDB.Queries().RefreshLocalizedGameViews(ctx); err != nil {
+	// 	return err
+	// }
 
 	return nil
 }

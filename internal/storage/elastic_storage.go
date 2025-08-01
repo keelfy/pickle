@@ -11,6 +11,10 @@ import (
 	"github.com/elastic/go-elasticsearch/v8/typedapi/core/index"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/core/search"
 	esTypes "github.com/elastic/go-elasticsearch/v8/typedapi/types"
+	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/fieldvaluefactormodifier"
+	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/functionboostmode"
+	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/functionscoremode"
+	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/textquerytype"
 	"github.com/google/uuid"
 	db "github.com/pickle.pw/monolith/db/sqlc"
 	"github.com/pickle.pw/monolith/internal/config"
@@ -27,7 +31,7 @@ type ElasticStorage interface {
 	Search(ctx context.Context, indexName string, query *esTypes.Query, pagination *types.Pagination) (*search.Response, error)
 	IndexContent(ctx context.Context, id uuid.UUID, name string, userId uuid.UUID, category db.ContentCategory) error
 	SearchProfileContent(ctx context.Context, query string, userId uuid.UUID, pagination *types.Pagination) (*search.Response, error)
-	SearchGames(ctx context.Context, query string, pagination *types.Pagination) (*search.Response, error)
+	SearchIndexedContent(ctx context.Context, category db.ContentCategory, query string, pagination *types.Pagination) (*search.Response, error)
 	DeleteContentNoteByID(ctx context.Context, category db.ContentCategory, contentID uuid.UUID) error
 	DeleteContent(ctx context.Context, contentID uuid.UUID, category db.ContentCategory) error
 }
@@ -228,53 +232,50 @@ func (storage *elasticStorage) SearchProfileContent(ctx context.Context, query s
 	return response, nil
 }
 
-func (storage *elasticStorage) SearchGames(ctx context.Context, query string, pagination *types.Pagination) (*search.Response, error) {
-	esQuery := &esTypes.Query{
-		Bool: &esTypes.BoolQuery{
-			Filter: []esTypes.Query{
-				{
-					Match: map[string]esTypes.MatchQuery{
-						"name_en": {
-							Query:     query,
-							Fuzziness: "AUTO",
-						},
-					},
-				},
-				{
-					Match: map[string]esTypes.MatchQuery{
-						"name_ru": {
-							Query:     query,
-							Fuzziness: "AUTO",
-						},
-					},
-				},
-				{
-					Match: map[string]esTypes.MatchQuery{
-						"name_de": {
-							Query:     query,
-							Fuzziness: "AUTO",
-						},
-					},
-				},
-				{
-					Match: map[string]esTypes.MatchQuery{
-						"name_es": {
-							Query:     query,
-							Fuzziness: "AUTO",
-						},
-					},
-				},
-			},
+func (storage *elasticStorage) SearchIndexedContent(ctx context.Context, category db.ContentCategory, query string, pagination *types.Pagination) (*search.Response, error) {
+	// Create a multi-match query for text search across different language fields
+	textQuery := &esTypes.Query{
+		MultiMatch: &esTypes.MultiMatchQuery{
+			Query:     query,
+			Fields:    []string{"name_en", "name_ru", "name_de", "name_es"},
+			Fuzziness: "AUTO",
+			Type:      &textquerytype.Bestfields,
 		},
 	}
 
-	response, err := storage.Search(ctx, "igdb_games", esQuery, pagination)
+	factor := esTypes.Float64(0.1)
+	esQuery := &esTypes.Query{
+		FunctionScore: &esTypes.FunctionScoreQuery{
+			Query: textQuery,
+			Functions: []esTypes.FunctionScore{
+				{
+					FieldValueFactor: &esTypes.FieldValueFactorScoreFunction{
+						Field:    "popularity",
+						Factor:   &factor,
+						Modifier: &fieldvaluefactormodifier.Log1p,
+					},
+				},
+			},
+			ScoreMode: &functionscoremode.Sum,
+			BoostMode: &functionboostmode.Multiply,
+		},
+	}
+
+	var indexName string
+	switch category {
+	case db.ContentCategoryGames:
+		indexName = "igdb_games"
+	case db.ContentCategoryMovies:
+		indexName = "tmdb_movies"
+	}
+
+	response, err := storage.Search(ctx, indexName, esQuery, pagination)
 	if err != nil {
-		logger.Debugf(ctx, "[ELASTIC] Error searching IGDB games: %v", err)
+		logger.Debugf(ctx, "[ELASTIC] Error searching %s: %v", category, err)
 		return nil, err
 	}
 
-	logger.Debugf(ctx, "[ELASTIC] IGDB games found: %d", response.Hits.Total.Value)
+	logger.Debugf(ctx, "[ELASTIC] %s found: %d", category, response.Hits.Total.Value)
 	return response, nil
 }
 

@@ -154,18 +154,18 @@ FROM collection_items ci
     LEFT JOIN games g ON ci.category = 'games'
     AND ci.content_id = g.id
     LEFT JOIN game_localizations gl ON g.id = gl.content_id
-    AND gl.lang = $1::locale
+    AND gl.lang = $1::text
     LEFT JOIN movies m ON ci.category = 'movies'
     AND ci.content_id = m.id
     LEFT JOIN movie_localizations ml ON m.id = ml.content_id
-    AND ml.lang = $1::locale
+    AND ml.lang = $1::text
 WHERE c.id = $2::uuid
 ORDER BY ci.created_at DESC
 LIMIT $4::int OFFSET $3::int
 `
 
 type FindCollectionItemsByCollectionIDWithContentParams struct {
-	Lang         Locale    `json:"lang"`
+	Lang         string    `json:"lang"`
 	CollectionID uuid.UUID `json:"collection_id"`
 	Offset       int32     `json:"offset"`
 	Limit        int32     `json:"limit"`
@@ -282,11 +282,11 @@ WITH ranked_items AS (
         LEFT JOIN games g ON ci.category = 'games'
         AND ci.content_id = g.id
         LEFT JOIN game_localizations gl ON g.id = gl.content_id
-        AND gl.lang = $2::locale
+        AND gl.lang = $2::text
         LEFT JOIN movies m ON ci.category = 'movies'
         AND ci.content_id = m.id
         LEFT JOIN movie_localizations ml ON m.id = ml.content_id
-        AND ml.lang = $2::locale
+        AND ml.lang = $2::text
     WHERE c.user_id = $3::uuid
 )
 SELECT ri.id, ri.collection_id, ri.note_id, ri.content_id, ri.category, ri.created_at, ri.created_by, ri.content_title, ri.cover_key, ri.cover_key_type, ri.rn
@@ -297,7 +297,7 @@ ORDER BY ri.created_at DESC
 
 type FindCollectionItemsByUserIDWithContentLimitPerCollectionParams struct {
 	Limit  int16     `json:"limit"`
-	Lang   Locale    `json:"lang"`
+	Lang   string    `json:"lang"`
 	UserID uuid.UUID `json:"user_id"`
 }
 

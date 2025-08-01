@@ -1,6 +1,6 @@
 {
-  "id": "22022025_1_igdb_games_index",
-  "index": "igdb_games",
+  "id": "22022025_1_tmdb_movies_index",
+  "index": "tmdb_movies",
   "query": {
     "settings": {
       "number_of_shards": 4,

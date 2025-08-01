@@ -1,6 +1,14 @@
 package utils
 
 var (
-	AllowedLocales = []string{"en", "ru", "de", "es"}
-	DefaultLocale  = "en"
+	EnglishLocale = "en"
+	RussianLocale = "ru"
+	GermanLocale  = "de"
+	SpanishLocale = "es"
+)
+
+var (
+	// ISO 639-1 codes
+	AllowedLocales = []string{EnglishLocale, RussianLocale, GermanLocale, SpanishLocale}
+	DefaultLocale  = EnglishLocale
 )

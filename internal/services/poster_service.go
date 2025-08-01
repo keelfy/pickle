@@ -264,6 +264,20 @@ func (s *posterService) GetCoverImageURL(ctx context.Context, size, imageKey str
 			return "", err
 		}
 		return resizedImageUrl, nil
+	case db.ImageKeyTypeTmdb:
+		dims := coverDimensions[size]
+		imageUrl := fmt.Sprintf("%s/w342%s", config.GetTMDBImageBaseURL(), imageKey)
+		resizedImageUrl, err := s.imageService.GetResizedImageUrl(imageUrl, dims[0], dims[1], nil)
+		if err != nil {
+			return "", err
+		}
+
+		cacheKey := fmt.Sprintf("tmdb_cover:%s:%s", imageKey, size)
+		expiration := config.GetPosterPreviewStoreTime()
+		if err := s.cache.SetKey(ctx, cacheKey, resizedImageUrl, expiration); err != nil {
+			return "", err
+		}
+		return resizedImageUrl, nil
 	default:
 		return "", cerrors.NewBadRequestError("Unsupported cover image type", nil)
 	}
@@ -276,24 +290,18 @@ func (s *posterService) GetContentThumbnailImageURL(ctx context.Context, size, i
 
 	switch imageType {
 	case db.ImageKeyTypeIgdb:
-		// dims := thumbnailDimensions[size]
 		igdbSize := "micro"
 		if size == "md" {
 			igdbSize = "thumb"
 		}
-
 		imageUrl := fmt.Sprintf(igdbImageURLFormat, igdbSize, imageKey)
-		// resizedImageUrl, err := s.imageService.GetResizedImageUrl(imageUrl, dims[0], dims[1], nil)
-		// if err != nil {
-		// 	return "", err
-		// }
-
-		// cacheKey := fmt.Sprintf("igdb_thumbnail:%s:%s", imageKey, size)
-		// expiration := config.GetPosterPreviewStoreTime()
-		// if err := s.cache.SetKey(ctx, cacheKey, resizedImageUrl, expiration); err != nil {
-		// 	return "", err
-		// }
-		// return resizedImageUrl, nil
+		return imageUrl, nil
+	case db.ImageKeyTypeTmdb:
+		tmdbSize := "w45"
+		if size == "md" {
+			tmdbSize = "w92"
+		}
+		imageUrl := fmt.Sprintf("%s/%s%s", config.GetTMDBImageBaseURL(), tmdbSize, imageKey)
 		return imageUrl, nil
 	default:
 		return "", cerrors.NewBadRequestError("Unsupported cover image type", nil)

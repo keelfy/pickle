@@ -97,11 +97,11 @@ WITH ranked_items AS (
         LEFT JOIN games g ON ci.category = 'games'
         AND ci.content_id = g.id
         LEFT JOIN game_localizations gl ON g.id = gl.content_id
-        AND gl.lang = @lang::locale
+        AND gl.lang = @lang::text
         LEFT JOIN movies m ON ci.category = 'movies'
         AND ci.content_id = m.id
         LEFT JOIN movie_localizations ml ON m.id = ml.content_id
-        AND ml.lang = @lang::locale
+        AND ml.lang = @lang::text
     WHERE c.user_id = @user_id::uuid
 )
 SELECT ri.*
@@ -130,11 +130,11 @@ FROM collection_items ci
     LEFT JOIN games g ON ci.category = 'games'
     AND ci.content_id = g.id
     LEFT JOIN game_localizations gl ON g.id = gl.content_id
-    AND gl.lang = @lang::locale
+    AND gl.lang = @lang::text
     LEFT JOIN movies m ON ci.category = 'movies'
     AND ci.content_id = m.id
     LEFT JOIN movie_localizations ml ON m.id = ml.content_id
-    AND ml.lang = @lang::locale
+    AND ml.lang = @lang::text
 WHERE c.id = @collection_id::uuid
 ORDER BY ci.created_at DESC
 LIMIT sqlc.arg('limit')::int OFFSET sqlc.arg('offset')::int;

@@ -126,7 +126,7 @@ const findPaginatedContentNotesByUserIDQuery = `
 		COALESCE(order_counts.count, 0) AS orderer_count
 	FROM filtered_notes note
 		INNER JOIN %s content ON note.content_id = content.id
-		INNER JOIN %s localizations ON content.id = localizations.content_id AND localizations.lang = $4::locale
+		INNER JOIN %s localizations ON content.id = localizations.content_id AND localizations.lang = $4::text
 		INNER JOIN orderers o ON note.initial_orderer_id = o.id
 		%s -- optional joins
 		LEFT JOIN LATERAL(
@@ -246,7 +246,7 @@ func (sqlDb *relationalStorage) FindPaginatedContentNotesByUserID(ctx context.Co
 		strings.ToUpper(sort.Direction),
 	)
 
-	rows, err := sqlDb.conn.Query(ctx, query, userID, sort.Cursor, sort.Limit, db.Locale(locale))
+	rows, err := sqlDb.conn.Query(ctx, query, userID, sort.Cursor, sort.Limit, locale)
 	if err != nil {
 		return nil, err
 	}

@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -49,12 +50,12 @@ SELECT gn.id, gn.created_at, gn.created_by, gn.updated_at, gn.updated_by, gn.use
 FROM game_notes gn
     LEFT JOIN games g ON gn.content_id = g.id
     LEFT JOIN game_localizations gl ON g.id = gl.content_id
-    AND gl.lang = $1::locale
+    AND gl.lang = $1::text
 WHERE gn.id = $2::uuid
 `
 
 type FindDetailedGameNoteByIDParams struct {
-	Locale Locale    `json:"locale"`
+	Locale string    `json:"locale"`
 	ID     uuid.UUID `json:"id"`
 }
 
@@ -76,7 +77,7 @@ type FindDetailedGameNoteByIDRow struct {
 	CoverKeyType     NullImageKeyType  `json:"cover_key_type"`
 	SourceUrl        *string           `json:"source_url"`
 	SourceType       NullContentSource `json:"source_type"`
-	Websites         *[]byte           `json:"websites"`
+	Websites         *json.RawMessage  `json:"websites"`
 	ReleaseDate      *time.Time        `json:"release_date"`
 }
 
@@ -196,12 +197,12 @@ SELECT gn.id, gn.created_at, gn.created_by, gn.updated_at, gn.updated_by, gn.use
     COALESCE(gl.title, 'Untitled Game') AS title
 FROM game_notes gn
     LEFT JOIN game_localizations gl ON gn.content_id = gl.content_id
-    AND gl.lang = $1::locale
+    AND gl.lang = $1::text
 WHERE gn.id = $2::uuid
 `
 
 type FindLocalizedGameNoteByIDParams struct {
-	Locale Locale    `json:"locale"`
+	Locale string    `json:"locale"`
 	ID     uuid.UUID `json:"id"`
 }
 

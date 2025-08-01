@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/google/uuid"
 )
@@ -111,11 +112,11 @@ RETURNING user_id, created_at, updated_at, updated_by, display_name, username, d
 `
 
 type InsertProfileParams struct {
-	UserID                uuid.UUID `json:"user_id"`
-	DisplayName           string    `json:"display_name"`
-	Username              string    `json:"username"`
-	Description           string    `json:"description"`
-	SuggestionPreferences []byte    `json:"suggestion_preferences"`
+	UserID                uuid.UUID       `json:"user_id"`
+	DisplayName           string          `json:"display_name"`
+	Username              string          `json:"username"`
+	Description           string          `json:"description"`
+	SuggestionPreferences json.RawMessage `json:"suggestion_preferences"`
 }
 
 func (q *Queries) InsertProfile(ctx context.Context, arg InsertProfileParams) (*Profile, error) {
@@ -178,9 +179,9 @@ WHERE user_id = $3::uuid
 `
 
 type UpdateProfileSuggestionPreferencesParams struct {
-	SuggestionPreferences []byte    `json:"suggestion_preferences"`
-	UpdatedBy             uuid.UUID `json:"updated_by"`
-	UserID                uuid.UUID `json:"user_id"`
+	SuggestionPreferences json.RawMessage `json:"suggestion_preferences"`
+	UpdatedBy             uuid.UUID       `json:"updated_by"`
+	UserID                uuid.UUID       `json:"user_id"`
 }
 
 func (q *Queries) UpdateProfileSuggestionPreferences(ctx context.Context, arg UpdateProfileSuggestionPreferencesParams) error {

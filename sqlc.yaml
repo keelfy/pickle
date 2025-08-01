@@ -43,6 +43,11 @@ sql:
             nullable: true
           - db_type: "jsonb"
             go_type:
-              type: "[]byte"
+              import: "encoding/json"
+              type: "RawMessage"
               pointer: true
             nullable: true
+          - db_type: "jsonb"
+            go_type:
+              import: "encoding/json"
+              type: "RawMessage"

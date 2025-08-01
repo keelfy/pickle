@@ -3,6 +3,7 @@ package models
 import db "github.com/pickle.pw/monolith/db/sqlc"
 
 type BasicElasticContent struct {
+	Popularity   float64         `json:"popularity"`
 	ImageKey     *string         `json:"image_key"`
 	ImageKeyType db.ImageKeyType `json:"image_key_type"`
 	EnglishName  string          `json:"name_en"`

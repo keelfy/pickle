@@ -16,7 +16,7 @@ VALUES (
         sqlc.narg('cover_key_type')::image_key_type,
         sqlc.narg('source_url')::text,
         @source_type::content_source
-    ) ON CONFLICT (external_id) DO
+    ) ON CONFLICT (external_id, source_type) DO
 UPDATE
 SET release_date = sqlc.narg('release_date')::timestamptz,
     websites = sqlc.narg('websites')::jsonb,
@@ -30,7 +30,7 @@ RETURNING id;
 INSERT INTO game_localizations (content_id, lang, title)
 VALUES (
         @content_id::uuid,
-        @lang::locale,
+        @lang::text,
         @title::text
     ) ON CONFLICT (content_id, lang) DO
 UPDATE
@@ -42,7 +42,7 @@ WHERE id = @id::uuid;
 -- name: DeleteGameLocalization :exec
 DELETE FROM game_localizations
 WHERE content_id = @content_id::uuid
-    AND lang = @lang::locale;
+    AND lang = @lang::text;
 -- name: RefreshLocalizedGameViews :exec
 SELECT refresh_all_game_views();
 -- name: FindGameByID :one
@@ -54,5 +54,5 @@ SELECT games.*,
     game_localizations.title
 FROM games
     INNER JOIN game_localizations ON games.id = game_localizations.content_id
-    AND game_localizations.lang = @lang::locale
+    AND game_localizations.lang = @lang::text
 WHERE games.id = @id::uuid;

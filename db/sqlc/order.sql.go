@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -105,7 +106,7 @@ type FindOrderByIDRow struct {
 	Category           ContentCategory `json:"category"`
 	Anonymous          bool            `json:"anonymous"`
 	Source             string          `json:"source"`
-	Reference          []byte          `json:"reference"`
+	Reference          json.RawMessage `json:"reference"`
 	OrdererDisplayName *string         `json:"orderer_display_name"`
 }
 
@@ -207,7 +208,7 @@ type FindPaginatedOrdersByGameNoteIDRow struct {
 	Category           ContentCategory `json:"category"`
 	Anonymous          bool            `json:"anonymous"`
 	Source             string          `json:"source"`
-	Reference          []byte          `json:"reference"`
+	Reference          json.RawMessage `json:"reference"`
 	OrdererDisplayName *string         `json:"orderer_display_name"`
 }
 
@@ -280,7 +281,7 @@ type FindPaginatedOrdersByMovieNoteIDRow struct {
 	Category           ContentCategory `json:"category"`
 	Anonymous          bool            `json:"anonymous"`
 	Source             string          `json:"source"`
-	Reference          []byte          `json:"reference"`
+	Reference          json.RawMessage `json:"reference"`
 	OrdererDisplayName *string         `json:"orderer_display_name"`
 }
 
@@ -364,7 +365,7 @@ type InsertOrderParams struct {
 	Category    ContentCategory `json:"category"`
 	Message     string          `json:"message"`
 	Source      string          `json:"source"`
-	Reference   []byte          `json:"reference"`
+	Reference   json.RawMessage `json:"reference"`
 	Anonymous   bool            `json:"anonymous"`
 }
 

@@ -6,6 +6,7 @@ package db
 
 import (
 	"database/sql/driver"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -486,7 +487,7 @@ type Game struct {
 	ID           uuid.UUID        `json:"id"`
 	ExternalID   int64            `json:"external_id"`
 	ReleaseDate  *time.Time       `json:"release_date"`
-	Websites     *[]byte          `json:"websites"`
+	Websites     *json.RawMessage `json:"websites"`
 	CoverKey     *string          `json:"cover_key"`
 	CoverKeyType NullImageKeyType `json:"cover_key_type"`
 	SourceUrl    *string          `json:"source_url"`
@@ -497,7 +498,7 @@ type Game struct {
 
 type GameLocalization struct {
 	ContentID uuid.UUID `json:"content_id"`
-	Lang      Locale    `json:"lang"`
+	Lang      string    `json:"lang"`
 	Title     string    `json:"title"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
@@ -536,26 +537,6 @@ type GameNoteReaction struct {
 	CreatedBy  uuid.UUID      `json:"created_by"`
 }
 
-type GamesViewEn struct {
-	ID          uuid.UUID  `json:"id"`
-	ExternalID  int64      `json:"external_id"`
-	Title       string     `json:"title"`
-	ReleaseDate *time.Time `json:"release_date"`
-	Websites    *[]byte    `json:"websites"`
-	CreatedAt   time.Time  `json:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at"`
-}
-
-type GamesViewRu struct {
-	ID          uuid.UUID  `json:"id"`
-	ExternalID  int64      `json:"external_id"`
-	Title       string     `json:"title"`
-	ReleaseDate *time.Time `json:"release_date"`
-	Websites    *[]byte    `json:"websites"`
-	CreatedAt   time.Time  `json:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at"`
-}
-
 type IgdbSyncLog struct {
 	ID             uuid.UUID      `json:"id"`
 	SyncType       IgdbSyncType   `json:"sync_type"`
@@ -580,7 +561,7 @@ type Movie struct {
 	ID           uuid.UUID        `json:"id"`
 	ExternalID   int64            `json:"external_id"`
 	ReleaseDate  *time.Time       `json:"release_date"`
-	Websites     *[]byte          `json:"websites"`
+	Websites     *json.RawMessage `json:"websites"`
 	CoverKey     *string          `json:"cover_key"`
 	CoverKeyType NullImageKeyType `json:"cover_key_type"`
 	SourceUrl    *string          `json:"source_url"`
@@ -591,7 +572,7 @@ type Movie struct {
 
 type MovieLocalization struct {
 	ContentID uuid.UUID `json:"content_id"`
-	Lang      Locale    `json:"lang"`
+	Lang      string    `json:"lang"`
 	Title     string    `json:"title"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
@@ -645,7 +626,7 @@ type Order struct {
 	Category    ContentCategory `json:"category"`
 	Anonymous   bool            `json:"anonymous"`
 	Source      string          `json:"source"`
-	Reference   []byte          `json:"reference"`
+	Reference   json.RawMessage `json:"reference"`
 }
 
 type Orderer struct {
@@ -668,14 +649,14 @@ type PosterPreview struct {
 }
 
 type Profile struct {
-	UserID                uuid.UUID  `json:"user_id"`
-	CreatedAt             time.Time  `json:"created_at"`
-	UpdatedAt             time.Time  `json:"updated_at"`
-	UpdatedBy             *uuid.UUID `json:"updated_by"`
-	DisplayName           string     `json:"display_name"`
-	Username              string     `json:"username"`
-	Description           string     `json:"description"`
-	SuggestionPreferences []byte     `json:"suggestion_preferences"`
+	UserID                uuid.UUID       `json:"user_id"`
+	CreatedAt             time.Time       `json:"created_at"`
+	UpdatedAt             time.Time       `json:"updated_at"`
+	UpdatedBy             *uuid.UUID      `json:"updated_by"`
+	DisplayName           string          `json:"display_name"`
+	Username              string          `json:"username"`
+	Description           string          `json:"description"`
+	SuggestionPreferences json.RawMessage `json:"suggestion_preferences"`
 }
 
 type ProfileAvatar struct {
@@ -687,4 +668,14 @@ type ProfileAvatar struct {
 	AvatarKey        *string    `json:"avatar_key"`
 	AvatarUrl        *string    `json:"avatar_url"`
 	AvatarPreviewKey *string    `json:"avatar_preview_key"`
+}
+
+type TmdbSyncLog struct {
+	ID              uuid.UUID      `json:"id"`
+	SyncType        IgdbSyncType   `json:"sync_type"`
+	Status          IgdbSyncStatus `json:"status"`
+	StartedAt       time.Time      `json:"started_at"`
+	MoviesProcessed int64          `json:"movies_processed"`
+	CompletedAt     *time.Time     `json:"completed_at"`
+	ErrorMessage    *string        `json:"error_message"`
 }

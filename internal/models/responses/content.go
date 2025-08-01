@@ -52,12 +52,12 @@ func (c *BasicContentRes) GetSourceType() db.ContentSource {
 
 type GameRes struct {
 	BasicContentRes
-	ReleaseDate *time.Time               `json:"releaseDate,omitempty"`
-	Websites    *[]models.ContentWebsite `json:"websites,omitempty"`
+	ReleaseDate *time.Time              `json:"releaseDate,omitempty"`
+	Websites    []models.ContentWebsite `json:"websites,omitempty"`
 }
 
 type MovieRes struct {
 	BasicContentRes
-	ReleaseDate *time.Time               `json:"releaseDate,omitempty"`
-	Websites    *[]models.ContentWebsite `json:"websites,omitempty"`
+	ReleaseDate *time.Time              `json:"releaseDate,omitempty"`
+	Websites    []models.ContentWebsite `json:"websites,omitempty"`
 }

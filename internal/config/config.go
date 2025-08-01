@@ -132,3 +132,17 @@ func GetTwitchClientSecret() string {
 func GetIGDBImageURLFormat() string {
 	return os.Getenv("IGDB_IMAGE_URL_FORMAT")
 }
+
+/** TMDB */
+
+func GetTMDBAPIKey() string {
+	return os.Getenv("TMDB_API_KEY")
+}
+
+func GetTMDBBaseURL() string {
+	return os.Getenv("TMDB_BASE_URL")
+}
+
+func GetTMDBImageBaseURL() string {
+	return os.Getenv("TMDB_IMAGE_BASE_URL")
+}

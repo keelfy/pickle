@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -25,12 +26,12 @@ func (q *Queries) DeleteGame(ctx context.Context, id uuid.UUID) error {
 const deleteGameLocalization = `-- name: DeleteGameLocalization :exec
 DELETE FROM game_localizations
 WHERE content_id = $1::uuid
-    AND lang = $2::locale
+    AND lang = $2::text
 `
 
 type DeleteGameLocalizationParams struct {
 	ContentID uuid.UUID `json:"content_id"`
-	Lang      Locale    `json:"lang"`
+	Lang      string    `json:"lang"`
 }
 
 func (q *Queries) DeleteGameLocalization(ctx context.Context, arg DeleteGameLocalizationParams) error {
@@ -67,12 +68,12 @@ SELECT games.id, games.external_id, games.release_date, games.websites, games.co
     game_localizations.title
 FROM games
     INNER JOIN game_localizations ON games.id = game_localizations.content_id
-    AND game_localizations.lang = $1::locale
+    AND game_localizations.lang = $1::text
 WHERE games.id = $2::uuid
 `
 
 type FindGameByIDWithLocalizationParams struct {
-	Lang Locale    `json:"lang"`
+	Lang string    `json:"lang"`
 	ID   uuid.UUID `json:"id"`
 }
 
@@ -80,7 +81,7 @@ type FindGameByIDWithLocalizationRow struct {
 	ID           uuid.UUID        `json:"id"`
 	ExternalID   int64            `json:"external_id"`
 	ReleaseDate  *time.Time       `json:"release_date"`
-	Websites     *[]byte          `json:"websites"`
+	Websites     *json.RawMessage `json:"websites"`
 	CoverKey     *string          `json:"cover_key"`
 	CoverKeyType NullImageKeyType `json:"cover_key_type"`
 	SourceUrl    *string          `json:"source_url"`
@@ -136,7 +137,7 @@ VALUES (
         $5::image_key_type,
         $6::text,
         $7::content_source
-    ) ON CONFLICT (external_id) DO
+    ) ON CONFLICT (external_id, source_type) DO
 UPDATE
 SET release_date = $2::timestamptz,
     websites = $3::jsonb,
@@ -151,7 +152,7 @@ RETURNING id
 type UpsertGameParams struct {
 	ExternalID   int64            `json:"external_id"`
 	ReleaseDate  *time.Time       `json:"release_date"`
-	Websites     *[]byte          `json:"websites"`
+	Websites     *json.RawMessage `json:"websites"`
 	CoverKey     *string          `json:"cover_key"`
 	CoverKeyType NullImageKeyType `json:"cover_key_type"`
 	SourceUrl    *string          `json:"source_url"`
@@ -177,7 +178,7 @@ const upsertGameLocalization = `-- name: UpsertGameLocalization :exec
 INSERT INTO game_localizations (content_id, lang, title)
 VALUES (
         $1::uuid,
-        $2::locale,
+        $2::text,
         $3::text
     ) ON CONFLICT (content_id, lang) DO
 UPDATE
@@ -187,7 +188,7 @@ SET title = $3::text,
 
 type UpsertGameLocalizationParams struct {
 	ContentID uuid.UUID `json:"content_id"`
-	Lang      Locale    `json:"lang"`
+	Lang      string    `json:"lang"`
 	Title     string    `json:"title"`
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	db "github.com/pickle.pw/monolith/db/sqlc"
 	"github.com/pickle.pw/monolith/internal/logger"
 	"github.com/pickle.pw/monolith/internal/services"
 	"github.com/pickle.pw/monolith/internal/storage"
@@ -34,7 +35,7 @@ func (s *igdbScheduler) SetupIGDBSync(ctx context.Context) error {
 				ticker.Stop()
 				return
 			case <-ticker.C:
-				if err := s.igdbSyncService.SyncGames(ctx); err != nil {
+				if err := s.igdbSyncService.SyncGames(ctx, db.IgdbSyncTypeIncremental); err != nil {
 					logger.Errorf(ctx, "IGDB sync failed: %v", err)
 				}
 			}

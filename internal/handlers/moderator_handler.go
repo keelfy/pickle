@@ -1,92 +1,181 @@
 package handlers
 
 import (
-	"encoding/json"
 	"net/http"
+	"sync"
 
+	"github.com/pickle.pw/monolith/internal/domain"
+	"github.com/pickle.pw/monolith/internal/logger"
+	"github.com/pickle.pw/monolith/internal/presenter"
 	"github.com/pickle.pw/monolith/internal/services"
-	"github.com/pickle.pw/monolith/internal/types"
+	"github.com/pickle.pw/monolith/internal/transport/http/binders"
+	resp "github.com/pickle.pw/monolith/internal/transport/http/responses"
 	"github.com/pickle.pw/monolith/internal/utils"
+	"golang.org/x/sync/errgroup"
 )
 
 type ModeratorHandler interface {
-	AddModerator(w http.ResponseWriter, r *http.Request)
-	DeleteModerator(w http.ResponseWriter, r *http.Request)
-	GetModerators(w http.ResponseWriter, r *http.Request)
+	AddModeratorByUsername(w http.ResponseWriter, r *http.Request)
+	DeleteModeratorByUserIDAndModeratorID(w http.ResponseWriter, r *http.Request)
+	GetModeratorsByUserID(w http.ResponseWriter, r *http.Request)
 }
 
 type moderatorHandler struct {
-	moderatorService services.ModeratorService
-	profileService   services.ProfileService
+	moderatorService  services.ModeratorService
+	userService       services.UserService
+	avatarService     services.AvatarService
+	permissionService services.PermissionService
 }
 
-func NewModeratorHandler(moderatorService services.ModeratorService, profileService services.ProfileService) ModeratorHandler {
-	return &moderatorHandler{moderatorService: moderatorService, profileService: profileService}
+func NewModeratorHandler(
+	moderatorService services.ModeratorService,
+	userService services.UserService,
+	avatarService services.AvatarService,
+	permissionService services.PermissionService,
+) ModeratorHandler {
+	return &moderatorHandler{
+		moderatorService:  moderatorService,
+		userService:       userService,
+		avatarService:     avatarService,
+		permissionService: permissionService,
+	}
 }
 
-func (h *moderatorHandler) AddModerator(w http.ResponseWriter, r *http.Request) {
+func (h *moderatorHandler) AddModeratorByUsername(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userId, err := utils.ReadPathUUIDVariable("userId", r)
+
+	cmd, err := binders.BindAddModeratorCommand(r)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	avatarSize := utils.GetQueryParam(r, "avatarSize", "sm")
-
-	req := &types.AddModeratorReq{}
-	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
-		utils.HttpError(ctx, err, w)
-		return
-	}
-
-	moderatorProfile, err := h.moderatorService.AddModeratorByUserLink(ctx, userId, req.UserLink, avatarSize)
+	err = cmd.Validate()
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	utils.WriteHttpJsonResponse(ctx, w, moderatorProfile)
+	hasPermission, err := h.permissionService.IsAuthorizedUserHasPermission(ctx, cmd.UserID, domain.OnlyOwnerPermission)
+	if err != nil {
+		utils.HttpError(ctx, w, err)
+		return
+	}
+
+	if !hasPermission {
+		utils.HttpError(ctx, w, utils.NewForbiddenError("Only the profile owner can add a moderator", nil))
+		return
+	}
+
+	user, err := h.userService.GetUserByID(ctx, cmd.UserID)
+	if err != nil {
+		utils.HttpError(ctx, w, err)
+		return
+	}
+
+	var group errgroup.Group
+	var moderator *domain.ModeratorUser
+	var avatarURL string
+
+	group.Go(func() error {
+		moderator, err = h.moderatorService.AddModeratorByUsername(ctx, user, cmd)
+		return err
+	})
+
+	group.Go(func() error {
+		url, err := h.avatarService.GetAvatarURLByUserID(ctx, moderator.ModeratorID, cmd.AvatarSize)
+		if err != nil {
+			logger.Errorf(ctx, "failed to get avatar URL by user ID: %v", err)
+		}
+		avatarURL = url
+		return nil
+	})
+
+	err = group.Wait()
+	if err != nil {
+		utils.HttpError(ctx, w, err)
+		return
+	}
+
+	h.moderatorService.ClearModeratorsCache(ctx, user.GetID())
+
+	presenter := presenter.PresentModerator(moderator, avatarURL)
+	utils.WriteHttpJsonResponse(ctx, w, presenter)
 }
 
-func (h *moderatorHandler) DeleteModerator(w http.ResponseWriter, r *http.Request) {
+func (h *moderatorHandler) DeleteModeratorByUserIDAndModeratorID(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userID, err := utils.ReadPathUUIDVariable("userId", r)
+
+	cmd, err := binders.BindDeleteModeratorCommand(r)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	moderatorID, err := utils.ReadPathUUIDVariable("moderatorId", r)
+	hasPermission, err := h.permissionService.IsAuthorizedUserHasPermission(ctx, cmd.UserID, domain.OnlyOwnerPermission)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	err = h.moderatorService.DeleteModerator(ctx, userID, moderatorID)
-	if err != nil {
-		utils.HttpError(ctx, err, w)
+	if !hasPermission {
+		utils.HttpError(ctx, w, utils.NewForbiddenError("Only the profile owner can delete a moderator", nil))
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	err = h.moderatorService.DeleteModerator(ctx, cmd)
+	if err != nil {
+		utils.HttpError(ctx, w, err)
+		return
+	}
+
+	h.moderatorService.ClearModeratorsCache(ctx, cmd.UserID)
+	w.WriteHeader(http.StatusOK)
 }
 
-func (h *moderatorHandler) GetModerators(w http.ResponseWriter, r *http.Request) {
+func (h *moderatorHandler) GetModeratorsByUserID(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userID, err := utils.ReadPathUUIDVariable("userId", r)
+	userID, err := binders.BindPathVariableAsUUID(r, binders.UserIDVariable)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	avatarSize := utils.GetQueryParam(r, "avatarSize", "sm")
+	avatarSize := binders.BindOptionalQueryParamAsString(r, binders.AvatarSizeParam, string(domain.AvatarSizeSmall))
 
-	moderators, err := h.moderatorService.GetModeratorsByUserID(ctx, userID, avatarSize)
+	hasPermission, err := h.permissionService.IsAuthorizedUserHasPermission(ctx, userID, domain.OnlyOwnerPermission)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	utils.WriteHttpJsonResponse(ctx, w, moderators)
+	if !hasPermission {
+		utils.HttpBusinessError(ctx, w, "You are not allowed to get moderators of this profile", http.StatusForbidden)
+		return
+	}
+
+	moderators, err := h.moderatorService.GetModeratorsByUserID(ctx, userID)
+	if err != nil {
+		utils.HttpError(ctx, w, err)
+		return
+	}
+
+	var group sync.WaitGroup
+	moderatorProfiles := make([]*resp.Moderator, len(moderators))
+
+	group.Add(len(moderators))
+	for i, moderator := range moderators {
+		go func(i int, moderator *domain.ModeratorUser) {
+			defer group.Done()
+			avatarUrl, err := h.avatarService.GetAvatarURLByUserID(ctx, moderator.ModeratorID, domain.AvatarSize(avatarSize))
+			if err != nil {
+				logger.Errorf(ctx, "failed to get avatar URL by user ID: %v", err)
+			}
+			moderatorProfiles[i] = presenter.PresentModerator(moderator, avatarUrl)
+		}(i, moderator)
+	}
+
+	group.Wait()
+
+	utils.WriteHttpJsonResponse(ctx, w, moderatorProfiles)
 }

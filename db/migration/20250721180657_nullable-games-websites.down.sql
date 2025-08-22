@@ -1,2 +1,0 @@
-ALTER TABLE games
-ALTER COLUMN websites SET NOT NULL;

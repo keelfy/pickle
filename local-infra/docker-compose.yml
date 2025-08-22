@@ -1,0 +1,78 @@
+services:
+  pickle-redis:
+    image: redis:6
+    container_name: pickle-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: always
+
+  pickle-postgres:
+    image: postgres:16
+    container_name: pickle-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./init-db:/docker-entrypoint-initdb.d
+      - postgres-data:/var/lib/postgresql/data
+    restart: always
+  
+  pickle-elastic:
+    image: elasticsearch:8.17.0
+    container_name: pickle-elastic
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+    restart: always
+  
+  pickle-kratos-migrate:
+    image: oryd/kratos:v1.3.1
+    container_name: pickle-kratos-migrate
+    environment:
+      - DSN=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@host.docker.internal:5432/kratos
+    depends_on:
+      - pickle-postgres
+    volumes:
+      - type: bind
+        source: ./kratos
+        target: /etc/config/kratos
+    command: -c /etc/config/kratos/kratos.yml migrate sql -e --yes
+    restart: on-failure
+
+  pickle-kratos:
+    depends_on:
+      - pickle-kratos-migrate
+    image: oryd/kratos:v1.3.1
+    container_name: pickle-kratos
+    ports:
+      - "4433:4433" # public
+      - "4434:4434" # admin
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - DSN=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@host.docker.internal:5432/kratos
+      - LOG_LEVEL=debug
+    command: serve -c /etc/config/kratos/kratos.yml --dev --watch-courier
+    volumes:
+      - type: bind
+        source: ./kratos
+        target: /etc/config/kratos
+
+  pickle-mailslurper:
+    image: oryd/mailslurper:latest-smtps
+    container_name: pickle-mailslurper
+    ports:
+      - "4436:4436"
+      - "4437:4437"
+
+volumes:
+  redis-data:
+  postgres-data:

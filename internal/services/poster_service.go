@@ -12,98 +12,88 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	db "github.com/pickle.pw/monolith/db/sqlc"
 	"github.com/pickle.pw/monolith/internal/config"
-	cerrors "github.com/pickle.pw/monolith/internal/errors"
+	"github.com/pickle.pw/monolith/internal/domain"
 	"github.com/pickle.pw/monolith/internal/logger"
 	"github.com/pickle.pw/monolith/internal/storage"
+	"github.com/pickle.pw/monolith/internal/storage/sql"
+	"github.com/pickle.pw/monolith/internal/utils"
 )
 
 type PosterService interface {
-	GetPosterPreviewByID(ctx context.Context, id uuid.UUID) (*db.PosterPreview, error)
-	GetPosterPreviews(ctx context.Context, userId uuid.UUID) ([]*db.PosterPreview, error)
-	UploadPosterForPreview(ctx context.Context, userId uuid.UUID, size string, file multipart.File, fileHeader *multipart.FileHeader) (uuid.UUID, string, error)
-	EmbedPosterForPreview(ctx context.Context, userId uuid.UUID, size, embeddedUrl string) (uuid.UUID, string, error)
-	GetLatestPosterPreviewByUserId(ctx context.Context, userId uuid.UUID) ([]*db.PosterPreview, error)
+	GetPosterPreviewByID(ctx context.Context, id uuid.UUID) (*domain.PosterPreview, error)
+	GetPosterPreviews(ctx context.Context, userID uuid.UUID) ([]*domain.PosterPreview, error)
+	UploadPosterForPreview(ctx context.Context, userID uuid.UUID, size domain.CoverSize, file multipart.File, fileHeader *multipart.FileHeader) (uuid.UUID, string, error)
+	EmbedPosterForPreview(ctx context.Context, userID uuid.UUID, size domain.CoverSize, embeddedUrl string) (uuid.UUID, string, error)
+	GetLatestPosterPreviewByUserId(ctx context.Context, userID uuid.UUID) ([]*domain.PosterPreview, error)
 	ConfirmS3PosterPreviewByID(ctx context.Context, id uuid.UUID, prefix string) (*string, error)
 
-	GetCoverImageURL(ctx context.Context, size, imageKey string, imageType db.ImageKeyType) (string, error)
-	GetContentThumbnailImageURL(ctx context.Context, size, imageKey string, imageType db.ImageKeyType) (string, error)
+	GetCoverImageURL(ctx context.Context, size domain.CoverSize, imageKey string, imageType domain.ImageKeyType) (string, error)
+	GetContentThumbnailImageURL(ctx context.Context, size domain.CoverSize, imageKey string, imageType domain.ImageKeyType) (string, error)
 
-	GetPosterImageURL(ctx context.Context, prefix, size, imageKey string, cbTime *time.Time) (string, error)
-	GetPosterPreviewImageURL(ctx context.Context, id uuid.UUID, size string) (string, error)
+	GetPosterImageURL(ctx context.Context, prefix string, size domain.CoverSize, imageKey string, cbTime *time.Time) (string, error)
+	GetPosterPreviewImageURL(ctx context.Context, id uuid.UUID, size domain.CoverSize) (string, error)
 	DeletePosterKey(ctx context.Context, prefix, posterKey string) error
-	DeletePosterPreview(ctx context.Context, id uuid.UUID, userId uuid.UUID) error
+	DeletePosterPreview(ctx context.Context, id uuid.UUID, userID uuid.UUID) error
 }
 
 type posterService struct {
-	sqlDB          storage.RelationalStorage
-	s3             storage.FileStorage
-	cache          storage.CacheStorage
-	imageService   ImageService
-	profileService ProfileService
+	sqlDB        storage.RelationalStorage
+	s3           storage.FileStorage
+	cache        storage.CacheStorage
+	imageService ImageService
+	userService  UserService
 }
 
 func NewPosterService(
 	sqlDB storage.RelationalStorage, s3 storage.FileStorage, cache storage.CacheStorage,
-	imageService ImageService, profileService ProfileService,
+	imageService ImageService, userService UserService,
 ) PosterService {
 	return &posterService{
-		sqlDB:          sqlDB,
-		s3:             s3,
-		cache:          cache,
-		imageService:   imageService,
-		profileService: profileService,
+		sqlDB:        sqlDB,
+		s3:           s3,
+		cache:        cache,
+		imageService: imageService,
+		userService:  userService,
 	}
-}
-
-var coverDimensions = map[string][]int{
-	"sm": {108, 144},
-	"md": {168, 224},
-	"lg": {336, 448},
-}
-
-var thumbnailDimensions = map[string][]int{
-	"sm": {35, 35},
-	"md": {90, 90},
 }
 
 var igdbImageURLFormat = config.GetIGDBImageURLFormat()
 
-func (s *posterService) GetPosterPreviewByID(ctx context.Context, id uuid.UUID) (*db.PosterPreview, error) {
-	posterPreview, err := s.sqlDB.Queries().FindPosterPreviewById(ctx, id)
+func (s *posterService) GetPosterPreviewByID(ctx context.Context, id uuid.UUID) (*domain.PosterPreview, error) {
+	posterPreview, err := s.sqlDB.Queries().FindPosterPreviewByID(ctx, id)
 	if err == pgx.ErrNoRows {
-		return nil, cerrors.NewBadRequestError("Poster preview not found", err)
+		return nil, utils.NewBadRequestError("Poster preview not found", err)
 	} else if err != nil {
-		return nil, cerrors.NewInternalServerError("Error occurred getting poster preview", err)
+		return nil, utils.NewInternalServerError("Error occurred getting poster preview", err)
 	}
 	return posterPreview, nil
 }
 
-func (s *posterService) GetPosterPreviews(ctx context.Context, userId uuid.UUID) ([]*db.PosterPreview, error) {
-	posterPreviews, err := s.sqlDB.Queries().FindPosterPreviewByCreatedAtAfterAndCreatedBy(ctx, db.FindPosterPreviewByCreatedAtAfterAndCreatedByParams{
+func (s *posterService) GetPosterPreviews(ctx context.Context, userId uuid.UUID) ([]*domain.PosterPreview, error) {
+	posterPreviews, err := s.sqlDB.Queries().FindPosterPreviewByCreatedAtAfterAndCreatedBy(ctx, sql.FindPosterPreviewByCreatedAtAfterAndCreatedByParams{
 		CreatedBy: userId,
 		CreatedAt: time.Now().Add(-config.GetPosterPreviewStoreTime()),
 		Limit:     int32(5),
 	})
 	if err != nil {
-		return nil, cerrors.NewInternalServerError("Error occurred getting poster previews", err)
+		return nil, utils.NewInternalServerError("Error occurred getting poster previews", err)
 	}
 	return posterPreviews, nil
 }
 
-func (s *posterService) uploadPosterForPreview(ctx context.Context, userId uuid.UUID, size string, fileReader io.Reader, fileExtension string) (uuid.UUID, string, error) {
-	if _, ok := coverDimensions[size]; !ok {
-		return uuid.Nil, "", cerrors.NewBadRequestError("Invalid size", nil)
+func (s *posterService) uploadPosterForPreview(ctx context.Context, userId uuid.UUID, size domain.CoverSize, fileReader io.Reader, fileExtension string) (uuid.UUID, string, error) {
+	if _, ok := domain.CoverDimensions[size]; !ok {
+		return uuid.Nil, "", utils.NewBadRequestError("Invalid size", nil)
 	}
 
-	profile, err := s.profileService.GetProfileByID(ctx, userId)
+	user, err := s.userService.GetUserByID(ctx, userId)
 	if err != nil {
 		return uuid.Nil, "", err
 	}
 
-	if profile == nil {
-		return uuid.Nil, "", cerrors.NewBadRequestError("Profile not found", nil)
+	if user == nil {
+		return uuid.Nil, "", utils.NewBadRequestError("Profile not found", nil)
 	}
 
 	posterPreviewId := uuid.New()
@@ -115,10 +105,10 @@ func (s *posterService) uploadPosterForPreview(ctx context.Context, userId uuid.
 	// Upload the file to S3
 	err = s.s3.UploadFile(ctx, bucketName, previewKey, fileReader)
 	if err != nil {
-		return uuid.Nil, "", cerrors.NewInternalServerError("Error occurred uploading file", err)
+		return uuid.Nil, "", utils.NewInternalServerError("Error occurred uploading file", err)
 	}
 
-	posterPreview, err := s.sqlDB.Queries().InsertPosterPreview(ctx, db.InsertPosterPreviewParams{
+	posterPreview, err := s.sqlDB.Queries().InsertPosterPreview(ctx, sql.InsertPosterPreviewParams{
 		ID:        posterPreviewId,
 		CreatedBy: userId,
 		ObjectKey: objectKey,
@@ -127,12 +117,12 @@ func (s *posterService) uploadPosterForPreview(ctx context.Context, userId uuid.
 		if err1 := s.s3.DeleteObject(ctx, bucketName, previewKey); err1 != nil {
 			logger.Errorf(ctx, "Error occurred deleting preview avatar: %v", err1)
 		}
-		return uuid.Nil, "", cerrors.NewInternalServerError("Error occurred inserting poster preview", err)
+		return uuid.Nil, "", utils.NewInternalServerError("Error occurred inserting poster preview", err)
 	}
 
 	// delete previews if more than 5 or older than 1 day
 
-	existingPreviews, err := s.sqlDB.Queries().FindPosterPreviewByCreatedBy(ctx, profile.UserID)
+	existingPreviews, err := s.sqlDB.Queries().FindPosterPreviewByCreatedBy(ctx, user.ID)
 	if err != nil {
 		logger.Errorf(ctx, "Error occurred getting poster previews: %v", err)
 	}
@@ -158,15 +148,15 @@ func (s *posterService) uploadPosterForPreview(ctx context.Context, userId uuid.
 
 	imageUrl, err := s.GetPosterImageURL(ctx, "preview", size, objectKey, &posterPreview.CreatedAt)
 	if err != nil {
-		return uuid.Nil, "", cerrors.NewInternalServerError("Error occurred getting poster preview URL", err)
+		return uuid.Nil, "", utils.NewInternalServerError("Error occurred getting poster preview URL", err)
 	}
 
 	return posterPreviewId, imageUrl, nil
 }
 
-func (s *posterService) UploadPosterForPreview(ctx context.Context, userId uuid.UUID, size string, file multipart.File, fileHeader *multipart.FileHeader) (uuid.UUID, string, error) {
-	if _, ok := coverDimensions[size]; !ok {
-		return uuid.Nil, "", cerrors.NewBadRequestError("Invalid size", nil)
+func (s *posterService) UploadPosterForPreview(ctx context.Context, userId uuid.UUID, size domain.CoverSize, file multipart.File, fileHeader *multipart.FileHeader) (uuid.UUID, string, error) {
+	if _, ok := domain.CoverDimensions[size]; !ok {
+		return uuid.Nil, "", utils.NewBadRequestError("Invalid size", nil)
 	}
 
 	if err := s.imageService.ValidateMultipartImage(file, fileHeader); err != nil {
@@ -177,9 +167,9 @@ func (s *posterService) UploadPosterForPreview(ctx context.Context, userId uuid.
 	return s.uploadPosterForPreview(ctx, userId, size, file, extension)
 }
 
-func (s *posterService) EmbedPosterForPreview(ctx context.Context, userId uuid.UUID, size, embeddedUrl string) (uuid.UUID, string, error) {
-	if _, ok := coverDimensions[size]; !ok {
-		return uuid.Nil, "", cerrors.NewBadRequestError("Invalid size", nil)
+func (s *posterService) EmbedPosterForPreview(ctx context.Context, userId uuid.UUID, size domain.CoverSize, embeddedUrl string) (uuid.UUID, string, error) {
+	if _, ok := domain.CoverDimensions[size]; !ok {
+		return uuid.Nil, "", utils.NewBadRequestError("Invalid size", nil)
 	}
 
 	// download the file from the URL
@@ -192,14 +182,14 @@ func (s *posterService) EmbedPosterForPreview(ctx context.Context, userId uuid.U
 	return s.uploadPosterForPreview(ctx, userId, size, fileReader, extension)
 }
 
-func (s *posterService) GetLatestPosterPreviewByUserId(ctx context.Context, userId uuid.UUID) ([]*db.PosterPreview, error) {
+func (s *posterService) GetLatestPosterPreviewByUserId(ctx context.Context, userId uuid.UUID) ([]*domain.PosterPreview, error) {
 	timeAgo := time.Now().Add(config.GetPosterPreviewStoreTime())
-	posterPreviews, err := s.sqlDB.Queries().FindPosterPreviewByCreatedAtAfterAndCreatedBy(ctx, db.FindPosterPreviewByCreatedAtAfterAndCreatedByParams{
+	posterPreviews, err := s.sqlDB.Queries().FindPosterPreviewByCreatedAtAfterAndCreatedBy(ctx, sql.FindPosterPreviewByCreatedAtAfterAndCreatedByParams{
 		CreatedBy: userId,
 		CreatedAt: timeAgo,
 	})
 	if err != nil {
-		return nil, cerrors.NewInternalServerError("Error occurred getting poster preview", err)
+		return nil, utils.NewInternalServerError("Error occurred getting poster preview", err)
 	}
 	return posterPreviews, nil
 }
@@ -216,42 +206,42 @@ func (s *posterService) ConfirmS3PosterPreviewByID(ctx context.Context, id uuid.
 
 	err = s.s3.MoveObject(ctx, bucketName, bucketName, previewKey, finalKey)
 	if err != nil {
-		return nil, cerrors.NewInternalServerError("Error occurred getting preview avatar", err)
+		return nil, utils.NewInternalServerError("Error occurred getting preview avatar", err)
 	}
 
 	return &posterPreview.ObjectKey, nil
 }
 
-func (service *posterService) getContentCategoryPrefix(contentType db.ContentCategory) (string, error) {
+func (service *posterService) getContentCategoryPrefix(contentType domain.ContentCategory) (string, error) {
 	switch contentType {
-	case db.ContentCategoryGames:
+	case domain.ContentCategoryGames:
 		return "game-note", nil
-	case db.ContentCategoryMovies:
+	case domain.ContentCategoryMovies:
 		return "movie-note", nil
-	case db.ContentCategoryAnime:
+	case domain.ContentCategoryAnime:
 		return "anime-note", nil
-	case db.ContentCategorySeries:
+	case domain.ContentCategorySeries:
 		return "series-note", nil
-	case db.ContentCategoryVideo:
+	case domain.ContentCategoryVideos:
 		return "video-note", nil
 	}
 	return "", errors.New("invalid content type")
 }
 
-func (s *posterService) GetCoverImageURL(ctx context.Context, size, imageKey string, imageType db.ImageKeyType) (string, error) {
-	if _, ok := coverDimensions[size]; !ok {
-		return "", cerrors.NewBadRequestError("Invalid poster size", nil)
+func (s *posterService) GetCoverImageURL(ctx context.Context, size domain.CoverSize, imageKey string, imageType domain.ImageKeyType) (string, error) {
+	if _, ok := domain.CoverDimensions[size]; !ok {
+		return "", utils.NewBadRequestError("Invalid poster size", nil)
 	}
 
 	switch imageType {
-	case db.ImageKeyTypeCustom:
-		prefix, err := s.getContentCategoryPrefix(db.ContentCategoryGames)
+	case domain.ImageKeyTypeCustom:
+		prefix, err := s.getContentCategoryPrefix(domain.ContentCategoryGames)
 		if err != nil {
 			return "", err
 		}
 		return s.GetPosterImageURL(ctx, prefix, size, imageKey, nil)
-	case db.ImageKeyTypeIgdb:
-		dims := coverDimensions[size]
+	case domain.ImageKeyTypeIGDB:
+		dims := domain.CoverDimensions[size]
 		imageUrl := fmt.Sprintf(igdbImageURLFormat, "cover_big", imageKey)
 		resizedImageUrl, err := s.imageService.GetResizedImageUrl(imageUrl, dims[0], dims[1], nil)
 		if err != nil {
@@ -264,8 +254,8 @@ func (s *posterService) GetCoverImageURL(ctx context.Context, size, imageKey str
 			return "", err
 		}
 		return resizedImageUrl, nil
-	case db.ImageKeyTypeTmdb:
-		dims := coverDimensions[size]
+	case domain.ImageKeyTypeTMDB:
+		dims := domain.CoverDimensions[size]
 		imageUrl := fmt.Sprintf("%s/w342%s", config.GetTMDBImageBaseURL(), imageKey)
 		resizedImageUrl, err := s.imageService.GetResizedImageUrl(imageUrl, dims[0], dims[1], nil)
 		if err != nil {
@@ -279,24 +269,24 @@ func (s *posterService) GetCoverImageURL(ctx context.Context, size, imageKey str
 		}
 		return resizedImageUrl, nil
 	default:
-		return "", cerrors.NewBadRequestError("Unsupported cover image type", nil)
+		return "", utils.NewBadRequestError("Unsupported cover image type", nil)
 	}
 }
 
-func (s *posterService) GetContentThumbnailImageURL(ctx context.Context, size, imageKey string, imageType db.ImageKeyType) (string, error) {
-	if _, ok := thumbnailDimensions[size]; !ok {
-		return "", cerrors.NewBadRequestError("Invalid poster size", nil)
+func (s *posterService) GetContentThumbnailImageURL(ctx context.Context, size domain.CoverSize, imageKey string, imageType domain.ImageKeyType) (string, error) {
+	if _, ok := domain.CoverDimensions[size]; !ok {
+		return "", utils.NewBadRequestError("Invalid poster size", nil)
 	}
 
 	switch imageType {
-	case db.ImageKeyTypeIgdb:
+	case domain.ImageKeyTypeIGDB:
 		igdbSize := "micro"
 		if size == "md" {
 			igdbSize = "thumb"
 		}
 		imageUrl := fmt.Sprintf(igdbImageURLFormat, igdbSize, imageKey)
 		return imageUrl, nil
-	case db.ImageKeyTypeTmdb:
+	case domain.ImageKeyTypeTMDB:
 		tmdbSize := "w45"
 		if size == "md" {
 			tmdbSize = "w92"
@@ -304,13 +294,13 @@ func (s *posterService) GetContentThumbnailImageURL(ctx context.Context, size, i
 		imageUrl := fmt.Sprintf("%s/%s%s", config.GetTMDBImageBaseURL(), tmdbSize, imageKey)
 		return imageUrl, nil
 	default:
-		return "", cerrors.NewBadRequestError("Unsupported cover image type", nil)
+		return "", utils.NewBadRequestError("Unsupported cover image type", nil)
 	}
 }
 
-func (service *posterService) GetPosterImageURL(ctx context.Context, prefix, size, imageKey string, cbTime *time.Time) (string, error) {
-	if _, ok := coverDimensions[size]; !ok {
-		return "", cerrors.NewBadRequestError("Invalid poster size", nil)
+func (service *posterService) GetPosterImageURL(ctx context.Context, prefix string, size domain.CoverSize, imageKey string, cbTime *time.Time) (string, error) {
+	if _, ok := domain.CoverDimensions[size]; !ok {
+		return "", utils.NewBadRequestError("Invalid poster size", nil)
 	}
 
 	cacheKey := fmt.Sprintf("poster:%s:%s:%s", prefix, imageKey, size)
@@ -320,7 +310,7 @@ func (service *posterService) GetPosterImageURL(ctx context.Context, prefix, siz
 	}
 
 	bucket := config.GetContentPosterBucketName()
-	dims := coverDimensions[size]
+	dims := domain.CoverDimensions[size]
 	key := fmt.Sprintf("%s/%s", prefix, imageKey)
 	imageUrl, err := service.imageService.GetResizedImageUrlFromS3(bucket, key, dims[0], dims[1], cbTime)
 	if err != nil {
@@ -334,7 +324,7 @@ func (service *posterService) GetPosterImageURL(ctx context.Context, prefix, siz
 	return imageUrl, nil
 }
 
-func (s *posterService) GetPosterPreviewImageURL(ctx context.Context, id uuid.UUID, size string) (string, error) {
+func (s *posterService) GetPosterPreviewImageURL(ctx context.Context, id uuid.UUID, size domain.CoverSize) (string, error) {
 	posterPreview, err := s.GetPosterPreviewByID(ctx, id)
 	if err != nil {
 		return "", err
@@ -349,10 +339,10 @@ func (s *posterService) DeletePosterKey(ctx context.Context, prefix, posterKey s
 
 	err := s.s3.DeleteObject(ctx, bucketName, key)
 	if err != nil {
-		return cerrors.NewInternalServerError("Error occurred deleting previous poster", err)
+		return utils.NewInternalServerError("Error occurred deleting previous poster", err)
 	}
 
-	for sizeName := range coverDimensions {
+	for sizeName := range domain.CoverDimensions {
 		cacheKey := fmt.Sprintf("poster:%s:%s:%s", prefix, posterKey, sizeName)
 		err = s.cache.DeleteKey(ctx, cacheKey)
 		if err != nil {
@@ -370,7 +360,7 @@ func (s *posterService) DeletePosterPreview(ctx context.Context, id uuid.UUID, u
 	}
 
 	if posterPreview.CreatedBy != userID {
-		return cerrors.NewForbiddenError("You are not allowed to delete this poster preview", nil)
+		return utils.NewForbiddenError("You are not allowed to delete this poster preview", nil)
 	}
 
 	bucketName := config.GetContentPosterBucketName()
@@ -378,12 +368,12 @@ func (s *posterService) DeletePosterPreview(ctx context.Context, id uuid.UUID, u
 
 	err = s.s3.DeleteObject(ctx, bucketName, previewKey)
 	if err != nil {
-		return cerrors.NewInternalServerError("Error occurred deleting poster preview", err)
+		return utils.NewInternalServerError("Error occurred deleting poster preview", err)
 	}
 
 	err = s.sqlDB.Queries().DeletePosterPreview(ctx, id)
 	if err != nil {
-		return cerrors.NewInternalServerError("Error occurred deleting poster preview", err)
+		return utils.NewInternalServerError("Error occurred deleting poster preview", err)
 	}
 
 	return nil

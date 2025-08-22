@@ -3,10 +3,12 @@ package handlers
 import (
 	"net/http"
 
-	db "github.com/pickle.pw/monolith/db/sqlc"
+	"github.com/pickle.pw/monolith/internal/domain"
+	"github.com/pickle.pw/monolith/internal/presenter"
 	"github.com/pickle.pw/monolith/internal/services"
 	"github.com/pickle.pw/monolith/internal/storage"
-	"github.com/pickle.pw/monolith/internal/types"
+	"github.com/pickle.pw/monolith/internal/transport/http/binders"
+	"github.com/pickle.pw/monolith/internal/transport/http/responses"
 	"github.com/pickle.pw/monolith/internal/utils"
 )
 
@@ -22,7 +24,11 @@ type contentHandler struct {
 	contentService     services.ContentService
 }
 
-func NewContentHandler(elastic storage.ElasticStorage, contentNoteService services.ContentNoteService, contentService services.ContentService) ContentHandler {
+func NewContentHandler(
+	elastic storage.ElasticStorage,
+	contentNoteService services.ContentNoteService,
+	contentService services.ContentService,
+) ContentHandler {
 	return &contentHandler{
 		elastic:            elastic,
 		contentNoteService: contentNoteService,
@@ -37,42 +43,43 @@ func NewContentHandler(elastic storage.ElasticStorage, contentNoteService servic
 // @Produce json
 // @Param query query string true "Query"
 // @Param userId query string true "User ID"
-// @Success 200 {object} []types.ContentRes
+// @Success 200 {object} []responses.UserContent
+// @Failure 400
+// @Failure 500
 // @Router /v1/users/{userId}/content/search [get]
 func (h *contentHandler) SearchProfileContent(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	query, err := utils.GetRequiredQueryParam(r, "query")
+	cmd, err := binders.BindSearchUserContentCommand(r)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	userId, err := utils.ReadPathUUIDVariable("userId", r)
+	content, err := h.contentService.SearchUserContent(ctx, cmd)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	pagination, err := utils.GetPagination(r)
+	contentSlice := make([]domain.IContent, len(content.Content))
+	for i, c := range content.Content {
+		contentSlice[i] = c.Source.ContentBase
+	}
+
+	coverURLs, err := h.contentService.GetContentCoverURLsAsync(ctx, contentSlice, cmd.CoverSize)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	content, err := h.elastic.SearchProfileContent(ctx, query, userId, pagination)
-	if err != nil {
-		utils.HttpError(ctx, err, w)
-		return
+	presented := make([]*responses.UserContent, len(content.Content))
+	for i, c := range content.Content {
+		presented[i] = presenter.PresentUserContent(c.Source, coverURLs[c.Source.GetID()])
 	}
 
-	res, err := utils.ConvertElasticContentSearchResToRESTRes[types.ContentRes](content, pagination)
-	if err != nil {
-		utils.HttpError(ctx, err, w)
-		return
-	}
-
-	utils.WriteHttpJsonResponse(ctx, w, res)
+	paginatedRes := presenter.PresentPaginatedResponse(cmd.Pagination, content.TotalElements, presented)
+	utils.WriteHttpJsonResponse(ctx, w, paginatedRes)
 }
 
 // @Summary Search content
@@ -86,43 +93,43 @@ func (h *contentHandler) SearchProfileContent(w http.ResponseWriter, r *http.Req
 // @Param locale query string false "Locale"
 // @Param page query string false "Page"
 // @Param size query string false "Size"
-// @Success 200 {object} []types.ContentRes
+// @Success 200 []responses.Content
+// @Failure 400
+// @Failure 500
 // @Router /v1/content/{category} [get]
 func (h *contentHandler) SearchContent(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	category, err := utils.ReadPathVariable("category", r)
+	cmd, err := binders.BindSearchContentCommand(r)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	locale := utils.GetQueryParam(r, "locale", "en")
-	query, err := utils.GetRequiredQueryParam(r, "query")
+	res, err := h.contentService.SearchContent(ctx, cmd)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	userID, err := utils.GetQueryParamAsUUID(r, "userId")
+	contentSlice := make([]domain.IContent, len(res.Content))
+	for i, c := range res.Content {
+		contentSlice[i] = c.Source
+	}
+
+	coverURLs, err := h.contentService.GetContentCoverURLsAsync(ctx, contentSlice, cmd.CoverSize)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	pagination, err := utils.GetPagination(r)
-	if err != nil {
-		utils.HttpError(ctx, err, w)
-		return
+	presented := make([]responses.IContent, len(res.Content))
+	for i, c := range res.Content {
+		presented[i] = presenter.PresentContent(c.Source, coverURLs[c.Source.GetID()])
 	}
 
-	res, err := h.contentService.SearchContent(ctx, db.ContentCategory(category), query, userID, locale, pagination)
-	if err != nil {
-		utils.HttpError(ctx, err, w)
-		return
-	}
-
-	utils.WriteHttpJsonResponse(ctx, w, res)
+	paginatedRes := presenter.PresentPaginatedResponse(cmd.Pagination, res.TotalElements, presented)
+	utils.WriteHttpJsonResponse(ctx, w, paginatedRes)
 }
 
 // @Summary Get content by ID
@@ -132,32 +139,27 @@ func (h *contentHandler) SearchContent(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param id path string true "Content ID"
 // @Param category path string true "Category"
-// @Param locale query string false "Locale"
 // @Param coverSize query string false "Cover Size"
-// @Router /v1/content/{category}/{id} [get]
+// @Success 200
+// @Failure 400
+// @Failure 500
+// @Router /v1/content/{category}/{contentId} [get]
 func (h *contentHandler) GetContentByID(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	category, err := utils.ReadPathVariable("category", r)
+	cmd, err := binders.BindGetContentByIDCommand(r)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	contentID, err := utils.ReadPathUUIDVariable("id", r)
+	content, err := h.contentService.GetDetailedContentByID(ctx, cmd.Category, cmd.ID)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	coverSize := utils.GetQueryParam(r, "coverSize", "sm")
-	locale := utils.GetQueryParam(r, "locale", "en")
-
-	content, err := h.contentService.GetLocalizedContentByID(ctx, db.ContentCategory(category), contentID, coverSize, locale)
-	if err != nil {
-		utils.HttpError(ctx, err, w)
-		return
-	}
-
-	utils.WriteHttpJsonResponse(ctx, w, content)
+	coverURL := h.contentService.GetContentCoverURL(ctx, content, cmd.CoverSize)
+	presented := presenter.PresentDetailedContent(content, coverURL)
+	utils.WriteHttpJsonResponse(ctx, w, presented)
 }

@@ -6,36 +6,36 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
-	"github.com/pickle.pw/monolith/internal/models"
+	"github.com/pickle.pw/monolith/internal/domain"
 )
 
 type OrdersBrokerService interface {
-	PublishOrder(order *models.Order)
-	Subscribe(userID uuid.UUID) chan *models.Order
-	Unsubscribe(userID uuid.UUID, client chan *models.Order)
+	PublishOrder(order *domain.Order)
+	Subscribe(userID uuid.UUID) chan *domain.Order
+	Unsubscribe(userID uuid.UUID, client chan *domain.Order)
 }
 
 type ordersBrokerService struct {
-	clients map[uuid.UUID][]chan *models.Order
+	clients map[uuid.UUID][]chan *domain.Order
 	mu      sync.Mutex
 }
 
 func NewOrdersBrokerService() OrdersBrokerService {
 	return &ordersBrokerService{
-		clients: make(map[uuid.UUID][]chan *models.Order),
+		clients: make(map[uuid.UUID][]chan *domain.Order),
 		mu:      sync.Mutex{},
 	}
 }
 
 // Subscribe a client to updates for a specific user
-func (b *ordersBrokerService) Subscribe(userID uuid.UUID) chan *models.Order {
+func (b *ordersBrokerService) Subscribe(userID uuid.UUID) chan *domain.Order {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	client := make(chan *models.Order, 5) // Buffer a few messages
+	client := make(chan *domain.Order, 5) // Buffer a few messages
 
 	if _, exists := b.clients[userID]; !exists {
-		b.clients[userID] = []chan *models.Order{}
+		b.clients[userID] = []chan *domain.Order{}
 	}
 
 	b.clients[userID] = append(b.clients[userID], client)
@@ -46,7 +46,7 @@ func (b *ordersBrokerService) Subscribe(userID uuid.UUID) chan *models.Order {
 }
 
 // Unsubscribe a client
-func (b *ordersBrokerService) Unsubscribe(userID uuid.UUID, client chan *models.Order) {
+func (b *ordersBrokerService) Unsubscribe(userID uuid.UUID, client chan *domain.Order) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
@@ -68,7 +68,7 @@ func (b *ordersBrokerService) Unsubscribe(userID uuid.UUID, client chan *models.
 }
 
 // Publish a new order to all subscribed clients for a user
-func (b *ordersBrokerService) PublishOrder(order *models.Order) {
+func (b *ordersBrokerService) PublishOrder(order *domain.Order) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 

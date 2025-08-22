@@ -24,6 +24,7 @@ type PickleAPI interface {
 }
 
 type pickleAPI struct {
+	userHandler          handlers.UserHandler
 	profileHandler       handlers.ProfileHandler
 	statusHandler        handlers.StatusHandler
 	orderHandler         handlers.OrderHandler
@@ -39,21 +40,31 @@ type pickleAPI struct {
 	igdbSyncService      services.IGDBSyncService
 	tmdbSyncScheduler    schedulers.TMDBScheduler
 	tmdbSyncService      services.TMDBSyncService
-	authHandler          handlers.AuthHandler
 	oryAPI               clients.OryAPI
+	followerHandler      handlers.FollowerHandler
 }
 
 func NewPickleAPI(
-	profileHandler handlers.ProfileHandler, statusHandler handlers.StatusHandler, orderHandler handlers.OrderHandler,
-	contentNoteHandler handlers.ContentNoteHandler, posterHandler handlers.PosterHandler,
-	migrationService services.MigrationService, contentHandler handlers.ContentHandler,
-	collectionHandler handlers.CollectionHandler, moderatorHandler handlers.ModeratorHandler,
+	userHandler handlers.UserHandler,
+	profileHandler handlers.ProfileHandler,
+	statusHandler handlers.StatusHandler,
+	orderHandler handlers.OrderHandler,
+	contentNoteHandler handlers.ContentNoteHandler,
+	posterHandler handlers.PosterHandler,
+	migrationService services.MigrationService,
+	contentHandler handlers.ContentHandler,
+	collectionHandler handlers.CollectionHandler,
+	moderatorHandler handlers.ModeratorHandler,
 	profileEventsHandler handlers.ProfileEventsHandler,
-	igdbSyncScheduler schedulers.IGDBScheduler, igdbSyncService services.IGDBSyncService,
-	tmdbSyncScheduler schedulers.TMDBScheduler, tmdbSyncService services.TMDBSyncService,
+	igdbSyncScheduler schedulers.IGDBScheduler,
+	igdbSyncService services.IGDBSyncService,
+	tmdbSyncScheduler schedulers.TMDBScheduler,
+	tmdbSyncService services.TMDBSyncService,
 	oryAPI clients.OryAPI,
+	followerHandler handlers.FollowerHandler,
 ) PickleAPI {
 	return &pickleAPI{
+		userHandler:          userHandler,
 		profileHandler:       profileHandler,
 		statusHandler:        statusHandler,
 		orderHandler:         orderHandler,
@@ -69,8 +80,8 @@ func NewPickleAPI(
 		tmdbSyncScheduler:    tmdbSyncScheduler,
 		tmdbSyncService:      tmdbSyncService,
 		oryAPI:               oryAPI,
-		authHandler:          handlers.NewAuthHandler(),
 		tokenAuth:            jwtAuth.New("HS256", config.GetJWTSecret(), nil),
+		followerHandler:      followerHandler,
 	}
 }
 
@@ -103,6 +114,7 @@ func (api *pickleAPI) BuildAPI(ctx context.Context) (*chi.Mux, error) {
 	r.Use(chiMiddleware.RealIP)
 	r.Use(chiMiddleware.Recoverer)
 	r.Use(middleware.CORS)
+	r.Use(middleware.LocaleMiddleware())
 	r.Use(chiMiddleware.Logger)
 	r.Use(chiMiddleware.Timeout(config.GetContextTimeoutMs() * time.Millisecond))
 
@@ -151,17 +163,11 @@ func (api *pickleAPI) v1RouteHandler(ctx context.Context) http.Handler {
 
 	r.Get("/health", api.statusHandler.Health)
 
-	r.Route("/auth", func(r chi.Router) {
-		r.Post("/set-cookie", api.authHandler.SetJWTCookie)
-		r.Post("/clear-cookie", api.authHandler.ClearJWTCookie)
-	})
-
 	r.Route("/webhooks", func(r chi.Router) {
 		api.useApiKey(r)
 
-		// r.Post("/users", api.profileHandler.CreateProfileWebhook)
-
-		r.Post("/orders/{userId}", api.orderHandler.CreateOrder)
+		r.Post("/ory/users", api.userHandler.AfterOryRegistrationWebhook)
+		r.Post("/orders/{userId}", api.orderHandler.CreateOrderWebhook)
 	})
 
 	r.Route("/triggers", func(r chi.Router) {
@@ -176,8 +182,7 @@ func (api *pickleAPI) v1RouteHandler(ctx context.Context) http.Handler {
 	r.Route("/profiles", func(r chi.Router) {
 		api.useUnprotectedRoutes(r)
 
-		r.Get("/validate-link", api.profileHandler.ValidateProfileLink)
-		r.Get("/{link}", api.profileHandler.GetProfileByLink)
+		r.Get("/{username}", api.profileHandler.GetProfileByUsername)
 	})
 
 	r.Route("/collections/{collectionId}", func(r chi.Router) {
@@ -196,42 +201,63 @@ func (api *pickleAPI) v1RouteHandler(ctx context.Context) http.Handler {
 			r.Group(func(r chi.Router) {
 				api.useProtectedRoutes(r)
 
-				r.Post("/", api.collectionHandler.AddItemToCollection)
 				r.Delete("/{itemId}", api.collectionHandler.RemoveItemFromCollection)
+			})
+		})
+	})
+
+	r.Route("/content-notes/{category}/{contentNoteId}", func(r chi.Router) {
+		r.Get("/", api.contentNoteHandler.GetDetailedContentNoteByID)
+		r.Get("/orders", api.contentNoteHandler.GetOrdersByContentNoteID)
+
+		r.Group(func(r chi.Router) {
+			api.useProtectedRoutes(r)
+
+			r.Delete("/", api.contentNoteHandler.DeleteContentNote)
+			r.Patch("/", api.contentNoteHandler.UpdateContentNote)
+		})
+
+		r.Route("/reactions", func(r chi.Router) {
+			r.Group(func(r chi.Router) {
+				api.useProtectedRoutes(r)
+
+				r.Post("/", api.contentNoteHandler.AddContentNoteReaction)
+				r.Delete("/", api.contentNoteHandler.RemoveContentNoteReaction)
 			})
 		})
 	})
 
 	r.Route("/content/{category}", func(r chi.Router) {
 		r.Get("/", api.contentHandler.SearchContent)
-		r.Get("/{id}", api.contentHandler.GetContentByID)
+		r.Get("/{contentId}", api.contentHandler.GetContentByID)
 	})
 
 	r.Route("/users", func(r chi.Router) {
+		r.Get("/validate-username", api.userHandler.ValidateUsername)
+
 		r.Route("/me", func(r chi.Router) {
 			api.useProtectedRoutes(r)
 
-			r.Get("/", api.profileHandler.GetMyProfile)
-			r.Patch("/", api.profileHandler.UpdateSettings)
-			r.Post("/avatar", api.profileHandler.UploadAvatar)
-			r.Get("/avatar", api.profileHandler.GetMyProfileAvatarUrl)
-			r.Patch("/suggestion-preferences", api.profileHandler.UpdateSuggestionPreferences)
+			r.Get("/", api.userHandler.GetMe)
+			r.Patch("/", api.userHandler.UpdateUser)
+			r.Post("/avatar", api.userHandler.UploadAvatarForMyProfile)
+			r.Get("/avatar", api.userHandler.GetMyAvatarURL)
 		})
 
 		r.Route("/{userId}", func(r chi.Router) {
-			r.Get("/", api.profileHandler.GetProfileById)
-			r.Get("/avatar", api.profileHandler.GetProfileAvatarUrl)
+			r.Get("/", api.userHandler.GetUserByID)
+			r.Get("/avatar", api.userHandler.GetUserAvatarURL)
 
 			r.Route("/follows", func(r chi.Router) {
 				api.useProtectedRoutes(r)
 
-				r.Post("/", api.profileHandler.FollowProfile)
-				r.Delete("/", api.profileHandler.UnfollowProfile)
+				r.Post("/", api.followerHandler.FollowUser)
+				r.Delete("/", api.followerHandler.UnfollowUser)
 			})
 
 			r.Route("/content-notes/{category}", func(r chi.Router) {
 				r.Get("/", api.contentNoteHandler.GetSortedContentNotesByUserID)
-				r.Get("/by-content-id/{contentId}", api.contentNoteHandler.GetNoteByContentID)
+				r.Get("/by-content-id/{contentId}", api.contentNoteHandler.GetContentNoteByContentID)
 
 				r.Group(func(r chi.Router) {
 					api.useProtectedRoutes(r)
@@ -244,35 +270,6 @@ func (api *pickleAPI) v1RouteHandler(ctx context.Context) http.Handler {
 
 					r.Get("/", api.contentNoteHandler.GetBatchContentNoteReactions)
 				})
-
-				r.Route("/{noteId}", func(r chi.Router) {
-					r.Get("/", api.contentNoteHandler.GetContentNoteById)
-					r.Get("/orders", api.contentNoteHandler.GetOrdersByID)
-					// r.Get("/posters", api.contentNoteHandler.GetPosterImageURL)
-
-					r.Group(func(r chi.Router) {
-						api.useProtectedRoutes(r)
-
-						r.Delete("/", api.contentNoteHandler.DeleteContentNote)
-						r.Patch("/", api.contentNoteHandler.UpdateContentNote)
-						// r.Patch("/name", api.contentNoteHandler.UpdateContentNoteName)
-					})
-
-					r.Route("/reactions", func(r chi.Router) {
-						r.Group(func(r chi.Router) {
-							api.useUnprotectedRoutes(r)
-
-							r.Get("/", api.contentNoteHandler.GetContentNoteReactions)
-						})
-
-						r.Group(func(r chi.Router) {
-							api.useProtectedRoutes(r)
-
-							r.Post("/", api.contentNoteHandler.AddContentNoteReaction)
-							r.Delete("/", api.contentNoteHandler.RemoveContentNoteReaction)
-						})
-					})
-				})
 			})
 
 			r.Route("/orders", func(r chi.Router) {
@@ -281,7 +278,7 @@ func (api *pickleAPI) v1RouteHandler(ctx context.Context) http.Handler {
 				r.Group(func(r chi.Router) {
 					api.useProtectedRoutes(r)
 
-					r.Post("/", api.orderHandler.CreateOrder)
+					r.Post("/suggest", api.orderHandler.CreatePickleSuggestionOrder)
 					r.Get("/ws", api.profileEventsHandler.GetProfileOrdersWebSocket)
 				})
 
@@ -289,7 +286,8 @@ func (api *pickleAPI) v1RouteHandler(ctx context.Context) http.Handler {
 					api.useProtectedRoutes(r)
 
 					r.Get("/", api.orderHandler.GetOrderByID)
-					r.Patch("/", api.orderHandler.UpdateOrderByID)
+					r.Post("/approve", api.orderHandler.ApproveOrderByID)
+					r.Post("/reject", api.orderHandler.RejectOrderByID)
 				})
 			})
 
@@ -306,7 +304,7 @@ func (api *pickleAPI) v1RouteHandler(ctx context.Context) http.Handler {
 			})
 
 			r.Route("/content", func(r chi.Router) {
-				r.Get("/", api.contentHandler.SearchContent)
+				r.Get("/", api.contentHandler.SearchProfileContent)
 			})
 
 			r.Route("/collections", func(r chi.Router) {
@@ -317,15 +315,16 @@ func (api *pickleAPI) v1RouteHandler(ctx context.Context) http.Handler {
 					api.useProtectedRoutes(r)
 
 					r.Post("/", api.collectionHandler.CreateCollection)
+					r.Post("/{collectionId}/items", api.collectionHandler.AddContentToCollection)
 				})
 			})
 
 			r.Route("/moderators", func(r chi.Router) {
 				api.useProtectedRoutes(r)
 
-				r.Post("/", api.moderatorHandler.AddModerator)
-				r.Get("/", api.moderatorHandler.GetModerators)
-				r.Delete("/{moderatorId}", api.moderatorHandler.DeleteModerator)
+				r.Post("/", api.moderatorHandler.AddModeratorByUsername)
+				r.Get("/", api.moderatorHandler.GetModeratorsByUserID)
+				r.Delete("/{moderatorId}", api.moderatorHandler.DeleteModeratorByUserIDAndModeratorID)
 			})
 		})
 	})

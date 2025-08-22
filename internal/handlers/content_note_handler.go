@@ -1,21 +1,16 @@
 package handlers
 
 import (
-	"encoding/json"
 	"net/http"
 	"sync"
 
-	"github.com/google/uuid"
-	"github.com/jinzhu/copier"
-	db "github.com/pickle.pw/monolith/db/sqlc"
-	"github.com/pickle.pw/monolith/internal/errors"
+	"github.com/pickle.pw/monolith/internal/domain"
 	"github.com/pickle.pw/monolith/internal/logger"
-	"github.com/pickle.pw/monolith/internal/mapper"
-	"github.com/pickle.pw/monolith/internal/models"
-	"github.com/pickle.pw/monolith/internal/models/requests"
-	"github.com/pickle.pw/monolith/internal/models/responses"
+	"github.com/pickle.pw/monolith/internal/presenter"
 	"github.com/pickle.pw/monolith/internal/services"
-	"github.com/pickle.pw/monolith/internal/types"
+	"github.com/pickle.pw/monolith/internal/transport/http/binders"
+	resp "github.com/pickle.pw/monolith/internal/transport/http/responses"
+	"github.com/pickle.pw/monolith/internal/usecases"
 	"github.com/pickle.pw/monolith/internal/utils"
 	"golang.org/x/sync/errgroup"
 )
@@ -23,93 +18,52 @@ import (
 type ContentNoteHandler interface {
 	CreateContentNote(w http.ResponseWriter, r *http.Request)
 	GetSortedContentNotesByUserID(w http.ResponseWriter, r *http.Request)
-	GetContentNoteById(w http.ResponseWriter, r *http.Request)
-	GetOrdersByID(w http.ResponseWriter, r *http.Request)
-	// GetPosterImageURL(w http.ResponseWriter, r *http.Request)
+	GetDetailedContentNoteByID(w http.ResponseWriter, r *http.Request)
+	GetOrdersByContentNoteID(w http.ResponseWriter, r *http.Request)
 	DeleteContentNote(w http.ResponseWriter, r *http.Request)
 	UpdateContentNote(w http.ResponseWriter, r *http.Request)
-	// UpdateContentNoteName(w http.ResponseWriter, r *http.Request)
-	GetContentNoteReactions(w http.ResponseWriter, r *http.Request)
 	GetBatchContentNoteReactions(w http.ResponseWriter, r *http.Request)
 	AddContentNoteReaction(w http.ResponseWriter, r *http.Request)
 	RemoveContentNoteReaction(w http.ResponseWriter, r *http.Request)
-	GetNoteByContentID(w http.ResponseWriter, r *http.Request)
+	GetContentNoteByContentID(w http.ResponseWriter, r *http.Request)
 }
 
 type contentNoteHandler struct {
-	profileService             services.ProfileService
-	orderService               services.OrderService
-	posterService              services.PosterService
-	contentNoteService         services.ContentNoteService
-	contentNoteReactionService services.ContentNoteReactionService
+	orderService                         services.OrderService
+	ordererService                       services.OrdererService
+	posterService                        services.PosterService
+	permissionService                    services.PermissionService
+	avatarService                        services.AvatarService
+	contentNoteService                   services.ContentNoteService
+	contentNoteReactionService           services.ContentNoteReactionService
+	contentService                       services.ContentService
+	createContentNoteUseCase             usecases.CreateContentNoteUseCase
+	getSortedContentNotesByUserIDUseCase usecases.GetSortedContentNotesByUserIDUseCase
 }
 
 func NewContentNoteHandler(
-	profileService services.ProfileService, orderService services.OrderService,
-	posterService services.PosterService, contentNoteService services.ContentNoteService,
+	orderService services.OrderService,
+	ordererService services.OrdererService,
+	posterService services.PosterService,
+	permissionService services.PermissionService,
+	avatarService services.AvatarService,
+	contentNoteService services.ContentNoteService,
 	contentNoteReactionService services.ContentNoteReactionService,
+	contentService services.ContentService,
+	createContentNoteUseCase usecases.CreateContentNoteUseCase,
+	getSortedContentNotesByUserIDUseCase usecases.GetSortedContentNotesByUserIDUseCase,
 ) ContentNoteHandler {
 	return &contentNoteHandler{
-		profileService:             profileService,
-		orderService:               orderService,
-		posterService:              posterService,
-		contentNoteService:         contentNoteService,
-		contentNoteReactionService: contentNoteReactionService,
-	}
-}
-
-func (h *contentNoteHandler) parsePathContentCategoryVariable(r *http.Request) (db.ContentCategory, error) {
-	value := r.PathValue("category")
-	if len(value) == 0 {
-		return "", errors.NewBadRequestError("Path variable category is required", nil)
-	}
-
-	category := db.ContentCategory(value)
-	return category, nil
-}
-
-func (h *contentNoteHandler) decodeCreateContentNoteReq(category db.ContentCategory, r *http.Request) (requests.CreateContentNoteReq, error) {
-	var req requests.CreateContentNoteReq
-
-	switch category {
-	case db.ContentCategoryGames:
-		req = &requests.CreateGameNoteReq{}
-	case db.ContentCategoryMovies:
-		req = &requests.CreateMovieNoteReq{}
-	default:
-		return nil, errors.NewBadRequestError("Invalid content category", nil)
-	}
-
-	err := json.NewDecoder(r.Body).Decode(req)
-	if err != nil {
-		return nil, errors.NewBadRequestError("Invalid request body", err)
-	}
-	return req, nil
-}
-
-func (h *contentNoteHandler) mapModelToResponse(model models.ContentNote, coverURL *string, ordererCount int64) (any, error) {
-	switch v := model.(type) {
-	case *models.GameNote:
-		return mapper.MapGameNoteToGameNoteRes(v, coverURL, ordererCount), nil
-	case *models.MovieNote:
-		return mapper.MapMovieNoteToMovieNoteRes(v, coverURL, ordererCount), nil
-	default:
-		return nil, errors.NewBadRequestError("Invalid content note type", nil)
-	}
-}
-
-func (h *contentNoteHandler) mapModelToSearchResultResponse(model models.ContentNoteSearchResult) (responses.ContentNoteSearchResultRes, error) {
-	switch v := model.(type) {
-	case *models.GameNoteSearchResult:
-		res := &responses.GameNoteSearchResultRes{}
-		copier.Copy(res, v)
-		return res, nil
-	case *models.MovieNoteSearchResult:
-		res := &responses.MovieNoteSearchResultRes{}
-		copier.Copy(res, v)
-		return res, nil
-	default:
-		return nil, errors.NewBadRequestError("Invalid content note type", nil)
+		orderService:                         orderService,
+		ordererService:                       ordererService,
+		posterService:                        posterService,
+		permissionService:                    permissionService,
+		avatarService:                        avatarService,
+		contentNoteService:                   contentNoteService,
+		contentNoteReactionService:           contentNoteReactionService,
+		contentService:                       contentService,
+		createContentNoteUseCase:             createContentNoteUseCase,
+		getSortedContentNotesByUserIDUseCase: getSortedContentNotesByUserIDUseCase,
 	}
 }
 
@@ -119,38 +73,34 @@ func (h *contentNoteHandler) mapModelToSearchResultResponse(model models.Content
 // @Accept json
 // @Produce json
 // @Param userId path string true "User ID"
-// @Param contentNoteReq body requests.CreateContentNoteReq true "Content note request"
+// @Param contentNoteReq body req.CreateContentNoteReq true "Content note request"
 // @Success 200
 // @Failure 400 {object} string
 // @Failure 500 {object} string
 // @Router /v1/users/{userId}/content-notes/{category} [post]
 func (h *contentNoteHandler) CreateContentNote(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userId, err := utils.GetUserIDFromCtx(ctx)
+
+	command, err := binders.BindCreateContentNoteCommand(r)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	category, err := h.parsePathContentCategoryVariable(r)
+	err = command.Validate()
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	req, err := h.decodeCreateContentNoteReq(category, r)
+	cmdResult, err := h.createContentNoteUseCase.Handle(ctx, command)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	_, err = h.contentNoteService.CreateContentNote(ctx, category, userId, userId, req)
-	if err != nil {
-		utils.HttpError(ctx, err, w)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
+	present := presenter.PresentCreateContentNoteCommandResult(cmdResult)
+	utils.WriteHttpJsonResponse(ctx, w, present)
 }
 
 // @Summary Get content notes sorted by receiver link
@@ -163,77 +113,30 @@ func (h *contentNoteHandler) CreateContentNote(w http.ResponseWriter, r *http.Re
 // @Param limit query int false "Limit"
 // @Param column query string false "Column"
 // @Param direction query string false "Direction"
-// @Success 200 {object} []models.ContentNoteSearchResult
+// @Success 200
 // @Failure 400 {object} string
 // @Failure 500 {object} string
 // @Router /v1/users/{userId}/content-notes/{category} [get]
 func (h *contentNoteHandler) GetSortedContentNotesByUserID(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userId, err := utils.ReadPathUUIDVariable("userId", r)
+
+	cmd, err := binders.BindGetSortedContentNotesByUserIDCommand(r)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	category, err := h.parsePathContentCategoryVariable(r)
+	err = cmd.Validate()
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	sort, err := utils.GetSortedPagination(r)
+	responses, err := h.getSortedContentNotesByUserIDUseCase.Handle(ctx, cmd)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
-
-	filters, err := utils.GetFilters(r)
-	if err != nil {
-		utils.HttpError(ctx, err, w)
-		return
-	}
-
-	coverSize := utils.GetQueryParam(r, "coverSize", "md")
-	locale := utils.GetQueryParam(r, "locale", "en")
-
-	receiver, err := h.profileService.GetProfileByID(ctx, userId)
-	if err != nil {
-		utils.HttpError(ctx, err, w)
-		return
-	}
-
-	contentNotes, err := h.contentNoteService.GetFilteredSortedByReceiverID(ctx, category, receiver.UserID, sort, filters, locale)
-	if err != nil {
-		utils.HttpError(ctx, err, w)
-		return
-	}
-
-	responses := make([]responses.ContentNoteSearchResultRes, len(contentNotes))
-
-	var wg sync.WaitGroup
-	for i := 0; i < len(contentNotes); i++ {
-		res, err := h.mapModelToSearchResultResponse(contentNotes[i])
-		if err != nil {
-			utils.HttpError(ctx, err, w)
-			return
-		}
-
-		if contentNotes[i].GetCoverKey() != "" && contentNotes[i].GetCoverKeyType().Valid {
-			wg.Add(1)
-			go func(i int) {
-				defer wg.Done()
-				posterUrl, err := h.posterService.GetCoverImageURL(ctx, coverSize, contentNotes[i].GetCoverKey(), contentNotes[i].GetCoverKeyType().ImageKeyType)
-				if err != nil {
-					return
-				}
-				res.SetCoverURL(posterUrl)
-			}(i)
-		}
-
-		responses[i] = res
-	}
-
-	wg.Wait()
 
 	utils.WriteHttpJsonResponse(ctx, w, responses)
 }
@@ -243,55 +146,65 @@ func (h *contentNoteHandler) GetSortedContentNotesByUserID(w http.ResponseWriter
 // @Tags content-notes
 // @Accept json
 // @Produce json
-// @Param userId path string true "User ID"
-// @Param noteId path string true "Note ID"
+// @Param category path string true "Category"
+// @Param contentNoteId path string true "Content note ID"
 // @Success 200 {object} any
 // @Failure 400 {object} string
 // @Failure 500 {object} string
-// @Router /v1/users/{userId}/content-notes/{category}/{noteId} [get]
-func (h *contentNoteHandler) GetContentNoteById(w http.ResponseWriter, r *http.Request) {
+// @Router /v1/content-notes/{category}/{contentNoteId} [get]
+func (h *contentNoteHandler) GetDetailedContentNoteByID(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	noteId, err := utils.ReadPathUUIDVariable("noteId", r)
+
+	cmd, err := binders.BindGetContentNoteByIDCommand(r)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	category, err := h.parsePathContentCategoryVariable(r)
+	err = cmd.Validate()
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	locale := utils.GetQueryParam(r, "locale", "en")
-	coverSize := utils.GetQueryParam(r, "coverSize", "md")
-
-	var contentNote models.ContentNote
-	var coverURL *string
-
-	contentNote, err = h.contentNoteService.GetDetailedNoteByID(ctx, noteId, category, locale)
+	contentNote, err := h.contentNoteService.GetDetailedNoteByID(ctx, cmd.ID, cmd.Category)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	coverKey := contentNote.GetContent().GetCoverKey()
-	coverKeyType := contentNote.GetContent().GetCoverKeyType()
-	if coverKey != nil && *coverKey != "" && coverKeyType.Valid {
-		url, err := h.posterService.GetCoverImageURL(ctx, coverSize, *coverKey, coverKeyType.ImageKeyType)
-		if err != nil {
-			logger.Errorf(ctx, "Error getting poster URL: %v", err)
-		} else {
-			coverURL = &url
-		}
-	}
-
-	res, err := h.mapModelToResponse(contentNote, coverURL, 0)
+	initialOrderer, err := h.ordererService.GetOrdererWithUserByID(ctx, contentNote.GetInitialOrdererID())
 	if err != nil {
-		utils.HttpError(ctx, err, w)
-		return
+		logger.Errorf(ctx, "failed to get initial orderer: %v", err)
 	}
 
+	var (
+		coverURL                *string
+		initialOrdererAvatarURL string
+		wg                      sync.WaitGroup
+	)
+
+	wg.Add(1)
+	go func() {
+		coverURL = h.contentService.GetContentCoverURL(ctx, contentNote.GetContent(), cmd.CoverSize)
+		wg.Done()
+	}()
+
+	if initialOrderer != nil && initialOrderer.UserID != nil {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			initialOrdererAvatarURL, err = h.avatarService.GetAvatarURLByUserID(ctx, *initialOrderer.UserID, cmd.InitialOrdererAvatarSize)
+			if err != nil {
+				logger.Errorf(ctx, "failed to get initial orderer avatar URL: %v", err)
+			}
+		}()
+	}
+
+	wg.Wait()
+
+	initialOrdererResp := presenter.PresentOrderer(initialOrderer, initialOrdererAvatarURL)
+	res := presenter.PresentDetailedContentNote(contentNote, initialOrdererResp, coverURL)
 	utils.WriteHttpJsonResponse(ctx, w, res)
 }
 
@@ -302,148 +215,119 @@ func (h *contentNoteHandler) GetContentNoteById(w http.ResponseWriter, r *http.R
 // @Produce json
 // @Param userId path string true "User ID"
 // @Param noteId path string true "Note ID"
-// @Success 200 {object} []types.OrderRes
+// @Success 200
 // @Failure 400 {object} string
 // @Failure 500 {object} string
-// @Router /v1/users/{userId}/content-notes/{category}/{noteId}/orders [get]
-func (h *contentNoteHandler) GetOrdersByID(w http.ResponseWriter, r *http.Request) {
+// @Router /v1/content-notes/{category}/{contentNoteId}/orders [get]
+func (h *contentNoteHandler) GetOrdersByContentNoteID(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	noteId, err := utils.ReadPathUUIDVariable("noteId", r)
+
+	cmd, err := binders.BindGetOrdersByContentNoteIDCommand(r)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	pagination, err := utils.GetPagination(r)
+	err = cmd.Validate()
 	if err != nil {
-		utils.HttpError(ctx, err, w)
-		return
-	}
-
-	category, err := h.parsePathContentCategoryVariable(r)
-	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
 	var (
 		group         errgroup.Group
-		orders        []*models.Order
+		orders        []*domain.Order
 		totalElements int64
 	)
 
 	group.Go(func() error {
-		orders, err = h.orderService.GetPaginatedByContentNoteID(ctx, category, noteId, pagination)
+		orders, err = h.orderService.GetOrdersByContentNoteID(ctx, cmd)
 		return err
 	})
 
 	group.Go(func() error {
-		totalElements, err = h.contentNoteService.CountOrdersByContentNoteID(ctx, category, noteId)
+		totalElements, err = h.contentNoteService.CountOrdersByContentNoteID(ctx, cmd.Category, cmd.ID)
 		return err
 	})
 
 	if err := group.Wait(); err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	orderResponses := []types.OrderRes{}
-	copier.Copy(&orderResponses, orders)
+	orderResponses := make([]*resp.Order, len(orders))
 
-	response := &types.PaginatedRes[types.OrderRes]{
-		Content:       orderResponses,
-		Size:          pagination.Size,
-		Page:          pagination.Page,
-		TotalPages:    utils.CalculateTotalPages(totalElements, pagination.Size),
-		TotalElements: totalElements,
+	for i := 0; i < len(orders); i++ {
+		ordererAvatarURL := ""
+		var ordererResp *resp.Orderer
+
+		if orders[i].Orderer != nil {
+			if orders[i].Orderer.UserID != nil {
+				ordererAvatarURL, err = h.avatarService.GetAvatarURLByUserID(ctx, *orders[i].Orderer.UserID, domain.AvatarSizeSmall)
+				if err != nil {
+					logger.Errorf(ctx, "failed to get orderer avatar URL: %v", err)
+				}
+			}
+
+			ordererResp = presenter.PresentOrderer(orders[i].Orderer, ordererAvatarURL)
+		}
+		orderResponses[i] = presenter.PresentOrder(orders[i], ordererResp)
 	}
 
+	response := presenter.PresentPaginatedResponse(cmd.Pagination, totalElements, orderResponses)
 	utils.WriteHttpJsonResponse(ctx, w, response)
 }
-
-// @Summary Get poster image URL
-// @Description Get poster image URL
-// @Tags content-notes
-// @Accept json
-// @Produce json
-// @Param userId path string true "User ID"
-// @Param noteId path string true "Note ID"
-// @Param size query string true "Size"
-// @Success 200 {object} types.ImageRes
-// @Failure 400 {object} string
-// @Failure 500 {object} string
-// @Router /v1/users/{userId}/content-notes/{category}/{noteId}/poster [get]
-// func (h *contentNoteHandler) GetPosterImageURL(w http.ResponseWriter, r *http.Request) {
-// 	ctx := r.Context()
-// 	size := utils.GetQueryParam(r, "size", "md")
-// 	noteId, err := utils.ReadPathUUIDVariable("noteId", r)
-// 	if err != nil {
-// 		utils.HttpError(ctx, err, w)
-// 		return
-// 	}
-
-// 	category, err := h.parsePathContentCategoryVariable(r)
-// 	if err != nil {
-// 		utils.HttpError(ctx, err, w)
-// 		return
-// 	}
-
-// 	note, err := h.contentNoteService.GetContentNoteByID(ctx, noteId, category)
-// 	if err != nil {
-// 		utils.HttpError(ctx, err, w)
-// 		return
-// 	}
-
-// 	var imageUrl string
-
-// 	if note.GetPosterKey() != nil && len(*note.GetPosterKey()) > 0 {
-// 		imageUrl, err = h.contentNoteService.GetContentNotePosterImageURL(ctx, category, size, *note.GetPosterKey(), note.GetPosterUpdatedAt())
-// 		if err != nil {
-// 			utils.HttpError(ctx, err, w)
-// 			return
-// 		}
-// 	}
-
-// 	res := &types.ImageRes{
-// 		URL: imageUrl,
-// 	}
-// 	utils.WriteHttpJsonResponse(ctx, w, res)
-// }
 
 // @Summary Delete a content note
 // @Description Delete a content note
 // @Tags content-notes
 // @Accept json
 // @Produce json
-// @Param userId path string true "User ID"
-// @Param noteId path string true "Note ID"
+// @Param contentNoteId path string true "Content note ID"
 // @Param resetApprovedOrders query string true "Reset approved orders"
 // @Success 204
 // @Failure 400 {object} string
 // @Failure 500 {object} string
-// @Router /v1/users/{userId}/content-notes/{category}/{noteId} [delete]
+// @Router /v1/content-notes/{category}/{contentNoteId} [delete]
 func (h *contentNoteHandler) DeleteContentNote(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	category, err := h.parsePathContentCategoryVariable(r)
+
+	cmd, err := binders.BindDeleteContentNoteCommand(r)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	resetApprovedOrders := utils.GetQueryParam(r, "resetApprovedOrders", "false")
-	noteId, err := utils.ReadPathUUIDVariable("noteId", r)
+	err = cmd.Validate()
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	err = h.contentNoteService.DeleteContentNoteByID(ctx, noteId, category, resetApprovedOrders == "true")
+	contentNote, err := h.contentNoteService.GetContentNoteByID(ctx, cmd.ID, cmd.Category)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	hasPermission, err := h.permissionService.IsAuthorizedUserHasPermission(ctx, contentNote.GetUserID(), domain.ModeratorPermission)
+	if err != nil {
+		utils.HttpError(ctx, w, err)
+		return
+	}
+
+	if !hasPermission {
+		utils.HttpError(ctx, w, utils.NewForbiddenError("You are not allowed to delete this game note", nil))
+		return
+	}
+
+	err = h.contentNoteService.DeleteContentNoteByID(ctx, cmd)
+	if err != nil {
+		utils.HttpError(ctx, w, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 // @Summary Update a content note
@@ -457,109 +341,52 @@ func (h *contentNoteHandler) DeleteContentNote(w http.ResponseWriter, r *http.Re
 // @Success 204
 // @Failure 400 {object} string
 // @Failure 500 {object} string
-// @Router /v1/users/{userId}/content-notes/{category}/{noteId} [put]
+// @Router /v1/content-notes/{category}/{contentNoteId} [put]
 func (h *contentNoteHandler) UpdateContentNote(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	noteId, err := utils.ReadPathUUIDVariable("noteId", r)
+
+	cmd, err := binders.BindUpdateContentNoteCommand(r)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	category, err := h.parsePathContentCategoryVariable(r)
+	err = cmd.Validate()
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	req, err := h.decodeCreateContentNoteReq(category, r)
+	authUserID, err := utils.GetUserIDFromCtx(ctx)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	err = h.contentNoteService.UpdateContentNoteByID(ctx, noteId, category, req)
+	contentNote, err := h.contentNoteService.GetContentNoteByID(ctx, cmd.GetID(), cmd.GetCategory())
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
-}
-
-// @Summary Update a content note name
-// @Description Update a content note name
-// @Tags content-notes
-// @Accept json
-// @Produce json
-// @Param userId path string true "User ID"
-// @Param noteId path string true "Note ID"
-// @Param contentNoteReq body requests.CreateContentNoteReq true "Content note request"
-// @Success 204
-// @Failure 400 {object} string
-// @Failure 500 {object} string
-// @Router /v1/users/{userId}/content-notes/{category}/{noteId} [put]
-// func (h *contentNoteHandler) UpdateContentNoteName(w http.ResponseWriter, r *http.Request) {
-// 	ctx := r.Context()
-// 	noteId, err := utils.ReadPathUUIDVariable("noteId", r)
-// 	if err != nil {
-// 		utils.HttpError(ctx, err, w)
-// 		return
-// 	}
-
-// 	category, err := h.parsePathContentCategoryVariable(r)
-// 	if err != nil {
-// 		utils.HttpError(ctx, err, w)
-// 		return
-// 	}
-
-// 	req := &requests.ContentNoteNameReq{}
-// 	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
-// 		utils.HttpError(ctx, err, w)
-// 		return
-// 	}
-
-// 	err = h.contentNoteService.UpdateContentNoteName(ctx, noteId, category, req.Name)
-// 	if err != nil {
-// 		utils.HttpError(ctx, err, w)
-// 		return
-// 	}
-
-// 	w.WriteHeader(http.StatusNoContent)
-// }
-
-// @Summary Get content note reactions
-// @Description Get content note reactions
-// @Tags content-notes
-// @Accept json
-// @Produce json
-// @Param userId path string true "User ID"
-// @Param noteId path string true "Note ID"
-// @Success 200 {object} []models.ReactionStack
-// @Failure 400 {object} string
-// @Failure 500 {object} string
-// @Router /v1/users/{userId}/content-notes/{category}/{noteId}/reactions [get]
-func (h *contentNoteHandler) GetContentNoteReactions(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	userId := utils.GetUserIDFromContextOrNil(ctx)
-	noteId, err := utils.ReadPathUUIDVariable("noteId", r)
+	hasPermission, err := h.permissionService.HasPermission(ctx, contentNote.GetUserID(), authUserID, domain.ModeratorPermission)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	category, err := h.parsePathContentCategoryVariable(r)
-	if err != nil {
-		utils.HttpError(ctx, err, w)
+	if !hasPermission {
+		utils.HttpError(ctx, w, utils.NewForbiddenError("You are not allowed to update this game note", nil))
 		return
 	}
 
-	reactions, err := h.contentNoteReactionService.GetContentNoteReactionsByContentNoteIDsAndUserID(ctx, category, uuid.UUIDs{noteId}, userId)
+	err = h.contentNoteService.UpdateContentNoteByID(ctx, cmd)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
-	utils.WriteHttpJsonResponse(ctx, w, reactions)
+
+	w.WriteHeader(http.StatusOK)
 }
 
 // @Summary Get batch content note reactions
@@ -567,56 +394,33 @@ func (h *contentNoteHandler) GetContentNoteReactions(w http.ResponseWriter, r *h
 // @Tags content-notes
 // @Accept json
 // @Produce json
-// @Param noteIds query string true "Note IDs"
-// @Success 200 {object} []types.BatchNoteReactionsRes
+// @Param contentNoteIds query string true "Content note IDs"
+// @Success 200
 // @Failure 400 {object} string
 // @Failure 500 {object} string
 // @Router /v1/users/{userId}/content-notes/reactions [get]
 func (h *contentNoteHandler) GetBatchContentNoteReactions(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userID := utils.GetUserIDFromContextOrNil(ctx)
-	noteIDs, err := utils.GetQueryParamAsUUIDs(r, "noteIds")
+
+	cmd, err := binders.BindGetContentNoteReactionsBatchCommand(r)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	if len(noteIDs) == 0 {
-		utils.HttpError(ctx, errors.NewBadRequestError("At least one note ID is required", nil), w)
-		return
-	}
-
-	category, err := h.parsePathContentCategoryVariable(r)
+	err = cmd.Validate()
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	reactions, err := h.contentNoteReactionService.GetContentNoteReactionsByContentNoteIDsAndUserID(ctx, category, noteIDs, userID)
+	reactions, err := h.contentNoteReactionService.GetContentNoteReactions(ctx, cmd)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	reactionsMap := make(map[uuid.UUID][]*models.ReactionStack)
-	for _, reaction := range reactions {
-		reactionsMap[reaction.ContentNoteID] = append(reactionsMap[reaction.ContentNoteID], reaction)
-	}
-
-	response := []types.BatchNoteReactionsRes{}
-
-	for _, noteID := range noteIDs {
-		r, ok := reactionsMap[noteID]
-		if !ok {
-			r = []*models.ReactionStack{}
-		}
-
-		response = append(response, types.BatchNoteReactionsRes{
-			NoteID:    noteID.String(),
-			Reactions: r,
-		})
-	}
-
+	response := presenter.PresentContentNoteReactionBatch(reactions)
 	utils.WriteHttpJsonResponse(ctx, w, response)
 }
 
@@ -625,40 +429,28 @@ func (h *contentNoteHandler) GetBatchContentNoteReactions(w http.ResponseWriter,
 // @Tags content-notes
 // @Accept json
 // @Produce json
-// @Param userId path string true "User ID"
-// @Param noteId path string true "Note ID"
-// @Param reactionReq body types.ReactionReq true "Reaction request"
+// @Param category path string true "Category"
+// @Param contentNoteId path string true "Content note ID"
 // @Success 204
 // @Failure 400 {object} string
 // @Failure 500 {object} string
-// @Router /v1/users/{userId}/content-notes/{category}/{noteId}/reactions [post]
+// @Router /v1/content-notes/{category}/{contentNoteId}/reactions [post]
 func (h *contentNoteHandler) AddContentNoteReaction(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	noteId, err := utils.ReadPathUUIDVariable("noteId", r)
+
+	cmd, err := binders.BindAddContentNoteReactionCommand(r)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	category, err := h.parsePathContentCategoryVariable(r)
+	err = h.contentNoteReactionService.AddContentNoteReaction(ctx, cmd)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	req := &types.ReactionReq{}
-	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
-		utils.HttpError(ctx, errors.NewBadRequestError("Invalid request body", err), w)
-		return
-	}
-
-	err = h.contentNoteReactionService.AddContentNoteReaction(ctx, category, noteId, req.EmoteID, req.Source)
-	if err != nil {
-		utils.HttpError(ctx, err, w)
-		return
-	}
-
-	w.WriteHeader(http.StatusNoContent)
+	w.WriteHeader(http.StatusOK)
 }
 
 // @Summary Remove content note reaction
@@ -666,40 +458,28 @@ func (h *contentNoteHandler) AddContentNoteReaction(w http.ResponseWriter, r *ht
 // @Tags content-notes
 // @Accept json
 // @Produce json
-// @Param userId path string true "User ID"
-// @Param noteId path string true "Note ID"
-// @Param reactionReq body types.ReactionReq true "Reaction request"
+// @Param category path string true "Category"
+// @Param contentNoteId path string true "Content note ID"
 // @Success 204
 // @Failure 400 {object} string
 // @Failure 500 {object} string
 // @Router /v1/users/{userId}/content-notes/{category}/{noteId}/reactions [delete]
 func (h *contentNoteHandler) RemoveContentNoteReaction(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	noteId, err := utils.ReadPathUUIDVariable("noteId", r)
+
+	cmd, err := binders.BindRemoveContentNoteReactionCommand(r)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	category, err := h.parsePathContentCategoryVariable(r)
+	err = h.contentNoteReactionService.RemoveContentNoteReaction(ctx, cmd)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	req := &types.ReactionReq{}
-	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
-		utils.HttpError(ctx, errors.NewBadRequestError("Invalid request body", err), w)
-		return
-	}
-
-	err = h.contentNoteReactionService.RemoveContentNoteReaction(ctx, category, noteId, req.EmoteID, req.Source)
-	if err != nil {
-		utils.HttpError(ctx, err, w)
-		return
-	}
-
-	w.WriteHeader(http.StatusNoContent)
+	w.WriteHeader(http.StatusOK)
 }
 
 // @Summary Search content note by content ID
@@ -713,29 +493,29 @@ func (h *contentNoteHandler) RemoveContentNoteReaction(w http.ResponseWriter, r 
 // @Failure 400 {object} string
 // @Failure 500 {object} string
 // @Router /v1/users/{userId}/content-notes/{category}/by-content-id/{contentId} [get]
-func (h *contentNoteHandler) GetNoteByContentID(w http.ResponseWriter, r *http.Request) {
+func (h *contentNoteHandler) GetContentNoteByContentID(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userId, err := utils.GetUserIDFromCtx(ctx)
+	userID, err := binders.BindPathVariableAsUUID(r, "userId")
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	contentID, err := utils.ReadPathUUIDVariable("contentId", r)
+	contentID, err := binders.BindPathVariableAsUUID(r, "contentId")
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	category, err := h.parsePathContentCategoryVariable(r)
+	category, err := binders.BindPathVariableAsContentVariable(r)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	contentNote, err := h.contentNoteService.GetNoteByContentID(ctx, category, contentID, userId)
+	contentNote, err := h.contentNoteService.GetContentNoteByContentID(ctx, category, contentID, userID)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 

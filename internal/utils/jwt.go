@@ -5,17 +5,18 @@ import (
 
 	"github.com/google/uuid"
 	ory "github.com/ory/client-go"
-	"github.com/pickle.pw/monolith/internal/errors"
 )
+
+var ErrJWTMissing = NewForbiddenError("Authorization header is missing", nil)
 
 func GetUserIDFromCtx(ctx context.Context) (uuid.UUID, error) {
 	session, ok := ctx.Value("req.session").(*ory.Session)
 	if !ok || session == nil {
-		return uuid.Nil, errors.NewForbiddenError("Authorization header is missing", nil)
+		return uuid.Nil, ErrJWTMissing
 	}
 	userID, err := uuid.Parse(session.Identity.Id)
 	if err != nil {
-		return uuid.Nil, errors.NewForbiddenError("Authorization header is missing", nil)
+		return uuid.Nil, ErrJWTMissing
 	}
 	return userID, nil
 }
@@ -30,4 +31,12 @@ func GetUserIDFromContextOrNil(ctx context.Context) *uuid.UUID {
 		return nil
 	}
 	return &userID
+}
+
+func GetLocaleFromCtx(ctx context.Context) string {
+	locale, ok := ctx.Value("req.locale").(string)
+	if !ok || locale == "" {
+		return DefaultLocale
+	}
+	return locale
 }

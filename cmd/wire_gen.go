@@ -14,6 +14,7 @@ import (
 	"github.com/pickle.pw/monolith/internal/schedulers"
 	"github.com/pickle.pw/monolith/internal/services"
 	"github.com/pickle.pw/monolith/internal/storage"
+	"github.com/pickle.pw/monolith/internal/usecases"
 )
 
 import (
@@ -41,34 +42,37 @@ func InitializeAPI(ctx context.Context) (api.PickleAPI, func(), error) {
 	imageService := services.NewImageService()
 	avatarService := services.NewAvatarService(relationalStorage, cacheStorage, fileStorage, imageService)
 	followerService := services.NewFollowerService(relationalStorage, cacheStorage)
-	ordererService := services.NewOrdererService(relationalStorage)
-	profileService := services.NewProfileService(relationalStorage, fileStorage, cacheStorage, avatarService, followerService, ordererService)
+	userService := services.NewUserService(relationalStorage, fileStorage, cacheStorage, avatarService, followerService)
+	moderatorService := services.NewModeratorService(relationalStorage, cacheStorage, avatarService, userService)
+	ordererService := services.NewOrdererService(relationalStorage, userService)
 	elasticStorage, err := storage.NewElasticStorage(ctx)
 	if err != nil {
 		cleanup()
 		return nil, nil, err
 	}
-	posterService := services.NewPosterService(relationalStorage, fileStorage, cacheStorage, imageService, profileService)
-	moderatorService := services.NewModeratorService(relationalStorage, cacheStorage, avatarService, profileService)
+	posterService := services.NewPosterService(relationalStorage, fileStorage, cacheStorage, imageService, userService)
 	permissionService := services.NewPermissionService(moderatorService)
-	gameService := services.NewGameService(relationalStorage)
-	movieService := services.NewMovieService(relationalStorage)
-	contentNoteService := services.NewContentNoteService(relationalStorage, elasticStorage, cacheStorage, posterService, ordererService, permissionService, profileService, gameService, movieService)
+	contentService := services.NewContentService(relationalStorage, elasticStorage, posterService)
+	contentNoteService := services.NewContentNoteService(relationalStorage, elasticStorage, cacheStorage, posterService, ordererService, permissionService, contentService, userService)
 	ordersBrokerService := services.NewOrdersBrokerService()
-	orderService := services.NewOrderService(relationalStorage, profileService, ordererService, contentNoteService, permissionService, ordersBrokerService)
-	publicProfileService := services.NewPublicProfileService(avatarService, followerService, moderatorService, orderService, profileService, contentNoteService)
-	profileHandler := handlers.NewUserHandler(profileService, avatarService, orderService, followerService, publicProfileService)
+	orderService := services.NewOrderService(relationalStorage, userService, ordererService, contentNoteService, permissionService, ordersBrokerService)
+	profileService := services.NewProfileService(avatarService, followerService, moderatorService, orderService, userService, contentNoteService)
+	getUserByIDUseCase := usecases.NewGetUserByIDUseCase(userService, avatarService, profileService)
+	userHandler := handlers.NewUserHandler(relationalStorage, userService, avatarService, getUserByIDUseCase, ordererService)
+	profileHandler := handlers.NewProfileHandler(userService, profileService, avatarService, orderService, followerService)
 	statusHandler := handlers.NewStatusHandler(relationalStorage, elasticStorage, cacheStorage)
-	orderHandler := handlers.NewOrdersHandler(orderService, profileService, contentNoteService)
+	createOrderUseCase := usecases.NewCreateOrderUseCase(relationalStorage, userService, orderService, ordererService, contentService, ordersBrokerService)
+	orderHandler := handlers.NewOrdersHandler(relationalStorage, userService, orderService, ordererService, avatarService, contentService, contentNoteService, permissionService, ordersBrokerService, createOrderUseCase)
 	contentNoteReactionService := services.NewContentNoteReactionService(relationalStorage)
-	contentNoteHandler := handlers.NewContentNoteHandler(profileService, orderService, posterService, contentNoteService, contentNoteReactionService)
+	createContentNoteUseCase := usecases.NewCreateContentNoteUseCase(relationalStorage, contentNoteService, permissionService, userService, ordererService, contentService, avatarService)
+	getSortedContentNotesByUserIDUseCase := usecases.NewGetSortedContentNotesByUserIDUseCase(contentNoteService, contentService, avatarService)
+	contentNoteHandler := handlers.NewContentNoteHandler(orderService, ordererService, posterService, permissionService, avatarService, contentNoteService, contentNoteReactionService, contentService, createContentNoteUseCase, getSortedContentNotesByUserIDUseCase)
 	posterHandler := handlers.NewPosterHandler(posterService)
 	migrationService := services.NewMigrationService(relationalStorage, elasticStorage)
-	contentService := services.NewContentService(relationalStorage, elasticStorage, posterService, gameService, movieService)
 	contentHandler := handlers.NewContentHandler(elasticStorage, contentNoteService, contentService)
 	collectionService := services.NewCollectionService(relationalStorage, cacheStorage, permissionService)
-	collectionHandler := handlers.NewCollectionHandler(collectionService, contentNoteService, posterService)
-	moderatorHandler := handlers.NewModeratorHandler(moderatorService, profileService)
+	collectionHandler := handlers.NewCollectionHandler(collectionService, contentNoteService, contentService, permissionService)
+	moderatorHandler := handlers.NewModeratorHandler(moderatorService, userService, avatarService, permissionService)
 	profileEventsHandler := handlers.NewProfileEventsHandler(profileService)
 	igdbClient := clients.NewIGDBClient()
 	igdbSyncService := services.NewIGDBSyncService(relationalStorage, elasticStorage, igdbClient)
@@ -81,7 +85,8 @@ func InitializeAPI(ctx context.Context) (api.PickleAPI, func(), error) {
 		cleanup()
 		return nil, nil, err
 	}
-	pickleAPI := api.NewPickleAPI(profileHandler, statusHandler, orderHandler, contentNoteHandler, posterHandler, migrationService, contentHandler, collectionHandler, moderatorHandler, profileEventsHandler, igdbScheduler, igdbSyncService, tmdbScheduler, tmdbSyncService, oryAPI)
+	followerHandler := handlers.NewFollowerHandler(followerService)
+	pickleAPI := api.NewPickleAPI(userHandler, profileHandler, statusHandler, orderHandler, contentNoteHandler, posterHandler, migrationService, contentHandler, collectionHandler, moderatorHandler, profileEventsHandler, igdbScheduler, igdbSyncService, tmdbScheduler, tmdbSyncService, oryAPI, followerHandler)
 	return pickleAPI, func() {
 		cleanup()
 	}, nil

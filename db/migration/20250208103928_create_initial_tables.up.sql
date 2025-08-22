@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS profiles (
     display_name text NOT NULL,
     username text NOT NULL,
     description text NOT NULL DEFAULT '',
+    links jsonb NOT NULL DEFAULT '[]',
     suggestion_preferences jsonb NOT NULL DEFAULT '{}',
     PRIMARY KEY (user_id),
     FOREIGN KEY (updated_by) REFERENCES profiles(user_id)
@@ -60,12 +61,10 @@ CREATE TABLE IF NOT EXISTS orders (
     updated_at timestamptz NOT NULL DEFAULT now(),
     updated_by uuid,
     receiver_id uuid NOT NULL,
-    payment_type smallint NOT NULL,
-    amount real NOT NULL,
-    status order_status NOT NULL,
     orderer_id uuid NOT NULL,
     message text NOT NULL,
     category content_category NOT NULL,
+    content_id uuid,
     anonymous boolean NOT NULL DEFAULT false,
     source text NOT NULL,
     reference jsonb NOT NULL DEFAULT '{}',
@@ -74,6 +73,21 @@ CREATE TABLE IF NOT EXISTS orders (
     FOREIGN KEY (created_by) REFERENCES profiles(user_id),
     FOREIGN KEY (updated_by) REFERENCES profiles(user_id),
     FOREIGN KEY (orderer_id) REFERENCES orderers(id)
+);
+CREATE TABLE IF NOT EXISTS order_decisions (
+    id uuid NOT NULL DEFAULT gen_random_uuid(),
+    decided_at timestamptz NOT NULL DEFAULT now(),
+    decided_by uuid NOT NULL,
+    deleted_at timestamptz,
+    deleted_by uuid,
+    order_id uuid NOT NULL,
+    content_note_id uuid,
+    content_note_category content_category,
+    status order_decision_status NOT NULL,
+    PRIMARY KEY (id),
+    FOREIGN KEY (decided_by) REFERENCES profiles(user_id),
+    FOREIGN KEY (deleted_by) REFERENCES profiles(user_id),
+    FOREIGN KEY (order_id) REFERENCES orders(id)
 );
 CREATE TABLE IF NOT EXISTS poster_previews (
     id uuid NOT NULL,
@@ -147,28 +161,15 @@ CREATE TABLE IF NOT EXISTS game_notes (
     FOREIGN KEY (created_by) REFERENCES profiles(user_id),
     FOREIGN KEY (updated_by) REFERENCES profiles(user_id)
 );
-CREATE TABLE IF NOT EXISTS game_note_orders (
-    game_note_id uuid NOT NULL,
-    order_id uuid NOT NULL,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    created_by uuid,
-    updated_at timestamptz NOT NULL DEFAULT now(),
-    updated_by uuid,
-    PRIMARY KEY (game_note_id, order_id),
-    FOREIGN KEY (game_note_id) REFERENCES game_notes(id) ON DELETE CASCADE,
-    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
-    FOREIGN KEY (created_by) REFERENCES profiles(user_id),
-    FOREIGN KEY (updated_by) REFERENCES profiles(user_id)
-);
 CREATE TABLE IF NOT EXISTS game_note_reactions (
-    game_note_id uuid NOT NULL,
+    content_note_id uuid NOT NULL,
     user_id uuid NOT NULL,
     emote_id text NOT NULL,
     source reaction_source NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
     created_by uuid NOT NULL,
-    PRIMARY KEY (game_note_id, user_id, emote_id, source),
-    FOREIGN KEY (game_note_id) REFERENCES game_notes(id) ON DELETE CASCADE,
+    PRIMARY KEY (content_note_id, user_id, emote_id, source),
+    FOREIGN KEY (content_note_id) REFERENCES game_notes(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES profiles(user_id),
     FOREIGN KEY (created_by) REFERENCES profiles(user_id)
 );
@@ -195,28 +196,15 @@ CREATE TABLE IF NOT EXISTS movie_notes (
     FOREIGN KEY (updated_by) REFERENCES profiles(user_id),
     FOREIGN KEY (initial_orderer_id) REFERENCES orderers(id)
 );
-CREATE TABLE IF NOT EXISTS movie_note_orders (
-    movie_note_id uuid NOT NULL,
-    order_id uuid NOT NULL,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    created_by uuid,
-    updated_at timestamptz NOT NULL DEFAULT now(),
-    updated_by uuid,
-    PRIMARY KEY (movie_note_id, order_id),
-    FOREIGN KEY (movie_note_id) REFERENCES movie_notes(id),
-    FOREIGN KEY (order_id) REFERENCES orders(id),
-    FOREIGN KEY (created_by) REFERENCES profiles(user_id),
-    FOREIGN KEY (updated_by) REFERENCES profiles(user_id)
-);
 CREATE TABLE IF NOT EXISTS movie_note_reactions (
-    movie_note_id uuid NOT NULL,
+    content_note_id uuid NOT NULL,
     user_id uuid NOT NULL,
     emote_id text NOT NULL,
     source reaction_source NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
     created_by uuid,
-    PRIMARY KEY (movie_note_id, user_id, emote_id, source),
-    FOREIGN KEY (movie_note_id) REFERENCES movie_notes(id),
+    PRIMARY KEY (content_note_id, user_id, emote_id, source),
+    FOREIGN KEY (content_note_id) REFERENCES movie_notes(id),
     FOREIGN KEY (user_id) REFERENCES profiles(user_id),
     FOREIGN KEY (created_by) REFERENCES profiles(user_id)
 );
@@ -237,11 +225,11 @@ CREATE TABLE IF NOT EXISTS games (
 );
 CREATE TABLE IF NOT EXISTS game_localizations (
     content_id uuid NOT NULL,
-    lang locale NOT NULL,
+    locale text NOT NULL,
     title text NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
-    PRIMARY KEY (content_id, lang),
+    PRIMARY KEY (content_id, locale),
     FOREIGN KEY (content_id) REFERENCES games(id)
 );
 -- movies
@@ -260,20 +248,20 @@ CREATE TABLE IF NOT EXISTS movies (
 );
 CREATE TABLE IF NOT EXISTS movie_localizations (
     content_id uuid NOT NULL,
-    lang locale NOT NULL,
+    locale text NOT NULL,
     title text NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
-    PRIMARY KEY (content_id, lang),
+    PRIMARY KEY (content_id, locale),
     FOREIGN KEY (content_id) REFERENCES movies(id)
 );
--- igdb sync
-CREATE TABLE IF NOT EXISTS igdb_sync_logs (
+-- external sync
+CREATE TABLE IF NOT EXISTS external_sync_logs (
     id uuid NOT NULL DEFAULT gen_random_uuid(),
-    sync_type igdb_sync_type NOT NULL,
-    status igdb_sync_status NOT NULL,
+    sync_type external_sync_type NOT NULL,
+    status external_sync_status NOT NULL,
     started_at timestamptz NOT NULL DEFAULT now(),
-    games_processed bigint NOT NULL DEFAULT 0,
+    entities_processed bigint NOT NULL DEFAULT 0,
     completed_at timestamptz,
     error_message text,
     PRIMARY KEY (id)

@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	db "github.com/pickle.pw/monolith/db/sqlc"
+	"github.com/pickle.pw/monolith/internal/domain"
 	"github.com/pickle.pw/monolith/internal/logger"
 	"github.com/pickle.pw/monolith/internal/services"
 	"github.com/pickle.pw/monolith/internal/storage"
@@ -35,7 +35,7 @@ func (s *tmdbScheduler) SetupTMDBSync(ctx context.Context) error {
 				ticker.Stop()
 				return
 			case <-ticker.C:
-				if err := s.tmdbSyncService.SyncMovies(ctx, db.IgdbSyncTypeIncremental); err != nil {
+				if err := s.tmdbSyncService.SyncMovies(ctx, domain.SyncTypeIncremental); err != nil {
 					logger.Errorf(ctx, "TMDB sync failed: %v", err)
 				}
 			}

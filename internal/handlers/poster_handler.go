@@ -5,9 +5,11 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/pickle.pw/monolith/internal/config"
+	"github.com/pickle.pw/monolith/internal/domain"
 	"github.com/pickle.pw/monolith/internal/logger"
 	"github.com/pickle.pw/monolith/internal/services"
-	"github.com/pickle.pw/monolith/internal/types"
+	"github.com/pickle.pw/monolith/internal/transport/http/binders"
+	"github.com/pickle.pw/monolith/internal/transport/http/responses"
 	"github.com/pickle.pw/monolith/internal/utils"
 )
 
@@ -36,23 +38,23 @@ func NewPosterHandler(posterService services.PosterService) PosterHandler {
 // @Param file formData file true "File"
 // @Param url formData string false "URL"
 // @Param userId path string true "User ID"
-// @Success 200 {object} types.ImagePreviewRes
+// @Success 200 {object} responses.CoverPreview
 // @Failure 400 {object} string
 // @Failure 500 {object} string
 // @Router /v1/users/{userId}/posters/previews [post]
 func (h *posterHandler) UploadPosterPreview(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	size := utils.GetQueryParam(r, "size", "sm")
+	size := domain.CoverSize(binders.BindOptionalQueryParamAsString(r, binders.CoverSizeParam, string(domain.CoverSizeSmall)))
 	userId, err := utils.GetUserIDFromCtx(ctx)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
 	// Parse the form to retrieve the uploaded file
 	err = r.ParseMultipartForm(config.GetMaxFileSizeBytes())
 	if err != nil {
-		http.Error(w, "Unable to parse form", http.StatusBadRequest)
+		utils.HttpError(ctx, w, utils.NewBadRequestError("Unable to parse form", err))
 		return
 	}
 
@@ -66,14 +68,14 @@ func (h *posterHandler) UploadPosterPreview(w http.ResponseWriter, r *http.Reque
 		// Embed the poster from the URL
 		previewId, previewUrl, err = h.posterService.EmbedPosterForPreview(ctx, userId, size, embeddedUrl)
 		if err != nil {
-			utils.HttpError(ctx, err, w)
+			utils.HttpError(ctx, w, err)
 			return
 		}
 	} else {
 		// Get the uploaded file
 		file, fileHeader, err := r.FormFile("file")
 		if err != nil {
-			http.Error(w, "File is required", http.StatusBadRequest)
+			utils.HttpBusinessError(ctx, w, "File is required", http.StatusBadRequest)
 			return
 		}
 		defer file.Close()
@@ -81,14 +83,14 @@ func (h *posterHandler) UploadPosterPreview(w http.ResponseWriter, r *http.Reque
 		// Upload the file to S3
 		previewId, previewUrl, err = h.posterService.UploadPosterForPreview(ctx, userId, size, file, fileHeader)
 		if err != nil {
-			utils.HttpError(ctx, err, w)
+			utils.HttpError(ctx, w, err)
 			return
 		}
 	}
 
-	res := &types.ImagePreviewRes{
-		PreviewID:  previewId,
-		PreviewURL: previewUrl,
+	res := &responses.CoverPreview{
+		PreviewID: previewId,
+		URL:       previewUrl,
 	}
 	utils.WriteHttpJsonResponse(ctx, w, res)
 }
@@ -99,26 +101,26 @@ func (h *posterHandler) UploadPosterPreview(w http.ResponseWriter, r *http.Reque
 // @Accept json
 // @Produce json
 // @Param previewId path string true "Preview ID"
-// @Success 200 {object} types.PosterPreviewRes
+// @Success 200 {object} responses.CoverPreview
 // @Failure 400 {object} string
 // @Failure 500 {object} string
 // @Router /v1/users/{userId}/posters/previews/{previewId} [get]
 func (h *posterHandler) GetPosterPreview(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	previewId, err := utils.ReadPathUUIDVariable("previewId", r)
+	previewId, err := binders.BindPathVariableAsUUID(r, "previewId")
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
 	preview, err := h.posterService.GetPosterPreviewByID(ctx, previewId)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	res := &types.PosterPreviewRes{
-		ID:        preview.ID,
+	res := &responses.CoverPreview{
+		PreviewID: preview.ID,
 		CreatedAt: preview.CreatedAt,
 	}
 	utils.WriteHttpJsonResponse(ctx, w, res)
@@ -131,7 +133,7 @@ func (h *posterHandler) GetPosterPreview(w http.ResponseWriter, r *http.Request)
 // @Produce json
 // @Param userId path string true "User ID"
 // @Param size query string false "Size" default(lg)
-// @Success 200 {object} []types.PosterPreviewRes
+// @Success 200 {object} []responses.CoverPreview
 // @Failure 400 {object} string
 // @Failure 500 {object} string
 // @Router /v1/users/{userId}/posters/previews [get]
@@ -139,19 +141,19 @@ func (h *posterHandler) GetPosterPreviews(w http.ResponseWriter, r *http.Request
 	ctx := r.Context()
 	userId, err := utils.GetUserIDFromCtx(ctx)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	size := utils.GetQueryParam(r, "size", "lg")
+	size := domain.CoverSize(binders.BindOptionalQueryParamAsString(r, binders.CoverSizeParam, string(domain.CoverSizeLarge)))
 
 	previews, err := h.posterService.GetPosterPreviews(ctx, userId)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	res := make([]*types.PosterPreviewRes, len(previews))
+	res := make([]*responses.CoverPreview, len(previews))
 	for i, preview := range previews {
 		imageURL, err := h.posterService.GetPosterImageURL(ctx, "preview", size, preview.ObjectKey, &preview.CreatedAt)
 		if err != nil {
@@ -159,8 +161,8 @@ func (h *posterHandler) GetPosterPreviews(w http.ResponseWriter, r *http.Request
 			continue
 		}
 
-		res[i] = &types.PosterPreviewRes{
-			ID:        preview.ID,
+		res[i] = &responses.CoverPreview{
+			PreviewID: preview.ID,
 			CreatedAt: preview.CreatedAt,
 			URL:       imageURL,
 		}
@@ -175,27 +177,27 @@ func (h *posterHandler) GetPosterPreviews(w http.ResponseWriter, r *http.Request
 // @Produce json
 // @Param previewId path string true "Preview ID"
 // @Param size query string false "Size"
-// @Success 200 {object} types.ImageRes
+// @Success 200 {object} responses.Cover
 // @Failure 400 {object} string
 // @Failure 500 {object} string
 // @Router /v1/users/{userId}/posters/previews/{previewId}/image [get]
 func (h *posterHandler) GetPosterPreviewImageURL(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	previewId, err := utils.ReadPathUUIDVariable("previewId", r)
+	previewId, err := binders.BindPathVariableAsUUID(r, "previewId")
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	size := utils.GetQueryParam(r, "size", "lg")
+	size := domain.CoverSize(binders.BindOptionalQueryParamAsString(r, binders.CoverSizeParam, string(domain.CoverSizeLarge)))
 
 	imageURL, err := h.posterService.GetPosterPreviewImageURL(ctx, previewId, size)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	res := &types.ImageRes{
+	res := &responses.Cover{
 		URL: imageURL,
 	}
 	utils.WriteHttpJsonResponse(ctx, w, res)
@@ -216,19 +218,19 @@ func (h *posterHandler) DeletePosterPreview(w http.ResponseWriter, r *http.Reque
 
 	userId, err := utils.GetUserIDFromCtx(ctx)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	previewId, err := utils.ReadPathUUIDVariable("previewId", r)
+	previewId, err := binders.BindPathVariableAsUUID(r, "previewId")
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
 	err = h.posterService.DeletePosterPreview(ctx, previewId, userId)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 

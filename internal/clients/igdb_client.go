@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/pickle.pw/monolith/internal/config"
+	"github.com/pickle.pw/monolith/internal/domain"
 	"github.com/pickle.pw/monolith/internal/logger"
-	"github.com/pickle.pw/monolith/internal/models"
 )
 
 const (
@@ -27,7 +27,7 @@ const (
 )
 
 type IGDBClient interface {
-	GetUpdatedGames(ctx context.Context, lastSyncTimestamp *time.Time) ([]*models.IGDBGame, error)
+	GetUpdatedGames(ctx context.Context, lastSyncTimestamp *time.Time) ([]*domain.IGDBGame, error)
 }
 
 type idgbClient struct {
@@ -86,7 +86,7 @@ func (c *idgbClient) authenticate(ctx context.Context) error {
 	return nil
 }
 
-func (c *idgbClient) GetUpdatedGames(ctx context.Context, lastSyncTimestamp *time.Time) ([]*models.IGDBGame, error) {
+func (c *idgbClient) GetUpdatedGames(ctx context.Context, lastSyncTimestamp *time.Time) ([]*domain.IGDBGame, error) {
 	if err := c.authenticate(ctx); err != nil {
 		return nil, err
 	}
@@ -98,7 +98,7 @@ func (c *idgbClient) GetUpdatedGames(ctx context.Context, lastSyncTimestamp *tim
 	logger.Debugf(ctx, "[IGDB Sync] Total games to fetch: %d", count)
 
 	offset := 0
-	allGames := []*models.IGDBGame{}
+	allGames := []*domain.IGDBGame{}
 
 	for offset < 500 { //offset < count {
 		time.Sleep(requestDelay) // avoid rate limiting
@@ -116,7 +116,7 @@ func (c *idgbClient) GetUpdatedGames(ctx context.Context, lastSyncTimestamp *tim
 	return allGames, nil
 }
 
-func (c *idgbClient) fetchIDGBGames(ctx context.Context, lastSyncTimestamp *time.Time, offset int) ([]*models.IGDBGame, error) {
+func (c *idgbClient) fetchIDGBGames(ctx context.Context, lastSyncTimestamp *time.Time, offset int) ([]*domain.IGDBGame, error) {
 	query := strings.Builder{}
 	query.WriteString(`
 		fields id,name,updated_at,first_release_date,url,
@@ -136,7 +136,7 @@ func (c *idgbClient) fetchIDGBGames(ctx context.Context, lastSyncTimestamp *time
 		return nil, fmt.Errorf("creating request: %w", err)
 	}
 
-	var games []*models.IGDBGame
+	var games []*domain.IGDBGame
 	if err := c.do(req, &games); err != nil {
 		return nil, fmt.Errorf("fetching games: %w", err)
 	}

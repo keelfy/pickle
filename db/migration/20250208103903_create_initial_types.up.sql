@@ -1,5 +1,3 @@
--- ISO-639-1 language code
-CREATE TYPE locale AS ENUM ('en', 'ru', 'de', 'es');
 CREATE TYPE content_category AS ENUM (
     'games',
     'movies',
@@ -36,8 +34,9 @@ CREATE TYPE movie_note_status AS ENUM (
     'watched',
     'skipped'
 );
+CREATE TYPE order_decision_status AS ENUM ('approved', 'rejected');
 -- sync
-CREATE TYPE igdb_sync_status AS ENUM ('pending', 'in_progress', 'completed', 'failed');
-CREATE TYPE igdb_sync_type AS ENUM ('full', 'incremental');
+CREATE TYPE external_sync_status AS ENUM ('pending', 'in_progress', 'completed', 'failed');
+CREATE TYPE external_sync_type AS ENUM ('full', 'incremental');
 -- content sources
 CREATE TYPE content_source AS ENUM ('igdb', 'tmdb');

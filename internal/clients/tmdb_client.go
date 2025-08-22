@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/pickle.pw/monolith/internal/config"
-	"github.com/pickle.pw/monolith/internal/models"
+	"github.com/pickle.pw/monolith/internal/domain"
 )
 
 const (
@@ -26,9 +26,9 @@ const (
 
 type TMDBClient interface {
 	// GetUpdatedMovies(ctx context.Context, lastSyncTimestamp *time.Time) ([]*models.TMDBMovie, error)
-	GetChangedMovieIDs(ctx context.Context, page int, lastSyncTimestamp *time.Time) (*models.TMDBMovieChangesResponse, error)
-	GetMovieDetails(ctx context.Context, movieID int64) (*models.TMDBMovie, error)
-	GetMovieDiscover(ctx context.Context, page int) (*models.TMDBMovieChangesResponse, error)
+	GetChangedMovieIDs(ctx context.Context, page int, lastSyncTimestamp *time.Time) (*domain.TMDBMovieChangesResponse, error)
+	GetMovieDetails(ctx context.Context, movieID int64) (*domain.TMDBMovie, error)
+	GetMovieDiscover(ctx context.Context, page int) (*domain.TMDBMovieChangesResponse, error)
 }
 
 type tmdbClient struct {
@@ -94,7 +94,7 @@ func NewTMDBClient() TMDBClient {
 // 	return allMovies, nil
 // }
 
-func (c *tmdbClient) GetChangedMovieIDs(ctx context.Context, page int, lastSyncTimestamp *time.Time) (*models.TMDBMovieChangesResponse, error) {
+func (c *tmdbClient) GetChangedMovieIDs(ctx context.Context, page int, lastSyncTimestamp *time.Time) (*domain.TMDBMovieChangesResponse, error) {
 	url := fmt.Sprintf("%s%s?api_key=%s&page=%d", c.baseURL, changesEndpoint, c.apiKey, page)
 	if lastSyncTimestamp != nil {
 		url += fmt.Sprintf("&start_date=%s", lastSyncTimestamp.Format("2006-01-02"))
@@ -105,7 +105,7 @@ func (c *tmdbClient) GetChangedMovieIDs(ctx context.Context, page int, lastSyncT
 		return nil, fmt.Errorf("creating request: %w", err)
 	}
 
-	var changesResp models.TMDBMovieChangesResponse
+	var changesResp domain.TMDBMovieChangesResponse
 	if err := c.do(req, &changesResp); err != nil {
 		return nil, fmt.Errorf("fetching changes: %w", err)
 	}
@@ -113,7 +113,7 @@ func (c *tmdbClient) GetChangedMovieIDs(ctx context.Context, page int, lastSyncT
 	return &changesResp, nil
 }
 
-func (c *tmdbClient) GetMovieDetails(ctx context.Context, movieID int64) (*models.TMDBMovie, error) {
+func (c *tmdbClient) GetMovieDetails(ctx context.Context, movieID int64) (*domain.TMDBMovie, error) {
 	url := fmt.Sprintf("%s%s/%d?api_key=%s&append_to_response=translations",
 		c.baseURL, movieEndpoint, movieID, c.apiKey)
 
@@ -122,7 +122,7 @@ func (c *tmdbClient) GetMovieDetails(ctx context.Context, movieID int64) (*model
 		return nil, fmt.Errorf("creating request: %w", err)
 	}
 
-	var movie models.TMDBMovie
+	var movie domain.TMDBMovie
 	if err := c.do(req, &movie); err != nil {
 		return nil, fmt.Errorf("fetching movie details: %w", err)
 	}
@@ -130,7 +130,7 @@ func (c *tmdbClient) GetMovieDetails(ctx context.Context, movieID int64) (*model
 	return &movie, nil
 }
 
-func (c *tmdbClient) GetMovieDiscover(ctx context.Context, page int) (*models.TMDBMovieChangesResponse, error) {
+func (c *tmdbClient) GetMovieDiscover(ctx context.Context, page int) (*domain.TMDBMovieChangesResponse, error) {
 	url := fmt.Sprintf("%s%s?api_key=%s&page=%d&sort_by=popularity.desc", c.baseURL, discoverEndpoint, c.apiKey, page)
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
@@ -138,7 +138,7 @@ func (c *tmdbClient) GetMovieDiscover(ctx context.Context, page int) (*models.TM
 		return nil, fmt.Errorf("creating request: %w", err)
 	}
 
-	var discoverResp models.TMDBMovieChangesResponse
+	var discoverResp domain.TMDBMovieChangesResponse
 	if err := c.do(req, &discoverResp); err != nil {
 		return nil, fmt.Errorf("fetching movie discover: %w", err)
 	}

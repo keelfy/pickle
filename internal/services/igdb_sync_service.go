@@ -3,22 +3,22 @@ package services
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	db "github.com/pickle.pw/monolith/db/sqlc"
 	"github.com/pickle.pw/monolith/internal/clients"
+	"github.com/pickle.pw/monolith/internal/domain"
 	"github.com/pickle.pw/monolith/internal/logger"
-	"github.com/pickle.pw/monolith/internal/models"
+	"github.com/pickle.pw/monolith/internal/mapper"
 	"github.com/pickle.pw/monolith/internal/storage"
+	"github.com/pickle.pw/monolith/internal/storage/sql"
 	"github.com/pickle.pw/monolith/internal/utils"
 )
 
 type IGDBSyncService interface {
-	SyncGames(ctx context.Context, syncType db.IgdbSyncType) error
+	SyncGames(ctx context.Context, syncType domain.SyncType) error
 	TriggerGamesSync(w http.ResponseWriter, r *http.Request)
 }
 
@@ -41,201 +41,205 @@ func (s *igdbSyncService) TriggerGamesSync(w http.ResponseWriter, r *http.Reques
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Hour)
 		defer cancel()
 
-		err := s.SyncGames(ctx, db.IgdbSyncTypeFull)
+		err := s.SyncGames(ctx, domain.SyncTypeFull)
 		if err != nil {
 			logger.Errorf(ctx, "[IGDB Sync] Sync failed: %v", err)
 		}
 	}()
-	w.WriteHeader(http.StatusNoContent)
+	w.WriteHeader(http.StatusOK)
 }
 
-func (s *igdbSyncService) SyncGames(ctx context.Context, syncType db.IgdbSyncType) error {
-	syncLog, err := s.sqlDB.Queries().CreateIGDBSync(ctx, syncType)
+func (s *igdbSyncService) SyncGames(ctx context.Context, syncType domain.SyncType) (err error) {
+	syncLog, err := s.sqlDB.Queries().CreateExternalSync(ctx, syncType)
 	if err != nil {
 		return err
 	}
 	logger.Infof(ctx, "[IGDB Sync] Sync started: %v", syncLog.ID)
 
 	var gamesProcessed int64
-
 	defer func() {
 		if err != nil {
-			s.sqlDB.Queries().CompleteIGDBSyncWithError(ctx, db.CompleteIGDBSyncWithErrorParams{
-				ID:           syncLog.ID,
-				ErrorMessage: err.Error(),
-			})
+			_ = s.sqlDB.Queries().CompleteExternalSyncWithError(ctx, syncLog.ID, err.Error())
 			logger.Errorf(ctx, "[IGDB Sync] Sync failed: %v", err)
 		} else {
-			s.sqlDB.Queries().CompleteIGDBSync(ctx, db.CompleteIGDBSyncParams{
-				ID:             syncLog.ID,
-				GamesProcessed: gamesProcessed,
-			})
+			_ = s.sqlDB.Queries().CompleteExternalSync(ctx, syncLog.ID, gamesProcessed)
 			logger.Infof(ctx, "[IGDB Sync] Sync completed: %v", syncLog.ID)
 		}
 	}()
 
-	var beginTime *time.Time
-
-	// Get last successful sync timestamp
-	lastSync, err := s.sqlDB.Queries().GetLastSuccessfulSync(ctx, "incremental")
-	if err != nil && err != pgx.ErrNoRows {
-		return err
-	} else if lastSync != nil {
-		beginTime = lastSync.CompletedAt
-		logger.Debugf(ctx, "[IGDB Sync] Last successful sync: %v", lastSync.CompletedAt)
+	// Determine last sync timestamp for incremental syncs
+	var lastSyncTimestamp *time.Time
+	if syncType == domain.SyncTypeIncremental {
+		lastSync, lErr := s.sqlDB.Queries().GetLastSuccessfulExternalSync(ctx, domain.SyncTypeIncremental)
+		if lErr == nil && lastSync != nil {
+			lastSyncTimestamp = lastSync.CompletedAt
+		} else if lErr != nil && lErr != pgx.ErrNoRows {
+			return lErr
+		}
+		logger.Debugf(ctx, "[IGDB Sync] Last successful sync: %v", lastSyncTimestamp)
 	}
 
 	// Fetch games from IGDB
-	games, err := s.igdbClient.GetUpdatedGames(ctx, beginTime)
-	if err != nil {
-		return err
+	games, gErr := s.igdbClient.GetUpdatedGames(ctx, lastSyncTimestamp)
+	if gErr != nil {
+		return gErr
 	}
 	logger.Debugf(ctx, "[IGDB Sync] Fetched %d games", len(games))
 
-	gamesProcessed = int64(len(games))
-
-	var batchSize = 100
-
-	// Begin transaction
-	tx, err := s.sqlDB.Begin(ctx)
-	if err != nil {
-		return err
+	total := len(games)
+	if total == 0 {
+		return nil
 	}
-	defer tx.Rollback(ctx)
-	qtx := s.sqlDB.Queries().WithTx(tx)
 
-	documents := make([]*storage.BulkIndexRequest, batchSize)
+	batchSize := 100
+	totalBatches := total / batchSize
+	if total%batchSize != 0 {
+		totalBatches++
+	}
 
-	for i, game := range games {
-		if i > 0 && i%batchSize == 0 { // avoid holding locks for too long
-			err = s.elastic.BulkIndexDocuments(ctx, "igdb_games", documents)
-			if err != nil {
-				return err
-			}
+	batchDurations := make([]time.Duration, 0, totalBatches)
 
-			documents = make([]*storage.BulkIndexRequest, batchSize)
-
-			err = tx.Commit(ctx)
-			if err != nil {
-				return err
-			}
-			logger.Debugf(ctx, "[IGDB Sync] Committed %d/%d games", i, len(games))
-
-			tx, err = s.sqlDB.Begin(ctx)
-			if err != nil {
-				return err
-			}
-			qtx = s.sqlDB.Queries().WithTx(tx)
+	for b := 0; b < totalBatches; b++ {
+		batchStart := time.Now()
+		start := b * batchSize
+		end := start + batchSize
+		if end > total {
+			end = total
 		}
+		current := games[start:end]
 
-		var websites []models.ContentWebsite
-		var serializedWebsites *json.RawMessage
+		err = s.sqlDB.BeginTx(ctx, func(qtx sql.Queries) error {
+			documents := make([]*storage.BulkIndexRequest, 0, len(current))
 
-		if game.Websites != nil {
-			websites = make([]models.ContentWebsite, len(*game.Websites))
+			for _, game := range current {
+				// Websites serialization
+				var websites []domain.ContentWebsite
+				var serializedWebsites *json.RawMessage
+				if game.Websites != nil {
+					for _, website := range *game.Websites {
+						if !website.Trusted {
+							continue
+						}
+						websites = append(websites, domain.ContentWebsite{
+							Trusted: website.Trusted,
+							URL:     website.URL,
+							Type:    website.Type.Type,
+						})
+					}
+					if len(websites) > 0 {
+						if jsonBytes, mErr := json.Marshal(websites); mErr == nil {
+							raw := json.RawMessage(jsonBytes)
+							serializedWebsites = &raw
+						} else {
+							logger.Errorf(ctx, "[IGDB Sync] Error marshalling websites: %v", mErr)
+						}
+					}
+				}
 
-			for _, website := range *game.Websites {
-				if !website.Trusted {
+				// Release date
+				var releaseDate *time.Time
+				if game.FirstReleaseDate != nil && *game.FirstReleaseDate > 0 {
+					date := time.Unix(*game.FirstReleaseDate, 0)
+					releaseDate = &date
+				}
+
+				// Source URL
+				var sourceUrl *string
+				if game.URL != nil {
+					sourceUrl = game.URL
+				}
+
+				// Cover key
+				var coverKey *string
+				if game.Cover != nil && game.Cover.ImageID != nil {
+					coverKey = game.Cover.ImageID
+				}
+
+				id, uErr := qtx.UpsertGame(ctx, sql.UpsertGameParams{
+					ExternalID:   game.ID,
+					ReleaseDate:  releaseDate,
+					Websites:     serializedWebsites,
+					CoverKey:     coverKey,
+					CoverKeyType: domain.ImageKeyTypeIGDB,
+					SourceUrl:    sourceUrl,
+					SourceType:   domain.ContentSourceIGDB,
+				})
+				if uErr != nil {
+					logger.Warnf(ctx, "[IGDB Sync] Error upserting game: %v. Game %d (%s) skipped.", uErr, game.ID, game.Name)
 					continue
 				}
 
-				websites = append(websites, models.ContentWebsite{
-					Trusted: website.Trusted,
-					URL:     website.URL,
-					Type:    website.Type.Type,
-				})
-			}
-
-			if len(websites) > 0 {
-				jsonBytes, err := json.Marshal(websites)
-				if err != nil {
-					return fmt.Errorf("error marshalling websites: %w", err)
+				// Localizations
+				names := map[string]string{utils.EnglishLocale: game.Name}
+				if game.AlternativeNames != nil {
+					for _, altName := range *game.AlternativeNames {
+						comment := strings.ToLower(altName.Comment)
+						switch {
+						case strings.Contains(comment, "russian"):
+							names[utils.RussianLocale] = altName.Name
+						case strings.Contains(comment, "german"):
+							names[utils.GermanLocale] = altName.Name
+						case strings.Contains(comment, "spanish"):
+							names[utils.SpanishLocale] = altName.Name
+						case strings.Contains(comment, "english"):
+							names[utils.EnglishLocale] = altName.Name
+						}
+					}
 				}
-				rawMessage := json.RawMessage(jsonBytes)
-				serializedWebsites = &rawMessage
+
+				for locale, title := range names {
+					if lErr := qtx.UpsertGameLocalization(ctx, sql.UpsertGameLocalizationParams{
+						ContentID: id,
+						Locale:    locale,
+						Title:     title,
+					}); lErr != nil {
+						logger.Warnf(ctx, "[IGDB Sync] Error upserting game localization: %v. Locale %s for game %s skipped.", lErr, locale, id)
+						continue
+					}
+				}
+
+				// Elastic document
+				doc := &storage.BulkIndexRequest{
+					ID: mapper.MapContentIDToMediaID(id, domain.ContentCategoryGames),
+					Doc: &domain.ElasticContent{
+						Popularity:   0,
+						ImageKey:     coverKey,
+						ImageKeyType: domain.ImageKeyTypeIGDB,
+						EnglishName:  names[utils.EnglishLocale],
+						RussianName:  names[utils.RussianLocale],
+						GermanName:   names[utils.GermanLocale],
+						SpanishName:  names[utils.SpanishLocale],
+					},
+				}
+				documents = append(documents, doc)
+
+				gamesProcessed++
 			}
-		}
 
-		var releaseDate *time.Time
-		// for _, rd := range game.ReleaseDates {
-		// 	releaseDate = &rd.Date
-		// }
-		if game.FirstReleaseDate != nil && *game.FirstReleaseDate > 0 {
-			date := time.Unix(*game.FirstReleaseDate, 0)
-			releaseDate = &date
-		}
+			if len(documents) == 0 {
+				return nil
+			}
 
-		var sourceUrl *string
-		if game.URL != nil {
-			sourceUrl = game.URL
-		}
-
-		var coverKey *string
-		if game.Cover != nil && game.Cover.ImageID != nil {
-			coverKey = game.Cover.ImageID
-		}
-
-		id, err := qtx.UpsertGame(ctx, db.UpsertGameParams{
-			ExternalID:   game.ID,
-			ReleaseDate:  releaseDate,
-			Websites:     serializedWebsites,
-			CoverKey:     coverKey,
-			CoverKeyType: db.NullImageKeyType{ImageKeyType: db.ImageKeyTypeIgdb, Valid: true},
-			SourceUrl:    sourceUrl,
-			SourceType:   db.ContentSourceIgdb,
+			if biErr := s.elastic.BulkIndexDocuments(ctx, "igdb_games", documents); biErr != nil {
+				logger.Warnf(ctx, "[IGDB Sync] Error indexing documents: %v. Batch %d/%d skipped.", biErr, b+1, totalBatches)
+				return biErr
+			}
+			return nil
 		})
 		if err != nil {
-			return fmt.Errorf("error upserting game: %w", err)
+			logger.Warnf(ctx, "[IGDB Sync] Error processing batch: %v. Batch %d/%d skipped.", err, b+1, totalBatches)
+			continue
 		}
 
-		err = qtx.UpsertGameLocalization(ctx, db.UpsertGameLocalizationParams{
-			ContentID: id,
-			Lang:      "en",
-			Title:     game.Name,
-		})
-		if err != nil {
-			return fmt.Errorf("error upserting game localization: %w", err)
-		}
-
-		names := make(map[string]string)
-		for _, locale := range utils.AllowedLocales {
-			names[locale] = game.Name
-		}
-
-		if game.AlternativeNames != nil {
-			for _, altName := range *game.AlternativeNames {
-				comment := strings.ToLower(altName.Comment)
-				if strings.Contains(comment, "russian") {
-					names["ru"] = altName.Name
-				} else if strings.Contains(comment, "german") {
-					names["de"] = altName.Name
-				} else if strings.Contains(comment, "spanish") {
-					names["es"] = altName.Name
-				} else if strings.Contains(comment, "english") {
-					names["en"] = altName.Name
-				}
-			}
-		}
-
-		documents[i%batchSize] = &storage.BulkIndexRequest{
-			ID: id.String(),
-			Doc: &models.BasicElasticContent{
-				ImageKey:     coverKey,
-				ImageKeyType: db.ImageKeyTypeIgdb,
-				EnglishName:  names["en"],
-				RussianName:  names["ru"],
-				GermanName:   names["de"],
-				SpanishName:  names["es"],
-			},
-		}
+		duration := time.Since(batchStart)
+		batchDurations = append(batchDurations, duration)
+		medianIndex := len(batchDurations) / 2
+		medianDuration := batchDurations[medianIndex]
+		batchesLeft := totalBatches - (b + 1)
+		timeLeft := medianDuration.Seconds() * float64(batchesLeft)
+		percent := float64(gamesProcessed) / float64(total) * 100
+		logger.Infof(ctx, "[IGDB Sync] Committed %d/%d games (%.2f%%, %d/%d batches) in %vms. Estimated time left: %.2fs.", gamesProcessed, total, percent, b+1, totalBatches, duration.Milliseconds(), timeLeft)
 	}
-
-	tx.Commit(ctx)
-
-	// Refresh materialized views
-	// if err = s.sqlDB.Queries().RefreshLocalizedGameViews(ctx); err != nil {
-	// 	return err
-	// }
 
 	return nil
 }

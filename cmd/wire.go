@@ -13,6 +13,7 @@ import (
 	"github.com/pickle.pw/monolith/internal/schedulers"
 	"github.com/pickle.pw/monolith/internal/services"
 	"github.com/pickle.pw/monolith/internal/storage"
+	"github.com/pickle.pw/monolith/internal/usecases"
 )
 
 func InitializeAPI(ctx context.Context) (api.PickleAPI, func(), error) {
@@ -25,6 +26,7 @@ func InitializeAPI(ctx context.Context) (api.PickleAPI, func(), error) {
 		schedulers.ProviderSet,
 		services.ProviderSet,
 		handlers.ProviderSet,
+		usecases.ProviderSet,
 		api.NewPickleAPI,
 	)
 	return nil, nil, nil

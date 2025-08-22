@@ -516,9 +516,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/profiles/validate-link": {
+        "/v1/profiles/{username}": {
             "get": {
-                "description": "Validate profile link",
+                "description": "Get profile by username",
                 "consumes": [
                     "application/json"
                 ],
@@ -528,56 +528,12 @@ const docTemplate = `{
                 "tags": [
                     "profiles"
                 ],
-                "summary": "Validate profile link",
+                "summary": "Get profile by username",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Link",
-                        "name": "link",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.LinkValidationRes"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/profiles/{link}": {
-            "get": {
-                "description": "Get profile by link",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "profiles"
-                ],
-                "summary": "Get profile by link",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Link",
-                        "name": "link",
+                        "description": "Username",
+                        "name": "username",
                         "in": "path",
                         "required": true
                     },
@@ -590,10 +546,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_models.PublicProfile"
-                        }
+                        "description": "OK"
                     },
                     "400": {
                         "description": "Bad Request",
@@ -676,10 +629,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_models.PublicProfile"
-                        }
+                        "description": "OK"
                     },
                     "400": {
                         "description": "Bad Request",
@@ -714,7 +664,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.UpdateProfileReq"
+                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_models_requests.UpdateProfileReq"
                         }
                     }
                 ],
@@ -848,13 +798,57 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_models.SuggestionPreferences"
+                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_models_requests.SuggestionPreferencesReq"
                         }
                     }
                 ],
                 "responses": {
                     "204": {
                         "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/users/validate-username": {
+            "get": {
+                "description": "Validate username",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profiles"
+                ],
+                "summary": "Validate username",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Username",
+                        "name": "username",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.UsernameValidationRes"
+                        }
                     },
                     "400": {
                         "description": "Bad Request",
@@ -895,10 +889,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.ProfileRes"
-                        }
+                        "description": "OK"
                     },
                     "400": {
                         "description": "Bad Request",
@@ -1840,13 +1831,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.OrderRes"
-                            }
-                        }
+                        "description": "OK"
                     },
                     "400": {
                         "description": "Bad Request",
@@ -1960,9 +1945,11 @@ const docTemplate = `{
                         }
                     }
                 }
-            },
-            "put": {
-                "description": "Update an order",
+            }
+        },
+        "/v1/users/{userId}/orders/{orderId}/approve": {
+            "post": {
+                "description": "Approve an order",
                 "consumes": [
                     "application/json"
                 ],
@@ -1972,7 +1959,7 @@ const docTemplate = `{
                 "tags": [
                     "orders"
                 ],
-                "summary": "Update an order",
+                "summary": "Approve an order",
                 "parameters": [
                     {
                         "type": "string",
@@ -1982,21 +1969,57 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Order request",
-                        "name": "orderReq",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.OrderReq"
-                        }
+                        "type": "string",
+                        "description": "Locale",
+                        "name": "locale",
+                        "in": "query",
+                        "required": true
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.OrderRes"
+                            "type": "string"
                         }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/users/{userId}/orders/{orderId}/reject": {
+            "post": {
+                "description": "Reject an order",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "summary": "Reject an order",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Order ID",
+                        "name": "orderId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
                     },
                     "400": {
                         "description": "Bad Request",
@@ -2307,66 +2330,6 @@ const docTemplate = `{
                 "ReactionSourceCustom"
             ]
         },
-        "github_com_pickle_pw_monolith_internal_models.Connections": {
-            "type": "object",
-            "properties": {
-                "twitch": {
-                    "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_models.TwitchConnection"
-                }
-            }
-        },
-        "github_com_pickle_pw_monolith_internal_models.PublicProfile": {
-            "type": "object",
-            "properties": {
-                "avatarUrl": {
-                    "type": "string"
-                },
-                "connections": {
-                    "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_models.Connections"
-                },
-                "counts": {
-                    "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_models.PublicProfileCounts"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "displayName": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "isAuthorized": {
-                    "type": "boolean"
-                },
-                "isFollowing": {
-                    "type": "boolean"
-                },
-                "suggestionPreferences": {
-                    "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_models.SuggestionPreferences"
-                },
-                "username": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_pickle_pw_monolith_internal_models.PublicProfileCounts": {
-            "type": "object",
-            "properties": {
-                "followers": {
-                    "type": "integer"
-                },
-                "ordered": {
-                    "type": "integer"
-                },
-                "played": {
-                    "type": "integer"
-                },
-                "watched": {
-                    "type": "integer"
-                }
-            }
-        },
         "github_com_pickle_pw_monolith_internal_models.ReactionStack": {
             "type": "object",
             "properties": {
@@ -2387,7 +2350,24 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_pickle_pw_monolith_internal_models.SuggestionPreferences": {
+        "github_com_pickle_pw_monolith_internal_models_requests.ProfileLinkReq": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "position": {
+                    "type": "integer"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_pickle_pw_monolith_internal_models_requests.SuggestionPreferencesReq": {
             "type": "object",
             "properties": {
                 "allowedAnonymously": {
@@ -2407,13 +2387,22 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_pickle_pw_monolith_internal_models.TwitchConnection": {
+        "github_com_pickle_pw_monolith_internal_models_requests.UpdateProfileReq": {
             "type": "object",
             "properties": {
-                "connected": {
-                    "type": "boolean"
+                "description": {
+                    "type": "string"
                 },
-                "login": {
+                "displayName": {
+                    "type": "string"
+                },
+                "links": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_models_requests.ProfileLinkReq"
+                    }
+                },
+                "username": {
                     "type": "string"
                 }
             }
@@ -2466,14 +2455,6 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_pickle_pw_monolith_internal_types.ConnectionsRes": {
-            "type": "object",
-            "properties": {
-                "twitch": {
-                    "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.TwitchConnectionRes"
-                }
-            }
-        },
         "github_com_pickle_pw_monolith_internal_types.ContentRes": {
             "type": "object",
             "properties": {
@@ -2488,23 +2469,6 @@ const docTemplate = `{
                 },
                 "userId": {
                     "type": "string"
-                }
-            }
-        },
-        "github_com_pickle_pw_monolith_internal_types.CountsRes": {
-            "type": "object",
-            "properties": {
-                "followers": {
-                    "type": "integer"
-                },
-                "ordered": {
-                    "type": "integer"
-                },
-                "played": {
-                    "type": "integer"
-                },
-                "watched": {
-                    "type": "integer"
                 }
             }
         },
@@ -2550,31 +2514,6 @@ const docTemplate = `{
             "properties": {
                 "url": {
                     "type": "string"
-                }
-            }
-        },
-        "github_com_pickle_pw_monolith_internal_types.LinkValidationRes": {
-            "type": "object",
-            "properties": {
-                "message": {
-                    "type": "string"
-                },
-                "valid": {
-                    "type": "boolean"
-                }
-            }
-        },
-        "github_com_pickle_pw_monolith_internal_types.OrderReq": {
-            "type": "object",
-            "properties": {
-                "category": {
-                    "$ref": "#/definitions/github_com_pickle_pw_monolith_db_sqlc.ContentCategory"
-                },
-                "contentId": {
-                    "type": "string"
-                },
-                "status": {
-                    "$ref": "#/definitions/github_com_pickle_pw_monolith_db_sqlc.OrderStatus"
                 }
             }
         },
@@ -2639,41 +2578,6 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_pickle_pw_monolith_internal_types.ProfileRes": {
-            "type": "object",
-            "properties": {
-                "avatarUrl": {
-                    "type": "string"
-                },
-                "connections": {
-                    "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.ConnectionsRes"
-                },
-                "counts": {
-                    "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.CountsRes"
-                },
-                "createdAt": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "displayName": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "isAuthorized": {
-                    "type": "boolean"
-                },
-                "isFollowing": {
-                    "type": "boolean"
-                },
-                "username": {
-                    "type": "string"
-                }
-            }
-        },
         "github_com_pickle_pw_monolith_internal_types.ReactionReq": {
             "type": "object",
             "properties": {
@@ -2730,28 +2634,14 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_pickle_pw_monolith_internal_types.TwitchConnectionRes": {
+        "github_com_pickle_pw_monolith_internal_types.UsernameValidationRes": {
             "type": "object",
             "properties": {
-                "connected": {
+                "message": {
+                    "type": "string"
+                },
+                "valid": {
                     "type": "boolean"
-                },
-                "login": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_pickle_pw_monolith_internal_types.UpdateProfileReq": {
-            "type": "object",
-            "properties": {
-                "description": {
-                    "type": "string"
-                },
-                "displayName": {
-                    "type": "string"
-                },
-                "username": {
-                    "type": "string"
                 }
             }
         },

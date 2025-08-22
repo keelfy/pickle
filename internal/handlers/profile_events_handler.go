@@ -13,6 +13,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/pickle.pw/monolith/internal/config"
 	"github.com/pickle.pw/monolith/internal/services"
+	"github.com/pickle.pw/monolith/internal/transport/http/binders"
 	"github.com/pickle.pw/monolith/internal/utils"
 )
 
@@ -65,9 +66,11 @@ var upgrader = websocket.Upgrader{
 }
 
 func (h *profileEventsHandler) GetProfileOrdersWebSocket(w http.ResponseWriter, r *http.Request) {
-	receiverID, err := utils.ReadPathUUIDVariable("userId", r)
+	ctx := r.Context()
+
+	receiverID, err := binders.BindPathVariableAsUUID(r, binders.UserIDVariable)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 

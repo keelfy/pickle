@@ -38,45 +38,6 @@ definitions:
     - ReactionSourceUnicodeEmoji
     - ReactionSource7tv
     - ReactionSourceCustom
-  github_com_pickle_pw_monolith_internal_models.Connections:
-    properties:
-      twitch:
-        $ref: '#/definitions/github_com_pickle_pw_monolith_internal_models.TwitchConnection'
-    type: object
-  github_com_pickle_pw_monolith_internal_models.PublicProfile:
-    properties:
-      avatarUrl:
-        type: string
-      connections:
-        $ref: '#/definitions/github_com_pickle_pw_monolith_internal_models.Connections'
-      counts:
-        $ref: '#/definitions/github_com_pickle_pw_monolith_internal_models.PublicProfileCounts'
-      description:
-        type: string
-      displayName:
-        type: string
-      id:
-        type: string
-      isAuthorized:
-        type: boolean
-      isFollowing:
-        type: boolean
-      suggestionPreferences:
-        $ref: '#/definitions/github_com_pickle_pw_monolith_internal_models.SuggestionPreferences'
-      username:
-        type: string
-    type: object
-  github_com_pickle_pw_monolith_internal_models.PublicProfileCounts:
-    properties:
-      followers:
-        type: integer
-      ordered:
-        type: integer
-      played:
-        type: integer
-      watched:
-        type: integer
-    type: object
   github_com_pickle_pw_monolith_internal_models.ReactionStack:
     properties:
       count:
@@ -90,7 +51,18 @@ definitions:
       userReacted:
         type: boolean
     type: object
-  github_com_pickle_pw_monolith_internal_models.SuggestionPreferences:
+  github_com_pickle_pw_monolith_internal_models_requests.ProfileLinkReq:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      position:
+        type: integer
+      url:
+        type: string
+    type: object
+  github_com_pickle_pw_monolith_internal_models_requests.SuggestionPreferencesReq:
     properties:
       allowedAnonymously:
         type: boolean
@@ -103,11 +75,17 @@ definitions:
       enabled:
         type: boolean
     type: object
-  github_com_pickle_pw_monolith_internal_models.TwitchConnection:
+  github_com_pickle_pw_monolith_internal_models_requests.UpdateProfileReq:
     properties:
-      connected:
-        type: boolean
-      login:
+      description:
+        type: string
+      displayName:
+        type: string
+      links:
+        items:
+          $ref: '#/definitions/github_com_pickle_pw_monolith_internal_models_requests.ProfileLinkReq'
+        type: array
+      username:
         type: string
     type: object
   github_com_pickle_pw_monolith_internal_types.BatchNoteReactionsRes:
@@ -141,11 +119,6 @@ definitions:
       name:
         type: string
     type: object
-  github_com_pickle_pw_monolith_internal_types.ConnectionsRes:
-    properties:
-      twitch:
-        $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.TwitchConnectionRes'
-    type: object
   github_com_pickle_pw_monolith_internal_types.ContentRes:
     properties:
       category:
@@ -156,17 +129,6 @@ definitions:
         type: string
       userId:
         type: string
-    type: object
-  github_com_pickle_pw_monolith_internal_types.CountsRes:
-    properties:
-      followers:
-        type: integer
-      ordered:
-        type: integer
-      played:
-        type: integer
-      watched:
-        type: integer
     type: object
   github_com_pickle_pw_monolith_internal_types.CreateOrderReq:
     properties:
@@ -196,22 +158,6 @@ definitions:
     properties:
       url:
         type: string
-    type: object
-  github_com_pickle_pw_monolith_internal_types.LinkValidationRes:
-    properties:
-      message:
-        type: string
-      valid:
-        type: boolean
-    type: object
-  github_com_pickle_pw_monolith_internal_types.OrderReq:
-    properties:
-      category:
-        $ref: '#/definitions/github_com_pickle_pw_monolith_db_sqlc.ContentCategory'
-      contentId:
-        type: string
-      status:
-        $ref: '#/definitions/github_com_pickle_pw_monolith_db_sqlc.OrderStatus'
     type: object
   github_com_pickle_pw_monolith_internal_types.OrderRes:
     properties:
@@ -253,29 +199,6 @@ definitions:
       url:
         type: string
     type: object
-  github_com_pickle_pw_monolith_internal_types.ProfileRes:
-    properties:
-      avatarUrl:
-        type: string
-      connections:
-        $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.ConnectionsRes'
-      counts:
-        $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.CountsRes'
-      createdAt:
-        type: string
-      description:
-        type: string
-      displayName:
-        type: string
-      id:
-        type: string
-      isAuthorized:
-        type: boolean
-      isFollowing:
-        type: boolean
-      username:
-        type: string
-    type: object
   github_com_pickle_pw_monolith_internal_types.ReactionReq:
     properties:
       emoteId:
@@ -313,21 +236,12 @@ definitions:
       type:
         type: string
     type: object
-  github_com_pickle_pw_monolith_internal_types.TwitchConnectionRes:
+  github_com_pickle_pw_monolith_internal_types.UsernameValidationRes:
     properties:
-      connected:
+      message:
+        type: string
+      valid:
         type: boolean
-      login:
-        type: string
-    type: object
-  github_com_pickle_pw_monolith_internal_types.UpdateProfileReq:
-    properties:
-      description:
-        type: string
-      displayName:
-        type: string
-      username:
-        type: string
     type: object
   internal_handlers.SetJWTCookieRequest:
     properties:
@@ -679,15 +593,15 @@ paths:
       summary: Get system health status
       tags:
       - status
-  /v1/profiles/{link}:
+  /v1/profiles/{username}:
     get:
       consumes:
       - application/json
-      description: Get profile by link
+      description: Get profile by username
       parameters:
-      - description: Link
+      - description: Username
         in: path
-        name: link
+        name: username
         required: true
         type: string
       - description: Avatar size
@@ -699,8 +613,6 @@ paths:
       responses:
         "200":
           description: OK
-          schema:
-            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_models.PublicProfile'
         "400":
           description: Bad Request
           schema:
@@ -709,36 +621,7 @@ paths:
           description: Internal Server Error
           schema:
             type: string
-      summary: Get profile by link
-      tags:
-      - profiles
-  /v1/profiles/validate-link:
-    get:
-      consumes:
-      - application/json
-      description: Validate profile link
-      parameters:
-      - description: Link
-        in: query
-        name: link
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.LinkValidationRes'
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Validate profile link
+      summary: Get profile by username
       tags:
       - profiles
   /v1/supabase-webhooks/users:
@@ -785,8 +668,6 @@ paths:
       responses:
         "200":
           description: OK
-          schema:
-            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.ProfileRes'
         "400":
           description: Bad Request
           schema:
@@ -1416,10 +1297,6 @@ paths:
       responses:
         "200":
           description: OK
-          schema:
-            items:
-              $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.OrderRes'
-            type: array
         "400":
           description: Bad Request
           schema:
@@ -1497,29 +1374,27 @@ paths:
       summary: Get order by ID
       tags:
       - orders
-    put:
+  /v1/users/{userId}/orders/{orderId}/approve:
+    post:
       consumes:
       - application/json
-      description: Update an order
+      description: Approve an order
       parameters:
       - description: Order ID
         in: path
         name: orderId
         required: true
         type: string
-      - description: Order request
-        in: body
-        name: orderReq
+      - description: Locale
+        in: query
+        name: locale
         required: true
-        schema:
-          $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.OrderReq'
+        type: string
       produces:
       - application/json
       responses:
         "200":
           description: OK
-          schema:
-            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.OrderRes'
         "400":
           description: Bad Request
           schema:
@@ -1528,7 +1403,34 @@ paths:
           description: Internal Server Error
           schema:
             type: string
-      summary: Update an order
+      summary: Approve an order
+      tags:
+      - orders
+  /v1/users/{userId}/orders/{orderId}/reject:
+    post:
+      consumes:
+      - application/json
+      description: Reject an order
+      parameters:
+      - description: Order ID
+        in: path
+        name: orderId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Reject an order
       tags:
       - orders
   /v1/users/{userId}/posters/previews:
@@ -1709,8 +1611,6 @@ paths:
       responses:
         "200":
           description: OK
-          schema:
-            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_models.PublicProfile'
         "400":
           description: Bad Request
           schema:
@@ -1732,7 +1632,7 @@ paths:
         name: updateProfileReq
         required: true
         schema:
-          $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.UpdateProfileReq'
+          $ref: '#/definitions/github_com_pickle_pw_monolith_internal_models_requests.UpdateProfileReq'
       produces:
       - application/json
       responses:
@@ -1820,7 +1720,7 @@ paths:
         name: suggestionPreferences
         required: true
         schema:
-          $ref: '#/definitions/github_com_pickle_pw_monolith_internal_models.SuggestionPreferences'
+          $ref: '#/definitions/github_com_pickle_pw_monolith_internal_models_requests.SuggestionPreferencesReq'
       produces:
       - application/json
       responses:
@@ -1835,6 +1735,35 @@ paths:
           schema:
             type: string
       summary: Update suggestion preferences
+      tags:
+      - profiles
+  /v1/users/validate-username:
+    get:
+      consumes:
+      - application/json
+      description: Validate username
+      parameters:
+      - description: Username
+        in: query
+        name: username
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.UsernameValidationRes'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Validate username
       tags:
       - profiles
 swagger: "2.0"

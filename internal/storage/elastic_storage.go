@@ -16,11 +16,9 @@ import (
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/functionscoremode"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/textquerytype"
 	"github.com/google/uuid"
-	db "github.com/pickle.pw/monolith/db/sqlc"
 	"github.com/pickle.pw/monolith/internal/config"
-	"github.com/pickle.pw/monolith/internal/errors"
+	"github.com/pickle.pw/monolith/internal/domain"
 	"github.com/pickle.pw/monolith/internal/logger"
-	"github.com/pickle.pw/monolith/internal/types"
 )
 
 type ElasticStorage interface {
@@ -28,12 +26,9 @@ type ElasticStorage interface {
 	CreateOrUpdateIndex(ctx context.Context, indexName string, query []byte) error
 	IndexDocument(ctx context.Context, indexName, id string, document any) (*index.Response, error)
 	BulkIndexDocuments(ctx context.Context, indexName string, requests []*BulkIndexRequest) error
-	Search(ctx context.Context, indexName string, query *esTypes.Query, pagination *types.Pagination) (*search.Response, error)
-	IndexContent(ctx context.Context, id uuid.UUID, name string, userId uuid.UUID, category db.ContentCategory) error
-	SearchProfileContent(ctx context.Context, query string, userId uuid.UUID, pagination *types.Pagination) (*search.Response, error)
-	SearchIndexedContent(ctx context.Context, category db.ContentCategory, query string, pagination *types.Pagination) (*search.Response, error)
-	DeleteContentNoteByID(ctx context.Context, category db.ContentCategory, contentID uuid.UUID) error
-	DeleteContent(ctx context.Context, contentID uuid.UUID, category db.ContentCategory) error
+	Search(ctx context.Context, indexName string, query *esTypes.Query, pagination *domain.Pagination) (*search.Response, error)
+	SearchUserContent(ctx context.Context, query string, userID uuid.UUID, pagination *domain.Pagination, notedContentIDs []string) (*search.Response, error)
+	SearchIndexedContent(ctx context.Context, category domain.ContentCategory, query string, pagination *domain.Pagination) (*search.Response, error)
 }
 
 type elasticStorage struct {
@@ -72,6 +67,11 @@ func (storage *elasticStorage) logElasticsearchClusterInfo() {
 	logger.Infof(ctx, "Client: %s", elasticsearch.Version)
 	logger.Infof(ctx, "Server: %s", info.Version.Int)
 }
+
+var (
+	IGDBGamesIndex  = "igdb_games"
+	TMDBMoviesIndex = "tmdb_movies"
+)
 
 func (storage *elasticStorage) Ping(ctx context.Context) error {
 	_, err := storage.client.Info().Do(ctx)
@@ -164,7 +164,7 @@ func (storage *elasticStorage) BulkIndexDocuments(ctx context.Context, indexName
 	return nil
 }
 
-func (storage *elasticStorage) Search(ctx context.Context, indexName string, query *esTypes.Query, pagination *types.Pagination) (*search.Response, error) {
+func (storage *elasticStorage) Search(ctx context.Context, indexName string, query *esTypes.Query, pagination *domain.Pagination) (*search.Response, error) {
 	response, err := storage.client.Search().
 		Index(indexName).
 		Request(&search.Request{
@@ -182,39 +182,36 @@ func (storage *elasticStorage) Search(ctx context.Context, indexName string, que
 	return response, nil
 }
 
-func (service *elasticStorage) IndexContent(ctx context.Context, id uuid.UUID, name string, userId uuid.UUID, category db.ContentCategory) error {
-	document := &types.EsContent{
-		ID:       id,
-		Name:     name,
-		UserID:   userId,
-		Category: category,
+func (storage *elasticStorage) createContentTextQuery(query string) esTypes.Query {
+	return esTypes.Query{
+		MultiMatch: &esTypes.MultiMatchQuery{
+			Query:     query,
+			Fields:    []string{"name_en", "name_ru", "name_de", "name_es"},
+			Fuzziness: "AUTO",
+			Type:      &textquerytype.Bestfields,
+		},
 	}
-	docID := fmt.Sprintf("%s-%s", category, id.String())
-	_, err := service.IndexDocument(ctx, "content", docID, document)
-	if err != nil {
-		return errors.NewInternalServerError("Error occurred during content indexing", err)
-	}
-	return nil
 }
 
-func (storage *elasticStorage) SearchProfileContent(ctx context.Context, query string, userId uuid.UUID, pagination *types.Pagination) (*search.Response, error) {
+func (storage *elasticStorage) SearchUserContent(ctx context.Context, query string, userID uuid.UUID, pagination *domain.Pagination, notedContentIDs []string) (*search.Response, error) {
+	textQuery := storage.createContentTextQuery(query)
+
+	termsQuery := map[string]esTypes.TermsQueryField{
+		"_id": esTypes.TermsQueryField(notedContentIDs),
+	}
+
 	esQuery := &esTypes.Query{
 		Bool: &esTypes.BoolQuery{
-			Filter: []esTypes.Query{
+			Must: []esTypes.Query{textQuery},
+			Should: []esTypes.Query{
 				{
-					Match: map[string]esTypes.MatchQuery{
-						"user_id": {
-							Query: userId.String(),
-						},
-					},
-				},
-			},
-			Must: []esTypes.Query{
-				{
-					Match: map[string]esTypes.MatchQuery{
-						"name": {
-							Query:     query,
-							Fuzziness: "AUTO",
+					Bool: &esTypes.BoolQuery{
+						Filter: []esTypes.Query{
+							{
+								Terms: &esTypes.TermsQuery{
+									TermsQuery: termsQuery,
+								},
+							},
 						},
 					},
 				},
@@ -222,7 +219,8 @@ func (storage *elasticStorage) SearchProfileContent(ctx context.Context, query s
 		},
 	}
 
-	response, err := storage.Search(ctx, "content", esQuery, pagination)
+	indexes := strings.Join([]string{IGDBGamesIndex, TMDBMoviesIndex}, ",")
+	response, err := storage.Search(ctx, indexes, esQuery, pagination)
 	if err != nil {
 		logger.Debugf(ctx, "[ELASTIC] Error searching content: %v", err)
 		return nil, err
@@ -232,21 +230,14 @@ func (storage *elasticStorage) SearchProfileContent(ctx context.Context, query s
 	return response, nil
 }
 
-func (storage *elasticStorage) SearchIndexedContent(ctx context.Context, category db.ContentCategory, query string, pagination *types.Pagination) (*search.Response, error) {
+func (storage *elasticStorage) SearchIndexedContent(ctx context.Context, category domain.ContentCategory, query string, pagination *domain.Pagination) (*search.Response, error) {
 	// Create a multi-match query for text search across different language fields
-	textQuery := &esTypes.Query{
-		MultiMatch: &esTypes.MultiMatchQuery{
-			Query:     query,
-			Fields:    []string{"name_en", "name_ru", "name_de", "name_es"},
-			Fuzziness: "AUTO",
-			Type:      &textquerytype.Bestfields,
-		},
-	}
+	textQuery := storage.createContentTextQuery(query)
 
 	factor := esTypes.Float64(0.1)
 	esQuery := &esTypes.Query{
 		FunctionScore: &esTypes.FunctionScoreQuery{
-			Query: textQuery,
+			Query: &textQuery,
 			Functions: []esTypes.FunctionScore{
 				{
 					FieldValueFactor: &esTypes.FieldValueFactorScoreFunction{
@@ -257,16 +248,16 @@ func (storage *elasticStorage) SearchIndexedContent(ctx context.Context, categor
 				},
 			},
 			ScoreMode: &functionscoremode.Sum,
-			BoostMode: &functionboostmode.Multiply,
+			BoostMode: &functionboostmode.Avg,
 		},
 	}
 
 	var indexName string
 	switch category {
-	case db.ContentCategoryGames:
-		indexName = "igdb_games"
-	case db.ContentCategoryMovies:
-		indexName = "tmdb_movies"
+	case domain.ContentCategoryGames:
+		indexName = IGDBGamesIndex
+	case domain.ContentCategoryMovies:
+		indexName = TMDBMoviesIndex
 	}
 
 	response, err := storage.Search(ctx, indexName, esQuery, pagination)
@@ -277,33 +268,4 @@ func (storage *elasticStorage) SearchIndexedContent(ctx context.Context, categor
 
 	logger.Debugf(ctx, "[ELASTIC] %s found: %d", category, response.Hits.Total.Value)
 	return response, nil
-}
-
-func (storage *elasticStorage) DeleteContentNoteByID(ctx context.Context, category db.ContentCategory, contentID uuid.UUID) error {
-	var indexName string
-	switch category {
-	case db.ContentCategoryGames:
-		indexName = "game_notes"
-	case db.ContentCategoryMovies:
-		indexName = "movie_notes"
-	default:
-		return errors.NewInternalServerError("Invalid content category", nil)
-	}
-
-	_, err := storage.client.Delete(indexName, contentID.String()).Do(ctx)
-	if err != nil {
-		return errors.NewInternalServerError("Error deleting content document", err)
-	}
-	logger.Debugf(ctx, "[ELASTIC] Content deleted: %s", contentID)
-	return nil
-}
-
-func (storage *elasticStorage) DeleteContent(ctx context.Context, contentID uuid.UUID, category db.ContentCategory) error {
-	docID := fmt.Sprintf("%s-%s", category, contentID.String())
-	_, err := storage.client.Delete("content", docID).Do(ctx)
-	if err != nil {
-		return errors.NewInternalServerError("Error deleting content document", err)
-	}
-	logger.Debugf(ctx, "[ELASTIC] Content deleted: %s", contentID)
-	return nil
 }

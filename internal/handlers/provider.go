@@ -7,6 +7,7 @@ import (
 var ProviderSet = wire.NewSet(
 	NewStatusHandler,
 	NewUserHandler,
+	NewProfileHandler,
 	NewOrdersHandler,
 	NewContentNoteHandler,
 	NewContentHandler,
@@ -14,4 +15,5 @@ var ProviderSet = wire.NewSet(
 	NewCollectionHandler,
 	NewModeratorHandler,
 	NewProfileEventsHandler,
+	NewFollowerHandler,
 )

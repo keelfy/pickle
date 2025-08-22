@@ -1,17 +1,16 @@
 package handlers
 
 import (
-	"encoding/json"
 	"net/http"
 	"sync"
 
 	"github.com/google/uuid"
-	"github.com/jinzhu/copier"
-	db "github.com/pickle.pw/monolith/db/sqlc"
-	"github.com/pickle.pw/monolith/internal/errors"
+	"github.com/pickle.pw/monolith/internal/domain"
 	"github.com/pickle.pw/monolith/internal/logger"
+	"github.com/pickle.pw/monolith/internal/presenter"
 	"github.com/pickle.pw/monolith/internal/services"
-	"github.com/pickle.pw/monolith/internal/types"
+	"github.com/pickle.pw/monolith/internal/transport/http/binders"
+	"github.com/pickle.pw/monolith/internal/transport/http/responses"
 	"github.com/pickle.pw/monolith/internal/utils"
 	"golang.org/x/sync/errgroup"
 )
@@ -20,7 +19,7 @@ type CollectionHandler interface {
 	CreateCollection(w http.ResponseWriter, r *http.Request)
 	DeleteCollectionByID(w http.ResponseWriter, r *http.Request)
 	UpdateCollectionByID(w http.ResponseWriter, r *http.Request)
-	AddItemToCollection(w http.ResponseWriter, r *http.Request)
+	AddContentToCollection(w http.ResponseWriter, r *http.Request)
 	RemoveItemFromCollection(w http.ResponseWriter, r *http.Request)
 	GetCollectionsByUserID(w http.ResponseWriter, r *http.Request)
 	GetItemsByUserID(w http.ResponseWriter, r *http.Request)
@@ -30,19 +29,22 @@ type CollectionHandler interface {
 
 type collectionHandler struct {
 	collectionService services.CollectionService
-	contentService    services.ContentNoteService
-	posterService     services.PosterService
+	noteService       services.ContentNoteService
+	contentService    services.ContentService
+	permissionService services.PermissionService
 }
 
 func NewCollectionHandler(
 	collectionService services.CollectionService,
-	contentService services.ContentNoteService,
-	posterService services.PosterService,
+	noteService services.ContentNoteService,
+	contentService services.ContentService,
+	permissionService services.PermissionService,
 ) CollectionHandler {
 	return &collectionHandler{
 		collectionService: collectionService,
+		noteService:       noteService,
 		contentService:    contentService,
-		posterService:     posterService,
+		permissionService: permissionService,
 	}
 }
 
@@ -59,26 +61,35 @@ func NewCollectionHandler(
 // @Router /v1/users/{userId}/collections [post]
 func (h *collectionHandler) CreateCollection(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userID, err := utils.ReadPathUUIDVariable("userId", r)
+	cmd, err := binders.BindCreateCollectionCommand(r)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	req := &types.CreateCollectionReq{}
-	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
-		utils.HttpError(ctx, errors.NewBadRequestError("invalid request body", err), w)
+	if err := cmd.Validate(); err != nil {
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	collection, err := h.collectionService.CreateCollection(ctx, userID, req)
+	hasPermission, err := h.permissionService.IsAuthorizedUserHasPermission(ctx, cmd.UserID, domain.ModeratorPermission)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	res := &types.CollectionRes{}
-	copier.Copy(res, collection)
+	if !hasPermission {
+		utils.HttpBusinessError(ctx, w, "you are not allowed to create collection for this user", http.StatusForbidden)
+		return
+	}
+
+	collection, err := h.collectionService.CreateCollection(ctx, cmd)
+	if err != nil {
+		utils.HttpError(ctx, w, err)
+		return
+	}
+
+	res := presenter.PresentCollection(collection)
 	utils.WriteHttpJsonResponse(ctx, w, res)
 }
 
@@ -94,19 +105,44 @@ func (h *collectionHandler) CreateCollection(w http.ResponseWriter, r *http.Requ
 // @Router /v1/collections/{collectionId} [delete]
 func (h *collectionHandler) DeleteCollectionByID(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	collectionID, err := utils.ReadPathUUIDVariable("collectionId", r)
+
+	cmd, err := binders.BindDeleteCollectionCommand(r)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	err = h.collectionService.DeleteCollection(ctx, collectionID)
-	if err != nil {
-		utils.HttpError(ctx, err, w)
+	if err := cmd.Validate(); err != nil {
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	collection, err := h.collectionService.GetByID(ctx, cmd.CollectionID)
+	if err != nil {
+		utils.HttpError(ctx, w, err)
+		return
+	}
+
+	hasPermission, err := h.permissionService.IsAuthorizedUserHasPermission(ctx, collection.UserID, domain.ModeratorPermission)
+	if err != nil {
+		utils.HttpError(ctx, w, err)
+		return
+	}
+
+	if !hasPermission {
+		utils.HttpBusinessError(ctx, w, "you are not allowed to delete this collection", http.StatusForbidden)
+		return
+	}
+
+	err = h.collectionService.DeleteCollection(ctx, cmd)
+	if err != nil {
+		utils.HttpError(ctx, w, err)
+		return
+	}
+
+	// TODO:move to cache service
+	h.collectionService.ClearItemsCountCache(ctx, cmd.CollectionID)
+	w.WriteHeader(http.StatusOK)
 }
 
 // @Summary Update collection
@@ -122,26 +158,42 @@ func (h *collectionHandler) DeleteCollectionByID(w http.ResponseWriter, r *http.
 // @Router /v1/collections/{collectionId} [patch]
 func (h *collectionHandler) UpdateCollectionByID(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	collectionID, err := utils.ReadPathUUIDVariable("collectionId", r)
+
+	cmd, err := binders.BindUpdateCollectionCommand(r)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	req := &types.UpdateCollectionReq{}
-	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
-		utils.HttpError(ctx, errors.NewBadRequestError("invalid request body", err), w)
+	if err := cmd.Validate(); err != nil {
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	collection, err := h.collectionService.UpdateCollection(ctx, collectionID, req)
+	collection, err := h.collectionService.GetByID(ctx, cmd.CollectionID)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	res := &types.CollectionRes{}
-	copier.Copy(res, collection)
+	hasPermission, err := h.permissionService.IsAuthorizedUserHasPermission(ctx, collection.UserID, domain.ModeratorPermission)
+	if err != nil {
+		utils.HttpError(ctx, w, err)
+		return
+	}
+
+	if !hasPermission {
+		utils.HttpBusinessError(ctx, w, "you are not allowed to update this collection", http.StatusForbidden)
+		return
+	}
+
+	collection, err = h.collectionService.UpdateCollection(ctx, cmd)
+	if err != nil {
+		utils.HttpError(ctx, w, err)
+		return
+	}
+
+	res := presenter.PresentCollection(collection)
 	utils.WriteHttpJsonResponse(ctx, w, res)
 }
 
@@ -156,52 +208,57 @@ func (h *collectionHandler) UpdateCollectionByID(w http.ResponseWriter, r *http.
 // @Success 200 {object} types.CollectionItemRes
 // @Failure 400 {object} string
 // @Failure 500 {object} string
-// @Router /v1/collections/{collectionId}/items [post]
-func (h *collectionHandler) AddItemToCollection(w http.ResponseWriter, r *http.Request) {
+// @Router /v1/users/{userId}/collections/{collectionId}/items [post]
+func (h *collectionHandler) AddContentToCollection(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	collectionID, err := utils.ReadPathUUIDVariable("collectionId", r)
+
+	cmd, err := binders.BindAddItemToCollectionCommand(r)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	req := &types.AddItemToCollectionReq{}
-	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
-		utils.HttpError(ctx, errors.NewBadRequestError("invalid request body", err), w)
+	if err := cmd.Validate(); err != nil {
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	// posterSize := utils.GetQueryParam(r, "posterSize", "sm")
-	locale := utils.GetQueryParam(r, "locale", "en")
-
-	content, err := h.contentService.GetLocalizedNoteByID(ctx, req.NoteID, req.Category, locale)
+	contentNote, err := h.noteService.GetContentNoteByContentID(ctx, cmd.Category, cmd.ItemID, cmd.UserID)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	createdItem, err := h.collectionService.AddItemToCollection(ctx, collectionID, content)
+	content := contentNote.GetContent()
+
+	collection, err := h.collectionService.GetByID(ctx, cmd.CollectionID)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	res := &types.CollectionItemRes{}
-	copier.Copy(res, createdItem)
-	res.Content = types.ContentRes{
-		ID:       content.GetID(),
-		Title:    content.GetContent().GetTitle(),
-		UserID:   content.GetUserID(),
-		Category: content.GetCategory(),
+	hasPermission, err := h.permissionService.IsAuthorizedUserHasPermission(ctx, collection.UserID, domain.ModeratorPermission)
+	if err != nil {
+		utils.HttpError(ctx, w, err)
+		return
 	}
 
-	// posterURL, err := h.contentService.GetContentNotePosterImageURL1(ctx, posterSize, content)
-	// if err != nil {
-	// 	logger.Errorf(ctx, "failed to get poster image URL for %s %s: %v", content.GetCategory(), content.GetID(), err)
-	// } else {
-	// 	res.PosterURL = posterURL
-	// }
+	if !hasPermission {
+		utils.HttpBusinessError(ctx, w, "you are not allowed to add item to collection for this user", http.StatusForbidden)
+		return
+	}
 
+	createdItem, err := h.collectionService.AddItemToCollection(ctx, content, contentNote, cmd)
+	if err != nil {
+		utils.HttpError(ctx, w, err)
+		return
+	}
+
+	h.collectionService.ClearItemsCountCache(ctx, cmd.CollectionID)
+
+	coverURL := h.contentService.GetContentCoverURL(ctx, content, cmd.CoverSize)
+	contentResp := presenter.PresentContent(content, coverURL)
+	res := presenter.PresentCollectionItem(createdItem, contentResp)
 	utils.WriteHttpJsonResponse(ctx, w, res)
 }
 
@@ -218,25 +275,42 @@ func (h *collectionHandler) AddItemToCollection(w http.ResponseWriter, r *http.R
 // @Router /v1/collections/{collectionId}/items/{itemId} [delete]
 func (h *collectionHandler) RemoveItemFromCollection(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	collectionID, err := utils.ReadPathUUIDVariable("collectionId", r)
+
+	cmd, err := binders.BindDeleteCollectionItemCommand(r)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	itemID, err := utils.ReadPathUUIDVariable("itemId", r)
-	if err != nil {
-		utils.HttpError(ctx, err, w)
+	if err := cmd.Validate(); err != nil {
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	err = h.collectionService.RemoveItemFromCollection(ctx, collectionID, itemID)
+	collection, err := h.collectionService.GetByID(ctx, cmd.CollectionID)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	hasPermission, err := h.permissionService.IsAuthorizedUserHasPermission(ctx, collection.UserID, domain.ModeratorPermission)
+	if err != nil {
+		utils.HttpError(ctx, w, err)
+		return
+	}
+
+	if !hasPermission {
+		utils.HttpBusinessError(ctx, w, "you are not allowed to remove item from this collection", http.StatusForbidden)
+		return
+	}
+
+	err = h.collectionService.RemoveItemFromCollection(ctx, cmd)
+	if err != nil {
+		utils.HttpError(ctx, w, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 // @Summary Get collections by user ID
@@ -251,20 +325,22 @@ func (h *collectionHandler) RemoveItemFromCollection(w http.ResponseWriter, r *h
 // @Router /v1/users/{userId}/collections [get]
 func (h *collectionHandler) GetCollectionsByUserID(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userID, err := utils.ReadPathUUIDVariable("userId", r)
+	userID, err := binders.BindPathVariableAsUUID(r, binders.UserIDVariable)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
 	collections, err := h.collectionService.GetByUserID(ctx, userID)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	res := make([]*types.CollectionRes, len(collections))
-	copier.Copy(&res, &collections)
+	res := make([]*responses.Collection, len(collections))
+	for i, collection := range collections {
+		res[i] = presenter.PresentCollection(collection)
+	}
 	utils.WriteHttpJsonResponse(ctx, w, res)
 }
 
@@ -274,99 +350,78 @@ func (h *collectionHandler) GetCollectionsByUserID(w http.ResponseWriter, r *htt
 // @Accept json
 // @Produce json
 // @Param userId path string true "User ID"
-// @Success 200 {object} []types.CollectionItemRes
+// @Success 200
 // @Failure 400 {object} string
 // @Failure 500 {object} string
 // @Router /v1/users/{userId}/collections/items [get]
 func (h *collectionHandler) GetItemsByUserID(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userID, err := utils.ReadPathUUIDVariable("userId", r)
+
+	cmd, err := binders.BindGetCollectionItemsByUserIDCommand(r)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	// posterSize := utils.GetQueryParam(r, "posterSize", "sm")
-
-	pagination, err := utils.GetPagination(r)
-	if err != nil {
-		utils.HttpError(ctx, err, w)
+	if err := cmd.Validate(); err != nil {
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	locale := utils.GetQueryParam(r, "locale", "en")
-
-	items, err := h.collectionService.GetItemsByUserID(ctx, userID, pagination, locale)
+	items, err := h.collectionService.GetItemsWithContentByUserID(ctx, cmd)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
 	collectionCount := 0
-	groupedItems := make(map[uuid.UUID][]types.CollectionItemRes)
+	groupedItems := make(map[uuid.UUID][]*responses.CollectionItem)
+
+	var wg sync.WaitGroup
+	wg.Add(len(items))
 
 	for _, item := range items {
 		if _, ok := groupedItems[item.CollectionID]; !ok {
-			groupedItems[item.CollectionID] = []types.CollectionItemRes{}
+			groupedItems[item.CollectionID] = []*responses.CollectionItem{}
 			collectionCount++
 		}
 
-		// posterURL := ""
-		// if item.CoverUrl != nil {
-		// 	posterURL, err = h.contentService.GetContentNotePosterImageURL(ctx, item.Category, posterSize, *item.CoverUrl, item.CreatedAt)
-		// 	if err != nil {
-		// 		logger.Errorf(ctx, "failed to get poster image URL for %s %s: %v", item.Category, item.NoteID, err)
-		// 	}
-		// }
+		content := item.Content
 
-		title := ""
-		if item.ContentTitle != nil {
-			title = *item.ContentTitle
-		}
-
-		groupedItems[item.CollectionID] = append(groupedItems[item.CollectionID], types.CollectionItemRes{
-			ID:           item.ID,
-			CollectionID: item.CollectionID,
-			Content: types.ContentRes{
-				ID:       item.NoteID,
-				Title:    title,
-				UserID:   userID,
-				Category: item.Category,
-			},
-			// PosterURL: posterURL,
-		})
+		go func() {
+			defer wg.Done()
+			coverURL := h.contentService.GetContentCoverURL(ctx, content, cmd.CoverSize)
+			contentResp := presenter.PresentContent(content, coverURL)
+			itemResp := presenter.PresentCollectionItem(item, contentResp)
+			groupedItems[item.CollectionID] = append(groupedItems[item.CollectionID], itemResp)
+		}()
 	}
 
-	res := make([]types.BatchCollectionItemsRes, collectionCount)
+	wg.Wait()
+
+	res := make([]responses.BatchCollectionItems, collectionCount)
 
 	currentIndex := 0
 
-	var group sync.WaitGroup
-
-	group.Add(len(groupedItems))
+	wg.Add(len(groupedItems))
 	for collectionID, items := range groupedItems {
-		go func(collectionID uuid.UUID, items []types.CollectionItemRes, index int) {
-			defer group.Done()
+		go func() {
+			defer wg.Done()
 			totalElements, err := h.collectionService.CountCollectionItemsByCollectionID(ctx, collectionID)
 			if err != nil {
-				utils.HttpError(ctx, err, w)
+				logger.Errorf(ctx, "failed to count collection items by collection ID: %v", err)
 				return
 			}
 
-			res[index] = types.BatchCollectionItemsRes{
+			res[currentIndex] = responses.BatchCollectionItems{
 				CollectionID: collectionID,
-				PaginatedRes: types.PaginatedRes[types.CollectionItemRes]{
-					Content:       items,
-					Page:          pagination.Page,
-					Size:          pagination.Size,
-					TotalElements: totalElements,
-					TotalPages:    utils.CalculateTotalPages(totalElements, pagination.Size),
-				},
+				Paginated:    presenter.PresentPaginatedResponse(cmd.Pagination, totalElements, items),
 			}
-		}(collectionID, items, currentIndex)
+		}()
 		currentIndex++
 	}
-	group.Wait()
+
+	wg.Wait()
 
 	utils.WriteHttpJsonResponse(ctx, w, res)
 }
@@ -383,20 +438,19 @@ func (h *collectionHandler) GetItemsByUserID(w http.ResponseWriter, r *http.Requ
 // @Router /v1/collections/{collectionId} [get]
 func (h *collectionHandler) GetCollectionByID(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	collectionID, err := utils.ReadPathUUIDVariable("collectionId", r)
+	collectionID, err := binders.BindPathVariableAsUUID(r, binders.CollectionIDVariable)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
 	collection, err := h.collectionService.GetByID(ctx, collectionID)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	res := &types.CollectionRes{}
-	copier.Copy(res, collection)
+	res := presenter.PresentCollection(collection)
 	utils.WriteHttpJsonResponse(ctx, w, res)
 }
 
@@ -412,28 +466,26 @@ func (h *collectionHandler) GetCollectionByID(w http.ResponseWriter, r *http.Req
 // @Router /v1/collections/{collectionId}/items [get]
 func (h *collectionHandler) GetItemsByCollectionID(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	collectionID, err := utils.ReadPathUUIDVariable("collectionId", r)
+
+	cmd, err := binders.BindGetCollectionItemsCommand(r)
 	if err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	pagination, err := utils.GetPagination(r)
-	if err != nil {
-		utils.HttpError(ctx, err, w)
+	if err := cmd.Validate(); err != nil {
+		utils.HttpError(ctx, w, err)
 		return
 	}
-
-	locale := utils.GetQueryParam(r, "locale", "en")
 
 	var (
 		group         errgroup.Group
 		totalElements int64
-		items         []*db.FindCollectionItemsByCollectionIDWithContentRow
+		items         []*domain.CollectionItem
 	)
 
 	group.Go(func() error {
-		totalElements, err = h.collectionService.CountCollectionItemsByCollectionID(ctx, collectionID)
+		totalElements, err = h.collectionService.CountCollectionItemsByCollectionID(ctx, cmd.CollectionID)
 		if err != nil {
 			return err
 		}
@@ -441,7 +493,7 @@ func (h *collectionHandler) GetItemsByCollectionID(w http.ResponseWriter, r *htt
 	})
 
 	group.Go(func() error {
-		items, err = h.collectionService.GetItemsByCollectionID(ctx, collectionID, pagination, locale)
+		items, err = h.collectionService.GetItemsWithContentByCollectionID(ctx, cmd.CollectionID, cmd.Pagination)
 		if err != nil {
 			return err
 		}
@@ -449,40 +501,22 @@ func (h *collectionHandler) GetItemsByCollectionID(w http.ResponseWriter, r *htt
 	})
 
 	if err := group.Wait(); err != nil {
-		utils.HttpError(ctx, err, w)
+		utils.HttpError(ctx, w, err)
 		return
 	}
 
-	posterSize := utils.GetQueryParam(r, "posterSize", "sm")
-
-	res := make([]types.CollectionItemRes, len(items))
+	contentSlice := make([]domain.IContent, len(items))
 	for i, item := range items {
-		itemRes := types.CollectionItemRes{}
-		copier.Copy(&itemRes, &item)
-
-		contentName := ""
-		if item.ContentTitle != nil {
-			contentName = *item.ContentTitle
-		}
-
-		itemRes.Content = types.ContentRes{
-			ID:       item.NoteID,
-			Title:    contentName,
-			UserID:   uuid.Nil,
-			Category: item.Category,
-		}
-
-		if item.CoverKey != nil && item.CoverKeyType.Valid {
-			posterURL, err := h.posterService.GetCoverImageURL(ctx, posterSize, *item.CoverKey, item.CoverKeyType.ImageKeyType)
-			if err != nil {
-				logger.Errorf(ctx, "failed to get poster image URL for %s %s: %v", item.Category, item.NoteID, err)
-			} else {
-				itemRes.CoverURL = posterURL
-			}
-		}
-		res[i] = itemRes
+		contentSlice[i] = item.Content
 	}
 
-	paginatedRes := utils.FillPaginatedResponse(res, totalElements, pagination)
+	coverURLs, err := h.contentService.GetContentCoverURLsAsync(ctx, contentSlice, cmd.CoverSize)
+	if err != nil {
+		utils.HttpError(ctx, w, err)
+		return
+	}
+
+	res := presenter.PresentCollectionItems(items, coverURLs)
+	paginatedRes := presenter.PresentPaginatedResponse(cmd.Pagination, totalElements, res)
 	utils.WriteHttpJsonResponse(ctx, w, paginatedRes)
 }

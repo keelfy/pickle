@@ -1,44 +1,28 @@
 package mapper
 
 import (
-	"github.com/pickle.pw/monolith/internal/models"
-	"github.com/pickle.pw/monolith/internal/models/responses"
+	"fmt"
+	"strings"
+
+	"github.com/google/uuid"
+	"github.com/pickle.pw/monolith/internal/domain"
 )
 
-func MapIGDBWebsiteToContentWebsite(website *models.IGDBWebsite) *models.ContentWebsite {
-	return &models.ContentWebsite{
-		Trusted: website.Trusted,
-		URL:     website.URL,
-		Type:    website.Type.Type,
-	}
+func MapContentIDToMediaID(contentID uuid.UUID, category domain.ContentCategory) string {
+	return fmt.Sprintf("%s:%s", category, contentID.String())
 }
 
-func MapGameToGameRes(game *models.Game, coverURL *string) *responses.GameRes {
-	return &responses.GameRes{
-		BasicContentRes: responses.BasicContentRes{
-			ID:         game.ID,
-			ExternalID: game.ExternalID,
-			Title:      game.Title,
-			CoverURL:   coverURL,
-			SourceURL:  game.SourceURL,
-			SourceType: game.SourceType,
-		},
-		Websites:    game.Websites,
-		ReleaseDate: game.ReleaseDate,
+func MapMediaIDToContentID(mediaID string) (domain.ContentCategory, uuid.UUID, error) {
+	parts := strings.Split(mediaID, ":")
+	if len(parts) != 2 {
+		return "", uuid.Nil, fmt.Errorf("invalid media ID: %s", mediaID)
 	}
-}
 
-func MapMovieToMovieRes(movie *models.Movie, coverURL *string) *responses.MovieRes {
-	return &responses.MovieRes{
-		BasicContentRes: responses.BasicContentRes{
-			ID:         movie.ID,
-			ExternalID: movie.ExternalID,
-			Title:      movie.Title,
-			CoverURL:   coverURL,
-			SourceURL:  movie.SourceURL,
-			SourceType: movie.SourceType,
-		},
-		Websites:    movie.Websites,
-		ReleaseDate: movie.ReleaseDate,
+	contentID, err := uuid.Parse(parts[1])
+	if err != nil {
+		return "", uuid.Nil, fmt.Errorf("invalid content ID: %s", parts[1])
 	}
+
+	category := domain.ContentCategory(parts[0])
+	return category, contentID, nil
 }

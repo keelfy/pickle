@@ -1,1 +1,0 @@
-DROP TABLE IF EXISTS tmdb_sync_logs;

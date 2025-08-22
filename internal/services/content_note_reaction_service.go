@@ -3,18 +3,17 @@ package services
 import (
 	"context"
 
-	"github.com/google/uuid"
-	db "github.com/pickle.pw/monolith/db/sqlc"
-	"github.com/pickle.pw/monolith/internal/errors"
-	"github.com/pickle.pw/monolith/internal/models"
+	"github.com/pickle.pw/monolith/internal/commands"
+	"github.com/pickle.pw/monolith/internal/domain"
 	"github.com/pickle.pw/monolith/internal/storage"
+	"github.com/pickle.pw/monolith/internal/storage/sql"
 	"github.com/pickle.pw/monolith/internal/utils"
 )
 
 type ContentNoteReactionService interface {
-	AddContentNoteReaction(ctx context.Context, category db.ContentCategory, contentNoteID uuid.UUID, emoteID string, source string) error
-	RemoveContentNoteReaction(ctx context.Context, category db.ContentCategory, contentNoteID uuid.UUID, emoteID string, source string) error
-	GetContentNoteReactionsByContentNoteIDsAndUserID(ctx context.Context, category db.ContentCategory, contentNoteIDs uuid.UUIDs, userID *uuid.UUID) ([]*models.ReactionStack, error)
+	AddContentNoteReaction(ctx context.Context, cmd *commands.AddContentNoteReactionCommand) error
+	RemoveContentNoteReaction(ctx context.Context, cmd *commands.RemoveContentNoteReactionCommand) error
+	GetContentNoteReactions(ctx context.Context, cmd *commands.GetContentNoteReactionsBatchCommand) ([]*domain.ContentNoteReactionStack, error)
 }
 
 type contentNoteReactionService struct {
@@ -25,63 +24,58 @@ func NewContentNoteReactionService(sqlDB storage.RelationalStorage) ContentNoteR
 	return &contentNoteReactionService{sqlDB: sqlDB}
 }
 
-func (s *contentNoteReactionService) AddContentNoteReaction(ctx context.Context, category db.ContentCategory, noteID uuid.UUID, emoteID string, source string) error {
+func (s *contentNoteReactionService) AddContentNoteReaction(ctx context.Context, cmd *commands.AddContentNoteReactionCommand) error {
 	authUserID, err := utils.GetUserIDFromCtx(ctx)
 	if err != nil {
-		return errors.NewInternalServerError("failed to get user ID", err)
+		return utils.NewInternalServerError("failed to get user ID", err)
 	}
 
-	if source == "unicode_emoji" && len(emoteID) > 16 {
-		return errors.NewBadRequestError("unicode emoji must be 16 characters or less", nil)
-	}
-
-	count, err := s.sqlDB.CountNoteReactionsByNoteIDAndUserID(ctx, category, noteID, authUserID)
+	count, err := s.sqlDB.Queries().CountReactionsByContentNoteIDAndUserID(ctx, cmd.Category, cmd.ContentNoteID, authUserID)
 	if err != nil {
-		return errors.NewInternalServerError("failed to count content note reactions", err)
+		return utils.NewInternalServerError("failed to count content note reactions", err)
 	}
 
 	if count >= 3 {
-		return errors.NewBadRequestError("user has reached the maximum number of reactions", nil)
+		return utils.NewBadRequestError("user has reached the maximum number of reactions", nil)
 	}
 
-	reaction := &models.Reaction{
-		ContentNoteID: noteID,
-		UserID:        authUserID,
-		EmoteID:       emoteID,
-		Source:        db.ReactionSource(source),
-	}
-	err = s.sqlDB.InsertContentNoteReaction(ctx, category, reaction, authUserID)
-
+	err = s.sqlDB.Queries().InsertContentNoteReaction(ctx, cmd.Category, &sql.InsertContentNoteReactionParams{
+		ContentNoteID: cmd.ContentNoteID,
+		EmoteID:       cmd.EmoteID,
+		Source:        cmd.Source,
+		CreatedBy:     authUserID,
+	})
 	if err != nil {
-		return errors.NewInternalServerError("failed to add content note reaction", err)
+		return utils.NewInternalServerError("failed to add content note reaction", err)
 	}
 
 	return nil
 }
 
-func (s *contentNoteReactionService) RemoveContentNoteReaction(ctx context.Context, category db.ContentCategory, contentNoteID uuid.UUID, emoteID string, source string) error {
+func (s *contentNoteReactionService) RemoveContentNoteReaction(ctx context.Context, cmd *commands.RemoveContentNoteReactionCommand) error {
 	authUserID, err := utils.GetUserIDFromCtx(ctx)
 	if err != nil {
-		return errors.NewInternalServerError("failed to get user ID", err)
+		return utils.NewInternalServerError("failed to get user ID", err)
 	}
 
-	reaction := &models.Reaction{
-		ContentNoteID: contentNoteID,
+	err = s.sqlDB.Queries().DeleteContentNoteReaction(ctx, cmd.Category, &sql.DeleteContentNoteReactionParams{
+		ContentNoteID: cmd.ContentNoteID,
+		EmoteID:       cmd.EmoteID,
+		Source:        cmd.Source,
 		UserID:        authUserID,
-		EmoteID:       emoteID,
-		Source:        db.ReactionSource(source),
-	}
-	err = s.sqlDB.DeleteContentNoteReaction(ctx, category, reaction)
+	})
 	if err != nil {
-		return errors.NewInternalServerError("failed to remove content note reaction", err)
+		return utils.NewInternalServerError("failed to remove content note reaction", err)
 	}
 	return nil
 }
 
-func (s *contentNoteReactionService) GetContentNoteReactionsByContentNoteIDsAndUserID(ctx context.Context, category db.ContentCategory, contentNoteIDs uuid.UUIDs, userID *uuid.UUID) ([]*models.ReactionStack, error) {
-	reactions, err := s.sqlDB.FindContentNoteReactionsByContentNoteIDsAndUserID(ctx, category, contentNoteIDs, userID)
+func (s *contentNoteReactionService) GetContentNoteReactions(ctx context.Context, cmd *commands.GetContentNoteReactionsBatchCommand) ([]*domain.ContentNoteReactionStack, error) {
+	requesterUserID := utils.GetUserIDFromContextOrNil(ctx)
+
+	reactions, err := s.sqlDB.Queries().FindReactionsByContentNoteIDsInAndRequesterUserID(ctx, cmd.Category, cmd.ContentNoteIDs, requesterUserID)
 	if err != nil {
-		return nil, errors.NewInternalServerError("failed to get content note reactions", err)
+		return nil, utils.NewInternalServerError("failed to get content note reactions", err)
 	}
 	return reactions, nil
 }

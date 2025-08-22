@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/pickle.pw/monolith/internal/config"
-	"github.com/pickle.pw/monolith/internal/errors"
+	"github.com/pickle.pw/monolith/internal/utils"
 )
 
 type ImageService interface {
@@ -60,7 +60,7 @@ var imageDownloadClient = http.Client{
 func (service *imageService) DownloadImageFile(ctx context.Context, url string) (data []byte, fileSize int64, err error) {
 	resp, err := imageDownloadClient.Get(url)
 	if err != nil {
-		return nil, 0, errors.NewBadRequestError("Failed to download image", err)
+		return nil, 0, utils.NewBadRequestError("Failed to download image", err)
 	}
 	defer resp.Body.Close()
 
@@ -92,7 +92,7 @@ func (service *imageService) DownloadImageFile(ctx context.Context, url string) 
 func (service *imageService) validateImageFile(reader io.Reader, fileSize int64, fileName *string) (string, error) {
 	maxFileSize := config.GetMaxFileSizeBytes()
 	if fileSize > maxFileSize {
-		return "", errors.NewBadRequestError(fmt.Sprintf("File size exceeds %dMB", maxFileSize/1024/1024), nil)
+		return "", utils.NewBadRequestError(fmt.Sprintf("File size exceeds %dMB", maxFileSize/1024/1024), nil)
 	}
 
 	var ext string
@@ -109,14 +109,14 @@ func (service *imageService) validateImageFile(reader io.Reader, fileSize int64,
 		}
 
 		if !isAllowed {
-			return "", errors.NewBadRequestError("Invalid file extension: "+ext, nil)
+			return "", utils.NewBadRequestError("Invalid file extension: "+ext, nil)
 		}
 	}
 
 	// Check MIME type
 	buffer := make([]byte, 512)
 	if _, err := reader.Read(buffer); err != nil {
-		return "", errors.NewBadRequestError("Failed to read file", err)
+		return "", utils.NewBadRequestError("Failed to read file", err)
 	}
 
 	mimeType := http.DetectContentType(buffer)
@@ -131,7 +131,7 @@ func (service *imageService) validateImageFile(reader io.Reader, fileSize int64,
 	}
 
 	if !isAllowedMimeType {
-		return "", errors.NewBadRequestError("Invalid MIME type: "+mimeType, nil)
+		return "", utils.NewBadRequestError("Invalid MIME type: "+mimeType, nil)
 	}
 
 	fileExtension := ext[1:]
@@ -140,7 +140,7 @@ func (service *imageService) validateImageFile(reader io.Reader, fileSize int64,
 	}
 
 	if !strings.HasSuffix(mimeType, fileExtension) {
-		return "", errors.NewBadRequestError("MIME type "+mimeType+" does not match file extension "+ext[1:], nil)
+		return "", utils.NewBadRequestError("MIME type "+mimeType+" does not match file extension "+ext[1:], nil)
 	}
 
 	return ext, nil
@@ -158,7 +158,7 @@ func (service *imageService) ValidateMultipartImage(file multipart.File, fileHea
 
 	// Reset file pointer to start (for further processing)
 	if _, err := file.Seek(0, io.SeekStart); err != nil {
-		return errors.NewBadRequestError("Failed to reset file pointer: %w", err)
+		return utils.NewBadRequestError("Failed to reset file pointer: %w", err)
 	}
 
 	return nil

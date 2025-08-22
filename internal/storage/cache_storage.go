@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"time"
 
@@ -48,7 +49,12 @@ func (storage *cacheStorage) Ping(ctx context.Context) error {
 }
 
 func (storage *cacheStorage) GetKey(ctx context.Context, key string) (string, error) {
-	value, err := storage.client.Get(ctx, key).Result()
+	stringCmd := storage.client.Get(ctx, key)
+	if stringCmd == nil {
+		return "", errors.New("stringCmd is nil")
+	}
+
+	value, err := stringCmd.Result()
 	if err != nil {
 		logger.Debugf(ctx, "[CACHE] Error getting key '%s': %v", key, err)
 		return "", err
@@ -59,7 +65,12 @@ func (storage *cacheStorage) GetKey(ctx context.Context, key string) (string, er
 }
 
 func (storage *cacheStorage) GetInt64(ctx context.Context, key string) (int64, error) {
-	value, err := storage.client.Get(ctx, key).Int64()
+	int64Cmd := storage.client.Get(ctx, key)
+	if int64Cmd == nil {
+		return 0, errors.New("int64Cmd is nil")
+	}
+
+	value, err := int64Cmd.Int64()
 	if err != nil {
 		logger.Debugf(ctx, "[CACHE] Error getting key '%s': %v", key, err)
 		return 0, err
@@ -70,7 +81,12 @@ func (storage *cacheStorage) GetInt64(ctx context.Context, key string) (int64, e
 }
 
 func (storage *cacheStorage) SetKey(ctx context.Context, key string, value interface{}, expiration time.Duration) error {
-	err := storage.client.Set(ctx, key, value, expiration).Err()
+	setCmd := storage.client.Set(ctx, key, value, expiration)
+	if setCmd == nil {
+		return errors.New("setCmd is nil")
+	}
+
+	err := setCmd.Err()
 	if err != nil {
 		logger.Debugf(ctx, "[CACHE] Error adding key '%s': %v", key, err)
 		return err
@@ -81,7 +97,12 @@ func (storage *cacheStorage) SetKey(ctx context.Context, key string, value inter
 }
 
 func (storage *cacheStorage) DeleteKey(ctx context.Context, key string) error {
-	err := storage.client.Del(ctx, key).Err()
+	deleteCmd := storage.client.Del(ctx, key)
+	if deleteCmd == nil {
+		return errors.New("deleteCmd is nil")
+	}
+
+	err := deleteCmd.Err()
 	if err == redis.Nil {
 		return nil
 	} else if err != nil {

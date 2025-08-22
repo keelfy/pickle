@@ -82,6 +82,7 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
+	github.com/strukturag/goacceptlanguageparser v0.0.0-20160314151936-7224a0cc2c17 // indirect
 	github.com/swaggo/files v1.0.1 // indirect
 	github.com/vpetrigo/go-twitch-ws v0.1.2 // indirect
 	github.com/yuin/gopher-lua v1.1.1 // indirect

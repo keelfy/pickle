@@ -6,7 +6,7 @@ import (
 
 	"github.com/pickle.pw/monolith/internal/logger"
 	"github.com/pickle.pw/monolith/internal/storage"
-	"github.com/pickle.pw/monolith/internal/types"
+	"github.com/pickle.pw/monolith/internal/transport/http/responses"
 	"github.com/pickle.pw/monolith/internal/utils"
 )
 
@@ -33,13 +33,13 @@ func NewStatusHandler(sqlDb storage.RelationalStorage, elastic storage.ElasticSt
 // @Tags status
 // @Accept json
 // @Produce json
-// @Success 200 {object} types.StatusRes
-// @Failure 500 {object} types.StatusRes
+// @Success 200 {object} responses.StatusRes
+// @Failure 500 {object} responses.StatusRes
 // @Router /v1/health [get]
 func (handler *statusHandler) Health(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	response := &types.StatusRes{
+	response := &responses.StatusRes{
 		API:      "OK",
 		Database: "OK",
 		Search:   "OK",

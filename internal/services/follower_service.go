@@ -7,19 +7,18 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	db "github.com/pickle.pw/monolith/db/sqlc"
-	"github.com/pickle.pw/monolith/internal/errors"
+	"github.com/pickle.pw/monolith/internal/domain"
 	"github.com/pickle.pw/monolith/internal/storage"
 	"github.com/pickle.pw/monolith/internal/utils"
 	"golang.org/x/sync/singleflight"
 )
 
 type FollowerService interface {
-	Follow(ctx context.Context, userId uuid.UUID, followerId uuid.UUID) error
-	Unfollow(ctx context.Context, userId uuid.UUID, followerId uuid.UUID) error
-	CountFollowers(ctx context.Context, userId uuid.UUID) (int64, error)
-	GetFollows(ctx context.Context, followerId uuid.UUID) ([]*db.Profile, error)
-	IsFollowing(ctx context.Context, userId uuid.UUID, followerId uuid.UUID) (bool, error)
+	Follow(ctx context.Context, userID uuid.UUID, followerID uuid.UUID) error
+	Unfollow(ctx context.Context, userID uuid.UUID, followerID uuid.UUID) error
+	CountFollowers(ctx context.Context, userID uuid.UUID) (int64, error)
+	GetFollows(ctx context.Context, followerID uuid.UUID) ([]*domain.DetailedUser, error)
+	IsFollowing(ctx context.Context, userID uuid.UUID, followerID uuid.UUID) (bool, error)
 }
 
 type followerService struct {
@@ -36,84 +35,56 @@ func NewFollowerService(sqlDb storage.RelationalStorage, cache storage.CacheStor
 	}
 }
 
-func (service *followerService) getFollowerCountKey(userId uuid.UUID) string {
+func (s *followerService) getFollowerCountKey(userId uuid.UUID) string {
 	return fmt.Sprintf("follower_count:%s", userId.String())
 }
 
-func (service *followerService) clearFollowerCountCache(ctx context.Context, userId uuid.UUID) {
-	cacheKey := service.getFollowerCountKey(userId)
-	_ = service.cache.DeleteKey(ctx, cacheKey)
-	service.group.Forget(cacheKey)
+func (s *followerService) clearFollowerCountCache(ctx context.Context, userID uuid.UUID) {
+	cacheKey := s.getFollowerCountKey(userID)
+	_ = s.cache.DeleteKey(ctx, cacheKey)
+	s.group.Forget(cacheKey)
 }
 
-func (service *followerService) Follow(ctx context.Context, userId uuid.UUID, followerId uuid.UUID) error {
-	isFollowing, err := service.IsFollowing(ctx, userId, followerId)
-	if err != nil {
-		return err
-	}
-
-	if isFollowing {
-		return errors.NewBadRequestError("User is already following target user", nil)
-	}
-
-	err = service.sqlDb.Queries().InsertFollower(ctx, db.InsertFollowerParams{
-		UserID:     userId,
-		FollowerID: followerId,
-	})
+func (s *followerService) Follow(ctx context.Context, userID uuid.UUID, followerID uuid.UUID) error {
+	err := s.sqlDb.Queries().InsertFollower(ctx, userID, followerID)
 	if err == pgx.ErrNoRows {
-		return errors.NewNotFoundError("Follower not found", nil)
+		return utils.NewNotFoundError("Follower not found", nil)
 	} else if err != nil {
-		return errors.NewInternalServerError("Error occurred following user", err)
+		return utils.NewInternalServerError("Error occurred following user", err)
 	}
 
-	service.clearFollowerCountCache(ctx, userId)
+	s.clearFollowerCountCache(ctx, userID)
 	return nil
 }
 
-func (service *followerService) Unfollow(ctx context.Context, userId uuid.UUID, followerId uuid.UUID) error {
-	isFollowing, err := service.IsFollowing(ctx, userId, followerId)
-	if err != nil {
-		return err
-	}
-
-	if !isFollowing {
-		return errors.NewBadRequestError("User is not following target user", nil)
-	}
-
-	if userId == followerId {
-		return errors.NewBadRequestError("User cannot unfollow themselves", nil)
-	}
-
-	err = service.sqlDb.Queries().DeleteFollower(ctx, db.DeleteFollowerParams{
-		UserID:     userId,
-		FollowerID: followerId,
-	})
+func (s *followerService) Unfollow(ctx context.Context, userID uuid.UUID, followerID uuid.UUID) error {
+	err := s.sqlDb.Queries().DeleteFollower(ctx, userID, followerID)
 	if err == pgx.ErrNoRows {
-		return errors.NewNotFoundError("Follower not found", nil)
+		return utils.NewNotFoundError("Follower not found", nil)
 	} else if err != nil {
-		return errors.NewInternalServerError("Error occurred unfollowing user", err)
+		return utils.NewInternalServerError("Error occurred unfollowing user", err)
 	}
 
-	service.clearFollowerCountCache(ctx, userId)
+	s.clearFollowerCountCache(ctx, userID)
 	return nil
 }
 
-func (service *followerService) CountFollowers(ctx context.Context, userId uuid.UUID) (int64, error) {
-	cacheKey := service.getFollowerCountKey(userId)
-	count, err := service.cache.GetInt64(ctx, cacheKey)
+func (s *followerService) CountFollowers(ctx context.Context, userID uuid.UUID) (int64, error) {
+	cacheKey := s.getFollowerCountKey(userID)
+	count, err := s.cache.GetInt64(ctx, cacheKey)
 	if err == nil {
 		return count, nil
 	}
 
-	value, err, _ := service.group.Do(cacheKey, func() (interface{}, error) {
-		count, err := service.sqlDb.Queries().CountFollowers(ctx, userId)
+	value, err, _ := s.group.Do(cacheKey, func() (interface{}, error) {
+		count, err := s.sqlDb.Queries().CountFollowers(ctx, userID)
 		if err == pgx.ErrNoRows {
-			return 0, errors.NewNotFoundError("User not found", nil)
+			return 0, utils.NewNotFoundError("User not found", nil)
 		} else if err != nil {
-			return 0, errors.NewInternalServerError("Error occurred counting followers", err)
+			return 0, utils.NewInternalServerError("Error occurred counting followers", err)
 		}
 
-		_ = service.cache.SetKey(ctx, cacheKey, count, 12*time.Hour)
+		_ = s.cache.SetKey(ctx, cacheKey, count, 12*time.Hour)
 		return count, nil
 	})
 	if err != nil {
@@ -122,33 +93,35 @@ func (service *followerService) CountFollowers(ctx context.Context, userId uuid.
 
 	count, err = utils.ConvertAnyToInt64(value)
 	if err != nil {
-		return 0, errors.NewInternalServerError("Error occurred counting followers", err)
+		return 0, utils.NewInternalServerError("Error occurred counting followers", err)
 	}
 	return count, nil
 }
 
-func (service *followerService) GetFollows(ctx context.Context, followerId uuid.UUID) ([]*db.Profile, error) {
-	follows, err := service.sqlDb.Queries().GetUserFollows(ctx, followerId)
+func (s *followerService) GetFollows(ctx context.Context, followerID uuid.UUID) ([]*domain.DetailedUser, error) {
+	follows, err := s.sqlDb.Queries().GetUserFollows(ctx, followerID)
 	if err == pgx.ErrNoRows {
-		return nil, errors.NewNotFoundError("Follower not found", nil)
+		return nil, utils.NewNotFoundError("Follower not found", nil)
 	} else if err != nil {
-		return nil, errors.NewInternalServerError("Error occurred getting user follows", err)
+		return nil, utils.NewInternalServerError("Error occurred getting user follows", err)
 	}
 
-	return follows, nil
+	users := make([]*domain.DetailedUser, 0, len(follows))
+	for _, follow := range follows {
+		users = append(users, follow)
+	}
+
+	return users, nil
 }
 
-func (service *followerService) IsFollowing(ctx context.Context, userId uuid.UUID, followerId uuid.UUID) (bool, error) {
-	if userId == followerId {
+func (s *followerService) IsFollowing(ctx context.Context, userID uuid.UUID, followerID uuid.UUID) (bool, error) {
+	if userID == followerID {
 		return true, nil
 	}
 
-	count, err := service.sqlDb.Queries().IsFollowing(ctx, db.IsFollowingParams{
-		UserID:     userId,
-		FollowerID: followerId,
-	})
+	count, err := s.sqlDb.Queries().IsFollowing(ctx, userID, followerID)
 	if err != nil {
-		return false, errors.NewInternalServerError("Error occurred checking if user is following target user", err)
+		return false, utils.NewInternalServerError("Error occurred checking if user is following target user", err)
 	}
 	return count > 0, nil
 }

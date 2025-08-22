@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/pickle.pw/monolith/internal/domain"
 )
 
 /** SYSTEM */
@@ -145,4 +147,13 @@ func GetTMDBBaseURL() string {
 
 func GetTMDBImageBaseURL() string {
 	return os.Getenv("TMDB_IMAGE_BASE_URL")
+}
+
+/** Order URL formats */
+
+func GetOrderURLFormats() map[domain.OrdererSource]string {
+	return map[domain.OrdererSource]string{
+		domain.OrdererSourceInternal: os.Getenv("ORDERER_PICKLE_URL_FORMAT"),
+		domain.OrdererSourceTwitch:   os.Getenv("ORDERER_TWITCH_URL_FORMAT"),
+	}
 }

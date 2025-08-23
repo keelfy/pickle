@@ -144,6 +144,7 @@ export default function SelectContentItemDialogContent() {
                       width={35}
                       height={35}
                       className="rounded-md p-1"
+                      unoptimized
                     />
                   )}
                   <div className="text-md">{title}</div>

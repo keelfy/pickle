@@ -385,6 +385,7 @@ export default function ApproveOrderDialogContent() {
                           width={35}
                           height={35}
                           className="h-8 w-8 rounded-md p-1"
+                          unoptimized
                         />
                       )}
                       {field.value.title ? (
@@ -452,6 +453,7 @@ export default function ApproveOrderDialogContent() {
                           width={35}
                           height={35}
                           className="h-8 w-8 rounded-md p-1"
+                          unoptimized
                         />
                       )}
                       {content.title}

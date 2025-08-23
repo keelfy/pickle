@@ -61,6 +61,7 @@ const EditablePoster = ({ value, defaultImageUrl, onChange }: Props) => {
           width={150}
           height={225}
           className="rounded-lg"
+          unoptimized
         />
       ) : (
         <div className="h-[225px] w-[150px] rounded-lg" />

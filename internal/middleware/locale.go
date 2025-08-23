@@ -5,9 +5,7 @@ import (
 	"net/http"
 	"slices"
 
-	"github.com/pickle.pw/monolith/internal/logger"
 	"github.com/pickle.pw/monolith/internal/utils"
-	"golang.org/x/text/language"
 )
 
 const LocaleCtxKey = "req.locale"
@@ -18,17 +16,17 @@ func LocaleMiddleware() func(http.Handler) http.Handler {
 			acceptLanguage := r.Header.Get("Accept-Language")
 			locale := utils.DefaultLocale
 			if acceptLanguage != "" {
-				acceptedLocales, _, err := language.ParseAcceptLanguage(acceptLanguage)
-				if err != nil {
-					logger.Errorf(r.Context(), "failed to parse accept language: %v", err)
-				}
+				// acceptedLocales, _, err := language.ParseAcceptLanguage(acceptLanguage)
+				// if err != nil {
+				// 	logger.Errorf(r.Context(), "failed to parse accept language: %v", err)
+				// }
 
-				for _, acceptedLocale := range acceptedLocales {
-					if slices.Contains(utils.AllowedLocales, acceptedLocale.String()) {
-						locale = acceptedLocale.String()
-						break
-					}
-				}
+				// for _, acceptedLocale := range acceptedLocales {
+				// 	if slices.Contains(utils.AllowedLocales, acceptedLocale.String()) {
+				// 		locale = acceptedLocale.String()
+				// 		break
+				// 	}
+				// }
 			} else {
 				localeQueryParam := r.URL.Query().Get("locale")
 				if localeQueryParam != "" {

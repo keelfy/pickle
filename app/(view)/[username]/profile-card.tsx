@@ -1,0 +1,136 @@
+import { SiInstagram } from '@icons-pack/react-simple-icons'
+import { Clapperboard, ShieldPlusIcon, SparklesIcon } from 'lucide-react'
+
+import { SiX } from '@icons-pack/react-simple-icons'
+
+import { SiYoutube } from '@icons-pack/react-simple-icons'
+
+import ProfileAvatar from '@/components/profile-avatar'
+import { Button } from '@/components/ui/button'
+import { getShortenedCount } from '@/lib/count-shortener'
+import { cn } from '@/lib/utils'
+import { Profile } from '@/lib/model/user'
+import { SiTwitch } from '@icons-pack/react-simple-icons'
+import { Gamepad } from 'lucide-react'
+import Link from 'next/link'
+import { FollowButton } from './follow-button'
+import ManualCreationDropdownMenu from './manual-creation-dropdown-menu'
+import ManualNoteCreationButton from './manual-note-creation-button'
+import SuggestionLinkCopyButton from './suggestion-link-copy-button'
+
+type Props = { profile: Profile; className?: string }
+
+export default function ProfileCard({ profile, className }: Props) {
+  return (
+    <div className={cn('min-w-80 space-y-4', className)}>
+      <div className="space-y-4">
+        <div className="space-y-0.5">
+          <div className="text-3xl font-bold">{profile.displayName}</div>
+          <div className="flex items-center gap-2 text-sm">
+            <div>@{profile.username}</div>
+            <div className="text-muted-foreground">&bull;</div>
+            <div>
+              {getShortenedCount(profile.counts?.followers ?? 0)} followers
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-6 pl-4">
+          <ProfileAvatar
+            avatarUrl={profile.avatarUrl}
+            size="lg"
+            className="h-36 w-36"
+          />
+          <div className="flex w-full flex-col gap-3">
+            <table className="w-min border-separate border-spacing-x-2">
+              <tbody>
+                <tr>
+                  <td>
+                    <Gamepad size="2rem" />
+                  </td>
+                  <td>
+                    <div className="flex flex-col items-center -space-y-0.5">
+                      <div className="text-xs text-muted-foreground">
+                        played
+                      </div>
+                      <div className="text-xl font-semibold">
+                        {profile.counts?.played ?? 0}
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <Clapperboard size="2rem" />
+                  </td>
+                  <td>
+                    <div className="flex flex-col items-center -space-y-0.5">
+                      <div className="text-xs text-muted-foreground">
+                        watched
+                      </div>
+                      <div className="text-xl font-semibold">
+                        {profile.counts?.watched ?? 0}
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <FollowButton className="w-full flex-1" />
+          </div>
+        </div>
+      </div>
+      <div className="grid gap-2">
+        {profile.suggestionPreferences?.enabled && (
+          <div className="flex items-center">
+            <Button className="w-full rounded-r-none" asChild>
+              <Link
+                href={`/suggest/${profile.username}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full"
+              >
+                <SparklesIcon />
+                Suggest content
+              </Link>
+            </Button>
+
+            <SuggestionLinkCopyButton className="rounded-l-none" />
+          </div>
+        )}
+        <div
+          className={cn(
+            'flex items-center',
+            !profile.context?.isAuthorized && 'hidden',
+          )}
+        >
+          <ManualNoteCreationButton className="flex-1 rounded-r-none">
+            <ShieldPlusIcon />
+            Add a title manually
+          </ManualNoteCreationButton>
+          <ManualCreationDropdownMenu className="rounded-l-none" />
+        </div>
+      </div>
+      <div className="rounded-xl bg-primary-foreground p-6 text-sm text-muted-foreground">
+        {(profile.description ?? '').length > 0 ? (
+          profile.description
+        ) : (
+          <div className="italic">No description provided yet.</div>
+        )}
+      </div>
+      <div className="ml-4 flex items-center gap-2">
+        <Button variant="secondary" size="icon">
+          <SiTwitch />
+        </Button>
+        <Button variant="secondary" size="icon">
+          <SiYoutube />
+        </Button>
+        <Button variant="secondary" size="icon">
+          <SiX />
+        </Button>
+        <Button variant="secondary" size="icon">
+          <SiInstagram />
+        </Button>
+      </div>
+    </div>
+  )
+}

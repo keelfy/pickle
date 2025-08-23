@@ -1,5 +1,5 @@
-import { Session } from "@ory/client-fetch";
+import { Session } from '@ory/client-fetch'
 
 export function isSessionActive(session: Session | undefined) {
-    return session?.active === true;
+  return session?.active === true
 }

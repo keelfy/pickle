@@ -1,50 +1,56 @@
-"use client";
+'use client'
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Check } from "lucide-react";
-import React from "react";
-import { ControllerRenderProps, FieldPath, FieldValues } from "react-hook-form";
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Check } from 'lucide-react'
+import React from 'react'
+import { ControllerRenderProps, FieldPath, FieldValues } from 'react-hook-form'
 
-type Props<TFieldValues extends FieldValues, N extends FieldPath<TFieldValues>> = {
-    value: string;
-    field: ControllerRenderProps<TFieldValues, N>;
-    disabled?: boolean;
+type Props<
+  TFieldValues extends FieldValues,
+  N extends FieldPath<TFieldValues>,
+> = {
+  value: string
+  field: ControllerRenderProps<TFieldValues, N>
+  disabled?: boolean
 }
 
-export default function EditableContentName<TFieldValues extends FieldValues, N extends FieldPath<TFieldValues>>({ value, field, disabled = false }: Props<TFieldValues, N>) {
-    const [isEditingName, setIsEditingName] = React.useState(false);
+export default function EditableContentName<
+  TFieldValues extends FieldValues,
+  N extends FieldPath<TFieldValues>,
+>({ value, field, disabled = false }: Props<TFieldValues, N>) {
+  const [isEditingName, setIsEditingName] = React.useState(false)
 
-    const handleClick = () => {
-        if (disabled) return;
-        setIsEditingName(!isEditingName);
-    }
+  const handleClick = () => {
+    if (disabled) return
+    setIsEditingName(!isEditingName)
+  }
 
-    if (!isEditingName) {
-        return (
-            <Button
-                variant="link"
-                className="p-0 text-start font-bold text-lg cursor-text whitespace-normal w-fit h-fit"
-                type="button"
-                onClick={handleClick}
-            >
-                {value.length > 0 ? value : "Untitled"}
-            </Button>
-        )
-    }
-
+  if (!isEditingName) {
     return (
-        <div className="flex items-center gap-2 mt-2">
-            <Input className="flex-1" {...field} />
-            <Button
-                size="icon"
-                variant="secondary"
-                type="button"
-                className="text-green-500"
-                onClick={handleClick}
-            >
-                <Check />
-            </Button>
-        </div>
+      <Button
+        variant="link"
+        className="h-fit w-fit cursor-text whitespace-normal p-0 text-start text-lg font-bold"
+        type="button"
+        onClick={handleClick}
+      >
+        {value.length > 0 ? value : 'Untitled'}
+      </Button>
     )
+  }
+
+  return (
+    <div className="mt-2 flex items-center gap-2">
+      <Input className="flex-1" {...field} />
+      <Button
+        size="icon"
+        variant="secondary"
+        type="button"
+        className="text-green-500"
+        onClick={handleClick}
+      >
+        <Check />
+      </Button>
+    </div>
+  )
 }

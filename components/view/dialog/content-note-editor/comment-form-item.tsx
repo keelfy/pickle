@@ -1,27 +1,39 @@
-import { Textarea } from "@/components/ui/textarea";
-import { FormControl } from "@/components/ui/form";
-import { MessageCircleIcon } from "lucide-react";
-import { FormLabel } from "@/components/ui/form";
-import { FormItem } from "@/components/ui/form";
-import { ControllerRenderProps, FieldPath, FieldValues } from "react-hook-form";
+import { Textarea } from '@/components/ui/textarea'
+import { FormControl } from '@/components/ui/form'
+import { MessageCircleIcon } from 'lucide-react'
+import { FormLabel } from '@/components/ui/form'
+import { FormItem } from '@/components/ui/form'
+import { ControllerRenderProps, FieldPath, FieldValues } from 'react-hook-form'
+import { cn } from '@/lib/utils'
 
 type Props<V extends FieldValues, N extends FieldPath<V>> = {
-    field: ControllerRenderProps<V, N>;
+  field: ControllerRenderProps<V, N>
 }
 
-export default function CommentFormItem<V extends FieldValues, N extends FieldPath<V>>({ field }: Props<V, N>) {
-    return (
-        <FormItem className="space-y-2">
-            <FormLabel className="text-md font-semibold flex items-center gap-2">
-                <MessageCircleIcon className="w-4 h-4" />
-                Comment
-            </FormLabel>
-            <FormControl>
-                <Textarea
-                    {...field}
-                    placeholder="Type your comment here."
-                />
-            </FormControl>
-        </FormItem>
-    )
+export default function CommentFormItem<
+  V extends FieldValues,
+  N extends FieldPath<V>,
+>({ field }: Props<V, N>) {
+  return (
+    <FormItem className="space-y-2">
+      <FormLabel className="text-md flex items-center gap-2 font-semibold">
+        <MessageCircleIcon className="size-4" />
+        Comment
+        <span className="text-sm text-muted-foreground">
+          &nbsp;(
+          <span
+            className={cn(
+              (field.value?.length ?? 0) > 1000 && 'text-orange-500',
+            )}
+          >
+            {field.value?.length ?? 0}
+          </span>
+          /1000)
+        </span>
+      </FormLabel>
+      <FormControl>
+        <Textarea {...field} placeholder="Type your comment here." />
+      </FormControl>
+    </FormItem>
+  )
 }

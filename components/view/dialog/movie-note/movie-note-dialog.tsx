@@ -1,45 +1,33 @@
-"use client";
+'use client'
 
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { useModalStore } from "@/providers/modal";
-import dynamic from "next/dynamic";
-import { useMemo } from "react";
-import LoadingDialogContent from "../loading-dialog-content";
-import { ModalType } from "@/stores/modal";
+import DialogWrapper from '@/components/ui/dialog-wrapper'
+import { useModalStore } from '@/providers/modal'
+import { ModalType } from '@/stores/modal'
+import dynamic from 'next/dynamic'
+import LoadingDialogContent from '../loading-dialog-content'
 
 const DynamicMovieNoteDialogContent = dynamic(
-    () => import("./movie-note-dialog-content"),
-    {
-        loading: () => <LoadingDialogContent />,
-    }
-);
+  () => import('./movie-note-dialog-content'),
+  {
+    loading: () => <LoadingDialogContent />,
+  },
+)
 
 export type MovieNoteDialogParams = {
-    noteId: string;
+  noteId: string
 }
 
 export default function MovieNoteDialog() {
-    const { currentModal, modalParams, closeModal } = useModalStore(
-        (state) => state
-    );
+  const modalParams = useModalStore((state) => state.modalParams)
 
-    // modalParams contains an id of the note
-    const isOpen = useMemo(
-        () =>
-            currentModal === ModalType.MovieNote &&
-            modalParams?.noteId !== undefined,
-        [currentModal, modalParams?.noteId]
-    );
-
-    if (!isOpen) {
-        return null;
-    }
-
-    return (
-        <Dialog open={isOpen} onOpenChange={closeModal}>
-            <DialogContent className="overflow-y-auto max-h-screen">
-                {isOpen && <DynamicMovieNoteDialogContent />}
-            </DialogContent>
-        </Dialog>
-    );
+  return (
+    <DialogWrapper
+      modalType={ModalType.MovieNote}
+      validateModalParams={(params) => {
+        return typeof params?.noteId === 'string' && params.noteId.length > 0
+      }}
+    >
+      <DynamicMovieNoteDialogContent noteId={modalParams!.noteId as string} />
+    </DialogWrapper>
+  )
 }

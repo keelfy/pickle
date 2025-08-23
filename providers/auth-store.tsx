@@ -1,44 +1,42 @@
-"use client";
+'use client'
 
-import React from "react";
-import { useStore } from "zustand";
+import React from 'react'
+import { useStore } from 'zustand'
 
-import createAuthStore, { AuthStore } from "@/stores/auth-store";
-import { PublicProfile } from "@/utils/api/types";
-import { Session } from "@ory/client-fetch";
+import { DetailedUser } from '@/lib/model/user'
+import createAuthStore, { AuthStore } from '@/stores/auth-store'
+import { Session } from '@ory/client-fetch'
 
-export type AuthStoreApi = ReturnType<typeof createAuthStore>;
+export type AuthStoreApi = ReturnType<typeof createAuthStore>
 
-export const AuthStoreContext = React.createContext<
-    AuthStoreApi | undefined
->(undefined);
+export const AuthStoreContext = React.createContext<AuthStoreApi | undefined>(
+  undefined,
+)
 
 export type AuthStoreProviderProps = React.PropsWithChildren<{
-    profile: PublicProfile | undefined;
-    session: Session | undefined;
-}>;
+  user: DetailedUser | undefined
+  session: Session | undefined
+}>
 
 export default function AuthStoreProvider({
-    children,
-    ...props
+  children,
+  ...props
 }: AuthStoreProviderProps) {
-    const storeRef = React.useRef<AuthStoreApi>(createAuthStore(props));
+  const storeRef = React.useRef<AuthStoreApi>(createAuthStore(props))
 
-    return (
-        <AuthStoreContext.Provider value={storeRef.current}>
-            {children}
-        </AuthStoreContext.Provider>
-    );
+  return (
+    <AuthStoreContext.Provider value={storeRef.current}>
+      {children}
+    </AuthStoreContext.Provider>
+  )
 }
 
 export function useAuthStore<T>(selector: (store: AuthStore) => T): T {
-    const storeContext = React.useContext(AuthStoreContext);
+  const storeContext = React.useContext(AuthStoreContext)
 
-    if (!storeContext) {
-        throw new Error(
-            `useAuthStore must be used within AuthStoreProvider`
-        );
-    }
+  if (!storeContext) {
+    throw new Error(`useAuthStore must be used within AuthStoreProvider`)
+  }
 
-    return useStore(storeContext, selector);
+  return useStore(storeContext, selector)
 }

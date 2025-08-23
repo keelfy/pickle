@@ -1,22 +1,27 @@
-import { OryClientConfiguration } from "@ory/elements-react/index";
+import type { OryClientConfiguration } from '@ory/elements-react'
 
 const config: OryClientConfiguration = {
-    name: "pickle",
-    sdk: {
-        url: "https://www.pickle.com/api/v1/auth/sdk",
-        options: {
-            basePath: "https://www.pickle.com/api/v1/auth/sdk",
-        }
+  sdk: {
+    url: process.env.NEXT_PUBLIC_ORY_SDK_URL,
+    options: {
+      basePath: process.env.NEXT_PUBLIC_ORY_SDK_URL,
     },
-    project: {
-        registration_enabled: true,
-        verification_enabled: false,
-        recovery_enabled: false,
-        recovery_ui_url: "https://www.pickle.com/auth/recovery",
-        registration_ui_url: "https://pickle.com/auth/registration",
-        verification_ui_url: "https://pickle.com/auth/verification",
-        login_ui_url: "https://pickle.com/auth/login",
-    }
+  },
+  project: {
+    default_locale: 'en',
+    default_redirect_url: '/',
+    error_ui_url: '/error',
+    locale_behavior: 'force_default',
+    name: 'pickle',
+    registration_enabled: true,
+    verification_enabled: true,
+    recovery_enabled: true,
+    registration_ui_url: '/auth/registration',
+    verification_ui_url: '/auth/verification',
+    recovery_ui_url: '/auth/recovery',
+    login_ui_url: '/auth/login',
+    settings_ui_url: '/settings',
+  },
 }
 
-export default config;
+export default config

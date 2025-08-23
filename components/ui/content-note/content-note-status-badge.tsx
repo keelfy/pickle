@@ -1,42 +1,50 @@
-import { Badge } from "@/components/ui/badge";
-import { ContentNoteStatusIcon } from "@/components/ui/content-note/content-note-status-icon";
-import { localizeContentNoteStatus } from "@/lib/localize-types";
-import { cn } from "@/lib/utils";
-import { ContentNoteStatus, GameNoteStatus, MovieNoteStatus } from "@/utils/api/types";
+import { Badge } from '@/components/ui/badge'
+import { ContentNoteStatusIcon } from '@/components/ui/content-note/content-note-status-icon'
+import { localizeContentNoteStatus } from '@/lib/localize-types'
+import { cn } from '@/lib/utils'
+import { ContentNoteStatus } from '@/lib/model/content-note'
+import { GameNoteStatus, MovieNoteStatus } from '@/lib/model/content-note'
 
-type Props = {
-    status: ContentNoteStatus | undefined;
-    className?: string;
-};
-
-const getStatusBadgeVariant = (status: GameNoteStatus | MovieNoteStatus | undefined) => {
-    switch (status) {
-        case "dropped":
-        case "skipped":
-            return "destructive";
-        case "finished":
-        case "watched":
-        case "playing":
-            return "default";
-        case "paused":
-        case "planned":
-            return "secondary";
-        default:
-            return "outline";
-    }
+type Props = React.ComponentProps<typeof Badge> & {
+  status: ContentNoteStatus | undefined
+  className?: string
 }
 
-export default function ContentNoteStatusBadge({ status, className }: Props) {
-    const statusLabel = localizeContentNoteStatus(status);
-    const statusBadgeVariant = getStatusBadgeVariant(status);
+export const getStatusBadgeVariant = (
+  status: GameNoteStatus | MovieNoteStatus | undefined,
+) => {
+  switch (status) {
+    case 'dropped':
+    case 'skipped':
+      return 'destructive'
+    case 'finished':
+    case 'watched':
+    case 'playing':
+      return 'default'
+    case 'paused':
+    case 'planned':
+      return 'secondary'
+    default:
+      return 'outline'
+  }
+}
 
-    return (
-        <Badge
-            variant={statusBadgeVariant}
-            className={cn("w-min h-min flex items-center gap-1", className)}
-        >
-            <ContentNoteStatusIcon status={status} classname="w-4 h-4" />
-            <label>{statusLabel}</label>
-        </Badge>
-    );
+export default function ContentNoteStatusBadge({
+  status,
+  className,
+  ...props
+}: Props) {
+  const statusLabel = localizeContentNoteStatus(status)
+  const statusBadgeVariant = getStatusBadgeVariant(status)
+
+  return (
+    <Badge
+      variant={statusBadgeVariant}
+      className={cn('flex h-min w-min items-center gap-1', className)}
+      {...props}
+    >
+      <ContentNoteStatusIcon status={status ?? 'planned'} className="size-4" />
+      <label>{statusLabel}</label>
+    </Badge>
+  )
 }

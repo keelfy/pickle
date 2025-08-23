@@ -1,16 +1,16 @@
-"use client";
+'use client'
 
-import { Dialog } from "@/components/ui/dialog";
-import { useModalStore } from "@/providers/modal";
+import { Dialog } from '@/components/ui/dialog'
+import { useModalStore } from '@/providers/modal'
 
 export default function DropdownMenuDialogWrapper({
-    children,
+  children,
 }: React.PropsWithChildren) {
-    const { currentModal, closeModal } = useModalStore((state) => state);
+  const { currentModal, closeModal } = useModalStore((state) => state)
 
-    return (
-        <Dialog open={currentModal !== undefined} onOpenChange={closeModal}>
-            {children}
-        </Dialog>
-    );
+  return (
+    <Dialog open={currentModal !== undefined} onOpenChange={closeModal}>
+      {children}
+    </Dialog>
+  )
 }

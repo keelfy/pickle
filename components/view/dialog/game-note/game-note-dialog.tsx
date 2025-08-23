@@ -1,45 +1,32 @@
-"use client";
+'use client'
 
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { useModalStore } from "@/providers/modal";
-import dynamic from "next/dynamic";
-import { useMemo } from "react";
-import LoadingDialogContent from "../loading-dialog-content";
-import { ModalType } from "@/stores/modal";
+import DialogWrapper from '@/components/ui/dialog-wrapper'
+import { useModalStore } from '@/providers/modal'
+import { ModalType } from '@/stores/modal'
+import dynamic from 'next/dynamic'
+import LoadingDialogContent from '../loading-dialog-content'
 
 const DynamicGameNoteDialogContent = dynamic(
-    () => import("./game-note-dialog-content"),
-    {
-        loading: () => <LoadingDialogContent />,
-    }
-);
+  () => import('./game-note-dialog-content'),
+  {
+    loading: () => <LoadingDialogContent />,
+  },
+)
 
 export type GameNoteDialogParams = {
-    noteId: string;
+  noteId: string
 }
 
 export default function GameNoteDialog() {
-    const { currentModal, modalParams, closeModal } = useModalStore(
-        (state) => state
-    );
-
-    // modalParams contains an id of the note
-    const isOpen = useMemo(
-        () =>
-            currentModal === ModalType.GameNote &&
-            modalParams?.noteId !== undefined,
-        [currentModal, modalParams?.noteId]
-    );
-
-    if (!isOpen) {
-        return null;
-    }
-
-    return (
-        <Dialog open={isOpen} onOpenChange={closeModal}>
-            <DialogContent className="overflow-y-auto max-h-screen">
-                {isOpen && <DynamicGameNoteDialogContent />}
-            </DialogContent>
-        </Dialog>
-    );
+  const modalParams = useModalStore((state) => state.modalParams)
+  return (
+    <DialogWrapper
+      modalType={ModalType.GameNote}
+      validateModalParams={(params) => {
+        return typeof params?.noteId === 'string' && params.noteId.length > 0
+      }}
+    >
+      <DynamicGameNoteDialogContent noteId={modalParams!.noteId as string} />
+    </DialogWrapper>
+  )
 }

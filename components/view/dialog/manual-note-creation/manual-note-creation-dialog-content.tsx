@@ -1,131 +1,99 @@
-"use client";
+'use client'
 
-import { Button } from "@/components/ui/button";
-import ContentCategoryIcon from "@/components/ui/content-category-icon";
-import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { localizeContentCategory } from "@/lib/localize-types";
-import { useModalStore } from "@/providers/modal";
-import { ModalType } from "@/stores/modal";
-import { CONTENT_CATEGORIES, ContentCategory } from "@/utils/api/types";
-import React from "react";
+import { Button } from '@/components/ui/button'
+import ContentCategoryIcon from '@/components/ui/content-category-icon'
+import { DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer'
+import { localizeContentCategory } from '@/lib/localize-types'
+import {
+  ContentCategory,
+  ContentCategoryEnum,
+  VISIBLE_CONTENT_CATEGORIES,
+} from '@/lib/model/content'
+import { useMediaQuery } from '@/lib/use-media-query'
+import { useModalStore } from '@/providers/modal'
+import { ModalType } from '@/stores/modal'
+import React from 'react'
 
-const ENABLED_CATEGORIES = ["games", "movies"];
+const ENABLED_CATEGORIES = [
+  ContentCategoryEnum.Games,
+  ContentCategoryEnum.Movies,
+]
 
 export default function ManualNoteCreationDialogContent() {
-    const { openModal } = useModalStore((state) => state);
+  const { openModal } = useModalStore((state) => state)
 
-    // const [selectedCategory, setSelectedCategory] =
-    //     React.useState<ContentCategory>();
+  // const [selectedCategory, setSelectedCategory] =
+  //     React.useState<ContentCategory>();
 
-    // const handleManualCreationClick = () => {
-    //     switch (selectedCategory) {
-    //         case "games":
-    //             openModal(ModalType.GameNoteCreator);
-    //             break;
-    //         case "movies":
-    //             openModal(ModalType.MovieNoteCreator);
-    //             break;
-    //         default:
-    //             break;
-    //     }
-    // };
+  // const handleManualCreationClick = () => {
+  //     switch (selectedCategory) {
+  //         case "games":
+  //             openModal(ModalType.GameNoteCreator);
+  //             break;
+  //         case "movies":
+  //             openModal(ModalType.MovieNoteCreator);
+  //             break;
+  //         default:
+  //             break;
+  //     }
+  // };
 
-    const handleExternalSearchClick = (category: ContentCategory) =>
-        openModal(ModalType.SelectContentItem, { category });
+  const handleExternalSearchClick = (category: ContentCategory) =>
+    openModal(ModalType.SelectContentItem, { category })
 
-    const isDisabled = React.useCallback((category: ContentCategory) => !ENABLED_CATEGORIES.includes(category), []);
+  const isDisabled = React.useCallback(
+    (category: ContentCategory) =>
+      !ENABLED_CATEGORIES.includes(category as ContentCategoryEnum),
+    [],
+  )
 
-    return (
-        <>
-            <div className="hidden">
-                <DialogHeader>
-                    <DialogTitle>Manual content creation</DialogTitle>
-                </DialogHeader>
-            </div>
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
 
-            <div className="grid gap-6">
-                <div className="grid gap-4">
-                    <h2 className="text-lg font-bold text-center">
-                        What do you want to add to your profile?
-                    </h2>
-                    <div className="grid grid-cols-2 gap-4">
-                        {CONTENT_CATEGORIES.map((category) => (
-                            <Button
-                                key={category}
-                                size="lg"
-                                className="text-md w-full"
-                                disabled={isDisabled(category)}
-                                onClick={() => handleExternalSearchClick(category)}
-                            // onClick={() =>
-                            //     setSelectedCategory((prev) =>
-                            //         prev === category ? undefined : category
-                            //     )
-                            // }
-                            >
-                                <ContentCategoryIcon
-                                    category={category}
-                                    className="w-6 h-6"
-                                />
-                                {localizeContentCategory(category)}
-                            </Button>
-                        ))}
-                    </div>
-                </div>
+  return (
+    <>
+      <DrawerHeader className="block lg:hidden">
+        <DrawerTitle>What do you want to add to your profile?</DrawerTitle>
+        <DrawerDescription>
+          Select the category of content you want to add to your profile.
+        </DrawerDescription>
+      </DrawerHeader>
 
-                {/* <Collapsible open={!!selectedCategory}>
-                    <CollapsibleContent>
-                        <div className="grid gap-3">
-                            <div className="flex flex-col items-center">
-                                <h2 className="text-lg font-bold text-center">
-                                    Is it a real{" "}
-                                    {localizeContentCategory(
-                                        selectedCategory!
-                                    ).toLowerCase()}
-                                    ?
-                                </h2>
-                                <p className="text-muted-foreground text-center text-sm">
-                                    You can auto-fill metadata (poster, release
-                                    date, etc.).
-                                </p>
-                            </div>
+      <div className="hidden">
+        <DialogHeader>
+          <DialogTitle>Manual content creation</DialogTitle>
+        </DialogHeader>
+      </div>
 
-                            <div className="flex items-center gap-2">
-                                <Button
-                                    variant="default"
-                                    className="w-full"
-                                    disabled={!selectedCategory || selectedCategory !== "games"}
-                                    onClick={handleExternalSearchClick}
-                                >
-                                    <SearchIcon />
-                                    <p>
-                                        Search in{" "}
-                                        <span className="font-bold">
-                                            {selectedCategory === "games"
-                                                ? "IGDB"
-                                                : "TMDB"}
-                                        </span>
-                                    </p>
-                                </Button>
+      <div className="grid gap-4 p-6 lg:p-0">
+        <h2 className="hidden text-center text-lg font-bold lg:block">
+          What do you want to add to your profile?
+        </h2>
 
-                                <div className="flex flex-col items-center">
-                                    <p className="text-muted-foreground text-center text-sm">
-                                        or
-                                    </p>
-                                </div>
-
-                                <Button
-                                    variant="secondary"
-                                    className="w-full"
-                                    onClick={handleManualCreationClick}
-                                >
-                                    <p>Fill the card manually</p>
-                                    <ArrowRightIcon />
-                                </Button>
-                            </div>
-                        </div>
-                    </CollapsibleContent>
-                </Collapsible> */}
-            </div>
-        </>
-    );
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {VISIBLE_CONTENT_CATEGORIES.map((category: ContentCategory) => (
+            <Button
+              key={category}
+              size="lg"
+              className="text-md w-full"
+              disabled={isDisabled(category)}
+              onClick={() => handleExternalSearchClick(category)}
+              // onClick={() =>
+              //     setSelectedCategory((prev) =>
+              //         prev === category ? undefined : category
+              //     )
+              // }
+            >
+              <ContentCategoryIcon category={category} className="h-6 w-6" />
+              {localizeContentCategory(category)}
+            </Button>
+          ))}
+        </div>
+      </div>
+    </>
+  )
 }

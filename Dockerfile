@@ -25,6 +25,9 @@ RUN GOOS=linux CGO_ENABLED=0 GOARCH=amd64 go build -ldflags='-s' -o twitch-harbo
 FROM debian:bookworm-slim
 WORKDIR /app
 
+# Install ca-certificates
+RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+
 # Copy binary from buildx
 COPY --from=buildx /app/twitch-harbor .
 

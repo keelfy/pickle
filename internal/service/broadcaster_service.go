@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/nicklaw5/helix/v2"
 	"github.com/ory/client-go"
 	db "github.com/pickle-pw/twitch-harbor/db/sqlc"
@@ -118,8 +119,10 @@ func (s *broadcasterService) SaveBroadcasterPreferences(ctx context.Context, ses
 	}
 
 	auth, err := s.twitchAuthService.GetAuthByIdentityID(ctx, identityID)
-	if err != nil {
-		return model.NewInternalServerError("Failed to get auth", err)
+	if err == pgx.ErrNoRows {
+		return model.NewNotFoundError("broadcaster not found", err)
+	} else if err != nil {
+		return model.NewInternalServerError("failed to get auth", err)
 	}
 
 	helixRewards, err := s.twitchRewardService.GetAvailableTwitchRewards(ctx, session)

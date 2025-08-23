@@ -52,8 +52,10 @@ func (api *twitchHarborAPI) BuildAPI(ctx context.Context) (*chi.Mux, error) {
 	r.Use(chiMiddleware.Logger)
 	r.Use(chiMiddleware.Timeout(config.GetContextTimeoutMs() * time.Millisecond))
 
+	prefix := config.GetAPIPrefix()
+
 	// /v1 routes
-	r.Mount("/v1", api.v1RouteHandler())
+	r.Mount(prefix+"/v1", api.v1RouteHandler())
 
 	logger.Info(ctx, "API is ready")
 	return r, nil

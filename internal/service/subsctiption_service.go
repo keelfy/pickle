@@ -67,6 +67,8 @@ func (s *eventsubService) createHelixClientWithUserAuthorization(ctx context.Con
 		return nil, err
 	}
 
+	logger.Debugf(ctx, "auth before token refresh: %v", auth)
+
 	// refresh user access token
 	refresh, err := helixClient.RefreshUserAccessToken(helixClient.GetRefreshToken())
 	if err != nil {
@@ -74,7 +76,8 @@ func (s *eventsubService) createHelixClientWithUserAuthorization(ctx context.Con
 		return nil, err
 	}
 
-	fmt.Printf("token refresh: %v\n", refresh)
+	logger.Debugf(ctx, "auth after token refresh: %v", refresh)
+
 	helixClient.SetUserAccessToken(refresh.Data.AccessToken)
 	helixClient.SetRefreshToken(refresh.Data.RefreshToken)
 

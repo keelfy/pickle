@@ -24,6 +24,10 @@ func GetApiKey() string {
 	return os.Getenv("API_KEY")
 }
 
+func GetAPIPrefix() string {
+	return os.Getenv("API_PREFIX")
+}
+
 func GetContextTimeoutMs() time.Duration {
 	value, err := strconv.Atoi(os.Getenv("CONTEXT_TIMEOUT_MS"))
 	if err != nil {

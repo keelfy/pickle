@@ -66,6 +66,8 @@ func (h *webhookHandler) HandleWebhook(w http.ResponseWriter, r *http.Request) {
 	// TODO: handle broadcaster ID change?
 	// unsubscribe old one and subcribe a new one, delete all the tracked rewards for the previous one
 
+	logger.Debugf(ctx, "Twitch auth: %v", twitchAuth)
+
 	auth, err := h.twitchAuthService.CreateTwitchAuthorization(ctx, identityUUID, twitchAuth)
 	if err != nil {
 		logger.Errorf(ctx, "Failed to create twitch auth: %v", err)

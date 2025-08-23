@@ -27,7 +27,7 @@ export default async function LandingPage() {
         size="lg"
         asChild
       >
-        <Link href={profile ? `/${profile.username}` : '/sign-up'}>
+        <Link href={profile ? `/${profile.username}` : '/auth/login'}>
           {profile ? 'my profile' : 'get started'}
         </Link>
       </Button>

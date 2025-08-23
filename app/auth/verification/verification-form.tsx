@@ -385,7 +385,7 @@ const VerificationForm = ({
           Don&apos;t have an account?&nbsp;
           <Link
             href={{
-              pathname: '/sign-up',
+              pathname: '/auth/login',
               query: { goto },
             }}
             className="underline"

@@ -87,14 +87,14 @@ func NewPickleAPI(
 
 func (api *pickleAPI) BuildAPI(ctx context.Context) (*chi.Mux, error) {
 	// Apply Elasticsearch migrations
-	err := api.applyElasticsearchMigrations(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("Error occurred during Elasticsearch migrations: %v", err)
-	}
-	logger.Info(ctx, "Elasticsearch migrations applied")
+	// err := api.applyElasticsearchMigrations(ctx)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("Error occurred during Elasticsearch migrations: %v", err)
+	// }
+	// logger.Info(ctx, "Elasticsearch migrations applied")
 
 	// Setup IGDB sync scheduler
-	err = api.igdbSyncScheduler.SetupIGDBSync(ctx)
+	err := api.igdbSyncScheduler.SetupIGDBSync(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("Error occurred during IGDB sync scheduler setup: %v", err)
 	}

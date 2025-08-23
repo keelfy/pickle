@@ -19,7 +19,7 @@ COPY . .
 RUN if [ ! -f cmd/wire_gen.go ]; then cd cmd && wire; fi
 
 # Build binary with limited memory usage
-RUN GOOS=linux CGO_ENABLED=0 GOARCH=amd64 GOMAXPROCS=2 GOMEMLIMIT=256MiB go build -ldflags='-s' -o monolith ./cmd
+RUN GOOS=linux CGO_ENABLED=0 GOARCH=amd64 go build -ldflags='-s' -o monolith ./cmd
 
 # Runtime stage
 FROM debian:bookworm-slim

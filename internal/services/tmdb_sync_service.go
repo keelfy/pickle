@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/pickle.pw/monolith/internal/clients"
+	"github.com/pickle.pw/monolith/internal/config"
 	"github.com/pickle.pw/monolith/internal/domain"
 	"github.com/pickle.pw/monolith/internal/logger"
 	"github.com/pickle.pw/monolith/internal/mapper"
@@ -49,9 +50,9 @@ func (s *tmdbSyncService) TriggerMoviesSync(apiCtx context.Context, w http.Respo
 }
 
 var (
-	batchSize = 100
-	pageLimit = 10
-	rateLimit = 100 * time.Millisecond
+	batchSize  = 100
+	itemsLimit = config.GetTMDBSyncItemsLimit()
+	rateLimit  = 100 * time.Millisecond
 )
 
 func (s *tmdbSyncService) getLastSyncTimestamp(ctx context.Context, syncType domain.SyncType) *time.Time {
@@ -96,8 +97,8 @@ func (s *tmdbSyncService) getMoviesToProcess(response *domain.TMDBMovieChangesRe
 		pagesToProcess++
 	}
 
-	if pagesToProcess > pageLimit {
-		pagesToProcess = pageLimit
+	if itemsLimit > 0 && pagesToProcess > itemsLimit {
+		pagesToProcess = itemsLimit
 	}
 
 	moviesToProcess = response.TotalResults

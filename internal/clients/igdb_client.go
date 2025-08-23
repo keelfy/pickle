@@ -86,6 +86,8 @@ func (c *idgbClient) authenticate(ctx context.Context) error {
 	return nil
 }
 
+var itemsLimit = config.GetIGDBSyncItemsLimit()
+
 func (c *idgbClient) GetUpdatedGames(ctx context.Context, lastSyncTimestamp *time.Time) ([]*domain.IGDBGame, error) {
 	if err := c.authenticate(ctx); err != nil {
 		return nil, err
@@ -100,7 +102,7 @@ func (c *idgbClient) GetUpdatedGames(ctx context.Context, lastSyncTimestamp *tim
 	offset := 0
 	allGames := []*domain.IGDBGame{}
 
-	for offset < 500 { //offset < count {
+	for (offset < itemsLimit && itemsLimit > 0) || offset < count { //offset < count {
 		time.Sleep(requestDelay) // avoid rate limiting
 
 		games, err := c.fetchIDGBGames(ctx, lastSyncTimestamp, offset)

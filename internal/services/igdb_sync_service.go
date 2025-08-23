@@ -9,6 +9,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/pickle.pw/monolith/internal/clients"
+	"github.com/pickle.pw/monolith/internal/config"
 	"github.com/pickle.pw/monolith/internal/domain"
 	"github.com/pickle.pw/monolith/internal/logger"
 	"github.com/pickle.pw/monolith/internal/mapper"
@@ -48,6 +49,8 @@ func (s *igdbSyncService) TriggerGamesSync(w http.ResponseWriter, r *http.Reques
 	}()
 	w.WriteHeader(http.StatusOK)
 }
+
+var limit = config.GetIGDBSyncItemsLimit()
 
 func (s *igdbSyncService) SyncGames(ctx context.Context, syncType domain.SyncType) (err error) {
 	syncLog, err := s.sqlDB.Queries().CreateExternalSync(ctx, syncType)

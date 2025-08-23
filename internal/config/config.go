@@ -131,6 +131,24 @@ func GetTwitchClientSecret() string {
 	return os.Getenv("TWITCH_CLIENT_SECRET")
 }
 
+func GetIGDBSyncItemsLimit() int {
+	value, err := strconv.Atoi(os.Getenv("IGDB_SYNC_ITEMS_LIMIT"))
+	if err != nil {
+		log.Printf("Error parsing IGDB_SYNC_ITEMS_LIMIT: %v", err)
+		return -1
+	}
+	return value
+}
+
+func GetTMDBSyncItemsLimit() int {
+	value, err := strconv.Atoi(os.Getenv("TMDB_SYNC_ITEMS_LIMIT"))
+	if err != nil {
+		log.Printf("Error parsing TMDB_SYNC_ITEMS_LIMIT: %v", err)
+		return -1
+	}
+	return value
+}
+
 func GetIGDBImageURLFormat() string {
 	return os.Getenv("IGDB_IMAGE_URL_FORMAT")
 }

@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # Build stage
-FROM golang:1.24 AS buildx
+FROM golang:1.24-bullseye AS buildx
 WORKDIR /app
 
 # Download dependencies
@@ -19,11 +19,14 @@ COPY . .
 RUN if [ ! -f cmd/wire_gen.go ]; then cd cmd && wire; fi
 
 # Build binary with limited memory usage
-RUN GOOS=linux CGO_ENABLED=0 GOARCH=amd64 go build -ldflags='-s' -o monolith ./cmd
+RUN GOOS=linux CGO_ENABLED=0 GOARCH=amd64 GOMAXPROCS=2 go build -ldflags='-s' -o monolith ./cmd
 
 # Runtime stage
 FROM debian:bookworm-slim
 WORKDIR /app
+
+# Install ca-certificates
+RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
 
 # Copy binary from buildx
 COPY --from=buildx /app/monolith .

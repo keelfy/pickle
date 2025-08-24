@@ -19,7 +19,7 @@ export default function ErrorPage() {
   }, [id])
 
   return (
-    <div className="flex h-screen w-screen flex-col items-center justify-center">
+    <div className="flex h-svh w-screen flex-col items-center justify-center">
       <h1 className="text-2xl font-bold">
         We couldn&apos;t process your authentication request
       </h1>

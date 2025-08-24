@@ -28,7 +28,7 @@ export default function CreateOrderDialog() {
 
   return (
     <Dialog open={isOpen} onOpenChange={closeModal}>
-      <DialogContent className="max-h-screen overflow-y-auto">
+      <DialogContent className="max-h-svh overflow-y-auto">
         {isOpen && <DynamicCreateOrderDialogContent />}
       </DialogContent>
     </Dialog>

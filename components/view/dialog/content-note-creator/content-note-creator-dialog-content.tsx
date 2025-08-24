@@ -37,7 +37,7 @@ import {
 import { useMediaQuery } from '@/lib/use-media-query'
 import { useModalStore } from '@/providers/modal'
 import { useProfileStore } from '@/providers/profile-store'
-import { gameNoteStatusLabels } from '@/utils/api/constants'
+import { ApiType } from '@/utils/api/constants'
 import { CreateContentNoteReq } from '@/utils/api/request'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
@@ -70,6 +70,7 @@ type Props<
   category: ContentCategory
   contentId: string
   formExtension?: object
+  statusOptions: ApiType<ContentNoteStatus>[]
   getAdditionalFormFields?: (form: UseFormReturn<V>) => React.ReactNode
   mapToReq: (values: V) => R
 }
@@ -82,6 +83,7 @@ export default function ContentNoteCreatorDialogContent<
   category,
   contentId,
   formExtension,
+  statusOptions,
   getAdditionalFormFields = () => null,
   mapToReq = (values) => values as unknown as R,
 }: Props<V, R>) {
@@ -200,7 +202,7 @@ export default function ContentNoteCreatorDialogContent<
                       render={({ field }) => (
                         <StatusSelectFormItem
                           field={field}
-                          options={gameNoteStatusLabels}
+                          options={statusOptions}
                         />
                       )}
                     />

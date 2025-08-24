@@ -34,7 +34,7 @@ export default function MovieNoteEditorDialog() {
 
   return (
     <Dialog open={isOpen} onOpenChange={closeModal}>
-      <DialogContent className="max-h-screen overflow-y-auto">
+      <DialogContent className="max-h-svh overflow-y-auto">
         {isOpen && (
           <DynamicMovieNoteEditorDialogContent
             noteId={modalParams?.noteId as string}

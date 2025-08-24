@@ -25,7 +25,7 @@ export default function ProfileSettingsDialog() {
   }
 
   return (
-    <DialogContent className="flex max-h-screen max-w-2xl flex-col gap-0 overflow-y-auto p-0">
+    <DialogContent className="flex max-h-svh max-w-2xl flex-col gap-0 overflow-y-auto p-0">
       {isOpen && <DynamicProfileSettingsDialogContent />}
     </DialogContent>
   )

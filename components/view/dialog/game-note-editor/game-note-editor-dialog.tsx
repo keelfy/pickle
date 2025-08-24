@@ -34,7 +34,7 @@ export default function GameNoteEditorDialog() {
 
   return (
     <Dialog open={isOpen} onOpenChange={closeModal}>
-      <DialogContent className="max-h-screen overflow-y-auto">
+      <DialogContent className="max-h-svh overflow-y-auto">
         {isOpen && (
           <DynamicGameNoteEditorDialogContent
             noteId={modalParams?.noteId as string}

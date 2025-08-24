@@ -31,7 +31,7 @@ export default function ApproveOrderDialog() {
 
   return (
     <Dialog open={isOpen} onOpenChange={closeModal}>
-      <DialogContent className="max-h-screen overflow-y-auto">
+      <DialogContent className="max-h-svh overflow-y-auto">
         {isOpen && <DynamicApproveOrderDialogContent />}
       </DialogContent>
     </Dialog>

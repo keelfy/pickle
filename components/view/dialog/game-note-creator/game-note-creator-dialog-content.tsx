@@ -1,13 +1,14 @@
 'use client'
 
+import { FormField } from '@/components/ui/form'
 import { DetailedGameNote } from '@/lib/model/content-note'
+import { gameNoteStatusLabels } from '@/utils/api/constants'
 import { CreateGameNoteReq } from '@/utils/api/request'
+import { HistoryIcon } from 'lucide-react'
 import { z } from 'zod'
 import ContentNoteCreatorDialogContent, {
   CreateContentNoteBaseFormValues,
 } from '../content-note-creator/content-note-creator-dialog-content'
-import { HistoryIcon } from 'lucide-react'
-import { FormField } from '@/components/ui/form'
 import DayPickerFormItem from '../content-note-editor/day-picker-form-item'
 
 type Props = {
@@ -30,6 +31,7 @@ export default function GameNoteCreatorDialogContent({ contentId }: Props) {
       formExtension={{
         lastPlayedAt: z.date().optional(),
       }}
+      statusOptions={gameNoteStatusLabels}
       mapToReq={(values) => values}
       getAdditionalFormFields={(form) => (
         <>

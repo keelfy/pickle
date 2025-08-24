@@ -9,6 +9,7 @@ import ContentNoteCreatorDialogContent, {
   CreateContentNoteBaseFormValues,
 } from '../content-note-creator/content-note-creator-dialog-content'
 import DayPickerFormItem from '../content-note-editor/day-picker-form-item'
+import { movieNoteStatusLabels } from '@/utils/api/constants'
 
 type Props = {
   noteId: string
@@ -30,6 +31,7 @@ export default function MovieNoteCreatorDialogContent({ noteId }: Props) {
       formExtension={{
         watchedAt: z.date().optional(),
       }}
+      statusOptions={movieNoteStatusLabels}
       mapToReq={(values) => values}
       getAdditionalFormFields={(form) => (
         <>

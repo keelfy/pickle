@@ -28,7 +28,7 @@ export default function ShowMoreProfileDialog() {
 
   return (
     <Dialog open={isOpen} onOpenChange={closeModal}>
-      <DialogContent className="max-h-screen overflow-y-auto">
+      <DialogContent className="max-h-svh overflow-y-auto">
         {isOpen && <DynamicShowMoreProfileDialogContent />}
       </DialogContent>
     </Dialog>

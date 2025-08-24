@@ -8,7 +8,7 @@ export default async function LandingPage() {
   const profile = session?.identity?.id ? await fetchUser() : undefined
 
   return (
-    <div className="flex h-screen w-screen flex-col items-center justify-center gap-10">
+    <div className="flex h-svh w-screen flex-col items-center justify-center gap-10">
       <h1 className="font-mono text-4xl font-semibold">
         this is <span className="font-bold text-green-600">pickle</span> 🥒
       </h1>

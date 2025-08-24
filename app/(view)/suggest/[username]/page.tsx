@@ -45,7 +45,7 @@ export default async function SuggestPage({ params }: Props) {
 
   if (!profile || typeof profile === 'string') {
     return (
-      <div className="flex h-screen w-full items-center justify-center px-4">
+      <div className="flex h-svh w-full items-center justify-center px-4">
         <div className="flex flex-col items-center gap-4">
           <p className="text-xl font-medium">
             The profile you are looking for does not exist.
@@ -57,7 +57,7 @@ export default async function SuggestPage({ params }: Props) {
   }
 
   return (
-    <div className="h-screen w-full">
+    <div className="h-svh w-full">
       <div className="mx-auto flex min-w-max max-w-2xl flex-col gap-4 py-16">
         <Card className="flex min-w-max max-w-2xl items-center gap-4 p-4 shadow-lg">
           <Link href={`/${profile.username}`} target="_blank">

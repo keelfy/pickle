@@ -81,7 +81,7 @@ export default async function RootLayout({
 
   if (!profile || profileError) {
     return (
-      <div className="flex h-screen w-full items-center justify-center px-4">
+      <div className="flex h-svh w-full items-center justify-center px-4">
         <div className="flex flex-col items-center gap-4">
           <p className="text-xl font-medium">
             The profile you are looking for does not exist.

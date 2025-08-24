@@ -20,7 +20,7 @@ import {
 } from '@/lib/model/content-note'
 import { useModalStore } from '@/providers/modal'
 import { useProfileStore } from '@/providers/profile-store'
-import { gameNoteStatusLabels } from '@/utils/api/constants'
+import { ApiType } from '@/utils/api/constants'
 import { CreateGameNoteReq } from '@/utils/api/request'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
@@ -49,9 +49,15 @@ const formSchema = z.object({
   rate: z.number().max(10).min(1).optional(),
 })
 
-type Props = { noteId: string | undefined }
+type Props = {
+  noteId: string | undefined
+  statusOptions: ApiType<ContentNoteStatus>[]
+}
 
-export default function GameNoteEditorDialogContent({ noteId }: Props) {
+export default function ContentNoteEditorDialogContent({
+  noteId,
+  statusOptions,
+}: Props) {
   const closeModal = useModalStore((state) => state.closeModal)
   const profile = useProfileStore((state) => state.profile)
 
@@ -165,7 +171,7 @@ export default function GameNoteEditorDialogContent({ noteId }: Props) {
                         render={({ field }) => (
                           <StatusSelectFormItem
                             field={field}
-                            options={gameNoteStatusLabels}
+                            options={statusOptions}
                           />
                         )}
                       />

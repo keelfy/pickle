@@ -4,11 +4,9 @@ import Navbar from './navbar'
 
 export default function RootLayout({ children }: React.PropsWithChildren) {
   return (
-    <div className="grid gap-10 py-4">
-      <div className="container grid max-w-5xl gap-10">
-        <Navbar />
-        <main>{children}</main>
-      </div>
+    <>
+      <Navbar className="pt-4" />
+      <main>{children}</main>
 
       <footer className="flex h-fit items-center justify-center border-t py-6 text-center text-xs">
         <div className="flex flex-col items-center gap-2">
@@ -42,6 +40,6 @@ export default function RootLayout({ children }: React.PropsWithChildren) {
           </div>
         </div>
       </footer>
-    </div>
+    </>
   )
 }

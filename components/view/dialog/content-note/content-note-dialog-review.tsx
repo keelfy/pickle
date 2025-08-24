@@ -26,7 +26,7 @@ export default function ContentNoteDialogReview({
       <ContentNoteCardComment
         comment={contentNote?.comment}
         className="rounded-lg"
-        lengthLimit={180}
+        limitContent={false}
       />
       {/* {contentNote && defaultReactions && (
         <ContentNoteReactions

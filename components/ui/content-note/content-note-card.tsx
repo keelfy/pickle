@@ -279,13 +279,13 @@ export default function ContentNoteCard<T extends DetailedContentNote>({
         </div>
       </ContentNoteCardHeader>
       <ContentNoteCardComment comment={note.comment} />
-      {defaultReactions && (
+      {/* {defaultReactions && (
         <ContentNoteReactions
           contentNote={note}
           category={category}
           defaultReactions={defaultReactions}
         />
-      )}
+      )} */}
     </ContentNoteCardShell>
   )
 }

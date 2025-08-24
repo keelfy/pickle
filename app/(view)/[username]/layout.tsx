@@ -86,7 +86,7 @@ export default async function RootLayout({
           <p className="text-xl font-medium">
             The profile you are looking for does not exist.
           </p>
-          <p className="text-destructive">{profileError}</p>
+          <p className="line-clamp-2 text-destructive">{profileError}</p>
         </div>
       </div>
     )

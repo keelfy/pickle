@@ -6,14 +6,14 @@ import React from 'react'
 
 type Props = {
   comment?: string
-  lengthLimit?: number
+  limitContent?: boolean
   className?: string
 }
 
 export default function ContentNoteCardComment({
   comment,
   className,
-  lengthLimit = 350,
+  limitContent = true,
 }: Props) {
   const [isCommentExpanded, setCommentIsExpanded] = React.useState(false)
 
@@ -21,7 +21,6 @@ export default function ContentNoteCardComment({
     <div
       className={cn(
         'h-min w-full rounded-md bg-primary-foreground p-4 text-sm',
-        comment && comment.length > lengthLimit && 'pb-2',
         className,
       )}
     >
@@ -30,20 +29,18 @@ export default function ContentNoteCardComment({
           <div
             className={cn(
               'whitespace-pre-wrap',
-              !isCommentExpanded && 'line-clamp-3 text-ellipsis',
+              !isCommentExpanded && 'text-ellipsis',
+              limitContent && 'line-clamp-3',
             )}
           >
             {comment}
           </div>
           <Button
             variant="link"
-            className={cn(
-              'm-0 w-fit p-0',
-              comment.length <= lengthLimit && 'hidden',
-            )}
+            className={cn('m-0 w-fit p-0', !limitContent && 'hidden')}
             onClick={() => setCommentIsExpanded(!isCommentExpanded)}
           >
-            {isCommentExpanded ? 'Show less' : 'View more'}
+            {isCommentExpanded ? 'Show less' : 'Show more'}
           </Button>
         </div>
       ) : (

@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/navigation-menu'
 import { Sheet, SheetTrigger } from '@/components/ui/sheet'
 import { fetchUser } from '@/hooks/api-endpoints-server'
+import { DetailedUser } from '@/lib/model/user'
 import { cn } from '@/lib/utils'
 import { Bell, MenuIcon } from 'lucide-react'
 import dynamic from 'next/dynamic'
@@ -43,7 +44,14 @@ const MENU_ITEMS = [
 ]
 
 export default async function Navbar({ className }: Props) {
-  const user = await fetchUser('md').catch(() => undefined)
+  let user: DetailedUser | undefined = undefined
+
+  try {
+    user = await fetchUser('md')
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  } catch (error) {
+    // do nothing
+  }
 
   return (
     <Sheet>

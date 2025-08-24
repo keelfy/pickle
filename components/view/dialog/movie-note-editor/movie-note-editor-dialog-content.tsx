@@ -15,7 +15,10 @@ import {
 import { toast } from '@/hooks/use-toast'
 import { useModalStore } from '@/providers/modal'
 import { useProfileStore } from '@/providers/profile-store'
-import { gameNoteStatusLabels } from '@/utils/api/constants'
+import {
+  gameNoteStatusLabels,
+  movieNoteStatusLabels,
+} from '@/utils/api/constants'
 import { DetailedMovieNote, MovieNoteStatus } from '@/lib/model/content-note'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
@@ -158,7 +161,7 @@ export default function MovieNoteEditorDialogContent({ noteId }: Props) {
                         render={({ field }) => (
                           <StatusSelectFormItem
                             field={field}
-                            options={gameNoteStatusLabels}
+                            options={movieNoteStatusLabels}
                           />
                         )}
                       />

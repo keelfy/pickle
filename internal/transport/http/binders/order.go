@@ -69,11 +69,12 @@ func BindPickleSuggestionOrderCommand(r *http.Request) (*commands.CreateOrderCom
 	}
 
 	cmd := &commands.CreateOrderCommand{
-		ReceiverID:    userID,
-		IsAnonymously: req.IsAnonymously,
-		Category:      domain.ContentCategory(req.Category),
-		Message:       req.Message,
-		Source:        domain.OrderSourceSuggestion,
+		ReceiverID:     userID,
+		IsAnonymously:  req.IsAnonymously,
+		Category:       domain.ContentCategory(req.Category),
+		Message:        req.Message,
+		Source:         domain.OrderSourceSuggestion,
+		IdempotencyKey: "",
 	}
 	return cmd, ordererCmd, nil
 }

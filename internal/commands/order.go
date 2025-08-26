@@ -48,13 +48,11 @@ type CreateOrderCommand struct {
 func (c *CreateOrderCommand) Validate() error {
 	return validation.ValidateStruct(c,
 		validation.Field(&c.ReceiverID, validation.Required, is.UUID),
-		validation.Field(&c.IsAnonymously, validation.Required),
 		validation.Field(&c.Category, validation.Required, is2.IsContentCategory),
 		validation.Field(&c.ContentID, validation.NilOrNotEmpty, is.UUID),
 		validation.Field(&c.Message, validation.Required, validation.Length(0, 250)),
 		validation.Field(&c.Source, validation.Required, is2.IsOrderSource),
 		validation.Field(&c.Reference, validation.NilOrNotEmpty),
-		validation.Field(&c.IdempotencyKey, validation.Required),
 	)
 }
 

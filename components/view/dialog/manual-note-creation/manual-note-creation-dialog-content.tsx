@@ -23,7 +23,11 @@ const ENABLED_CATEGORIES = [
   ContentCategoryEnum.Movies,
 ]
 
-export default function ManualNoteCreationDialogContent() {
+type Props = {
+  isDesktop: boolean
+}
+
+export default function ManualNoteCreationDialogContent({ isDesktop }: Props) {
   const { openModal } = useModalStore((state) => state)
 
   // const [selectedCategory, setSelectedCategory] =
@@ -53,18 +57,20 @@ export default function ManualNoteCreationDialogContent() {
 
   return (
     <>
-      <DrawerHeader className="block lg:hidden">
-        <DrawerTitle>What do you want to add to your profile?</DrawerTitle>
-        <DrawerDescription>
-          Select the category of content you want to add to your profile.
-        </DrawerDescription>
-      </DrawerHeader>
-
-      <div className="hidden">
-        <DialogHeader>
-          <DialogTitle>Manual content creation</DialogTitle>
-        </DialogHeader>
-      </div>
+      {isDesktop ? (
+        <div className="hidden">
+          <DialogHeader>
+            <DialogTitle>Manual content creation</DialogTitle>
+          </DialogHeader>
+        </div>
+      ) : (
+        <DrawerHeader>
+          <DrawerTitle>What do you want to add to your profile?</DrawerTitle>
+          <DrawerDescription>
+            Select the category of content you want to add to your profile.
+          </DrawerDescription>
+        </DrawerHeader>
+      )}
 
       <div className="grid gap-4 p-6 lg:p-0">
         <h2 className="hidden text-center text-lg font-bold lg:block">

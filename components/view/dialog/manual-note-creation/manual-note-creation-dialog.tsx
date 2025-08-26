@@ -20,7 +20,7 @@ export default function ManualNoteCreationDialog() {
       modalType={ModalType.ManualNoteCreation}
       isDesktop={isDesktop}
     >
-      <DynamicManualNoteCreationDialogContent />
+      <DynamicManualNoteCreationDialogContent isDesktop={isDesktop!} />
     </DialogWrapper>
   )
 }

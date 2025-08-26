@@ -153,7 +153,8 @@ RETURNING
 	category, 
 	anonymous, 
 	source, 
-	reference
+	reference,
+	idempotency_key
 `
 
 type InsertOrderParams struct {

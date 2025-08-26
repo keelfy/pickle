@@ -6,8 +6,9 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/nicklaw5/helix/v2"
+	"github.com/keelfy/helix/v2"
 	db "github.com/pickle-pw/twitch-harbor/db/sqlc"
+	"github.com/pickle-pw/twitch-harbor/internal/domain"
 	"github.com/pickle-pw/twitch-harbor/internal/logger"
 	"github.com/pickle-pw/twitch-harbor/internal/storage"
 	twitchws "github.com/vpetrigo/go-twitch-ws"
@@ -83,12 +84,18 @@ func (s *twitchEventService) OnChannelPointsCustomRewardRedemptionAddEvent(ctx c
 		return
 	}
 
-	if _, ok := trackedRewards[event.Reward.ID]; !ok {
+	var trackedReward *domain.TrackedReward
+	for _, tr := range trackedRewards {
+		if tr.RewardID == event.Reward.ID {
+			trackedReward = tr
+			break
+		}
+	}
+
+	if trackedReward == nil {
 		logger.Debugf(ctx, "reward %s is not tracked by broadcaster %s", event.Reward.ID, auth.BroadcasterID)
 		return
 	}
-
-	category := trackedRewards[event.Reward.ID]
 
 	var subscriptionID *uuid.UUID
 	subscription, err := s.eventsubService.GetSubscriptionByReferenceID(ctx, notification.Subscription.ID)
@@ -103,8 +110,7 @@ func (s *twitchEventService) OnChannelPointsCustomRewardRedemptionAddEvent(ctx c
 		SubscriptionID: subscriptionID,
 		MessageType:    helix.EventSubTypeChannelPointsCustomRewardRedemptionAdd,
 		Payload:        rawEvent,
-		// add category
-		Status: "received",
+		Status:         "received",
 	})
 	if err != nil {
 		logger.Debugf(ctx, "error inserting twitch notification: %v", err)
@@ -118,7 +124,7 @@ func (s *twitchEventService) OnChannelPointsCustomRewardRedemptionAddEvent(ctx c
 	go func() {
 		status := "transferred"
 
-		retryCount, err := s.orderService.CreateOrderFromNotification(ctx, auth.IdentityID, category, event)
+		retryCount, err := s.orderService.CreateOrderFromNotification(ctx, auth.IdentityID, trackedReward.Category, event)
 		if err != nil {
 			logger.Debugf(ctx, "error creating order: %v", err)
 			status = "failed_to_transfer"

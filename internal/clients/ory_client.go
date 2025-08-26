@@ -29,21 +29,26 @@ type oryAPI struct {
 func NewOryAPI(ctx context.Context) (OryAPI, error) {
 	logger.Infof(ctx, "%v Ory %v", strings.Repeat("~", 12), strings.Repeat("~", 13))
 
-	c := ory.NewConfiguration()
-	c.Servers = ory.ServerConfigurations{
+	adminURL := config.GetOryAdminUrl()
+	publicURL := config.GetOryPublicUrl()
+	logger.Infof(ctx, "Using ORY endpoints | admin: %s | public: %s", adminURL, publicURL)
+
+	// Use separate configurations to avoid shared pointer mutation between clients
+	adminCfg := ory.NewConfiguration()
+	adminCfg.Servers = ory.ServerConfigurations{
 		{
-			URL: config.GetOryAdminUrl(),
+			URL: adminURL,
 		},
 	}
+	adminClient := ory.NewAPIClient(adminCfg)
 
-	adminClient := ory.NewAPIClient(c)
-
-	c.Servers = ory.ServerConfigurations{
+	publicCfg := ory.NewConfiguration()
+	publicCfg.Servers = ory.ServerConfigurations{
 		{
-			URL: config.GetOryPublicUrl(),
+			URL: publicURL,
 		},
 	}
-	publicClient := ory.NewAPIClient(c)
+	publicClient := ory.NewAPIClient(publicCfg)
 
 	wrapper := &oryAPI{
 		adminClient:  adminClient,

@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/nicklaw5/helix/v2"
+	"github.com/keelfy/helix/v2"
 	db "github.com/pickle-pw/twitch-harbor/db/sqlc"
 	"github.com/pickle-pw/twitch-harbor/internal/clients"
 	"github.com/pickle-pw/twitch-harbor/internal/config"

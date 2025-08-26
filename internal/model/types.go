@@ -1,6 +1,8 @@
 package model
 
-import "time"
+import (
+	"time"
+)
 
 type TwitchAuth struct {
 	BroadcasterID string    `json:"broadcasterId"`
@@ -20,15 +22,4 @@ type ChannelReward struct {
 	IsInStock           bool   `json:"isInStock"`
 	IsUserInputRequired bool   `json:"isUserInputRequired"`
 	Category            string `json:"category"`
-}
-
-type RewardsPreferences struct {
-	TrackedRewards   []*ChannelReward `json:"trackedRewards"`
-	AvailableRewards []*ChannelReward `json:"availableRewards"`
-	TrackingEnabled  bool             `json:"trackingEnabled"`
-	IsActive         bool             `json:"isActive"`
-}
-
-type BroadcasterPreferences struct {
-	Rewards RewardsPreferences `json:"rewards"`
 }

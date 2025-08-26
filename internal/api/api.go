@@ -82,11 +82,16 @@ func (api *twitchHarborAPI) v1RouteHandler() http.Handler {
 		r.Post("/after-oidc-settings-update", api.webhookHandler.HandleWebhook)
 	})
 
-	r.Route("/broadcaster/preferences", func(r chi.Router) {
+	r.Route("/broadcaster", func(r chi.Router) {
 		api.useSession(r)
 
-		r.Get("/", api.broadcasterHandler.GetBroadcasterPreferences)
-		r.Post("/", api.broadcasterHandler.SaveBroadcasterPreferences)
+		r.Route("/preferences", func(r chi.Router) {
+			r.Get("/", api.broadcasterHandler.GetBroadcasterPreferences)
+			r.Post("/", api.broadcasterHandler.SaveBroadcasterPreferences)
+		})
+
+		r.Get("/rewards/available", api.broadcasterHandler.GetBroadcasterAvailableRewards)
+		r.Post("/rewards/fetch-redemptions", api.broadcasterHandler.FetchTrackedRewardsRedemptions)
 	})
 
 	return r

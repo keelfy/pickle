@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/pickle-pw/twitch-harbor/internal/config"
+	"github.com/pickle-pw/twitch-harbor/internal/domain"
 	"github.com/pickle-pw/twitch-harbor/internal/logger"
 	"github.com/pickle-pw/twitch-harbor/internal/storage"
 	"github.com/vpetrigo/go-twitch-ws/pkg/eventsub"
@@ -19,6 +20,7 @@ import (
 
 type OrderService interface {
 	CreateOrderFromNotification(ctx context.Context, identityID uuid.UUID, category string, event *eventsub.ChannelPointsCustomRewardRedemptionAddEvent) (int, error)
+	CreateOrderFromRewardRedemption(ctx context.Context, identityID uuid.UUID, reward *domain.TrackedReward, redemption *domain.RewardRedemption) (int, error)
 }
 
 type orderService struct {
@@ -38,6 +40,7 @@ func NewOrderService(sqlDB storage.RelationalStorage) OrderService {
 }
 
 type CreateOrderReq struct {
+	IdempotencyKey  string  `json:"idempotencyKey"`
 	IsAnonymously   bool    `json:"isAnonymously"`
 	Category        string  `json:"category"`
 	Message         string  `json:"message"`
@@ -48,27 +51,57 @@ type CreateOrderReq struct {
 }
 
 func (s *orderService) CreateOrderFromNotification(ctx context.Context, identityID uuid.UUID, category string, event *eventsub.ChannelPointsCustomRewardRedemptionAddEvent) (int, error) {
-	reference, err := json.Marshal(event)
+	var redeemedAt time.Time
+	at, err := time.Parse(time.RFC3339, event.RedeemedAt)
+	if err != nil {
+		logger.Debugf(ctx, "failed to parse redeemed at: %v", err)
+		redeemedAt = time.Now()
+	} else {
+		redeemedAt = at
+	}
+
+	redemption := &domain.RewardRedemption{
+		ID:               event.ID,
+		BroadcasterID:    event.BroadcasterUserID,
+		BroadcasterLogin: event.BroadcasterUserLogin,
+		BroadcasterName:  event.BroadcasterUserName,
+		UserID:           event.UserID,
+		UserName:         event.UserName,
+		UserLogin:        event.UserLogin,
+		UserInput:        event.UserInput,
+		Status:           event.Status,
+		RedeemedAt:       redeemedAt,
+	}
+	reward := &domain.TrackedReward{
+		RewardID: event.Reward.ID,
+		Category: category,
+	}
+	return s.CreateOrderFromRewardRedemption(ctx, identityID, reward, redemption)
+}
+
+func (s *orderService) CreateOrderFromRewardRedemption(ctx context.Context, identityID uuid.UUID, reward *domain.TrackedReward, redemption *domain.RewardRedemption) (int, error) {
+	reference, err := json.Marshal(redemption)
 	if err != nil {
 		return 0, err
 	}
 	referenceString := string(reference)
 
 	body, err := json.Marshal(&CreateOrderReq{
+		IdempotencyKey:  fmt.Sprintf("%s-%s", reward.RewardID, redemption.ID),
 		IsAnonymously:   true,
-		Category:        category,
-		Message:         event.UserInput,
+		Category:        reward.Category,
+		Message:         redemption.UserInput,
 		Source:          "twitch-channel-points",
-		OrdererUsername: event.UserName,
+		OrdererUsername: redemption.UserName,
 		Reference:       &referenceString,
-		ReferenceUserID: &event.UserID,
+		ReferenceUserID: &redemption.UserID,
 	})
 	if err != nil {
 		return 0, err
 	}
 
 	endpoint := strings.Replace(config.GetCreateOrderEndpoint(), "{userId}", identityID.String(), 1)
-	url := fmt.Sprintf("%s%s", config.GetOrderServiceUrl(), endpoint)
+	url := config.GetOrderServiceUrl() + endpoint
 	req, err := http.NewRequest(config.GetCreateOrderEndpointMethod(), url, bytes.NewBuffer(body))
 	if err != nil {
 		return 0, err

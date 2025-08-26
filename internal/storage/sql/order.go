@@ -140,7 +140,6 @@ VALUES (
 	$10::boolean,
 	$11::text
 )
-ON CONFLICT (source, idempotency_key) DO NOTHING
 RETURNING 
 	id, 
 	created_at, 

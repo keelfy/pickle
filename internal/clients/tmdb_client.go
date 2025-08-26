@@ -18,10 +18,6 @@ const (
 	movieEndpoint    = "/movie"
 	changesEndpoint  = "/movie/changes"
 	discoverEndpoint = "/discover/movie"
-
-	// requests
-	tmdbPageSize     = 20
-	tmdbRequestDelay = 250 * time.Millisecond
 )
 
 type TMDBClient interface {

@@ -35,13 +35,14 @@ func (c *GetSortedOrdersByUserIDCommand) Validate() error {
 }
 
 type CreateOrderCommand struct {
-	ReceiverID    uuid.UUID
-	IsAnonymously bool
-	Category      domain.ContentCategory
-	ContentID     *uuid.UUID
-	Message       string
-	Source        domain.OrderSource
-	Reference     *string
+	ReceiverID     uuid.UUID
+	IsAnonymously  bool
+	Category       domain.ContentCategory
+	ContentID      *uuid.UUID
+	Message        string
+	Source         domain.OrderSource
+	Reference      *string
+	IdempotencyKey string
 }
 
 func (c *CreateOrderCommand) Validate() error {
@@ -53,6 +54,7 @@ func (c *CreateOrderCommand) Validate() error {
 		validation.Field(&c.Message, validation.Required, validation.Length(0, 250)),
 		validation.Field(&c.Source, validation.Required, is2.IsOrderSource),
 		validation.Field(&c.Reference, validation.NilOrNotEmpty),
+		validation.Field(&c.IdempotencyKey, validation.Required),
 	)
 }
 

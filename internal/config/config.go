@@ -140,6 +140,15 @@ func GetIGDBSyncItemsLimit() int {
 	return value
 }
 
+func GetIGDBRequestDelay() time.Duration {
+	value, err := strconv.Atoi(os.Getenv("IGDB_REQUEST_DELAY_MS"))
+	if err != nil {
+		log.Printf("Error parsing IGDB_REQUEST_DELAY_MS: %v", err)
+		return 100 * time.Millisecond
+	}
+	return time.Duration(value) * time.Millisecond
+}
+
 func GetTMDBSyncItemsLimit() int {
 	value, err := strconv.Atoi(os.Getenv("TMDB_SYNC_ITEMS_LIMIT"))
 	if err != nil {
@@ -147,6 +156,15 @@ func GetTMDBSyncItemsLimit() int {
 		return -1
 	}
 	return value
+}
+
+func GetTMDBRequestDelay() time.Duration {
+	value, err := strconv.Atoi(os.Getenv("TMDB_REQUEST_DELAY_MS"))
+	if err != nil {
+		log.Printf("Error parsing TMDB_REQUEST_DELAY_MS: %v", err)
+		return 100 * time.Millisecond
+	}
+	return time.Duration(value) * time.Millisecond
 }
 
 func GetIGDBImageURLFormat() string {

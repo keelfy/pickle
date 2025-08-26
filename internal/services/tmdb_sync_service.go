@@ -49,10 +49,14 @@ func (s *tmdbSyncService) TriggerMoviesSync(apiCtx context.Context, w http.Respo
 	w.WriteHeader(http.StatusOK)
 }
 
+const (
+	pageSize  = 20
+	batchSize = 100
+)
+
 var (
-	batchSize  = 100
-	itemsLimit = config.GetTMDBSyncItemsLimit()
-	rateLimit  = 100 * time.Millisecond
+	tmdbItemsLimit   = config.GetTMDBSyncItemsLimit()
+	tmdbRequestDelay = config.GetTMDBRequestDelay()
 )
 
 func (s *tmdbSyncService) getLastSyncTimestamp(ctx context.Context, syncType domain.SyncType) *time.Time {
@@ -92,13 +96,16 @@ func (s *tmdbSyncService) completeTmdbSyncLog(ctx context.Context, syncLog *doma
 }
 
 func (s *tmdbSyncService) getMoviesToProcess(response *domain.TMDBMovieChangesResponse) (pagesToProcess int, moviesToProcess int64) {
-	pagesToProcess = int(response.TotalResults / int64(batchSize))
-	if response.TotalResults%int64(batchSize) != 0 {
+	pagesToProcess = int(response.TotalResults / int64(pageSize))
+	if response.TotalResults%int64(pageSize) != 0 {
 		pagesToProcess++
 	}
 
-	if itemsLimit > 0 && pagesToProcess > itemsLimit {
-		pagesToProcess = itemsLimit
+	if tmdbItemsLimit > 0 && response.TotalResults > int64(tmdbItemsLimit) {
+		pagesToProcess = tmdbItemsLimit / pageSize
+		if tmdbItemsLimit%pageSize != 0 {
+			pagesToProcess++
+		}
 	}
 
 	moviesToProcess = response.TotalResults
@@ -119,7 +126,7 @@ func (s *tmdbSyncService) fetchMoviesDetails(ctx context.Context, movies []domai
 		logger.Debugf(ctx, "[TMDB Sync] Fetched movie details for %d (%s) in %vms.", movie.ID, movieDetails[i].Title, time.Since(startTime).Milliseconds())
 
 		// avoid rate limiting
-		time.Sleep(rateLimit)
+		time.Sleep(tmdbRequestDelay)
 	}
 	return movieDetails
 }
@@ -156,11 +163,8 @@ func (s *tmdbSyncService) upsertMovie(ctx context.Context, qtx sql.Queries, movi
 		}
 	}
 
-	var sourceUrl *string
-	if movie.IMDBID != nil {
-		url := fmt.Sprintf("https://www.themoviedb.org/movie/%d", movie.ID)
-		sourceUrl = &url
-	}
+	url := fmt.Sprintf("https://www.themoviedb.org/movie/%d", movie.ID)
+	sourceUrl := &url
 
 	return qtx.UpsertMovie(ctx, sql.UpsertMovieParams{
 		ExternalID:   movie.ID,
@@ -261,7 +265,7 @@ func (s *tmdbSyncService) SyncMovies(ctx context.Context, syncType domain.SyncTy
 		syncStartedAt = time.Now()
 
 		// avoid rate limiting
-		time.Sleep(rateLimit)
+		time.Sleep(tmdbRequestDelay)
 
 		var response *domain.TMDBMovieChangesResponse
 		if syncType == domain.SyncTypeFull {

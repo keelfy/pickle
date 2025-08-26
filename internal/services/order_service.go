@@ -118,16 +118,17 @@ func (s *orderService) CreateOrder(ctx context.Context, tx sql.Queries, ordererI
 	}
 
 	createdOrder, err := tx.InsertOrder(ctx, sql.InsertOrderParams{
-		ReceiverID: cmd.ReceiverID,
-		OrdererID:  ordererID,
-		Category:   cmd.Category,
-		ContentID:  cmd.ContentID,
-		Message:    cmd.Message,
-		Source:     cmd.Source,
-		Reference:  reference,
-		Anonymous:  cmd.IsAnonymously,
-		CreatedBy:  authUserID,
-		UpdatedBy:  authUserID,
+		ReceiverID:     cmd.ReceiverID,
+		OrdererID:      ordererID,
+		Category:       cmd.Category,
+		ContentID:      cmd.ContentID,
+		Message:        cmd.Message,
+		Source:         cmd.Source,
+		Reference:      reference,
+		Anonymous:      cmd.IsAnonymously,
+		CreatedBy:      authUserID,
+		UpdatedBy:      authUserID,
+		IdempotencyKey: cmd.IdempotencyKey,
 	})
 	if err != nil {
 		return nil, utils.NewInternalServerError("failed to create order", err)

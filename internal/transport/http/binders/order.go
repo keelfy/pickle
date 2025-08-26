@@ -103,12 +103,13 @@ func BindWebhookCreateOrderCommand(r *http.Request) (*commands.CreateOrderComman
 	}
 
 	cmd := &commands.CreateOrderCommand{
-		ReceiverID:    userID,
-		IsAnonymously: req.IsAnonymously,
-		Category:      domain.ContentCategory(req.Category),
-		Message:       req.Message,
-		Source:        domain.OrderSource(req.Source),
-		Reference:     req.Reference,
+		ReceiverID:     userID,
+		IsAnonymously:  req.IsAnonymously,
+		Category:       domain.ContentCategory(req.Category),
+		Message:        req.Message,
+		Source:         domain.OrderSource(req.Source),
+		Reference:      req.Reference,
+		IdempotencyKey: req.IdempotencyKey,
 	}
 	return cmd, ordererCmd, nil
 }

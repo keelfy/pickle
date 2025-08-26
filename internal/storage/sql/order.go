@@ -124,7 +124,8 @@ INSERT INTO orders (
 	message,
 	source,
 	reference,
-	anonymous
+	anonymous,
+	idempotency_key
 )
 VALUES (
 	$1::uuid,
@@ -136,8 +137,10 @@ VALUES (
 	$7::text,
 	$8::text,
 	$9::jsonb,
-	$10::boolean
+	$10::boolean,
+	$11::text
 )
+ON CONFLICT (source, idempotency_key) DO NOTHING
 RETURNING 
 	id, 
 	created_at, 
@@ -155,16 +158,17 @@ RETURNING
 `
 
 type InsertOrderParams struct {
-	CreatedBy  *uuid.UUID
-	UpdatedBy  *uuid.UUID
-	ReceiverID uuid.UUID
-	OrdererID  uuid.UUID
-	Category   domain.ContentCategory
-	ContentID  *uuid.UUID
-	Message    string
-	Source     domain.OrderSource
-	Reference  json.RawMessage
-	Anonymous  bool
+	CreatedBy      *uuid.UUID
+	UpdatedBy      *uuid.UUID
+	ReceiverID     uuid.UUID
+	OrdererID      uuid.UUID
+	Category       domain.ContentCategory
+	ContentID      *uuid.UUID
+	Message        string
+	Source         domain.OrderSource
+	Reference      json.RawMessage
+	Anonymous      bool
+	IdempotencyKey string
 }
 
 func (q *queries) InsertOrder(ctx context.Context, arg InsertOrderParams) (*domain.Order, error) {
@@ -179,6 +183,7 @@ func (q *queries) InsertOrder(ctx context.Context, arg InsertOrderParams) (*doma
 		string(arg.Source),
 		arg.Reference,
 		arg.Anonymous,
+		arg.IdempotencyKey,
 	)
 	var i domain.Order
 	err := row.Scan(
@@ -195,6 +200,7 @@ func (q *queries) InsertOrder(ctx context.Context, arg InsertOrderParams) (*doma
 		&i.Anonymous,
 		&i.Source,
 		&i.Reference,
+		&i.IdempotencyKey,
 	)
 	return &i, err
 }

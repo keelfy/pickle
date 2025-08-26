@@ -20,6 +20,7 @@ type CreateOrder struct {
 	OrdererUsername string     `json:"ordererUsername"`
 	Reference       *string    `json:"reference"`
 	ReferenceUserID *string    `json:"referenceUserId"`
+	IdempotencyKey  string     `json:"idempotencyKey"`
 }
 
 type ApproveOrder struct {

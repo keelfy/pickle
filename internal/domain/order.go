@@ -16,19 +16,20 @@ const (
 )
 
 type Order struct {
-	ID         uuid.UUID
-	CreatedAt  time.Time
-	CreatedBy  *uuid.UUID
-	UpdatedAt  time.Time
-	UpdatedBy  *uuid.UUID
-	ReceiverID uuid.UUID
-	OrdererID  uuid.UUID
-	Message    string
-	Category   ContentCategory
-	ContentID  *uuid.UUID
-	Anonymous  bool
-	Source     OrderSource
-	Reference  json.RawMessage
+	ID             uuid.UUID
+	CreatedAt      time.Time
+	CreatedBy      *uuid.UUID
+	UpdatedAt      time.Time
+	UpdatedBy      *uuid.UUID
+	ReceiverID     uuid.UUID
+	OrdererID      uuid.UUID
+	Message        string
+	Category       ContentCategory
+	ContentID      *uuid.UUID
+	Anonymous      bool
+	Source         OrderSource
+	Reference      json.RawMessage
+	IdempotencyKey string
 	// relations
 	CreatedByUser IUser
 	UpdatedByUser IUser

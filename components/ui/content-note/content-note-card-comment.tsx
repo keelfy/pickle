@@ -1,22 +1,19 @@
 'use client'
 
-import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import React from 'react'
+import { cn } from '@/lib/utils'
 
 type Props = {
   comment?: string
-  limitContent?: boolean
   className?: string
+  onShowMore?: () => void
 }
 
 export default function ContentNoteCardComment({
   comment,
   className,
-  limitContent = true,
+  onShowMore,
 }: Props) {
-  const [isCommentExpanded, setCommentIsExpanded] = React.useState(false)
-
   return (
     <div
       className={cn(
@@ -27,20 +24,16 @@ export default function ContentNoteCardComment({
       {comment && comment.length > 0 ? (
         <div className="flex flex-col gap-0">
           <div
-            className={cn(
-              'whitespace-pre-wrap',
-              !isCommentExpanded && 'text-ellipsis',
-              limitContent && 'line-clamp-3',
-            )}
+            className={cn('whitespace-pre-wrap', onShowMore && 'line-clamp-3')}
           >
             {comment}
           </div>
           <Button
             variant="link"
-            className={cn('m-0 w-fit p-0', !limitContent && 'hidden')}
-            onClick={() => setCommentIsExpanded(!isCommentExpanded)}
+            className={cn('m-0 w-fit p-0', !onShowMore && 'hidden')}
+            onClick={onShowMore}
           >
-            {isCommentExpanded ? 'Show less' : 'Show more'}
+            Show more
           </Button>
         </div>
       ) : (

@@ -1,16 +1,42 @@
 import ContentNoteClickablePoster from '@/components/ui/content-note/content-note-clickable-poster'
+import { GameNoteDialogParams } from '@/components/view/dialog/game-note/game-note-dialog'
+import { MovieNoteDialogParams } from '@/components/view/dialog/movie-note/movie-note-dialog'
+import { ContentCategory } from '@/lib/model/content'
+import { ContentNote, DetailedContentNote } from '@/lib/model/content-note'
+import { ContentNoteReaction } from '@/lib/model/note-reaction'
+import { useMediaQuery } from '@/lib/use-media-query'
 import { cn } from '@/lib/utils'
+import { useModalStore } from '@/providers/modal'
+import { ModalParamValue, ModalType } from '@/stores/modal'
 import React from 'react'
 import ContentNoteCardComment from './content-note-card-comment'
 import ContentNoteCardControls from './content-note-card-controls'
 import ContentNoteCardRating from './content-note-card-rating'
-import ContentNoteReactions from './content-note-reactions'
 import ContentNoteStatusBadge from './content-note-status-badge'
-import { ContentNoteStatusIcon } from './content-note-status-icon'
-import { ContentNote, DetailedContentNote } from '@/lib/model/content-note'
-import { ContentCategory } from '@/lib/model/content'
-import { ContentNoteReaction } from '@/lib/model/note-reaction'
-import { useMediaQuery } from '@/lib/use-media-query'
+
+const openContentNoteModal = (
+  openModal: (
+    modalType: ModalType,
+    params?: Record<string, ModalParamValue>,
+  ) => void,
+  category: ContentCategory,
+  contentId: string,
+) => {
+  switch (category) {
+    case 'games':
+      const gameParams: GameNoteDialogParams = {
+        noteId: contentId,
+      }
+      openModal(ModalType.GameNote, gameParams)
+      break
+    case 'movies':
+      const movieParams: MovieNoteDialogParams = {
+        noteId: contentId,
+      }
+      openModal(ModalType.MovieNote, movieParams)
+      break
+  }
+}
 
 type ContentNoteCardShellProps = React.ComponentProps<'div'>
 
@@ -226,6 +252,7 @@ export default function ContentNoteCard<T extends DetailedContentNote>({
   finishedYear,
   columnGroups,
 }: ContentNoteCardProps<T>) {
+  const openModal = useModalStore((state) => state.openModal)
   return (
     <ContentNoteCardShell>
       <ContentNoteCardHeader>
@@ -278,7 +305,10 @@ export default function ContentNoteCard<T extends DetailedContentNote>({
           />
         </div>
       </ContentNoteCardHeader>
-      <ContentNoteCardComment comment={note.comment} />
+      <ContentNoteCardComment
+        comment={note.comment}
+        onShowMore={() => openContentNoteModal(openModal, category, note.id)}
+      />
       {/* {defaultReactions && (
         <ContentNoteReactions
           contentNote={note}

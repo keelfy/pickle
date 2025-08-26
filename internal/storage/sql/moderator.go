@@ -118,24 +118,28 @@ func (q *queries) FindModeratorUsersByUserID(ctx context.Context, userID uuid.UU
 		return nil, err
 	}
 	defer rows.Close()
-	items := []*domain.ModeratorUser{}
+	items := make([]*domain.ModeratorUser, 0)
 	for rows.Next() {
-		var i domain.ModeratorUser
+		var mod domain.Moderator
+		var user domain.User
 		if err := rows.Scan(
-			&i.Moderator.ID,
-			&i.Moderator.ModeratorID,
-			&i.Moderator.UserID,
-			&i.Moderator.CreatedAt,
-			&i.Moderator.CreatedBy,
-			&i.Moderator.DeletedAt,
-			&i.Moderator.DeletedBy,
-			&i.User.DisplayName,
-			&i.User.Username,
+			&mod.ID,
+			&mod.ModeratorID,
+			&mod.UserID,
+			&mod.CreatedAt,
+			&mod.CreatedBy,
+			&mod.DeletedAt,
+			&mod.DeletedBy,
+			&user.DisplayName,
+			&user.Username,
 		); err != nil {
 			return nil, err
 		}
-		i.User.ID = i.Moderator.UserID
-		items = append(items, &i)
+		user.ID = mod.UserID
+		items = append(items, &domain.ModeratorUser{
+			Moderator: &mod,
+			User:      &user,
+		})
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

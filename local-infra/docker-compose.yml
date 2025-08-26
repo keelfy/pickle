@@ -31,6 +31,8 @@ services:
     ports:
       - "9200:9200"
     restart: always
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
   
   pickle-kratos-migrate:
     image: oryd/kratos:v1.3.1
@@ -76,3 +78,4 @@ services:
 volumes:
   redis-data:
   postgres-data:
+  elasticsearch_data:

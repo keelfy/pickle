@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { useProfileStore } from '@/providers/profile-store'
 
 type Props = {
   comment?: string
@@ -14,6 +15,7 @@ export default function ContentNoteCardComment({
   className,
   onShowMore,
 }: Props) {
+  const profile = useProfileStore((state) => state.profile)
   return (
     <div
       className={cn(
@@ -38,7 +40,7 @@ export default function ContentNoteCardComment({
         </div>
       ) : (
         <span className="text-muted-foreground">
-          keelfy hasn&apos;t left a comment yet.
+          {profile?.displayName ?? 'The user'} hasn&apos;t left a comment yet.
         </span>
       )}
     </div>

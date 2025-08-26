@@ -11,7 +11,6 @@ import (
 	"github.com/pickle.pw/monolith/internal/transport/http/binders"
 	resp "github.com/pickle.pw/monolith/internal/transport/http/responses"
 	"github.com/pickle.pw/monolith/internal/utils"
-	"golang.org/x/sync/errgroup"
 )
 
 type ModeratorHandler interface {
@@ -73,28 +72,15 @@ func (h *moderatorHandler) AddModeratorByUsername(w http.ResponseWriter, r *http
 		return
 	}
 
-	var group errgroup.Group
-	var moderator *domain.ModeratorUser
-	var avatarURL string
-
-	group.Go(func() error {
-		moderator, err = h.moderatorService.AddModeratorByUsername(ctx, user, cmd)
-		return err
-	})
-
-	group.Go(func() error {
-		url, err := h.avatarService.GetAvatarURLByUserID(ctx, moderator.ModeratorID, cmd.AvatarSize)
-		if err != nil {
-			logger.Errorf(ctx, "failed to get avatar URL by user ID: %v", err)
-		}
-		avatarURL = url
-		return nil
-	})
-
-	err = group.Wait()
+	moderator, err := h.moderatorService.AddModeratorByUsername(ctx, user, cmd)
 	if err != nil {
 		utils.HttpError(ctx, w, err)
 		return
+	}
+
+	avatarURL, err := h.avatarService.GetAvatarURLByUserID(ctx, moderator.ModeratorID, cmd.AvatarSize)
+	if err != nil {
+		logger.Errorf(ctx, "failed to get avatar URL by user ID: %v", err)
 	}
 
 	h.moderatorService.ClearModeratorsCache(ctx, user.GetID())

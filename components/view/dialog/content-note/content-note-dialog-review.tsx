@@ -1,5 +1,4 @@
 import ContentNoteCardComment from '@/components/ui/content-note/content-note-card-comment'
-import ContentNoteReactions from '@/components/ui/content-note/content-note-reactions'
 import { Label } from '@/components/ui/label'
 import { ContentCategory } from '@/lib/model/content'
 import { DetailedContentNote } from '@/lib/model/content-note'
@@ -26,7 +25,6 @@ export default function ContentNoteDialogReview({
       <ContentNoteCardComment
         comment={contentNote?.comment}
         className="rounded-lg"
-        limitContent={false}
       />
       {/* {contentNote && defaultReactions && (
         <ContentNoteReactions

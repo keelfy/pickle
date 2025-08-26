@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Form, FormRootError } from '@/components/ui/form'
 import LoadingSpinner from '@/components/ui/loading-spinner'
 import { fetchMyAvatar, updateMe } from '@/hooks/api-endpoints-client'
-import { toast } from '@/hooks/use-toast'
+import { toastError } from '@/lib/toasts'
 import { useAuthStore } from '@/providers/auth-store'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Check, CircleOff } from 'lucide-react'
@@ -78,10 +78,7 @@ export default function GeneralSettingsTab() {
           ...data,
         })
       } catch (error) {
-        toast({
-          title: 'Failed to update settings',
-          description: error instanceof Error ? error.message : 'Unknown error',
-        })
+        toastError('Failed to update settings', error)
       }
     })
   })

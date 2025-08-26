@@ -1,7 +1,6 @@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { toast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 import {
   isUiNodeInputAttributes,
@@ -11,9 +10,6 @@ import {
   UiNodeGroupEnum,
   UiNodeInputAttributes,
 } from '@ory/client-fetch'
-import { AxiosError } from 'axios'
-import { NextRouter } from 'next/router'
-import { Dispatch, SetStateAction } from 'react'
 import ProviderIcon from './provider-icon'
 
 export const groupUiNodes = (

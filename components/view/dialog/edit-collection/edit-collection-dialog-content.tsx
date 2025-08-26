@@ -20,7 +20,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import LoadingSpinner from '@/components/ui/loading-spinner'
 import { fetchUpdateCollection } from '@/hooks/api-endpoints-client'
-import { toast } from '@/hooks/use-toast'
+import { toastError } from '@/lib/toasts'
 import { useModalStore } from '@/providers/modal'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
@@ -32,6 +32,7 @@ import {
 } from 'lucide-react'
 import React from 'react'
 import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
 import { z } from 'zod'
 import { useCollectionContext } from '../../../ui/content-collections/collections-context'
 import EditCollectionDialogItem from './edit-collection-dialog-item'
@@ -80,18 +81,12 @@ export default function EditCollectionDialogContent() {
         )
         updateCollection(optimisticCollection.id, newCollection)
         closeModal()
-        toast({
-          title: data.name,
+        toast.success(data.name, {
           description: 'Collection updated successfully',
         })
       } catch (error) {
         updateCollection(optimisticCollection.id, updatedCollection)
-        toast({
-          title: 'Error while updating collection',
-          description:
-            error instanceof Error ? error.message : 'Please try again',
-          variant: 'destructive',
-        })
+        toastError('Error while updating collection', error)
       }
     })
   }

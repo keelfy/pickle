@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button'
 import LoadingSpinner from '@/components/ui/loading-spinner'
-import { toast } from '@/hooks/use-toast'
+import { toastError } from '@/lib/toasts'
 import ory from '@/lib/ory'
 import { useAuthStore } from '@/providers/auth-store'
 import { LogInIcon, LogOutIcon } from 'lucide-react'
@@ -34,11 +34,7 @@ export default function AuthSuggestSection({ className }: Props) {
         window.location.reload()
       } catch (event) {
         console.error(event)
-        toast({
-          title: 'Failed to sign out',
-          description: event instanceof Error ? event.message : 'Unknown error',
-          variant: 'destructive',
-        })
+        toastError('Failed to sign out', event)
       }
     })
 

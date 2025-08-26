@@ -2,7 +2,7 @@
 
 import LoadingSpinner from '@/components/ui/loading-spinner'
 import { fetchProfileOrders } from '@/hooks/api-endpoints-client'
-import { toast } from '@/hooks/use-toast'
+import { toastError } from '@/lib/toasts'
 import { OrderWithDecision } from '@/lib/model/order'
 import { useSortFilterFetch } from '@/lib/sort-filter-fetch'
 import { useProfileStore } from '@/providers/profile-store'
@@ -39,12 +39,7 @@ export default function SuggestionList({ sort, filters }: Props) {
         try {
           return await fetchProfileOrders(profile, params)
         } catch (error) {
-          toast({
-            title: 'Failed to fetch orders',
-            description:
-              error instanceof Error ? error.message : 'Please try again later',
-            variant: 'destructive',
-          })
+          toastError('Failed to fetch orders', error)
           throw error
         }
       },

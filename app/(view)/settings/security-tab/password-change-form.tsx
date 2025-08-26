@@ -13,8 +13,8 @@ import {
 import { Input } from '@/components/ui/input'
 import LoadingSpinner from '@/components/ui/loading-spinner'
 import { PasswordInput } from '@/components/ui/password-input'
-import { toast } from '@/hooks/use-toast'
 import ory from '@/lib/ory'
+import { toastError } from '@/lib/toasts'
 import { cn } from '@/lib/utils'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
@@ -157,11 +157,7 @@ export default function PasswordChangeForm({
             updateErrors(res)
           } else if (error.response.status === 403) {
             if (res.error.id === 'security_csrf_violation') {
-              toast({
-                title: 'Failed to request email change',
-                description: 'CSRF Violation. Please try again.',
-                variant: 'destructive',
-              })
+              toastError('Failed to request email change', error)
             } else if (res.error.id === 'session_refresh_required') {
               window.location.href = `${process.env.NEXT_PUBLIC_ORY_SDK_URL}/self-service/login/browser?refresh=true&return_to=${returnTo}`
             }

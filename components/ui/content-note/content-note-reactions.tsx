@@ -11,7 +11,7 @@ import {
   deleteContentNoteReaction,
 } from '@/hooks/api-endpoints-client'
 import useRedirectToLogin from '@/hooks/use-redirect-to-login'
-import { toast } from '@/hooks/use-toast'
+import { toastError } from '@/lib/toasts'
 import { ContentCategory } from '@/lib/model/content'
 import { ContentNote } from '@/lib/model/content-note'
 import { ContentNoteReaction } from '@/lib/model/note-reaction'
@@ -191,11 +191,7 @@ export default function ContentNoteReactions({
         }
       } catch (error) {
         console.error(error)
-        toast({
-          title: 'Error adding reaction',
-          description:
-            error instanceof Error ? error.message : 'An error occurred.',
-        })
+        toastError('Error adding reaction', error)
       }
     })
   }

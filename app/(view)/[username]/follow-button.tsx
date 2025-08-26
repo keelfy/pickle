@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button'
 import { followProfile, unfollowProfile } from '@/hooks/api-endpoints-client'
 import useRedirectToLogin from '@/hooks/use-redirect-to-login'
-import { toast } from '@/hooks/use-toast'
+import { toastError } from '@/lib/toasts'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/providers/auth-store'
 import { useProfileStore } from '@/providers/profile-store'
@@ -60,12 +60,7 @@ export function FollowButton({ className }: Props) {
           })
         }
       } catch (error) {
-        toast({
-          title: 'Failed to follow ' + profile?.displayName,
-          description:
-            error instanceof Error ? error.message : 'An error occurred',
-          variant: 'destructive',
-        })
+        toastError('Failed to follow ' + profile?.displayName, error)
         setIsFollowing(prevValue)
       }
     })
@@ -100,12 +95,7 @@ export function FollowButton({ className }: Props) {
           })
         }
       } catch (error) {
-        toast({
-          title: 'Failed to unfollow ' + profile?.displayName,
-          description:
-            error instanceof Error ? error.message : 'An error occurred',
-          variant: 'destructive',
-        })
+        toastError('Failed to unfollow ' + profile?.displayName, error)
         setIsFollowing(prevValue)
       }
     })

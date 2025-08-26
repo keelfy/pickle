@@ -5,6 +5,7 @@ export type TwitchChannelReward = {
   title: string
   prompt: string
   backgroundColor: string
+  image: string
   cost: number
   isEnabled: boolean
   isPaused: boolean
@@ -16,7 +17,7 @@ export type TwitchChannelReward = {
 export type BroadcasterRewardPreferences = {
   isActive: boolean
   trackedRewards: TwitchChannelReward[]
-  availableRewards: TwitchChannelReward[]
+  availableRewards: TwitchChannelReward[] | undefined
 }
 
 export type BroadcasterPreferences = {

@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/command'
 import { getContentCategoryIcon } from '@/components/ui/content-category-icon'
 import { fetchProfileContentSearch } from '@/hooks/api-endpoints-client'
-import { toast } from '@/hooks/use-toast'
+import { toastError } from '@/lib/toasts'
 import { UserContent } from '@/lib/model/content'
 import { Paginated } from '@/lib/model/types'
 import { useModalStore } from '@/providers/modal'
@@ -66,11 +66,7 @@ export default function ProfileSearchDialogContent() {
         )
         setResult(response)
       } catch (error) {
-        toast({
-          title: 'Failed to fetch search results',
-          description:
-            error instanceof Error ? error.message : 'An error occurred',
-        })
+        toastError('Failed to fetch search results', error)
       }
     })
   }, [debouncedQuery, profile])
@@ -103,11 +99,9 @@ export default function ProfileSearchDialogContent() {
 
   const handleEntryClick = ({ category, noteId }: UserContent) => {
     if (!noteId) {
-      toast({
-        title: 'Content not in profile',
-        description: `This content wasn't mentioned in the profile of ${profile?.displayName}`,
-        variant: 'destructive',
-      })
+      toastError(
+        `This content wasn't mentioned in the profile of ${profile?.displayName}`,
+      )
       return
     }
     switch (category) {

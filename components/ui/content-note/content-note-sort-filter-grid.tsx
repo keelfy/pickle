@@ -18,7 +18,7 @@ import {
   fetchBatchContentNoteReactions,
   fetchProfileContentNotes,
 } from '@/hooks/api-endpoints-client'
-import { toast } from '@/hooks/use-toast'
+import { toastError } from '@/lib/toasts'
 import { localizeContentCategory } from '@/lib/localize-types'
 import { ContentCategory } from '@/lib/model/content'
 import { DetailedContentNote } from '@/lib/model/content-note'
@@ -102,12 +102,10 @@ export default function ContentNoteSortFilterGrid<
       try {
         return await fetchProfileContentNotes<T>(profile, category, params)
       } catch (error) {
-        toast({
-          title: `Failed to fetch ${localizeContentCategory(category, false).toLowerCase()} notes`,
-          description:
-            error instanceof Error ? error.message : 'An error occurred',
-          variant: 'destructive',
-        })
+        toastError(
+          `Failed to fetch ${localizeContentCategory(category, false).toLowerCase()} notes`,
+          error,
+        )
         throw error
       }
     },

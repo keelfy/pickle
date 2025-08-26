@@ -1,7 +1,7 @@
 'use client'
 
 import PickleLogo from '@/components/ui/icons/pickle-logo'
-import { toast } from '@/hooks/use-toast'
+import { toastError } from '@/lib/toasts'
 import ory from '@/lib/ory'
 import { cn } from '@/lib/utils'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -144,18 +144,10 @@ const AuthForm = ({
             }
           } else {
             const res = (await error.response.json()) as ErrorGeneric
-            toast({
-              title: 'Failed to login',
-              description: res.error.message,
-              variant: 'destructive',
-            })
+            toastError('Failed to login', res.error)
           }
         } else {
-          toast({
-            title: 'Failed to login',
-            description: 'Unknown error. Please try again.',
-            variant: 'destructive',
-          })
+          toastError('Failed to login', error)
         }
       }
     })

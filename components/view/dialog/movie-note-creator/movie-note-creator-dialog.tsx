@@ -36,6 +36,7 @@ export default function MovieNoteCreatorDialog() {
         {isOpen && (
           <DynamicMovieNoteCreatorDialogContent
             noteId={modalParams?.movieId as string}
+            isDesktop={true}
           />
         )}
       </DialogContent>

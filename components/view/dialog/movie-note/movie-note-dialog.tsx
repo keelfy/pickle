@@ -5,6 +5,7 @@ import { useModalStore } from '@/providers/modal'
 import { ModalType } from '@/stores/modal'
 import dynamic from 'next/dynamic'
 import LoadingDialogContent from '../loading-dialog-content'
+import { useIsDesktop } from '@/lib/use-media-query'
 
 const DynamicMovieNoteDialogContent = dynamic(
   () => import('./movie-note-dialog-content'),
@@ -19,6 +20,7 @@ export type MovieNoteDialogParams = {
 
 export default function MovieNoteDialog() {
   const modalParams = useModalStore((state) => state.modalParams)
+  const isDesktop = useIsDesktop()
 
   return (
     <DialogWrapper
@@ -26,8 +28,12 @@ export default function MovieNoteDialog() {
       validateModalParams={(params) => {
         return typeof params?.noteId === 'string' && params.noteId.length > 0
       }}
+      isDesktop={isDesktop}
     >
-      <DynamicMovieNoteDialogContent noteId={modalParams!.noteId as string} />
+      <DynamicMovieNoteDialogContent
+        noteId={modalParams!.noteId as string}
+        isDesktop={isDesktop}
+      />
     </DialogWrapper>
   )
 }

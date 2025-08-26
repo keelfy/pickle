@@ -14,7 +14,7 @@ import {
   fetchProfileContentSearch,
 } from '@/hooks/api-endpoints-client'
 import { useDebounce } from '@/hooks/use-debounce'
-import { toast } from '@/hooks/use-toast'
+import { toastError } from '@/lib/toasts'
 import { CollectionItem } from '@/lib/model/collection'
 import { UserContent } from '@/lib/model/content'
 import { Paginated } from '@/lib/model/types'
@@ -75,11 +75,7 @@ export default function AddCollectionItemDialogContent() {
         )
         setResult(response)
       } catch (error) {
-        toast({
-          title: 'Failed to fetch search results',
-          description:
-            error instanceof Error ? error.message : 'An error occurred',
-        })
+        toastError('Failed to fetch search results', error)
       }
     })()
   }, [debouncedQuery, profile])
@@ -122,11 +118,10 @@ export default function AddCollectionItemDialogContent() {
     )
 
     if (sameNote) {
-      toast({
-        title: `Already in collection`,
-        description: `"${source.title}" is already in the collection`,
-        variant: 'destructive',
-      })
+      toastError(
+        `Already in collection`,
+        `"${source.title}" is already in the collection`,
+      )
       return
     }
 
@@ -159,12 +154,7 @@ export default function AddCollectionItemDialogContent() {
           modalParams.id as string,
           optimisticCollectionItem.id,
         )
-        toast({
-          title: 'Failed to add item to collection',
-          description:
-            error instanceof Error ? error.message : 'An error occurred',
-          variant: 'destructive',
-        })
+        toastError('Failed to add item to collection', error)
       }
     })()
   }

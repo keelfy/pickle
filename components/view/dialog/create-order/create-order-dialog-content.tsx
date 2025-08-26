@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import LoadingSpinner from '@/components/ui/loading-spinner'
-import { toast } from '@/hooks/use-toast'
+import { toastError } from '@/lib/toasts'
 import { ContentCategory, ContentCategoryEnum } from '@/lib/model/content'
 import { useModalStore } from '@/providers/modal'
 import { useProfileStore } from '@/providers/profile-store'
@@ -68,11 +68,7 @@ export default function CreateOrderDialogContent() {
         // await createOrder(profile, data);
         closeModal()
       } catch (error: unknown) {
-        toast({
-          title: 'Error while creating order',
-          description:
-            error instanceof Error ? error.message : 'Please try again',
-        })
+        toastError('Error while creating order', error)
       }
     })
   }

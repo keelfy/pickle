@@ -23,7 +23,6 @@ import {
   createContentNote,
   fetchContentById,
 } from '@/hooks/api-endpoints-client'
-import { toast } from '@/hooks/use-toast'
 import { localizeContentCategory } from '@/lib/localize-types'
 import {
   ContentCategory,
@@ -34,7 +33,7 @@ import {
   ContentNoteStatus,
   DetailedContentNote,
 } from '@/lib/model/content-note'
-import { useMediaQuery } from '@/lib/use-media-query'
+import { toastError } from '@/lib/toasts'
 import { useModalStore } from '@/providers/modal'
 import { useProfileStore } from '@/providers/profile-store'
 import { ApiType } from '@/utils/api/constants'
@@ -48,6 +47,7 @@ import { Check, CheckIcon, CircleOff, X } from 'lucide-react'
 import Link from 'next/link'
 import React from 'react'
 import { useForm, UseFormReturn } from 'react-hook-form'
+import { toast } from 'sonner'
 import { z } from 'zod'
 import CommentFormItem from '../content-note-editor/comment-form-item'
 import getContentSourceLinks from '../content-note-editor/get-content-source-links'
@@ -73,6 +73,7 @@ type Props<
   statusOptions: ApiType<ContentNoteStatus>[]
   getAdditionalFormFields?: (form: UseFormReturn<V>) => React.ReactNode
   mapToReq: (values: V) => R
+  isDesktop: boolean | undefined
 }
 
 export default function ContentNoteCreatorDialogContent<
@@ -86,11 +87,10 @@ export default function ContentNoteCreatorDialogContent<
   statusOptions,
   getAdditionalFormFields = () => null,
   mapToReq = (values) => values as unknown as R,
+  isDesktop,
 }: Props<V, R>) {
   const closeModal = useModalStore((state) => state.closeModal)
   const profile = useProfileStore((state) => state.profile)
-
-  const isDesktop = useMediaQuery('(min-width: 1024px)')
 
   const [content, setContent] = React.useState<DetailedGame | DetailedMovie>()
   const [isLoading, startTransition] = React.useTransition()
@@ -116,11 +116,7 @@ export default function ContentNoteCreatorDialogContent<
     fetchContentById(category, contentId, 'lg')
       .then(setContent)
       .catch((err) => {
-        toast({
-          title: `Failed to fetch the content`,
-          description: err instanceof Error ? err.message : 'Try again later.',
-          variant: 'destructive',
-        })
+        toastError(`Failed to fetch the content`, err)
       })
   }, [contentId, profile?.id])
 
@@ -131,18 +127,12 @@ export default function ContentNoteCreatorDialogContent<
       try {
         const req = mapToReq(values as V)
         await createContentNote<T, R>(profile, category, req)
-        toast({
-          title: content?.title ?? 'Untitled content',
+        toast.success(content?.title ?? 'Untitled content', {
           description: 'The content note was created.',
         })
         closeModal()
       } catch (error) {
-        toast({
-          title: 'Failed to create content note',
-          description:
-            error instanceof Error ? error.message : 'An error occurred.',
-          variant: 'destructive',
-        })
+        toastError('Failed to create content note', error)
       }
     })
   })

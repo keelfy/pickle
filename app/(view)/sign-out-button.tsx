@@ -2,8 +2,8 @@
 
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import LoadingSpinner from '@/components/ui/loading-spinner'
-import { toast } from '@/hooks/use-toast'
 import ory from '@/lib/ory'
+import { toastError } from '@/lib/toasts'
 import { LogOut } from 'lucide-react'
 import React from 'react'
 
@@ -19,12 +19,8 @@ const DropdownMenuSignOutItem = () => {
           returnTo: window.location.href,
         })
         window.location.reload()
-      } catch (e) {
-        toast({
-          title: 'Failed to sign out',
-          description: 'Please try again later.',
-          variant: 'destructive',
-        })
+      } catch (error) {
+        toastError('Failed to sign out', error)
       }
     })
 

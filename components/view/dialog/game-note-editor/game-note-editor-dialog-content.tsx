@@ -12,11 +12,12 @@ import {
   fetchContentNote,
   updateContentNote,
 } from '@/hooks/api-endpoints-client'
-import { toast } from '@/hooks/use-toast'
+import { DetailedGameNote, GameNoteStatus } from '@/lib/model/content-note'
+import { toastError } from '@/lib/toasts'
 import { useModalStore } from '@/providers/modal'
 import { useProfileStore } from '@/providers/profile-store'
 import { gameNoteStatusLabels } from '@/utils/api/constants'
-import { DetailedGameNote, GameNoteStatus } from '@/lib/model/content-note'
+import { CreateGameNoteReq } from '@/utils/api/request'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
   Check,
@@ -26,17 +27,16 @@ import {
   RocketIcon,
   X,
 } from 'lucide-react'
+import Link from 'next/link'
 import React from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import CommentFormItem from '../content-note-editor/comment-form-item'
 import DayPickerFormItem from '../content-note-editor/day-picker-form-item'
+import getContentSourceLinks from '../content-note-editor/get-content-source-links'
 import RateFormItem from '../content-note-editor/rate-form-item'
 import StatusSelectFormItem from '../content-note-editor/status-select-form-item'
 import { ContentNoteDialogOrdersSection } from '../content-note/content-note-dialog-orders-section'
-import Link from 'next/link'
-import { CreateGameNoteReq } from '@/utils/api/request'
-import getContentSourceLinks from '../content-note-editor/get-content-source-links'
 
 const formSchema = z.object({
   status: z.custom<GameNoteStatus>(),
@@ -86,10 +86,7 @@ export default function GameNoteEditorDialogContent({ noteId }: Props) {
       .then(setGameNote)
       .catch((err) => {
         console.error(err)
-        toast({
-          title: 'Failed to fetch game note',
-          description: 'Try again later.',
-        })
+        toastError('Failed to fetch game note', err)
       })
   }, [noteId, profile?.id])
 
@@ -104,12 +101,7 @@ export default function GameNoteEditorDialogContent({ noteId }: Props) {
         >(profile, 'games', noteId, values)
         resetForm(res)
       } catch (error) {
-        toast({
-          title: 'Failed to update game',
-          description:
-            error instanceof Error ? error.message : 'An error occurred.',
-          variant: 'destructive',
-        })
+        toastError('Failed to update game', error)
       }
     })
   })

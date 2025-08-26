@@ -20,7 +20,6 @@ import IGDBIcon from '@/components/ui/icons/igdb-icon'
 import { PopoverTrigger } from '@/components/ui/popover'
 import { ContentNoteDialogOrdersSection } from '@/components/view/dialog/content-note/content-note-dialog-orders-section'
 import { fetchContentNote } from '@/hooks/api-endpoints-client'
-import { toast } from '@/hooks/use-toast'
 import {
   localizeContentCategory,
   localizeContentNoteStatus,
@@ -28,7 +27,7 @@ import {
 import { ContentCategory } from '@/lib/model/content'
 import { DetailedContentNote } from '@/lib/model/content-note'
 import { Profile } from '@/lib/model/user'
-import { useMediaQuery } from '@/lib/use-media-query'
+import { toastError } from '@/lib/toasts'
 import { useProfileStore } from '@/providers/profile-store'
 import {
   SiThemoviedatabase,
@@ -100,11 +99,12 @@ type Props<T extends DetailedContentNote> = {
   noteId: string
   category: ContentCategory
   additionalDataRows?: ContentNoteDialogDataRow<T>[]
+  isDesktop: boolean | undefined
 }
 
 export default function ContentNoteDialogContent<
   T extends DetailedContentNote,
->({ noteId, category, additionalDataRows = [] }: Props<T>) {
+>({ noteId, category, additionalDataRows = [], isDesktop }: Props<T>) {
   const [contentNote, setContentNote] = React.useState<T>()
   const { profile } = useProfileStore((state) => state)
 
@@ -136,16 +136,13 @@ export default function ContentNoteDialogContent<
         const response = await fetchContentNote<T>(profile, category, noteId)
         setContentNote(response)
       } catch (error) {
-        toast({
-          title: `Failed to load ${localizeContentCategory(category)} note`,
-          description:
-            error instanceof Error ? error.message : 'An error occurred',
-        })
+        toastError(
+          `Failed to load ${localizeContentCategory(category)} note`,
+          error,
+        )
       }
     })
   }, [noteId])
-
-  const isDesktop = useMediaQuery('(min-width: 1024px)')
 
   const Header = isDesktop ? DialogHeader : DrawerHeader
   const HeaderTitle = isDesktop ? DialogTitle : DrawerTitle

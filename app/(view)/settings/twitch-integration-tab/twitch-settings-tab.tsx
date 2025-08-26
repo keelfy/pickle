@@ -1,11 +1,11 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import LoadingSpinner from '@/components/ui/loading-spinner'
-import { toast } from '@/hooks/use-toast'
 import ory from '@/lib/ory'
-import { useModalStore } from '@/providers/modal'
-import { SiTwitch } from '@icons-pack/react-simple-icons'
+import { toastError } from '@/lib/toasts'
+import { SiTwitch, SiTwitchHex } from '@icons-pack/react-simple-icons'
 import {
   ErrorBrowserLocationChangeRequired,
   isResponseError,
@@ -14,12 +14,15 @@ import {
 } from '@ory/client-fetch'
 import { KeyIcon, XIcon } from 'lucide-react'
 import { usePathname, useSearchParams } from 'next/navigation'
+import { parseAsString, useQueryState } from 'nuqs'
 import React from 'react'
 import TwitchIntegrationSettings from './twitch-integration-settings'
 
 export default function TwitchIntegrationSettingsTab() {
-  const { modalParams, setModalParams } = useModalStore((state) => state)
-
+  const [flowId, setFlowId] = useQueryState(
+    'flowId',
+    parseAsString.withDefault(''),
+  )
   const [isFlowPending, startFlowTransition] = React.useTransition()
   const [flow, setFlow] = React.useState<SettingsFlow>()
 
@@ -46,10 +49,10 @@ export default function TwitchIntegrationSettingsTab() {
     startFlowTransition(async () => {
       let flow: SettingsFlow | undefined
 
-      if (modalParams?.flow && modalParams.flow.length > 0) {
+      if (flowId && flowId.length > 0) {
         try {
           flow = await ory.getSettingsFlow({
-            id: modalParams.flow as string,
+            id: flowId as string,
           })
         } catch (error) {
           if (isResponseError(error)) {
@@ -71,19 +74,12 @@ export default function TwitchIntegrationSettingsTab() {
           flow = await ory.createBrowserSettingsFlow({
             returnTo: `${pathname}?${searchParams.toString()}`,
           })
-          setModalParams({
-            tab: modalParams?.tab as string,
-            flow: flow.id ?? undefined,
-          })
+          setFlowId(flow.id ?? '')
         } catch (error) {
           if (isResponseError(error)) {
             if (error.response.status === 400) {
               const res = (await error.response.json()) as SettingsFlow
-              toast({
-                title: 'Failed to create settings flow',
-                description:
-                  res?.ui?.messages?.[0]?.text ?? 'An unknown error occurred',
-              })
+              toastError('Failed to create settings flow', res)
             }
           }
         }
@@ -117,11 +113,7 @@ export default function TwitchIntegrationSettingsTab() {
         if (isResponseError(e)) {
           if (e.response.status === 400) {
             const res = (await e.response.json()) as SettingsFlow
-            toast({
-              title: 'Failed to update settings flow',
-              description:
-                res?.ui?.messages?.[0]?.text ?? 'An unknown error occurred',
-            })
+            toastError('Failed to update settings flow', res)
             setFlow(res)
           } else if (e.response.status === 422) {
             const res =
@@ -132,66 +124,63 @@ export default function TwitchIntegrationSettingsTab() {
           } else if (e.response.status === 403) {
             const res = await e.response.json()
             if (res.error.id === 'security_csrf_violation') {
-              toast({
-                title: 'Failed to connect Twitch',
-                description: 'CSRF Violation. Please try again.',
-                variant: 'destructive',
-              })
+              toastError(
+                'Failed to connect Twitch',
+                'CSRF Violation. Please try again.',
+              )
             } else if (res.error.id === 'session_refresh_required') {
               window.location.href = `${process.env.NEXT_PUBLIC_ORY_SDK_URL}/self-service/login/browser?refresh=true&return_to=${pathname}?${searchParams.toString()}`
             } else {
-              toast({
-                title: 'Error',
-                description: res?.error?.message || 'Error linking provider',
-                variant: 'destructive',
-              })
+              toastError(
+                'Error linking provider',
+                res.error.message ?? 'Error linking provider',
+              )
             }
           }
         } else {
-          toast({
-            title: 'Error',
-            description:
-              e instanceof Error ? e.message : 'Error linking provider',
-            variant: 'destructive',
-          })
+          toastError('Error linking provider', e)
         }
       }
     })
 
   return (
-    <div className="flex h-full w-full flex-col justify-between space-y-6">
-      <div className="grid gap-2">
-        <div className="flex items-center gap-2">
-          <SiTwitch className={`h-4 w-4 text-sm text-[#6441A5]`} />
-          <h1 className="text-lg font-bold">
-            Twitch Channel Points Integration
-          </h1>
-        </div>
-        <div className="flex items-center justify-between space-x-4 rounded-md border p-4">
-          <div className="flex flex-1 flex-col space-y-2 text-sm">
-            You can provide access to channel points redemptions from your
-            Twitch channel to automatically populate your orders.
+    <div className="flex flex-col justify-between space-y-8">
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            <div className="flex items-center gap-2">
+              <SiTwitch className="size-4" color={SiTwitchHex} />
+              Twitch Channel Points Integration
+            </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between space-x-4">
+            <div className="flex flex-1 flex-col space-y-2 text-sm">
+              You can provide access to channel points redemptions from your
+              Twitch channel to automatically populate your orders.
+            </div>
+            <Button
+              variant="outline"
+              onClick={handleTwitchConnect}
+              disabled={isFlowPending || isConnecting}
+            >
+              {isConnecting || isFlowPending ? (
+                <LoadingSpinner />
+              ) : isTwitchLinked ? (
+                <XIcon className="h-4 w-4 text-destructive" />
+              ) : (
+                <KeyIcon className="h-4 w-4" />
+              )}
+              {isFlowPending
+                ? 'Waiting...'
+                : isTwitchLinked
+                  ? 'Disconnect'
+                  : 'Connect'}
+            </Button>
           </div>
-          <Button
-            variant="outline"
-            onClick={handleTwitchConnect}
-            disabled={isFlowPending || isConnecting}
-          >
-            {isConnecting || isFlowPending ? (
-              <LoadingSpinner />
-            ) : isTwitchLinked ? (
-              <XIcon className="h-4 w-4 text-destructive" />
-            ) : (
-              <KeyIcon className="h-4 w-4" />
-            )}
-            {isFlowPending
-              ? 'Waiting...'
-              : isTwitchLinked
-                ? 'Disconnect'
-                : 'Connect'}
-          </Button>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {isTwitchLinked && <TwitchIntegrationSettings />}
 

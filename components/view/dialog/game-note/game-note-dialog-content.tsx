@@ -8,6 +8,7 @@ import ContentNoteDialogContent, {
 
 type Props = {
   noteId: string
+  isDesktop: boolean | undefined
 }
 
 const additionalDataRows: ContentNoteDialogDataRow<DetailedGameNote>[] = [
@@ -26,12 +27,13 @@ const additionalDataRows: ContentNoteDialogDataRow<DetailedGameNote>[] = [
   },
 ]
 
-export default function GameNoteDialogContent({ noteId }: Props) {
+export default function GameNoteDialogContent({ noteId, isDesktop }: Props) {
   return (
     <ContentNoteDialogContent
       noteId={noteId}
       category="games"
       additionalDataRows={additionalDataRows}
+      isDesktop={isDesktop}
     />
   )
 }

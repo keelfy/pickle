@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button'
 import LoadingSpinner from '@/components/ui/loading-spinner'
 import { Separator } from '@/components/ui/separator'
-import { toast } from '@/hooks/use-toast'
+import { toastError } from '@/lib/toasts'
 import ory from '@/lib/ory'
 import { cn } from '@/utils/cn'
 import {
@@ -98,26 +98,16 @@ export default function ProviderIdentityElement({
               )?.messages[0]?.text ||
               'OAuth authentication required'
 
-            toast({
-              title: 'Authentication Required',
-              description: errorMessage,
-              variant: 'destructive',
-            })
+            toastError('Authentication Required', errorMessage)
           } catch (parseError) {
-            toast({
-              title: 'Authentication Required',
-              description: 'Please complete OAuth authentication',
-              variant: 'destructive',
-            })
+            toastError(
+              'Authentication Required',
+              'Please complete OAuth authentication',
+            )
           }
         } else {
           // Handle other errors
-          toast({
-            title: 'Error',
-            description:
-              e instanceof Error ? e.message : 'Error linking provider',
-            variant: 'destructive',
-          })
+          toastError('Error', 'Error linking provider')
         }
       }
     })

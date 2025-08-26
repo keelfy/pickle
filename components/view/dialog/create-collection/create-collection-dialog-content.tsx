@@ -18,7 +18,7 @@ import {
 import { Input } from '@/components/ui/input'
 import LoadingSpinner from '@/components/ui/loading-spinner'
 import { fetchCreateCollection } from '@/hooks/api-endpoints-client'
-import { toast } from '@/hooks/use-toast'
+import { toastError } from '@/lib/toasts'
 import { useModalStore } from '@/providers/modal'
 import { useProfileStore } from '@/providers/profile-store'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -27,6 +27,7 @@ import { useTransition } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { useCollectionContext } from '../../../ui/content-collections/collections-context'
+import { toast } from 'sonner'
 
 const formSchema = z.object({
   name: z
@@ -61,18 +62,12 @@ export default function CreateCollectionDialogContent() {
         const newCollection = await fetchCreateCollection(profile, data)
         updateCollection(optimisticCollection.id, newCollection)
         closeModal()
-        toast({
-          title: data.name,
+        toast.success(data.name, {
           description: 'Collection created successfully',
         })
       } catch (error) {
         deleteCollection(optimisticCollection.id)
-        toast({
-          title: 'Error while creating collection',
-          description:
-            error instanceof Error ? error.message : 'An error occurred',
-          variant: 'destructive',
-        })
+        toastError('Error while creating collection', error)
       }
     })
   }

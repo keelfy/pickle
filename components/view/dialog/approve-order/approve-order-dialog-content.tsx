@@ -37,7 +37,7 @@ import {
   fetchContentSearch,
   fetchOrderById,
 } from '@/hooks/api-endpoints-client'
-import { toast } from '@/hooks/use-toast'
+import { toastError } from '@/lib/toasts'
 import { localizeContentCategory } from '@/lib/localize-types'
 import { Content, ContentCategory } from '@/lib/model/content'
 import { DetailedOrder } from '@/lib/model/order'
@@ -153,11 +153,7 @@ export default function ApproveOrderDialogContent() {
         )
         setExternalSearchResults(response)
       } catch (error) {
-        toast({
-          title: 'Failed to fetch search results',
-          description:
-            error instanceof Error ? error.message : 'An error occurred',
-        })
+        toastError('Failed to fetch search results', error)
       }
     })()
   }, [debouncedContentQuery])
@@ -210,11 +206,7 @@ export default function ApproveOrderDialogContent() {
           }
         }
       } catch (error) {
-        toast({
-          title: 'Failed to fetch search results',
-          description:
-            error instanceof Error ? error.message : 'An error occurred',
-        })
+        toastError('Failed to fetch search results', error)
       }
     })()
   }, [contentSearchPage])
@@ -229,11 +221,7 @@ export default function ApproveOrderDialogContent() {
         const response = await fetchOrderById(profile, orderId as string)
         setOrder(response)
       } catch (error) {
-        toast({
-          title: 'Failed to fetch the order',
-          description:
-            error instanceof Error ? error.message : 'An error occurred',
-        })
+        toastError('Failed to fetch the order', error)
       }
     })()
   }, [orderId, profile])
@@ -292,11 +280,7 @@ export default function ApproveOrderDialogContent() {
           openContentNoteEditor(values.category, res.decision.contentNote.id)
         }
       } catch (error) {
-        toast({
-          title: 'Failed to approve the order',
-          description:
-            error instanceof Error ? error.message : 'An error occurred',
-        })
+        toastError('Failed to approve the order', error)
       }
     })
   }

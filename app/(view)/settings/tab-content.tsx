@@ -1,61 +1,53 @@
-import LoadingSpinner from '@/components/ui/loading-spinner'
 import { useAuthStore } from '@/providers/auth-store'
 import dynamic from 'next/dynamic'
+import { SettingsTab } from './page.logic'
+import TabLoading from './tab-loading'
 
 const DynamicGeneralSettingsTab = dynamic(
   () => import('./general-tab/general-settings-tab'),
-  { loading: () => <LoadingSpinner /> },
+  { loading: () => <TabLoading /> },
 )
 
 const DynamicSecuritySettingsTab = dynamic(
   () => import('./security-tab/security-settings-tab'),
-  { loading: () => <LoadingSpinner /> },
+  { loading: () => <TabLoading /> },
 )
 
 const DynamicTwitchSettingsTab = dynamic(
   () => import('./twitch-integration-tab/twitch-settings-tab'),
-  { loading: () => <LoadingSpinner /> },
+  { loading: () => <TabLoading /> },
 )
 
 const DynamicModerationSettingsTab = dynamic(
   () => import('./moderation-tab/moderation-settings-tab'),
-  { loading: () => <LoadingSpinner /> },
+  { loading: () => <TabLoading /> },
 )
 
 const DynamicSuggestionsSettingsTab = dynamic(
   () => import('./suggestions-tab/suggestions-settings-tab'),
-  { loading: () => <LoadingSpinner /> },
+  { loading: () => <TabLoading /> },
 )
 
-export type ProfileSettingsDialogTab =
-  | 'general'
-  | 'security'
-  | 'notifications'
-  | 'moderation'
-  | 'suggestions'
-  | 'payments'
-  | 'twitch-integration'
-
-type Props = { tab: ProfileSettingsDialogTab }
+type Props = { tab: SettingsTab }
 
 export default function TabContent({ tab }: Props) {
   const user = useAuthStore((state) => state.user)
   if (!user) return null
 
   switch (tab) {
-    case 'general':
+    case SettingsTab.General:
       return <DynamicGeneralSettingsTab />
-    case 'security':
+    case SettingsTab.Security:
       return <DynamicSecuritySettingsTab />
-    case 'moderation':
+    case SettingsTab.Moderation:
       return <DynamicModerationSettingsTab />
-    case 'notifications':
+    case SettingsTab.Notifications:
       return <div />
-    case 'suggestions':
+    case SettingsTab.Suggestions:
       return <DynamicSuggestionsSettingsTab />
-    case 'payments':
+    case SettingsTab.Payments:
       return <div />
-    case 'twitch-integration':
+    case SettingsTab.TwitchIntegration:
       return <DynamicTwitchSettingsTab />
   }
 

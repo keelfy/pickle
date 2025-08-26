@@ -21,11 +21,11 @@ import { PopoverTrigger } from '@/components/ui/popover'
 import { Separator } from '@/components/ui/separator'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { fetchContentNoteOrders } from '@/hooks/api-endpoints-client'
-import { errorToast } from '@/hooks/error-toast'
 import { getTimeAgoText } from '@/lib/localize-types'
 import { ContentCategory } from '@/lib/model/content'
 import { DetailedContentNote } from '@/lib/model/content-note'
 import { Order } from '@/lib/model/order'
+import { toastError } from '@/lib/toasts'
 import { cn } from '@/lib/utils'
 import { useProfileStore } from '@/providers/profile-store'
 import { Paginated } from '@/utils/api/response'
@@ -63,7 +63,7 @@ export const ContentNoteDialogOrdersSection = ({
           )
           setOrders(response)
         } catch (error) {
-          errorToast('Failed to load suggesters', error)
+          toastError('Failed to load suggesters', error)
         }
       })
     }

@@ -7,8 +7,8 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
 import LoadingSpinner from '@/components/ui/loading-spinner'
-import { toast } from '@/hooks/use-toast'
 import ory from '@/lib/ory'
+import { toastError } from '@/lib/toasts'
 import { useAuthStore } from '@/providers/auth-store'
 import { useModalStore } from '@/providers/modal'
 import {
@@ -27,6 +27,7 @@ import {
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import React from 'react'
+import { toast } from 'sonner'
 import EmailChangeForm from './email-change-form'
 import PasswordChangeElement from './password-change-element'
 import SecurityLinkedProviders from './security-linked-providers'
@@ -87,11 +88,7 @@ export default function SecuritySettingsTab() {
           if (isResponseError(error)) {
             if (error.response.status === 400) {
               const res = (await error.response.json()) as SettingsFlow
-              toast({
-                title: 'Failed to create settings flow',
-                description:
-                  res?.ui?.messages?.[0]?.text ?? 'An unknown error occurred',
-              })
+              toastError('Failed to create settings flow', res)
             }
           }
         }
@@ -132,18 +129,11 @@ export default function SecuritySettingsTab() {
         await ory.disableMyOtherSessions()
         const session = await ory.toSession()
         updateSession(session)
-        toast({
-          title: 'Disabled other sessions',
+        toast.success('Disabled other sessions', {
           description: 'You have been logged out of other sessions.',
         })
       } catch (error) {
-        toast({
-          title: 'Failed to log out all devices',
-          description: isResponseError(error)
-            ? error.response.json().then((res) => res.error.message)
-            : 'An unknown error occurred',
-          variant: 'destructive',
-        })
+        toastError('Failed to log out all devices', error)
       }
     })
 

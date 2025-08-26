@@ -11,16 +11,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import DropdownMenuDialogWrapper from '@/components/view/dialog/dropdown-menu-dialog-wrapper'
-import ProfileSettingsDialog from '@/components/view/dialog/profile-settings/profile-settings-dialog'
+import TrackTwitchChannelRewardDialog from '@/components/view/dialog/track-twitch-reward/track-twitch-reward-dialog'
 import getCurrentSession from '@/hooks/getCurrentSession'
+import { DetailedUser } from '@/lib/model/user'
 import { cn } from '@/lib/utils'
 import { ModalType } from '@/stores/modal'
 import { MessageCircle, Settings, UserIcon } from 'lucide-react'
 import Link from 'next/link'
-import OpenModalDropdownMenuItem from './[username]/open-modal-dropdown-menu-item'
 import LoggedOutProfileNavSection from './logged-out-nav-menu-button'
 import DropdownMenuSignOutItem from './sign-out-button'
-import { DetailedUser } from '@/lib/model/user'
 
 type Props = { className?: string; user: DetailedUser | undefined }
 
@@ -61,13 +60,12 @@ export default async function ProfileDropdownMenu({ className, user }: Props) {
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
-            <OpenModalDropdownMenuItem
-              modal={ModalType.ProfileSettings}
-              className="cursor-pointer"
-            >
-              <Settings />
-              Settings
-            </OpenModalDropdownMenuItem>
+            <DropdownMenuItem className="cursor-pointer" asChild>
+              <Link href="/settings">
+                <Settings />
+                Settings
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuItem disabled>
               <MessageCircle />
               Support
@@ -77,7 +75,6 @@ export default async function ProfileDropdownMenu({ className, user }: Props) {
           <DropdownMenuSignOutItem />
         </DropdownMenuContent>
       </DropdownMenu>
-      <ProfileSettingsDialog />
     </DropdownMenuDialogWrapper>
   )
 }

@@ -9,11 +9,12 @@ import {
 } from '@/components/ui/alert-dialog'
 import LoadingSpinner from '@/components/ui/loading-spinner'
 import { rejectOrderById } from '@/hooks/api-endpoints-client'
-import { useToast } from '@/hooks/use-toast'
+import { toastError } from '@/lib/toasts'
 import { useModalStore } from '@/providers/modal'
 import { useProfileStore } from '@/providers/profile-store'
 import { Check, X } from 'lucide-react'
 import React from 'react'
+import { toast } from 'sonner'
 import { RejectOrderDialogParams } from './reject-order-dialog'
 
 export default function RejectOrderDialogContent() {
@@ -23,7 +24,6 @@ export default function RejectOrderDialogContent() {
     (state) => state.modalParams!,
   ) as RejectOrderDialogParams
 
-  const { toast } = useToast()
   const [isLoading, startTransition] = React.useTransition()
 
   const onConfirm = () =>
@@ -33,16 +33,11 @@ export default function RejectOrderDialogContent() {
       try {
         await rejectOrderById(profile, id as string)
         closeModal()
-        toast({
-          title: `Order rejected successfully`,
+        toast.success(`Order rejected successfully`, {
           description: `${odn ?? 'The user'} will not be notified!`,
         })
       } catch (error: unknown) {
-        toast({
-          title: 'Failed to reject order',
-          description:
-            error instanceof Error ? error.message : 'Please try again later.',
-        })
+        toastError('Failed to reject order', error)
       }
     })
 

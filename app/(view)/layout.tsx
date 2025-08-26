@@ -1,13 +1,14 @@
-import Link from 'next/link'
 import React from 'react'
 import Navbar from './navbar'
+import Link from 'next/link'
 
 export default function RootLayout({ children }: React.PropsWithChildren) {
   return (
-    <>
-      <Navbar className="pt-4" />
-      <main>{children}</main>
-
+    <div className="flex flex-col gap-10">
+      <div className="container flex min-h-svh max-w-5xl flex-1 flex-col gap-10">
+        <Navbar className="pt-4" />
+        <main className="flex-1">{children}</main>
+      </div>
       <footer className="flex h-fit items-center justify-center border-t py-6 text-center text-xs">
         <div className="flex flex-col items-center gap-2">
           <p>
@@ -40,6 +41,6 @@ export default function RootLayout({ children }: React.PropsWithChildren) {
           </div>
         </div>
       </footer>
-    </>
+    </div>
   )
 }

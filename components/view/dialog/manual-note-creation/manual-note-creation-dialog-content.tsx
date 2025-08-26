@@ -14,7 +14,6 @@ import {
   ContentCategoryEnum,
   VISIBLE_CONTENT_CATEGORIES,
 } from '@/lib/model/content'
-import { useMediaQuery } from '@/lib/use-media-query'
 import { useModalStore } from '@/providers/modal'
 import { ModalType } from '@/stores/modal'
 import React from 'react'
@@ -51,8 +50,6 @@ export default function ManualNoteCreationDialogContent() {
       !ENABLED_CATEGORIES.includes(category as ContentCategoryEnum),
     [],
   )
-
-  const isDesktop = useMediaQuery('(min-width: 1024px)')
 
   return (
     <>

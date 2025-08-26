@@ -1,9 +1,8 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import { useAuthStore } from '@/providers/auth-store'
-import { ModalType } from '@/stores/modal'
 import { Profile } from '@/lib/model/user'
+import { useAuthStore } from '@/providers/auth-store'
 import Link from 'next/link'
 
 type Props = { profile: Profile }
@@ -19,9 +18,7 @@ export default function OrdersDisabledSection({ profile }: Props) {
       </div>
       {isOwner && (
         <Button variant="link" size="sm" asChild>
-          <Link
-            href={`/${user.username}?modal=${ModalType.ProfileSettings}&modalParams=tab=suggestions`}
-          >
+          <Link href={`/settings?tab=suggestions`}>
             You can enable this feature here.
           </Link>
         </Button>

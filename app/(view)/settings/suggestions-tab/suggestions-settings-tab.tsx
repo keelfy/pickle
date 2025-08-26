@@ -15,11 +15,11 @@ import {
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { updateMe } from '@/hooks/api-endpoints-client'
-import { toast } from '@/hooks/use-toast'
 import {
   ContentCategory,
   VISIBLE_CONTENT_CATEGORIES,
 } from '@/lib/model/content'
+import { toastError } from '@/lib/toasts'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/providers/auth-store'
 import { contentCategoryLabels } from '@/utils/api/constants'
@@ -91,14 +91,7 @@ export default function SuggestionsSettingsTab() {
         })
         form.reset(data)
       } catch (error) {
-        toast({
-          title: 'Failed to update suggestion preferences',
-          description:
-            error instanceof Error
-              ? error.message
-              : 'An unknown error occurred',
-          variant: 'destructive',
-        })
+        toastError('Failed to update suggestion preferences', error)
       }
     })
 

@@ -12,7 +12,7 @@ export enum ModalType {
 
   // profile
   ProfileSearch = 'profile-search',
-  ProfileSettings = 'profile-settings',
+  TrackTwitchChannelReward = 'track-twitch-channel-reward',
 
   // content notes
   DeleteContentAlert = 'delete-content-alert',

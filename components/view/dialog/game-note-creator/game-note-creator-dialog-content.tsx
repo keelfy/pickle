@@ -13,19 +13,24 @@ import DayPickerFormItem from '../content-note-editor/day-picker-form-item'
 
 type Props = {
   contentId: string
+  isDesktop: boolean | undefined
 }
 
 type CreateGameNoteFormValues = CreateContentNoteBaseFormValues & {
   lastPlayedAt?: Date
 }
 
-export default function GameNoteCreatorDialogContent({ contentId }: Props) {
+export default function GameNoteCreatorDialogContent({
+  contentId,
+  isDesktop,
+}: Props) {
   return (
     <ContentNoteCreatorDialogContent<
       CreateGameNoteFormValues,
       DetailedGameNote,
       CreateGameNoteReq
     >
+      isDesktop={isDesktop}
       category="games"
       contentId={contentId}
       formExtension={{

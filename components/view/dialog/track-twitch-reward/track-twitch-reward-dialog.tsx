@@ -6,21 +6,21 @@ import { ModalType } from '@/stores/modal'
 import dynamic from 'next/dynamic'
 import LoadingDialogContent from '../loading-dialog-content'
 
-const DynamicManualNoteCreationDialogContent = dynamic(
-  () => import('./manual-note-creation-dialog-content'),
+const DynamicTrackTwitchChannelRewardDialogContent = dynamic(
+  () => import('./track-twitch-reward-dialog-content'),
   {
     loading: () => <LoadingDialogContent />,
   },
 )
 
-export default function ManualNoteCreationDialog() {
+export default function TrackTwitchChannelRewardDialog() {
   const isDesktop = useIsDesktop()
   return (
     <DialogWrapper
-      modalType={ModalType.ManualNoteCreation}
+      modalType={ModalType.TrackTwitchChannelReward}
       isDesktop={isDesktop}
     >
-      <DynamicManualNoteCreationDialogContent />
+      <DynamicTrackTwitchChannelRewardDialogContent isDesktop={isDesktop} />
     </DialogWrapper>
   )
 }

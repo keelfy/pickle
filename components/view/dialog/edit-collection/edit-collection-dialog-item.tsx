@@ -10,11 +10,12 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { fetchDeleteCollectionItem } from '@/hooks/api-endpoints-client'
-import { toast } from '@/hooks/use-toast'
+import { toastError } from '@/lib/toasts'
 import { localizeContentCategory } from '@/lib/localize-types'
 import { CollectionItem } from '@/lib/model/collection'
 import { TrashIcon } from 'lucide-react'
 import React from 'react'
+import { toast } from 'sonner'
 import { useCollectionContext } from '../../../ui/content-collections/collections-context'
 
 type Props = {
@@ -39,12 +40,7 @@ export default function EditCollectionDialogItem({ item }: Props) {
         await fetchDeleteCollectionItem(item.collectionId, item.id)
       } catch (error) {
         addItemToCollection(item.collectionId, deletedItem)
-        toast({
-          title: 'Error while deleting item',
-          description:
-            error instanceof Error ? error.message : 'Please try again',
-          variant: 'destructive',
-        })
+        toastError('Error while deleting item', error)
       }
     })
   }

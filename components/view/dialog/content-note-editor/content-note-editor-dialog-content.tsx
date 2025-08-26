@@ -12,7 +12,7 @@ import {
   fetchContentNote,
   updateContentNote,
 } from '@/hooks/api-endpoints-client'
-import { toast } from '@/hooks/use-toast'
+import { toastError } from '@/lib/toasts'
 import {
   ContentNoteStatus,
   DetailedGameNote,
@@ -96,10 +96,7 @@ export default function ContentNoteEditorDialogContent({
       .then(setGameNote)
       .catch((err) => {
         console.error(err)
-        toast({
-          title: 'Failed to fetch game note',
-          description: 'Try again later.',
-        })
+        toastError('Failed to fetch game note', err)
       })
   }, [noteId, profile?.id])
 
@@ -114,12 +111,7 @@ export default function ContentNoteEditorDialogContent({
         >(profile, 'games', noteId, values)
         resetForm(res)
       } catch (error) {
-        toast({
-          title: 'Failed to update game',
-          description:
-            error instanceof Error ? error.message : 'An error occurred.',
-          variant: 'destructive',
-        })
+        toastError('Failed to update game', error)
       }
     })
   })

@@ -13,9 +13,9 @@ import {
   fetchAddModerator,
   fetchModeratorProfiles,
 } from '@/hooks/api-endpoints-client'
-import { toast } from '@/hooks/use-toast'
-import { useAuthStore } from '@/providers/auth-store'
 import { Moderator } from '@/lib/model/moderator'
+import { toastError } from '@/lib/toasts'
+import { useAuthStore } from '@/providers/auth-store'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
   Loader2,
@@ -30,14 +30,14 @@ import { z } from 'zod'
 import ModeratorElement from './moderator-element'
 
 const formSchema = z.object({
-  link: z.string().min(3, {
-    message: 'Link is required',
+  username: z.string().min(3, {
+    message: 'Username is required',
   }),
 })
 
 type ModeratorEntry = Moderator & {
   isLoading?: boolean
-  link?: string
+  username?: string
 }
 
 export default function ModerationSettingsTab() {
@@ -51,7 +51,7 @@ export default function ModerationSettingsTab() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      link: '',
+      username: '',
     },
   })
 
@@ -61,14 +61,7 @@ export default function ModerationSettingsTab() {
       fetchModeratorProfiles(user)
         .then(setModeratorProfiles)
         .catch((error) => {
-          toast({
-            title: 'Error fetching moderators',
-            description:
-              error instanceof Error
-                ? error.message
-                : 'An unknown error occurred',
-            variant: 'destructive',
-          })
+          toastError('Error fetching moderators', error)
         }),
     )
   }, [user?.id])
@@ -80,8 +73,7 @@ export default function ModerationSettingsTab() {
       const optimisticModerator: ModeratorEntry = {
         id: crypto.randomUUID(),
         displayName: 'Loading...',
-        username: 'Loading...',
-        link: data.link,
+        username: data.username,
         avatarUrl: '',
         addedAt: new Date(),
         isLoading: true,
@@ -90,26 +82,19 @@ export default function ModerationSettingsTab() {
       }
       setModeratorProfiles([...prevModeratorProfiles, optimisticModerator])
       try {
-        const addedModerator = await fetchAddModerator(user, data.link)
+        const addedModerator = await fetchAddModerator(user, data.username)
         setModeratorProfiles([
           ...prevModeratorProfiles,
           {
             ...addedModerator,
-            link: data.link,
+            username: data.username,
             isLoading: false,
           },
         ])
         form.reset()
       } catch (error) {
         setModeratorProfiles(prevModeratorProfiles)
-        toast({
-          title: 'Error adding moderator',
-          description:
-            error instanceof Error
-              ? error.message
-              : 'An unknown error occurred',
-          variant: 'destructive',
-        })
+        toastError('Error adding moderator', error)
       }
     })
   }
@@ -169,11 +154,11 @@ export default function ModerationSettingsTab() {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             <FormField
               control={form.control}
-              name="link"
+              name="username"
               render={({ field }) => (
                 <FormItem>
                   <FormDescription>
-                    You can add a new moderator by{' '}
+                    You can add a new moderator by&nbsp;
                     <span className="font-bold">link to their profile</span>.
                   </FormDescription>
                   <div className="flex items-center gap-2">

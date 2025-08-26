@@ -24,6 +24,7 @@ import {
   UpdateProfileReq,
 } from '@/utils/api/request'
 import { Paginated } from '@/utils/api/response'
+import { TwitchChannelReward } from '@/utils/api/types'
 
 // Profile
 
@@ -268,7 +269,7 @@ export async function fetchAddModerator(user: User, username: string) {
     new URLSearchParams(),
     {
       method: 'POST',
-      body: JSON.stringify({ userLink: username }),
+      body: JSON.stringify({ username }),
     },
   )
 }
@@ -474,5 +475,21 @@ export async function fetchContentById(
   return fetchApi<DetailedGame | DetailedMovie>(
     `/v1/content/${category}/${id}`,
     new URLSearchParams(params),
+  )
+}
+
+export async function fetchImportRedemptions() {
+  return fetchApi(
+    `/twitch-harbor/v1/broadcaster/rewards/fetch-redemptions`,
+    new URLSearchParams(),
+    {
+      method: 'POST',
+    },
+  )
+}
+
+export async function fetchAvailableTwitchRewards() {
+  return fetchApi<TwitchChannelReward[]>(
+    `/twitch-harbor/v1/broadcaster/rewards/available`,
   )
 }

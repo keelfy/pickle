@@ -24,7 +24,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { suggestContent } from '@/hooks/api-endpoints-client'
-import { toast } from '@/hooks/use-toast'
+import { toastError } from '@/lib/toasts'
 import { localizeContentCategory } from '@/lib/localize-types'
 import {
   ContentCategory,
@@ -131,14 +131,7 @@ export default function OrderForm({ profile, className }: Props) {
         await suggestContent(profile, req)
         router.push(`/${profile.username}`)
       } catch (error) {
-        toast({
-          title: 'Failed to create order',
-          description:
-            error instanceof Error
-              ? error.message
-              : 'An error occurred while creating the order',
-          variant: 'destructive',
-        })
+        toastError('Failed to create order', error)
       }
     })
   }

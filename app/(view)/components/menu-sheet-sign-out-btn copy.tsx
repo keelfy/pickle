@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button'
 import LoadingSpinner from '@/components/ui/loading-spinner'
-import { toast } from '@/hooks/use-toast'
+import { toastError } from '@/lib/toasts'
 import ory from '@/lib/ory'
 import { LogOutIcon } from 'lucide-react'
 import React from 'react'
@@ -19,12 +19,8 @@ export default function MenuSheetSignOutButton() {
           returnTo: window.location.href,
         })
         window.location.reload()
-      } catch (e) {
-        toast({
-          title: 'Failed to sign out',
-          description: 'Please try again later.',
-          variant: 'destructive',
-        })
+      } catch (error) {
+        toastError('Failed to sign out', error)
       }
     })
 

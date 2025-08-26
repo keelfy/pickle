@@ -14,8 +14,8 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import LoadingSpinner from '@/components/ui/loading-spinner'
-import { toast } from '@/hooks/use-toast'
 import ory from '@/lib/ory'
+import { toastError } from '@/lib/toasts'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/providers/auth-store'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -34,6 +34,7 @@ import Link from 'next/link'
 import { parseAsString, useQueryState } from 'nuqs'
 import React from 'react'
 import { FieldErrors, useForm } from 'react-hook-form'
+import { toast } from 'sonner'
 import { z } from 'zod'
 
 type Props = {
@@ -160,18 +161,10 @@ const VerificationForm = ({
             }
           } else {
             const res = (await error.response.json()) as ErrorGeneric
-            toast({
-              title: 'Failed to register',
-              description: res.error.message,
-              variant: 'destructive',
-            })
+            toastError('Failed to register', res.error)
           }
         } else {
-          toast({
-            title: 'Failed to register',
-            description: 'Unknown error. Please try again.',
-            variant: 'destructive',
-          })
+          toastError('Failed to register', error)
         }
       }
     })
@@ -190,8 +183,7 @@ const VerificationForm = ({
         })
         updateFlow(res)
         if (res.state === 'sent_email') {
-          toast({
-            title: 'Verification code sent',
+          toast.success('Verification code sent', {
             description:
               'A verification code has been sent to your email address.',
           })
@@ -209,31 +201,16 @@ const VerificationForm = ({
             }
           } else {
             const res = (await error.response.json()) as ErrorGeneric
-            toast({
-              title: 'Failed to register',
-              description: res.error.message,
-              variant: 'destructive',
-            })
+            toastError('Failed to register', res.error)
           }
         } else {
-          toast({
-            title: 'Failed to register',
-            description: 'Unknown error. Please try again.',
-            variant: 'destructive',
-          })
+          toastError('Failed to register', error)
         }
       }
     })
 
   const onSubmitError = (errors: FieldErrors<z.infer<typeof formSchema>>) => {
-    toast({
-      title: 'Failed to submit the form',
-      description:
-        Object.values(errors)
-          .map((error) => error.message)
-          .join(', ') ?? 'Unknown error. Please try again.',
-      variant: 'destructive',
-    })
+    toastError('Failed to submit the form', errors)
   }
 
   React.useEffect(() => {

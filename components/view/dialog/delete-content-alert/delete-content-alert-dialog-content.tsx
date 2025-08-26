@@ -9,11 +9,12 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Checkbox } from '@/components/ui/checkbox'
 import { deleteContentNote } from '@/hooks/api-endpoints-client'
-import { toast } from '@/hooks/use-toast'
+import { toastError } from '@/lib/toasts'
 import { useModalStore } from '@/providers/modal'
 import { useProfileStore } from '@/providers/profile-store'
 import { Check, X } from 'lucide-react'
 import React from 'react'
+import { toast } from 'sonner'
 import { DeleteContentAlertModalParams } from './delete-content-alert-dialog'
 
 export default function DeleteContentAlertDialogContent() {
@@ -39,16 +40,11 @@ export default function DeleteContentAlertDialogContent() {
           resetApprovedOrders,
         )
         closeModal()
-        toast({
-          title: 'Content deleted successfully',
+        toast.success('Content deleted successfully', {
           description: `The content ${modalParams?.title} has been deleted.`,
         })
       } catch (error) {
-        toast({
-          title: 'Failed to delete content',
-          description:
-            error instanceof Error ? error.message : 'An error occurred',
-        })
+        toastError('Failed to delete content', error)
       }
     })
   }

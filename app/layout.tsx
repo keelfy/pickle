@@ -1,4 +1,4 @@
-import { Toaster } from '@/components/ui/toaster'
+import { Toaster } from '@/components/ui/sonner'
 import { fetchUser } from '@/hooks/api-endpoints-server'
 import getCurrentSession from '@/hooks/getCurrentSession'
 import { cn } from '@/lib/utils'
@@ -27,13 +27,7 @@ export default async function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <body
-        className={cn(
-          'container max-w-5xl gap-10',
-          GeistSans.className,
-          'antialiased',
-        )}
-      >
+      <body className={cn(GeistSans.className, 'antialiased')}>
         <RootProviders>
           <AuthStoreProvider user={profile} session={session}>
             {children}

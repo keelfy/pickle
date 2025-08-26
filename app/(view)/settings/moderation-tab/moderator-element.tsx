@@ -1,7 +1,7 @@
 import ProfileAvatar from '@/components/profile-avatar'
 import { Button } from '@/components/ui/button'
 import { fetchDeleteModerator } from '@/hooks/api-endpoints-client'
-import { toast } from '@/hooks/use-toast'
+import { toastError } from '@/lib/toasts'
 import { getTimeAgoText } from '@/lib/localize-types'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/providers/auth-store'
@@ -32,14 +32,7 @@ export default function ModeratorElement({
       fetchDeleteModerator(profile, moderator.id)
         .then(() => afterDelete?.())
         .catch((error) => {
-          toast({
-            title: 'Error deleting moderator',
-            description:
-              error instanceof Error
-                ? error.message
-                : 'An unknown error occurred',
-            variant: 'destructive',
-          })
+          toastError('Error deleting moderator', error)
         }),
     )
   }

@@ -1,12 +1,13 @@
 import { AuthFormMessage, Message } from '@/components/auth-form-message'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { NextPage } from 'next'
 
 type Props = {
   searchParams: Promise<Message>
 }
 
-export default async function ResetPassword({ searchParams }: Props) {
+const ResetPassword: NextPage<Props> = async ({ searchParams }) => {
   const message = await searchParams
 
   return (
@@ -36,3 +37,5 @@ export default async function ResetPassword({ searchParams }: Props) {
     </form>
   )
 }
+
+export default ResetPassword

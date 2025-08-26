@@ -8,10 +8,11 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { fetchDeleteCollection } from '@/hooks/api-endpoints-client'
-import { toast } from '@/hooks/use-toast'
+import { toastError } from '@/lib/toasts'
 import { useModalStore } from '@/providers/modal'
 import { Trash, X } from 'lucide-react'
 import React from 'react'
+import { toast } from 'sonner'
 import { useCollectionContext } from '../../../ui/content-collections/collections-context'
 import { DeleteCollectionAlertModalParams } from './delete-collection-alert-dialog'
 
@@ -42,18 +43,12 @@ export default function DeleteContentAlertDialogContent() {
       try {
         await fetchDeleteCollection(modalParams?.id)
         closeModal()
-        toast({
-          title: 'Collection deleted successfully',
+        toast.success('Collection deleted successfully', {
           description: `The collection ${modalParams?.name} has been deleted.`,
         })
       } catch (error: unknown) {
         addCollection(deletedCollection.collection)
-        toast({
-          title: 'Failed to delete content',
-          description:
-            error instanceof Error ? error.message : 'Please try again later.',
-          variant: 'destructive',
-        })
+        toastError('Failed to delete content', error)
       }
     })
   }

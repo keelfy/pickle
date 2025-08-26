@@ -10,9 +10,9 @@ import {
 } from '@/components/ui/command'
 import { fetchContentSearch } from '@/hooks/api-endpoints-client'
 import { useDebounce } from '@/hooks/use-debounce'
-import { toast } from '@/hooks/use-toast'
 import { Content, ContentCategory } from '@/lib/model/content'
 import { Paginated } from '@/lib/model/types'
+import { toastError } from '@/lib/toasts'
 import { useModalStore } from '@/providers/modal'
 import { useProfileStore } from '@/providers/profile-store'
 import { ModalType } from '@/stores/modal'
@@ -57,11 +57,7 @@ export default function SelectContentItemDialogContent() {
         )
         setResult(response)
       } catch (error) {
-        toast({
-          title: 'Failed to fetch search results',
-          description:
-            error instanceof Error ? error.message : 'An error occurred',
-        })
+        toastError('Failed to fetch search results', error)
       }
     })()
   }, [debouncedQuery])

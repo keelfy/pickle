@@ -28,6 +28,7 @@ export default function MovieNoteEditorDialog() {
     >
       <DynamicMovieNoteEditorDialogContent
         noteId={modalParams?.noteId as string}
+        isDesktop={isDesktop}
       />
     </DialogWrapper>
   )

@@ -31,9 +31,13 @@ import { toast } from 'sonner'
 import EmailChangeForm from './email-change-form'
 import PasswordChangeElement from './password-change-element'
 import SecurityLinkedProviders from './security-linked-providers'
+import { parseAsString, useQueryState } from 'nuqs'
 
 export default function SecuritySettingsTab() {
-  const { modalParams, setModalParams } = useModalStore((state) => state)
+  const [flowId, setFlowId] = useQueryState(
+    'flow',
+    parseAsString.withDefault(''),
+  )
 
   const [isFlowPending, startFlowTransition] = React.useTransition()
   const [flow, setFlow] = React.useState<SettingsFlow>()
@@ -48,17 +52,17 @@ export default function SecuritySettingsTab() {
   const searchParams = useSearchParams()
 
   React.useEffect(() => {
-    if (flow?.id || isFlowPending || modalParams?.tab !== 'security') {
+    if (flow?.id || isFlowPending) {
       return
     }
 
     startFlowTransition(async () => {
       let flow: SettingsFlow | undefined
 
-      if (modalParams.flow && modalParams.flow.length > 0) {
+      if (flowId && flowId.length > 0) {
         try {
           flow = await ory.getSettingsFlow({
-            id: modalParams.flow as string,
+            id: flowId,
           })
         } catch (error) {
           if (isResponseError(error)) {
@@ -80,10 +84,7 @@ export default function SecuritySettingsTab() {
           flow = await ory.createBrowserSettingsFlow({
             returnTo: goto,
           })
-          setModalParams({
-            tab: modalParams.tab,
-            flow: flow.id ?? undefined,
-          })
+          setFlowId(flow.id ?? '')
         } catch (error) {
           if (isResponseError(error)) {
             if (error.response.status === 400) {

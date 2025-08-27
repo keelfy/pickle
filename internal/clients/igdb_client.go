@@ -99,12 +99,17 @@ func (c *idgbClient) GetUpdatedGames(ctx context.Context, lastSyncTimestamp *tim
 	if err != nil {
 		return nil, fmt.Errorf("getting count: %w", err)
 	}
+
+	if count > igdbItemsLimit && igdbItemsLimit > 0 {
+		count = igdbItemsLimit
+	}
+
 	logger.Debugf(ctx, "[IGDB Sync] Total games to fetch: %d", count)
 
 	offset := 0
 	allGames := []*domain.IGDBGame{}
 
-	for (offset < igdbItemsLimit && igdbItemsLimit > 0) || offset < count { //offset < count {
+	for offset < count {
 		time.Sleep(igdbRequestDelay) // avoid rate limiting
 
 		games, err := c.fetchIDGBGames(ctx, lastSyncTimestamp, offset)

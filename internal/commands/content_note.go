@@ -201,7 +201,7 @@ func (c *GameNoteUpdateCommand) Validate() error {
 	}
 
 	return validation.ValidateStruct(c,
-		validation.Field(&c.LastPlayedAt, validation.NilOrNotEmpty, is2.IsRFC3339Date),
+		validation.Field(&c.LastPlayedAt, validation.NilOrNotEmpty),
 	)
 }
 
@@ -217,7 +217,7 @@ func (c *MovieNoteUpdateCommand) Validate() error {
 	}
 
 	return validation.ValidateStruct(c,
-		validation.Field(&c.WatchedAt, validation.NilOrNotEmpty, is2.IsRFC3339Date),
+		validation.Field(&c.WatchedAt, validation.NilOrNotEmpty),
 	)
 }
 

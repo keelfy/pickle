@@ -1,4 +1,6 @@
 import { BatchCollectionItems, Collection } from '@/lib/model/collection'
+import { ContentCategory } from '@/lib/model/content'
+import { DetailedContentNote } from '@/lib/model/content-note'
 import { ImageSize } from '@/lib/model/types'
 import { DetailedUser, Profile, User, UserAvatar } from '@/lib/model/user'
 import { fetchApi } from '@/utils/api/server'
@@ -45,5 +47,17 @@ export async function fetchCollectionsItems(user: User, size: number = 10) {
   return fetchApi<BatchCollectionItems[]>(
     `/v1/users/${user.id}/collections/items`,
     new URLSearchParams([['coverSize', size.toString()]]),
+  )
+}
+
+export async function fetchContentNote<T extends DetailedContentNote>(
+  category: ContentCategory,
+  noteId: string,
+  coverSize: ImageSize = 'md',
+) {
+  const params = [['coverSize', coverSize]]
+  return fetchApi<T>(
+    `/v1/content-notes/${category}/${noteId}`,
+    new URLSearchParams(params),
   )
 }

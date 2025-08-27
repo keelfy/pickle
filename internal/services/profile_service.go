@@ -98,7 +98,7 @@ func (s *profileService) GetProfileContext(ctx context.Context, userID uuid.UUID
 
 	isAuthorized := authUserID != nil && *authUserID == userID
 	profileCtx := &domain.UserContext{
-		IsFollowing:  !isAuthorized,
+		IsFollowing:  false,
 		IsAuthorized: isAuthorized,
 		IsModerator:  isAuthorized,
 	}

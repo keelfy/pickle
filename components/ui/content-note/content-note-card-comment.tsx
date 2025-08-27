@@ -24,7 +24,7 @@ export default function ContentNoteCardComment({
       )}
     >
       {comment && comment.length > 0 ? (
-        <div className="flex flex-col gap-0">
+        <div className="flex flex-col gap-2">
           <div
             className={cn('whitespace-pre-wrap', onShowMore && 'line-clamp-3')}
           >
@@ -32,7 +32,7 @@ export default function ContentNoteCardComment({
           </div>
           <Button
             variant="link"
-            className={cn('m-0 w-fit p-0', !onShowMore && 'hidden')}
+            className={cn('m-0 h-fit w-fit p-0', !onShowMore && 'hidden')}
             onClick={onShowMore}
           >
             Show more

@@ -3,17 +3,11 @@
 import { Button } from '@/components/ui/button'
 import ContentNotePoster from '@/components/ui/content-note/content-note-poster'
 import {
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-} from '@/components/ui/drawer'
+  DialogWrapperDescription,
+  DialogWrapperFooter,
+  DialogWrapperHeader,
+  DialogWrapperTitle,
+} from '@/components/ui/dialog-wrapper'
 import { Form, FormField } from '@/components/ui/form'
 import IGDBIcon from '@/components/ui/icons/igdb-icon'
 import { Label } from '@/components/ui/label'
@@ -137,11 +131,6 @@ export default function ContentNoteCreatorDialogContent<
     })
   })
 
-  const Header = isDesktop ? DialogHeader : DrawerHeader
-  const HeaderTitle = isDesktop ? DialogTitle : DrawerTitle
-  const HeaderDescription = isDesktop ? DialogDescription : DrawerDescription
-  const Footer = isDesktop ? DialogFooter : DrawerFooter
-
   const SourceIcon =
     content?.sourceType?.toLowerCase() === 'igdb' ? (
       <IGDBIcon className="w-12" />
@@ -151,8 +140,8 @@ export default function ContentNoteCreatorDialogContent<
 
   return (
     <>
-      <Header>
-        <HeaderTitle>
+      <DialogWrapperHeader isDesktop={isDesktop}>
+        <DialogWrapperTitle isDesktop={isDesktop}>
           {content?.title}
           {content?.releaseDate && (
             <span className="text-sm text-muted-foreground">
@@ -163,12 +152,12 @@ export default function ContentNoteCreatorDialogContent<
               )
             </span>
           )}
-        </HeaderTitle>
-        <HeaderDescription>
+        </DialogWrapperTitle>
+        <DialogWrapperDescription isDesktop={isDesktop}>
           Fill your thoughts about this&nbsp;
           {localizeContentCategory(category).toLocaleLowerCase()}.
-        </HeaderDescription>
-      </Header>
+        </DialogWrapperDescription>
+      </DialogWrapperHeader>
 
       <Form {...form}>
         <form onSubmit={onSubmit}>
@@ -239,7 +228,7 @@ export default function ContentNoteCreatorDialogContent<
               </ScrollArea>
             </div>
           </div>
-          <Footer className="mt-4">
+          <DialogWrapperFooter isDesktop={isDesktop} className="mt-4">
             {isDesktop && (
               <Button variant="destructive" type="button" onClick={closeModal}>
                 <X />
@@ -261,7 +250,7 @@ export default function ContentNoteCreatorDialogContent<
               {isLoading ? <LoadingSpinner /> : <Check />}
               Add to my profile
             </Button>
-          </Footer>
+          </DialogWrapperFooter>
         </form>
       </Form>
     </>

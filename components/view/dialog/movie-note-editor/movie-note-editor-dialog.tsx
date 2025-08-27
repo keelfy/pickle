@@ -1,11 +1,11 @@
 'use client'
 
-import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { useIsDesktop } from '@/lib/use-media-query'
 import { useModalStore } from '@/providers/modal'
 import { ModalType } from '@/stores/modal'
 import dynamic from 'next/dynamic'
-import React from 'react'
 import LoadingDialogContent from '../loading-dialog-content'
+import DialogWrapper from '@/components/ui/dialog-wrapper'
 
 const DynamicMovieNoteEditorDialogContent = dynamic(
   () => import('./movie-note-editor-dialog-content'),
@@ -17,30 +17,18 @@ export type MovieNoteEditorDialogParams = {
 }
 
 export default function MovieNoteEditorDialog() {
-  const { currentModal, modalParams, closeModal } = useModalStore(
-    (state) => state,
-  )
-
-  const isOpen = React.useMemo(
-    () =>
-      currentModal === ModalType.MovieNoteEditor &&
-      modalParams?.noteId !== undefined,
-    [currentModal, modalParams?.noteId],
-  )
-
-  if (!isOpen) {
-    return null
-  }
+  const modalParams = useModalStore((state) => state.modalParams)
+  const isDesktop = useIsDesktop()
 
   return (
-    <Dialog open={isOpen} onOpenChange={closeModal}>
-      <DialogContent className="max-h-svh overflow-y-auto">
-        {isOpen && (
-          <DynamicMovieNoteEditorDialogContent
-            noteId={modalParams?.noteId as string}
-          />
-        )}
-      </DialogContent>
-    </Dialog>
+    <DialogWrapper
+      modalType={ModalType.MovieNoteEditor}
+      validateModalParams={(params) => params.noteId !== undefined}
+      isDesktop={isDesktop}
+    >
+      <DynamicMovieNoteEditorDialogContent
+        noteId={modalParams?.noteId as string}
+      />
+    </DialogWrapper>
   )
 }

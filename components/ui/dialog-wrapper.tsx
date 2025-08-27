@@ -37,9 +37,6 @@ export function DialogWrapperHeader({
   children,
   ...props
 }: DialogWrapperContentsProps) {
-  if (!isDesktop) {
-    return <div className="hidden">{children}</div>
-  }
   const Header = isDesktop ? DialogHeader : DrawerHeader
   return <Header {...props}>{children}</Header>
 }
@@ -49,9 +46,6 @@ export function DialogWrapperFooter({
   children,
   ...props
 }: DialogWrapperContentsProps) {
-  if (!isDesktop) {
-    return <div className="hidden">{children}</div>
-  }
   const Footer = isDesktop ? DialogFooter : DrawerFooter
   return <Footer {...props}>{children}</Footer>
 }
@@ -61,9 +55,6 @@ export function DialogWrapperTitle({
   children,
   ...props
 }: DialogWrapperContentsProps) {
-  if (!isDesktop) {
-    return <div className="hidden">{children}</div>
-  }
   const Title = isDesktop ? DialogTitle : DrawerTitle
   return <Title {...props}>{children}</Title>
 }
@@ -73,9 +64,6 @@ export function DialogWrapperDescription({
   children,
   ...props
 }: DialogWrapperContentsProps) {
-  if (!isDesktop) {
-    return <div className="hidden">{children}</div>
-  }
   const Description = isDesktop ? DialogDescription : DrawerDescription
   return <Description {...props}>{children}</Description>
 }

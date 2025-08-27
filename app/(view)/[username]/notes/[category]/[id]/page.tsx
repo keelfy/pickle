@@ -2,7 +2,7 @@ import {
   fetchContentNote,
   fetchProfileByUsername,
 } from '@/hooks/api-endpoints-server'
-import { ContentCategory } from '@/lib/model/content'
+import { ContentCategory, ContentCategoryEnum } from '@/lib/model/content'
 import { DetailedContentNote } from '@/lib/model/content-note'
 import { ModalType } from '@/stores/modal'
 import { Metadata } from 'next'
@@ -60,15 +60,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 const CATEGORY_MODAL_TYPE_MAP = {
-  movie: ModalType.MovieNote,
-  game: ModalType.GameNote,
+  [ContentCategoryEnum.Movies]: ModalType.MovieNote,
+  [ContentCategoryEnum.Games]: ModalType.GameNote,
 } as const
 
 export default async function ContentNotePage({ params }: Props) {
-  const { category, id } = await params
+  const { category, id, username } = await params
 
   const modalType =
     CATEGORY_MODAL_TYPE_MAP[category as keyof typeof CATEGORY_MODAL_TYPE_MAP]
 
-  return redirect(`/notes/${category}?m=${modalType}&mps=noteId=${id}`)
+  return redirect(
+    `/${username}/notes/${category}?m=${modalType.toString()}&mps=noteId=${id}`,
+  )
 }

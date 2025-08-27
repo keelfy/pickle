@@ -1,5 +1,4 @@
 import ProfileAvatar from '@/components/profile-avatar'
-import { Button } from '@/components/ui/button'
 import PickleLogo from '@/components/ui/icons/pickle-logo'
 import { Separator } from '@/components/ui/separator'
 import {
@@ -10,7 +9,6 @@ import {
 } from '@/components/ui/sheet'
 import { User } from '@/lib/model/user'
 import {
-  ArrowRightIcon,
   MessageCircleIcon,
   SearchIcon,
   SettingsIcon,
@@ -18,9 +16,10 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import LanguageSelectButton from './language-select-button'
+import MenuSheetSignInButton from './menu-sheet-sign-in-btn'
 import MenuSheetSignOutButton from './menu-sheet-sign-out-btn copy'
 import ThemeSelectButton from './theme-select-button'
-import MenuSheetSignInButton from './menu-sheet-sign-in-btn'
+import { cn } from '@/lib/utils'
 
 const menuItems = [
   [
@@ -28,11 +27,13 @@ const menuItems = [
       label: 'Following',
       href: '/following',
       icon: UserIcon,
+      disabled: true,
     },
     {
       label: 'Browse',
       href: '/browse',
       icon: SearchIcon,
+      disabled: true,
     },
   ],
   [
@@ -45,6 +46,7 @@ const menuItems = [
       label: 'Support',
       href: '/support',
       icon: MessageCircleIcon,
+      disabled: true,
     },
   ],
 ]
@@ -84,7 +86,11 @@ export default function MenuSheetContent({ user }: Props) {
                 <Link
                   href={item.href}
                   key={item.label}
-                  className="flex items-center gap-2 text-lg font-medium"
+                  className={cn(
+                    'flex items-center gap-2 text-lg font-medium',
+                    item.disabled &&
+                      'pointer-events-none text-muted-foreground opacity-70',
+                  )}
                 >
                   <item.icon className="size-5" />
                   {item.label}

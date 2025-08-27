@@ -1,11 +1,14 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import { DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  DialogWrapperHeader,
+  DialogWrapperTitle,
+} from '@/components/ui/dialog-wrapper'
 import { getShortenedCount } from '@/lib/count-shortener'
+import { ProfileLink } from '@/lib/model/user'
 import { cn } from '@/lib/utils'
 import { useProfileStore } from '@/providers/profile-store'
-import { ProfileLink } from '@/lib/model/user'
 import {
   AlertTriangleIcon,
   CalendarIcon,
@@ -15,16 +18,22 @@ import {
 } from 'lucide-react'
 import DetailedProfileLink from './detailed-profile-link'
 
-export default function ShowMoreProfileDialogContent() {
+type Props = {
+  isDesktop: boolean | undefined
+}
+
+export default function ShowMoreProfileDialogContent({ isDesktop }: Props) {
   const profile = useProfileStore((state) => state.profile)
 
   return (
     <>
-      <DialogHeader>
-        <DialogTitle>{profile?.username}</DialogTitle>
-      </DialogHeader>
+      <DialogWrapperHeader isDesktop={isDesktop}>
+        <DialogWrapperTitle isDesktop={isDesktop}>
+          {profile?.username}
+        </DialogWrapperTitle>
+      </DialogWrapperHeader>
 
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 p-6 lg:p-0">
         <div className="flex flex-col gap-2">
           <h2 className="text-lg font-semibold">Description</h2>
           <p

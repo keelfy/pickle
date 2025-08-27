@@ -1,10 +1,9 @@
 'use client'
 
-import { Dialog, DialogContent } from '@/components/ui/dialog'
-import { useModalStore } from '@/providers/modal'
+import DialogWrapper from '@/components/ui/dialog-wrapper'
+import { useIsDesktop } from '@/lib/use-media-query'
 import { ModalType } from '@/stores/modal'
 import dynamic from 'next/dynamic'
-import React from 'react'
 import LoadingDialogContent from '../loading-dialog-content'
 
 const DynamicShowMoreProfileDialogContent = dynamic(
@@ -15,22 +14,10 @@ const DynamicShowMoreProfileDialogContent = dynamic(
 )
 
 export default function ShowMoreProfileDialog() {
-  const { currentModal, closeModal } = useModalStore((state) => state)
-
-  const isOpen = React.useMemo(
-    () => currentModal === ModalType.ShowMoreProfile,
-    [currentModal],
-  )
-
-  if (!isOpen) {
-    return null
-  }
-
+  const isDesktop = useIsDesktop()
   return (
-    <Dialog open={isOpen} onOpenChange={closeModal}>
-      <DialogContent className="max-h-svh overflow-y-auto">
-        {isOpen && <DynamicShowMoreProfileDialogContent />}
-      </DialogContent>
-    </Dialog>
+    <DialogWrapper modalType={ModalType.ShowMoreProfile} isDesktop={isDesktop}>
+      <DynamicShowMoreProfileDialogContent isDesktop={isDesktop} />
+    </DialogWrapper>
   )
 }

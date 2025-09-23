@@ -132,6 +132,10 @@ func (s *tmdbSyncService) fetchMoviesDetails(ctx context.Context, movies []domai
 }
 
 func (s *tmdbSyncService) upsertMovie(ctx context.Context, qtx sql.Queries, movie *domain.TMDBMovie) (id uuid.UUID, err error) {
+	if movie == nil {
+		return uuid.Nil, fmt.Errorf("movie is nil")
+	}
+
 	var websites []domain.ContentWebsite
 	var serializedWebsites *json.RawMessage
 

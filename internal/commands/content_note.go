@@ -41,7 +41,7 @@ func (c *CreateContentNoteCommand) Validate() error {
 		validation.Field(&c.UserID, validation.Required, is.UUID),
 		validation.Field(&c.Category, validation.Required, is2.IsContentCategory),
 		validation.Field(&c.Rate, validation.NilOrNotEmpty, validation.Min(0), validation.Max(10)),
-		validation.Field(&c.Comment, validation.Length(0, 1000)),
+		validation.Field(&c.Comment, validation.Length(0, 10000)),
 		validation.Field(&c.ContentID, validation.Required, is.UUID),
 		validation.Field(&c.CoverSize, validation.Required, is2.IsCoverSize),
 		validation.Field(&c.InitialOrdererAvatarSize, validation.Required, is2.IsAvatarSize),
@@ -160,7 +160,7 @@ func (c *UpdateContentNoteCommand) Validate() error {
 		validation.Field(&c.ID, validation.Required, is.UUID),
 		validation.Field(&c.Category, validation.Required, is2.IsContentCategory),
 		validation.Field(&c.Rate, validation.NilOrNotEmpty, validation.Min(0), validation.Max(10)),
-		validation.Field(&c.Comment, validation.Length(0, 1000)),
+		validation.Field(&c.Comment, validation.Length(0, 10000)),
 		validation.Field(&c.CoverSize, validation.Required, is2.IsCoverSize),
 	)
 }

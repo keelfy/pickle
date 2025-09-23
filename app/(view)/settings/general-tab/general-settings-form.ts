@@ -4,7 +4,7 @@ export const maxProfileDisplayNameLength = 100
 export const maxProfileUsernameLength = 50
 export const minProfileUsernameLength = 3
 
-export const maxProfileDescriptionLength = 1000
+export const maxProfileDescriptionLength = 10000
 
 export const maxProfileLinks = 10
 export const maxProfileLinkNameLength = 50

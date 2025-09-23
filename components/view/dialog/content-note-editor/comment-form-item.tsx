@@ -23,12 +23,12 @@ export default function CommentFormItem<
           &nbsp;(
           <span
             className={cn(
-              (field.value?.length ?? 0) > 1000 && 'text-orange-500',
+              (field.value?.length ?? 0) > 10000 && 'text-orange-500',
             )}
           >
             {field.value?.length ?? 0}
           </span>
-          /1000)
+          /10000)
         </span>
       </FormLabel>
       <FormControl>

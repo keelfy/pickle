@@ -20,6 +20,7 @@ RUN if [ ! -f cmd/wire_gen.go ]; then cd cmd && wire; fi
 
 # Build binary with limited memory usage
 RUN GOOS=linux CGO_ENABLED=0 GOARCH=amd64 GOMAXPROCS=2 go build -ldflags='-s' -o monolith ./cmd
+RUN GOOS=linux CGO_ENABLED=0 GOARCH=amd64 GOMAXPROCS=2 go build -ldflags='-s' -o migrate ./cmd/migrate
 
 # Runtime stage
 FROM debian:bookworm-slim
@@ -30,6 +31,8 @@ RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/
 
 # Copy binary from buildx
 COPY --from=buildx /app/monolith .
+COPY --from=buildx /app/migrate .
+COPY --from=buildx /app/db/elasticsearch/migration ./db/elasticsearch/migration/
 
 # Expose port (adjust if needed)
 EXPOSE 8080

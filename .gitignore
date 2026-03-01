@@ -4,5 +4,6 @@
 # environment
 .env
 
+go
 bin
 artifacts

@@ -86,13 +86,6 @@ func NewPickleAPI(
 }
 
 func (api *pickleAPI) BuildAPI(ctx context.Context) (*chi.Mux, error) {
-	// Apply Elasticsearch migrations
-	// err := api.applyElasticsearchMigrations(ctx)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("Error occurred during Elasticsearch migrations: %v", err)
-	// }
-	// logger.Info(ctx, "Elasticsearch migrations applied")
-
 	// Setup IGDB sync scheduler
 	err := api.igdbSyncScheduler.SetupIGDBSync(ctx)
 	if err != nil {
@@ -128,22 +121,6 @@ func (api *pickleAPI) BuildAPI(ctx context.Context) (*chi.Mux, error) {
 
 	logger.Info(ctx, "API is ready")
 	return r, nil
-}
-
-func (api *pickleAPI) applyElasticsearchMigrations(ctx context.Context) error {
-	migrations, err := api.migrationService.LoadElasticMigrations("./db/elasticsearch/migration")
-	if err != nil {
-		return err
-	}
-
-	for _, migration := range migrations {
-		err := api.migrationService.ApplyElasticMigration(ctx, migration)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 func (api *pickleAPI) useProtectedRoutes(r chi.Router) {

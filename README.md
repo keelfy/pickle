@@ -1,6 +1,6 @@
 # Pickle API
 
-This is the API for the Pickle app. 
+This is the API for the Pickle app.
 
 ## What is Pickle?
 
@@ -11,7 +11,7 @@ Also, it is a platform for content-makers to communicate with their audience by 
 
 Note that this is a first version of the infrastructure, and it will be changed in the future.
 
-![Pickle Infrastructure](./readme/architecture%20v1.png)
+![Pickle Infrastructure](./docs/architecture%20v1.png)
 
 ## Useful links
 
@@ -21,10 +21,44 @@ Note that this is a first version of the infrastructure, and it will be changed 
 - [figma design](https://www.figma.com/design/2X3MAm8ddAmANWGLQHiP5h/Pickle)
 - [tasks board on linear](https://linear.app/rubedo/team/PIC)
 
+## Mise quick start
+
+This project ships with `mise.toml` to manage tool versions and common tasks.
+
+1. Install mise: https://mise.jdx.dev/getting-started.html
+2. Activate mise in your shell (zsh):
+   - `echo 'eval "$(mise activate zsh)"' >> ~/.zshrc`
+   - `source ~/.zshrc`
+3. Install tools from this repo config:
+   - `mise install`
+4. Run tasks:
+   - Start API locally: `mise run run-dev`
+   - SQL migrations up: `mise run migrate-up`
+   - SQL migrations down: `mise run migrate-down`
+   - Add SQL migration: `mise run add-migration -- <migration_name>`
+   - Run Elasticsearch migrations: `mise run es-migrate-up`
+   - Add Elasticsearch migration: `mise run add-es-migration -- <migration_name>`
+
+## Elasticsearch migrations
+
+Elasticsearch index migrations are managed by a dedicated one-shot CLI binary (`./migrate`).
+
+- Migration files live in `./db/elasticsearch/migration`
+- Create a new migration file: `make es-add-migration name=<migration_name>`
+- Run migrations locally (containerized): `make es-migrate-up`
+- Production flow: run `./migrate` from the image before starting/restarting API containers
+
+Example deployment sequence:
+
+```bash
+docker run --rm --env-file .env ghcr.io/<owner>/monolith:latest ./migrate
+docker compose up -d
+```
+
 ## Short-term goals for the API only (2025-01-21)
 
 1. Implement the same logic as for games for the movies, series, anime, and videos.
-2. A complete cache layer for the API, using Redis (only imgproxy URLs cached at the moment). 
+2. A complete cache layer for the API, using Redis (only imgproxy URLs cached at the moment).
 3. Payment processing for the content orders using Paddle.
 4. An option to switch on/off the orders.
 5. Support for moderators to help content makers to moderate their content.

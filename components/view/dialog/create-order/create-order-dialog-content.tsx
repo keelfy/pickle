@@ -130,31 +130,6 @@ export default function CreateOrderDialogContent() {
               </FormItem>
             )}
           />
-          {/* <FormField
-                        control={form.control}
-                        name="paymentType"
-                        render={({ field }) => (
-                            <FormItem className="flex flex-col gap-1">
-                                <FormLabel>Payment Type</FormLabel>
-                                <FormControl>
-                                    <ApiTypeComboboxFormControl
-                                        entries={paymentTypes}
-                                        value={field.value}
-                                        onChange={(selectedValue) => {
-                                            form.setValue(
-                                                "paymentType",
-                                                selectedValue
-                                            );
-                                            form.setFocus("paymentType");
-                                        }}
-                                        placeholder="Select payment type..."
-                                        nothingFound="No payment types found"
-                                    />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    /> */}
           <FormField
             control={form.control}
             name="amount"

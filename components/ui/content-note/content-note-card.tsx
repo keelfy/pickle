@@ -271,18 +271,6 @@ export default function ContentNoteCard<T extends DetailedContentNote>({
             </div>
             <div className="flex gap-2 lg:hidden">
               <ContentNoteCardRating rate={note.rate} className="inline-flex" />
-              {/* <ContentNoteCardControls contentNote={note} category={category} /> */}
-              {/* <div className="inline-flex flex-col items-center justify-center rounded-lg bg-secondary px-4 py-2">
-                <div className="text-muted-foreground">
-                  <ContentNoteStatusIcon
-                    status={note.status}
-                    classname="size-6"
-                  />
-                </div>
-                <div className="whitespace-nowrap text-xs font-semibold">
-                  status
-                </div>
-              </div> */}
               <ContentNoteCardControls contentNote={note} category={category} />
             </div>
             <ContentNoteCardControls
@@ -309,13 +297,6 @@ export default function ContentNoteCard<T extends DetailedContentNote>({
         comment={note.comment}
         onShowMore={() => openContentNoteModal(openModal, category, note.id)}
       />
-      {/* {defaultReactions && (
-        <ContentNoteReactions
-          contentNote={note}
-          category={category}
-          defaultReactions={defaultReactions}
-        />
-      )} */}
     </ContentNoteCardShell>
   )
 }

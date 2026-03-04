@@ -3,9 +3,9 @@
 import { Button } from '@/components/ui/button'
 import LoadingSpinner from '@/components/ui/loading-spinner'
 import { Separator } from '@/components/ui/separator'
+import { cn } from '@/lib/utils'
 import { toastError } from '@/lib/toasts'
 import ory from '@/lib/ory'
-import { cn } from '@/utils/cn'
 import {
   isResponseError,
   SettingsFlow,

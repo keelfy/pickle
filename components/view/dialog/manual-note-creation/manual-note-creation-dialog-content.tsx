@@ -30,22 +30,6 @@ type Props = {
 export default function ManualNoteCreationDialogContent({ isDesktop }: Props) {
   const { openModal } = useModalStore((state) => state)
 
-  // const [selectedCategory, setSelectedCategory] =
-  //     React.useState<ContentCategory>();
-
-  // const handleManualCreationClick = () => {
-  //     switch (selectedCategory) {
-  //         case "games":
-  //             openModal(ModalType.GameNoteCreator);
-  //             break;
-  //         case "movies":
-  //             openModal(ModalType.MovieNoteCreator);
-  //             break;
-  //         default:
-  //             break;
-  //     }
-  // };
-
   const handleExternalSearchClick = (category: ContentCategory) =>
     openModal(ModalType.SelectContentItem, { category })
 
@@ -85,11 +69,6 @@ export default function ManualNoteCreationDialogContent({ isDesktop }: Props) {
               className="text-md w-full"
               disabled={isDisabled(category)}
               onClick={() => handleExternalSearchClick(category)}
-              // onClick={() =>
-              //     setSelectedCategory((prev) =>
-              //         prev === category ? undefined : category
-              //     )
-              // }
             >
               <ContentCategoryIcon category={category} className="h-6 w-6" />
               {localizeContentCategory(category)}

@@ -17,7 +17,7 @@ import {
 import Link from 'next/link'
 import LanguageSelectButton from './language-select-button'
 import MenuSheetSignInButton from './menu-sheet-sign-in-btn'
-import MenuSheetSignOutButton from './menu-sheet-sign-out-btn copy'
+import MenuSheetSignOutButton from './menu-sheet-sign-out-btn'
 import ThemeSelectButton from './theme-select-button'
 import { cn } from '@/lib/utils'
 

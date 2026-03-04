@@ -2,8 +2,8 @@
 
 import { Button } from '@/components/ui/button'
 import LoadingSpinner from '@/components/ui/loading-spinner'
-import { toastError } from '@/lib/toasts'
 import ory from '@/lib/ory'
+import { toastError } from '@/lib/toasts'
 import { LogOutIcon } from 'lucide-react'
 import React from 'react'
 
@@ -25,7 +25,7 @@ export default function MenuSheetSignOutButton() {
     })
 
   return (
-    <Button variant="secondary" onClick={onSignOut}>
+    <Button onClick={onSignOut} disabled={isPending}>
       {isPending ? <LoadingSpinner /> : <LogOutIcon />}
       Sign Out
     </Button>

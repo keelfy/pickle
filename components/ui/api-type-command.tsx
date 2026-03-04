@@ -9,7 +9,7 @@ import {
   CommandList,
 } from '@/components/ui/command'
 import { ApiType } from '@/utils/api/constants'
-import { cn } from '@/utils/cn'
+import { cn } from '@/lib/utils'
 import { Check } from 'lucide-react'
 
 export type ApiTypeCommandProps<T extends string> = {

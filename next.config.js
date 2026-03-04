@@ -13,11 +13,6 @@ const nextConfig = {
       { hostname: 'wikipedia.org' },
     ],
   },
-  experimental: {
-    // ppr: true,
-    // dynamicIO: true,
-    // typedRoutes: true,
-  },
 }
 
 module.exports = nextConfig

@@ -14,8 +14,8 @@ import { Input } from '@/components/ui/input'
 import LoadingSpinner from '@/components/ui/loading-spinner'
 import ory from '@/lib/ory'
 import { toastError } from '@/lib/toasts'
+import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/providers/auth-store'
-import { cn } from '@/utils/cn'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
   ResponseError,

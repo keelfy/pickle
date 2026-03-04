@@ -1,11 +1,7 @@
 import { createOryMiddleware } from '@ory/nextjs/middleware'
 import oryConfig from './ory.config'
 
-// export async function middleware(request: NextRequest) {
-//   return await updateSession(request)
-// }
-
-export const middleware = createOryMiddleware(oryConfig)
+export const proxy = createOryMiddleware(oryConfig)
 
 export const config = {
   matcher: [

@@ -48,9 +48,8 @@ export default async function Navbar({ className }: Props) {
 
   try {
     user = await fetchUser('md')
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
-    // do nothing
+    console.error('Failed to fetch navbar user:', error)
   }
 
   return (

@@ -2,10 +2,11 @@
 
 import DialogWrapper from '@/components/ui/dialog-wrapper'
 import { useModalStore } from '@/providers/modal'
-import { ModalType } from '@/stores/modal'
+import { getModalParams, ModalType } from '@/stores/modal'
 import dynamic from 'next/dynamic'
 import LoadingDialogContent from '../loading-dialog-content'
 import { useIsDesktop } from '@/lib/use-media-query'
+import React from 'react'
 
 const DynamicGameNoteDialogContent = dynamic(
   () => import('./game-note-dialog-content'),
@@ -19,7 +20,11 @@ export type GameNoteDialogParams = {
 }
 
 export default function GameNoteDialog() {
-  const modalParams = useModalStore((state) => state.modalParams)
+  const rawModalParams = useModalStore((state) => state.modalParams)
+  const params = React.useMemo(
+    () => getModalParams(ModalType.GameNote, rawModalParams),
+    [rawModalParams],
+  )
   const isDesktop = useIsDesktop()
   return (
     <DialogWrapper
@@ -30,7 +35,7 @@ export default function GameNoteDialog() {
       isDesktop={isDesktop}
     >
       <DynamicGameNoteDialogContent
-        noteId={modalParams!.noteId as string}
+        noteId={params!.noteId}
         isDesktop={isDesktop}
       />
     </DialogWrapper>

@@ -28,7 +28,7 @@ type Props = {
 }
 
 export default function ManualNoteCreationDialogContent({ isDesktop }: Props) {
-  const { openModal } = useModalStore((state) => state)
+  const openModal = useModalStore((state) => state.openModal)
 
   const handleExternalSearchClick = (category: ContentCategory) =>
     openModal(ModalType.SelectContentItem, { category })

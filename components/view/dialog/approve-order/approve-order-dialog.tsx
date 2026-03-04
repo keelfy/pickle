@@ -2,7 +2,7 @@
 
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { useModalStore } from '@/providers/modal'
-import { ModalType } from '@/stores/modal'
+import { getModalParams, ModalType } from '@/stores/modal'
 import dynamic from 'next/dynamic'
 import React from 'react'
 import LoadingDialogContent from '../loading-dialog-content'
@@ -15,8 +15,11 @@ const DynamicApproveOrderDialogContent = dynamic(
 )
 
 export default function ApproveOrderDialog() {
-  const { currentModal, modalParams, closeModal } = useModalStore(
-    (state) => state,
+  const { currentModal, closeModal } = useModalStore((state) => state)
+  const rawModalParams = useModalStore((state) => state.modalParams)
+  const modalParams = React.useMemo(
+    () => getModalParams(ModalType.ApproveOrder, rawModalParams),
+    [rawModalParams],
   )
 
   const isOpen = React.useMemo(

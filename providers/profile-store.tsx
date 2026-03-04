@@ -22,6 +22,12 @@ export default function ProfileStoreProvider({
 }: ProfileStoreProviderProps) {
   const storeRef = React.useRef<ProfileStoreApi>(createProfileStore(props))
 
+  React.useEffect(() => {
+    storeRef.current.setState({
+      profile: props.profile,
+    })
+  }, [props.profile])
+
   return (
     <ProfileStoreContext.Provider value={storeRef.current}>
       {children}

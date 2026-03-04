@@ -15,17 +15,21 @@ import { Paginated } from '@/lib/model/types'
 import { toastError } from '@/lib/toasts'
 import { useModalStore } from '@/providers/modal'
 import { useProfileStore } from '@/providers/profile-store'
-import { ModalType } from '@/stores/modal'
+import { getModalParams, ModalType } from '@/stores/modal'
 import Image from 'next/image'
 import React from 'react'
 
 export default function SelectContentItemDialogContent() {
   const profile = useProfileStore((state) => state.profile)
-  const { modalParams, setModalParams, openModal } = useModalStore(
+  const { setModalParams, openModal, modalParams: rawModalParams } = useModalStore(
     (state) => state,
   )
+  const modalParams = React.useMemo(
+    () => getModalParams(ModalType.SelectContentItem, rawModalParams),
+    [rawModalParams],
+  )
   const [query, setQuery] = React.useState<string>(
-    (modalParams?.query as string) ?? '',
+    modalParams?.query ?? '',
   )
   const debouncedQuery = useDebounce(query, 300)
   const [result, setResult] = React.useState<Paginated<Content>>()
@@ -33,10 +37,15 @@ export default function SelectContentItemDialogContent() {
   const [selectedIndex, setSelectedIndex] = React.useState<number>(0)
 
   React.useEffect(() => {
+    if (!modalParams) return
+    if (modalParams.query === debouncedQuery) return
     setModalParams({ ...modalParams, query: debouncedQuery })
-  }, [debouncedQuery])
+  }, [debouncedQuery, modalParams?.category, modalParams?.query, setModalParams])
 
   React.useEffect(() => {
+    if (!modalParams) {
+      return
+    }
     if (
       !debouncedQuery ||
       debouncedQuery.length < 2 ||
@@ -49,7 +58,7 @@ export default function SelectContentItemDialogContent() {
     ;(async () => {
       try {
         const response = await fetchContentSearch(
-          modalParams?.category as ContentCategory,
+          modalParams.category as ContentCategory,
           debouncedQuery,
           0,
           10,
@@ -60,7 +69,7 @@ export default function SelectContentItemDialogContent() {
         toastError('Failed to fetch search results', error)
       }
     })()
-  }, [debouncedQuery])
+  }, [debouncedQuery, modalParams, profile?.id])
 
   React.useEffect(() => {
     setSelectedIndex(0)

@@ -18,6 +18,7 @@ import ProfileStoreProvider from '@/providers/profile-store'
 import { CctvIcon } from 'lucide-react'
 import { Metadata } from 'next'
 import Link from 'next/link'
+import { notFound } from 'next/navigation'
 import React from 'react'
 import ApproveOrderDialog from '@/components/view/dialog/approve-order/approve-order-dialog'
 import CreateOrderDialog from '@/components/view/dialog/create-order/create-order-dialog'
@@ -30,32 +31,42 @@ import ProfileLinks from './components/profile-links'
 import { FollowButton } from './follow-button'
 import ProfileTab from './profile-tab'
 import ShowMoreProfileButton from './show-more-profile-button'
+import RejectOrderDialog from '@/components/view/dialog/reject-order/reject-order-dialog'
+
+const isNotFoundError = (error: unknown) =>
+  error instanceof Error && /\b404\b/.test(error.message)
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { username } = await params
 
-  const profile = await fetchProfileByUsername(username, 'lg').catch(
-    (error) => error.message,
-  )
+  try {
+    const profile = await fetchProfileByUsername(username, 'lg')
 
-  if (!profile || typeof profile === 'string') {
     return {
-      title: '404 - pickle',
-      description: 'The profile you are looking for does not exist.',
-    }
-  }
-
-  return {
-    title: `${profile.displayName} - pickle`,
-    description: `${profile.displayName} on pickle.pw with the content they want to share`,
-    openGraph: {
-      type: 'profile',
       title: `${profile.displayName} - pickle`,
-      url: `https://pickle.pw/${profile.link}`,
       description: `${profile.displayName} on pickle.pw with the content they want to share`,
-      siteName: 'pickle',
-      images: [{ url: profile.avatarUrl }],
-    },
+      openGraph: {
+        type: 'profile',
+        title: `${profile.displayName} - pickle`,
+        url: `https://pickle.pw/${profile.username}`,
+        description: `${profile.displayName} on pickle.pw with the content they want to share`,
+        siteName: 'pickle',
+        images: [{ url: profile.avatarUrl }],
+      },
+    }
+  } catch (error) {
+    if (isNotFoundError(error)) {
+      return {
+        title: '404 - pickle',
+        description: 'The profile you are looking for does not exist.',
+      }
+    }
+
+    console.error('Failed to generate profile metadata:', error)
+    return {
+      title: 'pickle',
+      description: 'The pickle website',
+    }
   }
 }
 
@@ -71,25 +82,14 @@ export default async function RootLayout({
 }: React.PropsWithChildren<Props>) {
   const { username } = await params
 
-  let profile: Profile | undefined = undefined
-  let profileError: string | undefined = undefined
+  let profile: Profile
   try {
     profile = await fetchProfileByUsername(username, 'lg')
   } catch (error) {
-    profileError = error instanceof Error ? error.message : 'Unknown error'
-  }
-
-  if (!profile || profileError) {
-    return (
-      <div className="flex h-svh w-full items-center justify-center px-4">
-        <div className="flex flex-col items-center gap-4">
-          <p className="text-xl font-medium">
-            The profile you are looking for does not exist.
-          </p>
-          <p className="line-clamp-2 text-destructive">{profileError}</p>
-        </div>
-      </div>
-    )
+    if (isNotFoundError(error)) {
+      notFound()
+    }
+    throw error
   }
 
   const tabs = [
@@ -169,9 +169,7 @@ export default async function RootLayout({
                       className="group hidden flex-nowrap items-center gap-2 lg:flex"
                     >
                       <CctvIcon className="size-4" />
-                      {/* <p className="w-0 overflow-hidden opacity-0 transition-all duration-300 group-hover:w-auto group-hover:opacity-100"> */}
                       How people see my profile?
-                      {/* </p> */}
                     </Button>
                   )}
                   <ProfileControls profile={profile} className="lg:hidden" />
@@ -203,6 +201,7 @@ export default async function RootLayout({
           <div className="w-full">{children}</div>
           <DenyOrderDialog />
           <ApproveOrderDialog />
+          <RejectOrderDialog />
 
           <ProfileSearchDialog />
           <ShowMoreProfileDialog />

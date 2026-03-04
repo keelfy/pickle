@@ -16,17 +16,22 @@ import { UserContent } from '@/lib/model/content'
 import { Paginated } from '@/lib/model/types'
 import { useModalStore } from '@/providers/modal'
 import { useProfileStore } from '@/providers/profile-store'
-import { ModalType } from '@/stores/modal'
+import { getModalParams, ModalType } from '@/stores/modal'
 import { contentCategoryLabels } from '@/utils/api/constants'
 import React from 'react'
 
 export default function ProfileSearchDialogContent() {
-  const { modalParams, setModalParams, openModal } = useModalStore(
+  const { setModalParams, openModal } = useModalStore(
     (state) => state,
+  )
+  const rawModalParams = useModalStore((state) => state.modalParams)
+  const modalParams = React.useMemo(
+    () => getModalParams(ModalType.ProfileSearch, rawModalParams),
+    [rawModalParams],
   )
   const { profile } = useProfileStore((state) => state)
   const [query, setQuery] = React.useState<string>(
-    (modalParams?.query as string) ?? '',
+    modalParams?.query ?? '',
   )
   const [debouncedQuery, setDebouncedQuery] = React.useState<string>('')
   const [result, setResult] = React.useState<Paginated<UserContent>>()
@@ -35,15 +40,15 @@ export default function ProfileSearchDialogContent() {
   React.useEffect(() => {
     const timeout = setTimeout(() => {
       setDebouncedQuery(query)
-      setModalParams({
-        query,
-      })
+      if (modalParams?.query !== query) {
+        setModalParams({ ...modalParams, query })
+      }
     }, 300)
 
     return () => {
       clearTimeout(timeout)
     }
-  }, [query])
+  }, [query, modalParams?.query, setModalParams])
 
   React.useEffect(() => {
     if (

@@ -12,29 +12,31 @@ import { rejectOrderById } from '@/hooks/api-endpoints-client'
 import { toastError } from '@/lib/toasts'
 import { useModalStore } from '@/providers/modal'
 import { useProfileStore } from '@/providers/profile-store'
+import { getModalParams, ModalType } from '@/stores/modal'
 import { Check, X } from 'lucide-react'
 import React from 'react'
 import { toast } from 'sonner'
-import { RejectOrderDialogParams } from './reject-order-dialog'
 
 export default function RejectOrderDialogContent() {
   const { closeModal } = useModalStore((state) => state)
   const profile = useProfileStore((state) => state.profile)
-  const { id, message, odn } = useModalStore(
-    (state) => state.modalParams!,
-  ) as RejectOrderDialogParams
+  const rawModalParams = useModalStore((state) => state.modalParams)
+  const params = React.useMemo(
+    () => getModalParams(ModalType.RejectOrder, rawModalParams),
+    [rawModalParams],
+  )
 
   const [isLoading, startTransition] = React.useTransition()
 
   const onConfirm = () =>
     startTransition(async () => {
-      if (!profile || !id) return
+      if (!profile || !params?.id) return
 
       try {
-        await rejectOrderById(profile, id as string)
+        await rejectOrderById(profile, params.id)
         closeModal()
         toast.success(`Order rejected successfully`, {
-          description: `${odn ?? 'The user'} will not be notified!`,
+          description: `${params.odn ?? 'The user'} will not be notified!`,
         })
       } catch (error: unknown) {
         toastError('Failed to reject order', error)
@@ -50,9 +52,9 @@ export default function RejectOrderDialogContent() {
       <div>
         You&apos;re about to cancel suggestion of
         <br />
-        <span className="font-semibold">{message}</span>
+        <span className="font-semibold">{params?.message}</span>
         &nbsp;from&nbsp;
-        <span className="font-semibold">{odn ?? 'The user'}</span>
+        <span className="font-semibold">{params?.odn ?? 'The user'}</span>
         .
         <br />
         <br />

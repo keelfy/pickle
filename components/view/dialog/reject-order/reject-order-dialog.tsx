@@ -2,7 +2,7 @@
 
 import { AlertDialog, AlertDialogContent } from '@/components/ui/alert-dialog'
 import { useModalStore } from '@/providers/modal'
-import { ModalType } from '@/stores/modal'
+import { getModalParams, ModalType } from '@/stores/modal'
 import dynamic from 'next/dynamic'
 import React from 'react'
 import LoadingAlertDialogContent from '../loading-alert-dialog-content'
@@ -21,8 +21,11 @@ export type RejectOrderDialogParams = {
 }
 
 export default function RejectOrderDialog() {
-  const { currentModal, modalParams, closeModal } = useModalStore(
-    (state) => state,
+  const { currentModal, closeModal } = useModalStore((state) => state)
+  const rawModalParams = useModalStore((state) => state.modalParams)
+  const modalParams = React.useMemo(
+    () => getModalParams(ModalType.RejectOrder, rawModalParams),
+    [rawModalParams],
   )
 
   const isOpen = React.useMemo(

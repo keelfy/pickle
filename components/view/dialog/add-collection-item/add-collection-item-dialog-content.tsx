@@ -20,16 +20,22 @@ import { UserContent } from '@/lib/model/content'
 import { Paginated } from '@/lib/model/types'
 import { useModalStore } from '@/providers/modal'
 import { useProfileStore } from '@/providers/profile-store'
+import { getModalParams, ModalType } from '@/stores/modal'
 import { contentCategoryLabels } from '@/utils/api/constants'
 import React from 'react'
 import { useCollectionContext } from '../../../ui/content-collections/collections-context'
 
 export default function AddCollectionItemDialogContent() {
-  const { modalParams, setModalParams, openModal, closeModal } = useModalStore(
+  const { setModalParams, openModal, closeModal } = useModalStore(
     (state) => state,
   )
+  const rawModalParams = useModalStore((state) => state.modalParams)
+  const modalParams = React.useMemo(
+    () => getModalParams(ModalType.AddCollectionItem, rawModalParams),
+    [rawModalParams],
+  )
   const profile = useProfileStore((state) => state.profile)
-  const [query, setQuery] = React.useState<string>(modalParams?.query as string)
+  const [query, setQuery] = React.useState<string>(modalParams?.query ?? '')
   const debouncedQuery = useDebounce(query, 300)
   const [result, setResult] = React.useState<Paginated<UserContent>>()
   const {
@@ -51,8 +57,10 @@ export default function AddCollectionItemDialogContent() {
   const [selectedIndex, setSelectedIndex] = React.useState<number>(0)
 
   React.useEffect(() => {
+    if (!modalParams) return
+    if (modalParams.query === debouncedQuery) return
     setModalParams({ ...modalParams, query: debouncedQuery })
-  }, [debouncedQuery])
+  }, [debouncedQuery, modalParams?.id, modalParams?.query, setModalParams])
 
   React.useEffect(() => {
     if (
@@ -130,28 +138,28 @@ export default function AddCollectionItemDialogContent() {
       const optimisticCollectionItem: CollectionItem = {
         id: crypto.randomUUID(),
         createdAt: new Date(),
-        collectionId: modalParams.id as string,
+        collectionId: modalParams.id,
         content: source,
       }
-      addItemToCollection(modalParams.id as string, optimisticCollectionItem)
+      addItemToCollection(modalParams.id, optimisticCollectionItem)
 
       try {
         const response = await fetchAddCollectionItem(
           profile,
-          modalParams.id as string,
+          modalParams.id,
           {
             itemId: source.id,
             category: source.category,
           },
         )
         updateItemInCollection(
-          modalParams.id as string,
+          modalParams.id,
           optimisticCollectionItem.id,
           response,
         )
       } catch (error) {
         deleteItemFromCollection(
-          modalParams.id as string,
+          modalParams.id,
           optimisticCollectionItem.id,
         )
         toastError('Failed to add item to collection', error)

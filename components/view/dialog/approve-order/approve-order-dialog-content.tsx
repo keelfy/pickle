@@ -43,7 +43,7 @@ import { Content, ContentCategory } from '@/lib/model/content'
 import { DetailedOrder } from '@/lib/model/order'
 import { useModalStore } from '@/providers/modal'
 import { useProfileStore } from '@/providers/profile-store'
-import { ModalType } from '@/stores/modal'
+import { getModalParams, ModalType } from '@/stores/modal'
 import { contentCategoryLabels } from '@/utils/api/constants'
 import { Paginated } from '@/utils/api/response'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -73,7 +73,11 @@ const formSchema = z.object({
 
 export default function ApproveOrderDialogContent() {
   const { closeModal, openModal } = useModalStore((state) => state)
-  const { id: orderId } = useModalStore((state) => state.modalParams!)
+  const rawModalParams = useModalStore((state) => state.modalParams)
+  const modalParams = React.useMemo(
+    () => getModalParams(ModalType.ApproveOrder, rawModalParams),
+    [rawModalParams],
+  )
   const { profile } = useProfileStore((state) => state)
   const [order, setOrder] = React.useState<DetailedOrder>()
 
@@ -212,19 +216,19 @@ export default function ApproveOrderDialogContent() {
   }, [contentSearchPage])
 
   React.useEffect(() => {
-    if (!orderId || !profile) {
+    if (!modalParams?.id || !profile) {
       return
     }
 
     ;(async () => {
       try {
-        const response = await fetchOrderById(profile, orderId as string)
+        const response = await fetchOrderById(profile, modalParams.id)
         setOrder(response)
       } catch (error) {
         toastError('Failed to fetch the order', error)
       }
     })()
-  }, [orderId, profile])
+  }, [modalParams?.id, profile])
 
   React.useEffect(() => {
     onReset()
@@ -261,14 +265,14 @@ export default function ApproveOrderDialogContent() {
   }
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    if (!orderId || !profile) {
+    if (!modalParams?.id || !profile) {
       closeModal()
       return
     }
 
     startOrderApprovingTransition(async () => {
       try {
-        const res = await approveOrderById(profile, orderId as string, {
+        const res = await approveOrderById(profile, modalParams.id, {
           category: values.category,
           contentId: values.content?.id,
         })

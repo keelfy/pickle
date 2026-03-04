@@ -2,7 +2,7 @@
 
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { useModalStore } from '@/providers/modal'
-import { ModalType } from '@/stores/modal'
+import { getModalParams, ModalType } from '@/stores/modal'
 import dynamic from 'next/dynamic'
 import React from 'react'
 import LoadingDialogContent from '../loading-dialog-content'
@@ -17,13 +17,18 @@ export type MovieNoteCreatorDialogParams = {
 }
 
 export default function MovieNoteCreatorDialog() {
-  const { currentModal, modalParams, closeModal } = useModalStore(
+  const { currentModal, closeModal } = useModalStore(
     (state) => state,
+  )
+  const rawModalParams = useModalStore((state) => state.modalParams)
+  const params = React.useMemo(
+    () => getModalParams(ModalType.MovieNoteCreator, rawModalParams),
+    [rawModalParams],
   )
 
   const isOpen = React.useMemo(
-    () => currentModal === ModalType.MovieNoteCreator,
-    [currentModal, modalParams?.movieId],
+    () => currentModal === ModalType.MovieNoteCreator && params !== undefined,
+    [currentModal, params],
   )
 
   if (!isOpen) {
@@ -35,7 +40,7 @@ export default function MovieNoteCreatorDialog() {
       <DialogContent className="max-h-svh overflow-y-auto">
         {isOpen && (
           <DynamicMovieNoteCreatorDialogContent
-            noteId={modalParams?.movieId as string}
+            noteId={params!.movieId}
             isDesktop={true}
           />
         )}

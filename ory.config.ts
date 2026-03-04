@@ -1,10 +1,11 @@
 import type { OryClientConfiguration } from '@ory/elements-react'
+import { env } from '@/lib/env'
 
 const config: OryClientConfiguration = {
   sdk: {
-    url: process.env.NEXT_PUBLIC_ORY_SDK_URL,
+    url: env.NEXT_PUBLIC_ORY_SDK_URL,
     options: {
-      basePath: process.env.NEXT_PUBLIC_ORY_SDK_URL,
+      basePath: env.NEXT_PUBLIC_ORY_SDK_URL,
     },
   },
   project: {

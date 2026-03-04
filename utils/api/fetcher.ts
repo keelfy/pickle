@@ -1,4 +1,6 @@
-const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL
+import { env } from '@/lib/env'
+
+const baseURL = env.NEXT_PUBLIC_BACKEND_URL
 
 export async function apiFetcher<T>(
   path: string,

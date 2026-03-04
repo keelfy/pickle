@@ -24,6 +24,13 @@ export default function AuthStoreProvider({
 }: AuthStoreProviderProps) {
   const storeRef = React.useRef<AuthStoreApi>(createAuthStore(props))
 
+  React.useEffect(() => {
+    storeRef.current.setState({
+      user: props.user,
+      session: props.session,
+    })
+  }, [props.user, props.session])
+
   return (
     <AuthStoreContext.Provider value={storeRef.current}>
       {children}

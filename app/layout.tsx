@@ -21,9 +21,15 @@ export default async function RootLayout({
   children,
 }: React.PropsWithChildren) {
   const session = await getCurrentSession()
-  const profile = session?.identity?.id
-    ? await fetchUser('md').catch(() => undefined)
-    : undefined
+  let profile = undefined
+
+  if (session?.identity?.id) {
+    try {
+      profile = await fetchUser('md')
+    } catch (error) {
+      console.error('Failed to fetch current user in root layout:', error)
+    }
+  }
 
   return (
     <html lang="en" suppressHydrationWarning>

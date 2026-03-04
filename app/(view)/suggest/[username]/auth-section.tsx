@@ -13,7 +13,7 @@ import React from 'react'
 type Props = { className?: string }
 
 export default function AuthSuggestSection({ className }: Props) {
-  const session = useAuthStore((state) => state.session)
+  const user = useAuthStore((state) => state.user)
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
@@ -38,7 +38,7 @@ export default function AuthSuggestSection({ className }: Props) {
       }
     })
 
-  if (session === undefined || !session.active) {
+  if (!user?.id) {
     return (
       <Button variant="secondary" className={className}>
         <Link

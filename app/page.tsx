@@ -1,12 +1,12 @@
 import { Button } from '@/components/ui/button'
-import { fetchUser } from '@/hooks/api-endpoints-server'
-import getCurrentSession from '@/hooks/getCurrentSession'
+import { Metadata } from 'next'
 import Link from 'next/link'
 
-export default async function LandingPage() {
-  const session = await getCurrentSession()
-  const profile = session?.identity?.id ? await fetchUser() : undefined
+export const metadata: Metadata = {
+  title: 'Pickle - Track What You Watch & Play',
+}
 
+export default function LandingPage() {
   return (
     <div className="flex h-svh w-screen flex-col items-center justify-center gap-10">
       <h1 className="font-mono text-4xl font-semibold">
@@ -27,9 +27,7 @@ export default async function LandingPage() {
         size="lg"
         asChild
       >
-        <Link href={profile ? `/${profile.username}` : '/auth/login'}>
-          {profile ? 'my profile' : 'get started'}
-        </Link>
+        <Link href="/auth/login">get started</Link>
       </Button>
     </div>
   )

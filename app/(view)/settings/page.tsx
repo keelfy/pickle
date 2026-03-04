@@ -12,10 +12,10 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import TrackTwitchChannelRewardDialog from '@/components/view/dialog/track-twitch-reward/track-twitch-reward-dialog'
 import { SettingsIcon } from 'lucide-react'
 import { NextPage } from 'next'
+import { useTranslations } from 'next-intl'
 import { parseAsStringEnum, useQueryState } from 'nuqs'
 import {
-  getSettingsGroupLabel,
-  getSettingsTabLabel,
+  getSettingsGroupLabelKey,
   SettingsTab,
   tabCategories,
 } from './page.logic'
@@ -23,10 +23,12 @@ import { default as ProfileSettingsTabButton } from './tab-button'
 import TabContent from './tab-content'
 
 const SettingsPage: NextPage = () => {
+  const t = useTranslations('settings')
   const [currentTab, setCurrentTab] = useQueryState(
     'tab',
     parseAsStringEnum(Object.values(SettingsTab)),
   )
+  const activeTab = currentTab ?? SettingsTab.General
 
   return (
     <div className="flex flex-col gap-8 p-6">
@@ -37,15 +39,15 @@ const SettingsPage: NextPage = () => {
             className="flex items-center gap-1 text-lg"
           >
             <SettingsIcon className="size-4" />
-            Settings
+            {t('title')}
           </BreadcrumbLink>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            {getSettingsGroupLabel(currentTab ?? SettingsTab.General)}
+            {t(`groups.${getSettingsGroupLabelKey(activeTab)}`)}
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbPage>
-            {getSettingsTabLabel(currentTab ?? SettingsTab.General)}
+            {t(`tabs.${activeTab.toLowerCase()}`)}
           </BreadcrumbPage>
         </BreadcrumbList>
       </Breadcrumb>
@@ -53,9 +55,9 @@ const SettingsPage: NextPage = () => {
         <div className="flex space-x-6">
           <div className="flex flex-col space-y-2">
             {tabCategories.map((category) => (
-              <div key={category.name} className="flex flex-col space-y-2">
+              <div key={category.nameKey} className="flex flex-col space-y-2">
                 <h2 className="text-xs text-muted-foreground">
-                  {category.name}
+                  {t(`groups.${category.nameKey}`)}
                 </h2>
                 <div className="flex flex-col space-y-2">
                   {category.tabs.map((tab) => (
@@ -64,7 +66,7 @@ const SettingsPage: NextPage = () => {
                       active={tab.value === currentTab}
                       onClick={() => setCurrentTab(tab.value)}
                       icon={tab.icon}
-                      label={tab.label}
+                      label={t(`tabs.${tab.value.toLowerCase()}`)}
                       disabled={tab.disabled}
                     />
                   ))}
@@ -72,7 +74,7 @@ const SettingsPage: NextPage = () => {
               </div>
             ))}
           </div>
-          <TabContent tab={currentTab ?? SettingsTab.General} />
+          <TabContent tab={activeTab} />
         </div>
       </TooltipProvider>
       <TrackTwitchChannelRewardDialog />

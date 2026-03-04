@@ -1,4 +1,12 @@
 import { Suspense } from 'react'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+  },
+}
 
 export default function Layout({ children }: React.PropsWithChildren) {
   return (

@@ -1,13 +1,15 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import { followProfile, unfollowProfile } from '@/hooks/api-endpoints-client'
+import {
+  useFollowProfileMutation,
+  useUnfollowProfileMutation,
+} from '@/hooks/mutations/use-follow-mutations'
 import useRedirectToLogin from '@/hooks/use-redirect-to-login'
 import { toastError } from '@/lib/toasts'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/providers/auth-store'
 import { useProfileStore } from '@/providers/profile-store'
-import { isSessionActive } from '@/utils/session'
 import { HeartCrackIcon, HeartIcon } from 'lucide-react'
 import React from 'react'
 
@@ -17,12 +19,14 @@ type Props = {
 
 export function FollowButton({ className }: Props) {
   const { profile, update } = useProfileStore((state) => state)
-  const session = useAuthStore((state) => state.session)
+  const user = useAuthStore((state) => state.user)
   const [isFollowing, setIsFollowing] = React.useState<boolean>(
     profile?.context?.isFollowing ?? false,
   )
   const [isHovering, setIsHovering] = React.useState<boolean>(false)
   const [isPending, startTransition] = React.useTransition()
+  const followMutation = useFollowProfileMutation()
+  const unfollowMutation = useUnfollowProfileMutation()
   const redirectToLogin = useRedirectToLogin()
 
   const handleFollow = () =>
@@ -31,7 +35,7 @@ export function FollowButton({ className }: Props) {
         return
       }
 
-      if (!isSessionActive(session)) {
+      if (!user?.id) {
         redirectToLogin()
         return
       }
@@ -39,7 +43,7 @@ export function FollowButton({ className }: Props) {
       const prevValue = isFollowing
       try {
         setIsFollowing(true)
-        await followProfile(profile)
+        await followMutation.mutateAsync({ user: profile })
 
         if (profile?.counts) {
           const oldContext = profile?.context ?? {
@@ -66,7 +70,7 @@ export function FollowButton({ className }: Props) {
     })
 
   const handleUnfollow = () => {
-    if (session?.identity?.id === profile?.id || !profile) {
+    if (user?.id === profile?.id || !profile) {
       return
     }
 
@@ -74,7 +78,7 @@ export function FollowButton({ className }: Props) {
       const prevValue = isFollowing
       try {
         setIsFollowing(false)
-        await unfollowProfile(profile)
+        await unfollowMutation.mutateAsync({ user: profile })
 
         if (profile?.counts) {
           const oldContext = profile?.context ?? {
@@ -105,7 +109,7 @@ export function FollowButton({ className }: Props) {
     setIsFollowing(profile?.context?.isFollowing ?? false)
   }, [profile?.context?.isFollowing])
 
-  if (profile?.id === session?.identity?.id) {
+  if (profile?.id === user?.id) {
     return null
   }
 

@@ -8,7 +8,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Checkbox } from '@/components/ui/checkbox'
-import { deleteContentNote } from '@/hooks/api-endpoints-client'
+import { useDeleteContentNoteMutation } from '@/hooks/mutations/use-content-note-mutations'
 import { toastError } from '@/lib/toasts'
 import { useModalStore } from '@/providers/modal'
 import { useProfileStore } from '@/providers/profile-store'
@@ -24,6 +24,7 @@ export default function DeleteContentAlertDialogContent() {
     (state) => state.modalParams as DeleteContentAlertModalParams | undefined,
   )
   const [isLoading, startTransition] = React.useTransition()
+  const deleteContentNoteMutation = useDeleteContentNoteMutation()
   const [resetApprovedOrders, setResetApprovedOrders] = React.useState(true)
 
   const onConfirm = () => {
@@ -33,12 +34,12 @@ export default function DeleteContentAlertDialogContent() {
 
     startTransition(async () => {
       try {
-        await deleteContentNote(
-          profile,
-          modalParams.category,
-          modalParams.id,
+        await deleteContentNoteMutation.mutateAsync({
+          user: profile,
+          category: modalParams.category,
+          noteId: modalParams.id,
           resetApprovedOrders,
-        )
+        })
         closeModal()
         toast.success('Content deleted successfully', {
           description: `The content ${modalParams?.title} has been deleted.`,

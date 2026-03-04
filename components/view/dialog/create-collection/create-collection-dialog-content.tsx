@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import LoadingSpinner from '@/components/ui/loading-spinner'
-import { fetchCreateCollection } from '@/hooks/api-endpoints-client'
+import { useCreateCollectionMutation } from '@/hooks/mutations/use-collection-mutations'
 import { toastError } from '@/lib/toasts'
 import { useModalStore } from '@/providers/modal'
 import { useProfileStore } from '@/providers/profile-store'
@@ -40,6 +40,7 @@ export default function CreateCollectionDialogContent() {
   const { closeModal } = useModalStore((state) => state)
   const profile = useProfileStore((state) => state.profile)
   const [isLoading, startTransition] = useTransition()
+  const createCollectionMutation = useCreateCollectionMutation()
   const { addCollection, updateCollection, deleteCollection } =
     useCollectionContext()
 
@@ -59,7 +60,10 @@ export default function CreateCollectionDialogContent() {
       }
       addCollection(optimisticCollection)
       try {
-        const newCollection = await fetchCreateCollection(profile, data)
+        const newCollection = await createCollectionMutation.mutateAsync({
+          user: profile,
+          data,
+        })
         updateCollection(optimisticCollection.id, newCollection)
         closeModal()
         toast.success(data.name, {

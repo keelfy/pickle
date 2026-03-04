@@ -1,4 +1,5 @@
-import { Filter, serializeFilter } from '@/query-params/filter'
+import { useSortFilterInfinite } from '@/hooks/queries/use-sort-filter-infinite'
+import { Filter } from '@/query-params/filter'
 import React from 'react'
 import { useInView } from 'react-intersection-observer'
 
@@ -16,7 +17,8 @@ export type SortFilterFetchProps<T> = {
 
 export type SortFilterFetchResult<T> = {
   contents: T[]
-  viewRef: React.RefObject<HTMLDivElement>
+  pages: T[][]
+  viewRef: React.Ref<HTMLDivElement>
   isLoading: boolean
 }
 
@@ -29,83 +31,41 @@ export function useSortFilterFetch<T>({
   fetchFunction,
   trackedValue,
 }: SortFilterFetchProps<T>) {
-  const [contents, setContents] = React.useState<T[]>([])
-  const [isLoading, setIsLoading] = React.useState(false)
-  const [hasMore, setHasMore] = React.useState(true)
-  const [cursor, setCursor] = React.useState<string>('')
-
   const { ref: viewRef, inView } = useInView()
+  const infiniteQuery = useSortFilterInfinite<T>({
+    key: ['sort-filter-fetch', sort, filters, urlParams, trackedValue ?? ''],
+    sort,
+    filters,
+    enabled: isInitialized,
+    fetchFunction,
+    getCursorValue,
+    urlParams,
+  })
 
-  const fetchContents = React.useCallback(
-    async (
-      sort: string,
-      cursor: string,
-      filters: Filter[],
-      resetList = false,
-    ) => {
-      if (isLoading) return
-
-      const sortColumn = sort.split('.')[0] ?? 'created_at'
-      const sortDirection = sort.split('.')[1] ?? 'desc'
-
-      setIsLoading(true)
-      try {
-        const params = new URLSearchParams({
-          limit: '20',
-          column: sortColumn,
-          direction: sortDirection,
-        })
-        urlParams.forEach(([key, value]) => {
-          params.append(key, value)
-        })
-
-        // Only add cursor if it exists and we're not resetting the list
-        if (cursor.length > 0 && !resetList) {
-          params.append('cursor', cursor)
-        }
-
-        if (filters.length > 0) {
-          params.append(
-            'filters',
-            filters.map((filter) => serializeFilter(filter)).join(','),
-          )
-        }
-
-        const notes = await fetchFunction(params)
-        if (notes?.length === 0) {
-          setHasMore(false)
-
-          if (resetList) {
-            setContents([])
-          }
-          return
-        }
-
-        const lastItem = notes[notes.length - 1]
-        const newCursor = getCursorValue(lastItem, sortColumn)
-
-        setCursor(newCursor)
-        setContents((prev) => (resetList ? notes : [...prev, ...notes]))
-      } finally {
-        setIsLoading(false)
-      }
-    },
-    [fetchFunction, urlParams, getCursorValue, isLoading],
+  const contents = React.useMemo(
+    () => infiniteQuery.data?.pages.flat() ?? [],
+    [infiniteQuery.data?.pages],
+  )
+  const pages = React.useMemo(
+    () => infiniteQuery.data?.pages ?? [],
+    [infiniteQuery.data?.pages],
   )
 
   React.useEffect(() => {
-    if (inView && hasMore) {
-      fetchContents(sort, cursor, filters)
+    if (inView && infiniteQuery.hasNextPage && !infiniteQuery.isFetchingNextPage) {
+      void infiniteQuery.fetchNextPage()
     }
-  }, [inView])
+  }, [
+    inView,
+    infiniteQuery.hasNextPage,
+    infiniteQuery.isFetchingNextPage,
+    infiniteQuery.fetchNextPage,
+  ])
 
-  React.useEffect(() => {
-    if (!isInitialized) return
-
-    setCursor('')
-    setHasMore(true)
-    fetchContents(sort, '', filters, true)
-  }, [sort, filters, isInitialized, trackedValue])
-
-  return { contents, viewRef, isLoading }
+  return {
+    contents,
+    pages,
+    viewRef,
+    isLoading: infiniteQuery.isPending || infiniteQuery.isFetchingNextPage,
+  }
 }

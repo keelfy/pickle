@@ -1,12 +1,12 @@
 'use client'
 
 import LoadingSpinner from '@/components/ui/loading-spinner'
-import { fetchProfileOrders } from '@/hooks/api-endpoints-client'
 import { toastError } from '@/lib/toasts'
 import { OrderWithDecision } from '@/lib/model/order'
 import { useSortFilterFetch } from '@/lib/sort-filter-fetch'
 import { useProfileStore } from '@/providers/profile-store'
 import { Filter } from '@/query-params/filter'
+import { fetchApi } from '@/utils/api/client'
 import SuggestionListEntry from './suggestion-list-entry'
 
 type Props = {
@@ -37,7 +37,10 @@ export default function SuggestionList({ sort, filters }: Props) {
       fetchFunction: async (params) => {
         if (!profile) return []
         try {
-          return await fetchProfileOrders(profile, params)
+          return await fetchApi<OrderWithDecision[]>(
+            `/v1/users/${profile.id}/orders`,
+            new URLSearchParams(params),
+          )
         } catch (error) {
           toastError('Failed to fetch orders', error)
           throw error

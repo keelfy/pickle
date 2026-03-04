@@ -10,14 +10,13 @@ import {
   CommandList,
 } from '@/components/ui/command'
 import {
-  fetchAddCollectionItem,
-  fetchProfileContentSearch,
-} from '@/hooks/api-endpoints-client'
+  useAddCollectionItemMutation,
+} from '@/hooks/mutations/use-collection-mutations'
+import { useProfileContentSearch } from '@/hooks/queries/use-profile-content-search'
 import { useDebounce } from '@/hooks/use-debounce'
 import { toastError } from '@/lib/toasts'
 import { CollectionItem } from '@/lib/model/collection'
 import { UserContent } from '@/lib/model/content'
-import { Paginated } from '@/lib/model/types'
 import { useModalStore } from '@/providers/modal'
 import { useProfileStore } from '@/providers/profile-store'
 import { getModalParams, ModalType } from '@/stores/modal'
@@ -37,13 +36,19 @@ export default function AddCollectionItemDialogContent() {
   const profile = useProfileStore((state) => state.profile)
   const [query, setQuery] = React.useState<string>(modalParams?.query ?? '')
   const debouncedQuery = useDebounce(query, 300)
-  const [result, setResult] = React.useState<Paginated<UserContent>>()
+  const { data: result, error } = useProfileContentSearch({
+    profile: profile ?? undefined,
+    query: debouncedQuery,
+    page: 0,
+    size: 10,
+  })
   const {
     states: collections,
     addItemToCollection,
     deleteItemFromCollection,
     updateItemInCollection,
   } = useCollectionContext()
+  const addCollectionItemMutation = useAddCollectionItemMutation()
 
   const GroupHeading: React.ReactNode = React.useMemo(
     () => (
@@ -63,30 +68,10 @@ export default function AddCollectionItemDialogContent() {
   }, [debouncedQuery, modalParams?.id, modalParams?.query, setModalParams])
 
   React.useEffect(() => {
-    if (
-      !debouncedQuery ||
-      debouncedQuery.length < 2 ||
-      debouncedQuery.length > 100 ||
-      !profile
-    ) {
-      setResult(undefined)
-      return
+    if (error) {
+      toastError('Failed to fetch search results', error)
     }
-
-    ;(async () => {
-      try {
-        const response = await fetchProfileContentSearch(
-          profile,
-          debouncedQuery,
-          0,
-          10,
-        )
-        setResult(response)
-      } catch (error) {
-        toastError('Failed to fetch search results', error)
-      }
-    })()
-  }, [debouncedQuery, profile])
+  }, [error])
 
   React.useEffect(() => {
     setSelectedIndex(0)
@@ -144,14 +129,14 @@ export default function AddCollectionItemDialogContent() {
       addItemToCollection(modalParams.id, optimisticCollectionItem)
 
       try {
-        const response = await fetchAddCollectionItem(
-          profile,
-          modalParams.id,
-          {
+        const response = await addCollectionItemMutation.mutateAsync({
+          user: profile,
+          collectionId: modalParams.id,
+          req: {
             itemId: source.id,
             category: source.category,
           },
-        )
+        })
         updateItemInCollection(
           modalParams.id,
           optimisticCollectionItem.id,

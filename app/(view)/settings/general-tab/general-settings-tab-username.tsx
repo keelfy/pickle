@@ -15,7 +15,8 @@ import { UseFormReturn } from 'react-hook-form'
 import z from 'zod'
 import { generalSettingsFormSchema } from './general-settings-form'
 import { useAuthStore } from '@/providers/auth-store'
-import { validateUsername } from '@/hooks/api-endpoints-client'
+import { useValidateUsername } from '@/hooks/mutations/use-profile-mutations'
+import { useDebounce } from '@/hooks/use-debounce'
 
 type Props = {
   form: UseFormReturn<z.infer<typeof generalSettingsFormSchema>>
@@ -23,10 +24,15 @@ type Props = {
 
 export default function GeneralSettingsTabUsername({ form }: Props) {
   const profile = useAuthStore((state) => state.user)
-  const [isLinkValidating, setLinkValidating] = React.useState(false)
+  const username = form.watch('username')
+  const debouncedUsername = useDebounce(username, 300)
+  const { data, isFetching, error } = useValidateUsername(
+    debouncedUsername,
+    debouncedUsername !== profile?.username,
+  )
 
   const LinkValidationStatusIcon = ({ className }: { className?: string }) => {
-    if (isLinkValidating) {
+    if (isFetching) {
       return <LoadingSpinner className={cn('h-4 w-4', className)} />
     }
 
@@ -38,32 +44,25 @@ export default function GeneralSettingsTabUsername({ form }: Props) {
   }
 
   React.useEffect(() => {
-    const username = form.watch('username')
-    if (username === profile?.username) {
+    if (debouncedUsername === profile?.username) {
       form.clearErrors('username')
       return
     }
-
-    const getData = setTimeout(async () => {
-      try {
-        setLinkValidating(true)
-        const res = await validateUsername(username)
-        if (res.valid) {
-          form.clearErrors('username')
-        } else {
-          form.setError('username', {
-            message: res.message,
-          })
-        }
-      } catch (error) {
-        form.setError('username', {
-          message: error instanceof Error ? error.message : 'Unknown error',
-        })
-      }
-      setLinkValidating(false)
-    }, 300)
-    return () => clearTimeout(getData)
-  }, [form, form.watch('username'), profile?.username])
+    if (error) {
+      form.setError('username', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+      })
+      return
+    }
+    if (!data) return
+    if (data.valid) {
+      form.clearErrors('username')
+    } else {
+      form.setError('username', {
+        message: data.message,
+      })
+    }
+  }, [data, error, debouncedUsername, profile?.username, form])
 
   return (
     <FormField

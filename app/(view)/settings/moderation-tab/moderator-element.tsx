@@ -1,6 +1,6 @@
 import ProfileAvatar from '@/components/profile-avatar'
 import { Button } from '@/components/ui/button'
-import { fetchDeleteModerator } from '@/hooks/api-endpoints-client'
+import { useDeleteModeratorMutation } from '@/hooks/mutations/use-moderator-mutations'
 import { toastError } from '@/lib/toasts'
 import { getTimeAgoText } from '@/lib/localize-types'
 import { cn } from '@/lib/utils'
@@ -25,11 +25,13 @@ export default function ModeratorElement({
 }: Props) {
   const profile = useAuthStore((state) => state.user)
   const [isDeleting, startDeleting] = React.useTransition()
+  const deleteModeratorMutation = useDeleteModeratorMutation()
 
   function onDelete() {
     if (!profile) return
     startDeleting(() =>
-      fetchDeleteModerator(profile, moderator.id)
+      deleteModeratorMutation
+        .mutateAsync({ user: profile, moderatorId: moderator.id })
         .then(() => afterDelete?.())
         .catch((error) => {
           toastError('Error deleting moderator', error)

@@ -19,6 +19,7 @@ import {
 } from '@ory/client-fetch'
 import Link from 'next/link'
 import { parseAsBoolean, parseAsString, useQueryState } from 'nuqs'
+import { useTranslations } from 'next-intl'
 import React from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -74,6 +75,7 @@ const AuthForm = ({
   flow,
   isFlowLoading = false,
 }: Props) => {
+  const t = useTranslations('auth')
   const [goto] = useQueryState('goto', parseAsString.withDefault(''))
 
   const [refresh] = useQueryState('refresh', parseAsBoolean.withDefault(false))
@@ -144,10 +146,10 @@ const AuthForm = ({
             }
           } else {
             const res = (await error.response.json()) as ErrorGeneric
-            toastError('Failed to login', res.error)
+            toastError(t('errors.failedLogin'), res.error)
           }
         } else {
-          toastError('Failed to login', error)
+          toastError(t('errors.failedLogin'), error)
         }
       }
     })
@@ -170,20 +172,20 @@ const AuthForm = ({
       <CardHeader>
         <CardTitle className="flex items-center justify-between gap-2">
           {flowType === 'registration'
-            ? 'Sign Up'
+            ? t('registrationTitle')
             : flowType === 'refresh'
-              ? 'Confirm your identity'
-              : 'Sign In'}
+              ? t('refreshTitle')
+              : t('loginTitle')}
           <Link href="/" className="hover:opacity-80">
             <PickleLogo className="h-5" />
           </Link>
         </CardTitle>
         <CardDescription>
           {flowType === 'registration'
-            ? 'Sign up with your email and password or a social provider'
+            ? t('registrationDescription')
             : flowType === 'refresh'
-              ? 'Prove your identity with your email and password or a social provider'
-              : 'Sign in with your email and password or a social provider'}
+              ? t('refreshDescription')
+              : t('loginDescription')}
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
@@ -246,8 +248,8 @@ const AuthForm = ({
         {!refresh && (
           <div className="text-center text-sm">
             {flowType === 'registration'
-              ? 'Already have an account?'
-              : "Don't have an account?"}
+              ? t('alreadyHaveAccount')
+              : t('dontHaveAccount')}
             &nbsp;
             <Link
               href={{
@@ -261,7 +263,7 @@ const AuthForm = ({
               }}
               className="underline"
             >
-              {flowType === 'registration' ? 'Sign in' : 'Sign up'}
+              {flowType === 'registration' ? t('signIn') : t('signUp')}
             </Link>
           </div>
         )}

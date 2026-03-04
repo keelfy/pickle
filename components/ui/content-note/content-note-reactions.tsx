@@ -7,9 +7,9 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import {
-  createContentNoteReaction,
-  deleteContentNoteReaction,
-} from '@/hooks/api-endpoints-client'
+  useCreateContentNoteReactionMutation,
+  useDeleteContentNoteReactionMutation,
+} from '@/hooks/mutations/use-content-note-reaction-mutations'
 import useRedirectToLogin from '@/hooks/use-redirect-to-login'
 import { toastError } from '@/lib/toasts'
 import { ContentCategory } from '@/lib/model/content'
@@ -18,7 +18,6 @@ import { ContentNoteReaction } from '@/lib/model/note-reaction'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/providers/auth-store'
 import { useProfileStore } from '@/providers/profile-store'
-import { isSessionActive } from '@/utils/session'
 import { EmojiPicker } from '@ferrucc-io/emoji-picker'
 import React from 'react'
 
@@ -78,7 +77,7 @@ export default function ContentNoteReactions({
   defaultReactions,
   className,
 }: Props) {
-  const session = useAuthStore((state) => state.session)
+  const user = useAuthStore((state) => state.user)
   const profile = useProfileStore((state) => state.profile)
 
   const redirectToLogin = useRedirectToLogin()
@@ -86,6 +85,8 @@ export default function ContentNoteReactions({
   const [reactions, setReactions] =
     React.useState<ContentNoteReaction[]>(defaultReactions)
   const [isReactionsChanging, startReactionsChange] = React.useTransition()
+  const createReactionMutation = useCreateContentNoteReactionMutation()
+  const deleteReactionMutation = useDeleteContentNoteReactionMutation()
 
   const canReact = () => {
     if (reactions.filter((reaction) => reaction.userReacted).length >= 3) {
@@ -96,7 +97,7 @@ export default function ContentNoteReactions({
   }
 
   const handleEmojiClick = (emoteId: string) => {
-    if (!isSessionActive(session) || !profile) {
+    if (!user?.id || !profile) {
       redirectToLogin()
       return
     }
@@ -117,12 +118,12 @@ export default function ContentNoteReactions({
               currValue.filter((reaction) => reaction.emoteId !== emoteId),
             )
           }
-          await deleteContentNoteReaction(
-            profile,
+          await deleteReactionMutation.mutateAsync({
+            user: profile,
             category,
-            contentNote.id,
+            noteId: contentNote.id,
             emoteId,
-          )
+          })
           setReactions((currValue) =>
             currValue.sort((a, b) => b.count - a.count),
           )
@@ -137,12 +138,12 @@ export default function ContentNoteReactions({
         try {
           reacted.userReacted = true
           reacted.count++
-          await createContentNoteReaction(
-            profile,
+          await createReactionMutation.mutateAsync({
+            user: profile,
             category,
-            contentNote.id,
+            noteId: contentNote.id,
             emoteId,
-          )
+          })
           setReactions((currValue) =>
             currValue.sort((a, b) => b.count - a.count),
           )
@@ -155,7 +156,7 @@ export default function ContentNoteReactions({
   }
 
   const handleEmojiSelect = (emoteId: string) => {
-    if (!isSessionActive(session) || !profile) {
+    if (!user?.id || !profile) {
       redirectToLogin()
       return
     }
@@ -167,12 +168,12 @@ export default function ContentNoteReactions({
 
     startReactionsChange(async () => {
       try {
-        await createContentNoteReaction(
-          profile,
+        await createReactionMutation.mutateAsync({
+          user: profile,
           category,
-          contentNote.id,
+          noteId: contentNote.id,
           emoteId,
-        )
+        })
         const sameEmote = reactions.find(
           (reaction) => reaction.emoteId === emoteId,
         )
@@ -211,7 +212,7 @@ export default function ContentNoteReactions({
           </div>
         </Button>
       ))}
-      {isSessionActive(session) && canReact() && (
+      {user?.id && canReact() && (
         <Popover>
           <PopoverTrigger disabled={!canReact()}>
             <div className="flex h-7 items-center justify-center rounded-xl border px-2 py-1">

@@ -19,7 +19,7 @@ import {
 import IGDBIcon from '@/components/ui/icons/igdb-icon'
 import { PopoverTrigger } from '@/components/ui/popover'
 import { ContentNoteDialogOrdersSection } from '@/components/view/dialog/content-note/content-note-dialog-orders-section'
-import { fetchContentNote } from '@/hooks/api-endpoints-client'
+import { useContentNote } from '@/hooks/queries/use-content-note'
 import {
   localizeContentCategory,
   localizeContentNoteStatus,
@@ -105,10 +105,18 @@ type Props<T extends DetailedContentNote> = {
 export default function ContentNoteDialogContent<
   T extends DetailedContentNote,
 >({ noteId, category, additionalDataRows = [], isDesktop }: Props<T>) {
-  const [contentNote, setContentNote] = React.useState<T>()
   const { profile } = useProfileStore((state) => state)
+  const { data: contentNote, isPending: isLoading, error } = useContentNote<T>({
+    user: profile ?? undefined,
+    category,
+    noteId,
+  })
 
-  const [isLoading, startTransition] = React.useTransition()
+  React.useEffect(() => {
+    if (error) {
+      toastError(`Failed to load ${localizeContentCategory(category)} note`, error)
+    }
+  }, [category, error])
   // const [reactions, setReactions] = React.useState<ContentNoteReaction[]>()
 
   // React.useEffect(() => {
@@ -124,25 +132,6 @@ export default function ContentNoteDialogContent<
   //     }
   //   })()
   // }, [noteId])
-
-  React.useEffect(() => {
-    setContentNote(undefined)
-  }, [noteId])
-
-  React.useEffect(() => {
-    if (!profile?.id) return
-    startTransition(async () => {
-      try {
-        const response = await fetchContentNote<T>(profile, category, noteId)
-        setContentNote(response)
-      } catch (error) {
-        toastError(
-          `Failed to load ${localizeContentCategory(category)} note`,
-          error,
-        )
-      }
-    })
-  }, [noteId])
 
   const Header = isDesktop ? DialogHeader : DrawerHeader
   const HeaderTitle = isDesktop ? DialogTitle : DrawerTitle

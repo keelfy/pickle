@@ -10,10 +10,10 @@ import {
   CommandList,
 } from '@/components/ui/command'
 import { getContentCategoryIcon } from '@/components/ui/content-category-icon'
-import { fetchProfileContentSearch } from '@/hooks/api-endpoints-client'
+import { useProfileContentSearch } from '@/hooks/queries/use-profile-content-search'
+import { useDebounce } from '@/hooks/use-debounce'
 import { toastError } from '@/lib/toasts'
 import { UserContent } from '@/lib/model/content'
-import { Paginated } from '@/lib/model/types'
 import { useModalStore } from '@/providers/modal'
 import { useProfileStore } from '@/providers/profile-store'
 import { getModalParams, ModalType } from '@/stores/modal'
@@ -33,48 +33,26 @@ export default function ProfileSearchDialogContent() {
   const [query, setQuery] = React.useState<string>(
     modalParams?.query ?? '',
   )
-  const [debouncedQuery, setDebouncedQuery] = React.useState<string>('')
-  const [result, setResult] = React.useState<Paginated<UserContent>>()
-  const [isLoading, startTransition] = React.useTransition()
+  const debouncedQuery = useDebounce(query, 300)
+
+  const { data: result, error } = useProfileContentSearch({
+    profile: profile ?? undefined,
+    query: debouncedQuery,
+    page: 0,
+    size: 10,
+  })
 
   React.useEffect(() => {
-    const timeout = setTimeout(() => {
-      setDebouncedQuery(query)
-      if (modalParams?.query !== query) {
-        setModalParams({ ...modalParams, query })
-      }
-    }, 300)
-
-    return () => {
-      clearTimeout(timeout)
-    }
-  }, [query, modalParams?.query, setModalParams])
+    if (!modalParams) return
+    if (modalParams.query === debouncedQuery) return
+    setModalParams({ ...modalParams, query: debouncedQuery })
+  }, [debouncedQuery, modalParams?.query, setModalParams])
 
   React.useEffect(() => {
-    if (
-      !debouncedQuery ||
-      debouncedQuery.length < 2 ||
-      debouncedQuery.length > 100 ||
-      !profile
-    ) {
-      setResult(undefined)
-      return
+    if (error) {
+      toastError('Failed to fetch search results', error)
     }
-
-    startTransition(async () => {
-      try {
-        const response = await fetchProfileContentSearch(
-          profile,
-          debouncedQuery,
-          0,
-          10,
-        )
-        setResult(response)
-      } catch (error) {
-        toastError('Failed to fetch search results', error)
-      }
-    })
-  }, [debouncedQuery, profile])
+  }, [error])
 
   const [selectedIndex, setSelectedIndex] = React.useState<number>(0)
 

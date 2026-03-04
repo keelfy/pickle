@@ -6,7 +6,7 @@ import {
   DialogWrapperHeader,
   DialogWrapperTitle,
 } from '@/components/ui/dialog-wrapper'
-import { fetchAvailableTwitchRewards } from '@/hooks/api-endpoints-client'
+import { useTwitchRewards } from '@/hooks/queries/use-twitch-rewards'
 import { toastError } from '@/lib/toasts'
 import { cn } from '@/lib/utils'
 import { TwitchChannelReward } from '@/utils/api/types'
@@ -23,22 +23,17 @@ export default function TrackTwitchRewardDialogContent({
   isDesktop,
   handleRewardClick,
 }: Props) {
-  const [availableRewards, setAvailableRewards] = React.useState<
-    TwitchChannelReward[]
-  >([])
-
-  const [isLoading, startTransition] = React.useTransition()
+  const {
+    data: availableRewards = [],
+    isPending: isLoading,
+    error,
+  } = useTwitchRewards()
 
   React.useEffect(() => {
-    startTransition(async () => {
-      try {
-        const rewards = await fetchAvailableTwitchRewards()
-        setAvailableRewards(rewards)
-      } catch (error) {
-        toastError('Failed to load available rewards', error)
-      }
-    })
-  }, [])
+    if (error) {
+      toastError('Failed to load available rewards', error)
+    }
+  }, [error])
 
   return (
     <>

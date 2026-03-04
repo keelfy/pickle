@@ -1,10 +1,8 @@
 import CollectionHeaderLine from '@/components/ui/content-collections/collection-header'
 import CreateCollectionTitleButton from '@/components/ui/content-collections/create-collection-title-button'
-import {
-  fetchCollections,
-  fetchCollectionsItems,
-  fetchProfileByUsername,
-} from '@/hooks/api-endpoints-server'
+import { BatchCollectionItems, Collection } from '@/lib/model/collection'
+import { Profile } from '@/lib/model/user'
+import { fetchApi } from '@/utils/api/server'
 import AddCollectionItemDialog from '../../view/dialog/add-collection-item/add-collection-item-dialog'
 import CreateCollectionDialog from '../../view/dialog/create-collection/create-collection-dialog'
 
@@ -18,17 +16,26 @@ type Props = {
 }
 
 export default async function CollectionsSection({ username }: Props) {
-  const profile = await fetchProfileByUsername(username).catch(() => {
+  const profile = await fetchApi<Profile>(
+    `/v1/profiles/${username}`,
+    new URLSearchParams([['avatarSize', 'lg']]),
+  ).catch(() => {
     return undefined
   })
 
   if (!profile) return null
 
   const [collections, collectionsItems] = await Promise.all([
-    fetchCollections(profile).catch(() => {
+    fetchApi<Collection[]>(
+      `/v1/users/${profile.id}/collections`,
+      new URLSearchParams(),
+    ).catch(() => {
       return []
     }),
-    fetchCollectionsItems(profile, 10).catch(() => {
+    fetchApi<BatchCollectionItems[]>(
+      `/v1/users/${profile.id}/collections/items`,
+      new URLSearchParams([['coverSize', '10']]),
+    ).catch(() => {
       return []
     }),
   ])

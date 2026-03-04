@@ -40,7 +40,7 @@ export default function MovieNoteCreatorDialog() {
       <DialogContent className="max-h-svh overflow-y-auto">
         {isOpen && (
           <DynamicMovieNoteCreatorDialogContent
-            noteId={params!.movieId}
+            contentId={params!.movieId}
             isDesktop={true}
           />
         )}

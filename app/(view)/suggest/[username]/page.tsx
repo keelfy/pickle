@@ -2,8 +2,12 @@ import LanguageDropdownMenu from '@/components/language-dropdown-menu'
 import ProfileAvatar from '@/components/profile-avatar'
 import { ThemeSwitcher } from '@/components/theme-switcher'
 import { Card, CardDescription } from '@/components/ui/card'
-import { fetchProfileByUsername } from '@/hooks/api-endpoints-server'
+import { createQueryClient } from '@/lib/query-client'
+import { profileByUsernameQueryOptions } from '@/lib/query-options'
+import { Profile } from '@/lib/model/user'
 import { getShortenedCount } from '@/lib/count-shortener'
+import { fetchApi } from '@/utils/api/server'
+import { getSiteUrl } from '@/lib/site-url'
 import { Metadata } from 'next'
 import Link from 'next/link'
 import OrderForm from './order-form'
@@ -11,10 +15,13 @@ import OrdersDisabledSection from './orders-disabled-section'
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { username } = await params
+  const queryClient = createQueryClient()
 
-  const profile = await fetchProfileByUsername(username, 'lg').catch(
-    (error: Error) => error.message,
-  )
+  const profile = await queryClient
+    .fetchQuery(profileByUsernameQueryOptions(fetchApi, username, 'lg'))
+    .catch(
+      (error: Error) => error.message,
+    )
 
   if (!profile || typeof profile === 'string') {
     return { title: 'Profile not found - pickle' }
@@ -23,13 +30,23 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: `Suggest for ${profile.username} - pickle`,
     description: `Suggest content for ${profile.displayName} on pickle.pw`,
+    robots: {
+      index: false,
+      follow: false,
+    },
     openGraph: {
       type: 'website',
       title: `Suggest for ${profile.username} - pickle`,
-      url: `https://pickle.pw/suggest/${profile.username}`,
+      url: `${getSiteUrl()}/suggest/${profile.username}`,
       description: `Suggest content for ${profile.displayName} on pickle.pw`,
       siteName: 'pickle',
       images: [{ url: profile.avatarUrl }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `Suggest content to ${profile.displayName}`,
+      description: `Submit a content suggestion to ${profile.displayName} on Pickle.`,
+      images: [profile.avatarUrl],
     },
   }
 }
@@ -38,10 +55,13 @@ export type Props = { params: Promise<{ username: string }> }
 
 export default async function SuggestPage({ params }: Props) {
   const { username } = await params
+  const queryClient = createQueryClient()
 
-  const profile = await fetchProfileByUsername(username, 'lg').catch(() => {
-    return undefined
-  })
+  const profile = await queryClient
+    .fetchQuery(profileByUsernameQueryOptions(fetchApi, username, 'lg'))
+    .catch(() => {
+      return undefined
+    })
 
   if (!profile || typeof profile === 'string') {
     return (

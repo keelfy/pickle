@@ -11,7 +11,6 @@ import {
 export type SettingsTabProps = {
   value: SettingsTab
   icon: React.ComponentType<{ className?: string }>
-  label: string
   disabled?: boolean
 }
 
@@ -25,83 +24,70 @@ export enum SettingsTab {
   TwitchIntegration = 'twitch-integration',
 }
 
-export const tabCategories: { name: string; tabs: SettingsTabProps[] }[] = [
+export type SettingsGroup = 'profile' | 'account' | 'integrations'
+
+export const tabCategories: { nameKey: SettingsGroup; tabs: SettingsTabProps[] }[] =
+  [
   {
-    name: 'Profile',
+    nameKey: 'profile',
     tabs: [
-      { value: SettingsTab.General, icon: SettingsIcon, label: 'General' },
+      {
+        value: SettingsTab.General,
+        icon: SettingsIcon,
+      },
       {
         value: SettingsTab.Suggestions,
         icon: LightbulbIcon,
-        label: 'Suggestions',
       },
       {
         value: SettingsTab.Moderation,
         icon: HandshakeIcon,
-        label: 'Moderation',
       },
     ],
   },
   {
-    name: 'Account',
+    nameKey: 'account',
     tabs: [
-      { value: SettingsTab.Security, icon: ShieldIcon, label: 'Security' },
+      {
+        value: SettingsTab.Security,
+        icon: ShieldIcon,
+      },
       {
         value: SettingsTab.Payments,
         icon: CreditCardIcon,
-        label: 'Payments',
         disabled: true,
       },
       {
         value: SettingsTab.Notifications,
         icon: MessageCircleIcon,
-        label: 'Notifications',
         disabled: true,
       },
     ],
   },
   {
-    name: 'Integrations',
+    nameKey: 'integrations',
     tabs: [
-      { value: SettingsTab.TwitchIntegration, icon: SiTwitch, label: 'Twitch' },
+      {
+        value: SettingsTab.TwitchIntegration,
+        icon: SiTwitch,
+      },
     ],
   },
 ]
 
-export const getSettingsTabLabel = (tab: SettingsTab) => {
-  switch (tab) {
-    case SettingsTab.General:
-      return 'General'
-    case SettingsTab.Security:
-      return 'Security'
-    case SettingsTab.Notifications:
-      return 'Notifications'
-    case SettingsTab.Moderation:
-      return 'Moderation'
-    case SettingsTab.Suggestions:
-      return 'Suggestions'
-    case SettingsTab.Payments:
-      return 'Payments'
-    case SettingsTab.TwitchIntegration:
-      return 'Twitch Integration'
-    default:
-      return tab
-  }
-}
-
-export const getSettingsGroupLabel = (tab: SettingsTab) => {
+export const getSettingsGroupLabelKey = (tab: SettingsTab): SettingsGroup => {
   switch (tab) {
     case SettingsTab.General:
     case SettingsTab.Moderation:
     case SettingsTab.Suggestions:
-      return 'Profile'
+      return 'profile'
     case SettingsTab.Security:
     case SettingsTab.Payments:
     case SettingsTab.Notifications:
-      return 'Account'
+      return 'account'
     case SettingsTab.TwitchIntegration:
-      return 'Integrations'
+      return 'integrations'
     default:
-      return tab
+      return 'profile'
   }
 }

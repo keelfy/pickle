@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/form'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
-import { updateMe } from '@/hooks/api-endpoints-client'
+import { useUpdateMeMutation } from '@/hooks/mutations/use-profile-mutations'
 import {
   ContentCategory,
   VISIBLE_CONTENT_CATEGORIES,
@@ -52,6 +52,7 @@ const formSchema = z
 
 export default function SuggestionsSettingsTab() {
   const { user, updateUser: updateMyself } = useAuthStore((state) => state)
+  const updateMeMutation = useUpdateMeMutation()
 
   const [isLoading, startTransition] = React.useTransition()
 
@@ -73,7 +74,7 @@ export default function SuggestionsSettingsTab() {
     startTransition(async () => {
       if (!user) return
       try {
-        await updateMe({
+        await updateMeMutation.mutateAsync({
           ...user,
           suggestionPreferences: {
             ...user.suggestionPreferences,

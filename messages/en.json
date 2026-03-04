@@ -1,0 +1,118 @@
+{
+  "common": {
+    "menu": "Menu"
+  },
+  "language": {
+    "short": {
+      "en": "EN",
+      "ru": "RU"
+    },
+    "english": "English",
+    "russian": "Russian"
+  },
+  "nav": {
+    "following": "Following",
+    "browse": "Browse",
+    "menu": "Menu",
+    "settings": "Settings",
+    "support": "Support",
+    "myProfile": "My profile"
+  },
+  "footer": {
+    "poweredBy": "Powered by",
+    "termsOfService": "Terms of Service",
+    "privacyPolicy": "Privacy Policy"
+  },
+  "profile": {
+    "followersLabel": "followers",
+    "howPeopleSeeProfile": "How people see my profile?",
+    "tabs": {
+      "overview": "Overview",
+      "content": "Content",
+      "suggestions": "Suggestions",
+      "collections": "Collections",
+      "auctions": "Auctions"
+    }
+  },
+  "contentCategory": {
+    "games": { "one": "Game", "plural": "Games" },
+    "videos": { "one": "Video", "plural": "Videos" },
+    "movies": { "one": "Movie", "plural": "Movies" },
+    "series": { "one": "Series", "plural": "Series" },
+    "anime": { "one": "Anime", "plural": "Anime" },
+    "content": { "one": "Content", "plural": "Content" }
+  },
+  "contentNoteStatus": {
+    "playing": "Playing",
+    "paused": "Paused",
+    "dropped": "Dropped",
+    "finished": "Finished",
+    "watched": "Watched",
+    "skipped": "Skipped",
+    "planned": "Planned",
+    "unknown": "Unknown"
+  },
+  "orderSource": {
+    "pickle": "Pickle",
+    "twitch": "Twitch",
+    "unknown": "Unknown"
+  },
+  "settings": {
+    "title": "Settings",
+    "groups": {
+      "profile": "Profile",
+      "account": "Account",
+      "integrations": "Integrations"
+    },
+    "tabs": {
+      "general": "General",
+      "security": "Security",
+      "notifications": "Notifications",
+      "moderation": "Moderation",
+      "suggestions": "Suggestions",
+      "payments": "Payments",
+      "twitch-integration": "Twitch Integration"
+    }
+  },
+  "auth": {
+    "loginTitle": "Sign in",
+    "registrationTitle": "Sign up",
+    "refreshTitle": "Confirm your identity",
+    "loginDescription": "Sign in with your email and password or a social provider",
+    "registrationDescription": "Sign up with your email and password or a social provider",
+    "refreshDescription": "Prove your identity with your email and password or a social provider",
+    "alreadyHaveAccount": "Already have an account?",
+    "dontHaveAccount": "Don't have an account?",
+    "signIn": "Sign in",
+    "signUp": "Sign up",
+    "recovery": {
+      "title": "Reset password",
+      "alreadyHaveAccount": "Already have an account?",
+      "emailLabel": "Email",
+      "emailPlaceholder": "you@example.com",
+      "submit": "Reset password"
+    },
+    "verification": {
+      "title": "Verify email address",
+      "emailLabel": "Email",
+      "emailPlaceholder": "mail@example.com",
+      "codeLabel": "Verification code",
+      "codePlaceholder": "123456",
+      "verified": "Verified",
+      "verify": "Verify",
+      "resendCode": "Resend code",
+      "sendCode": "Send code",
+      "continue": "Continue",
+      "failedRegister": "Failed to register",
+      "failedSubmit": "Failed to submit the form",
+      "codeSentTitle": "Verification code sent",
+      "codeSentDescription": "A verification code has been sent to your email address."
+    },
+    "error": {
+      "title": "We couldn't process your authentication request"
+    },
+    "errors": {
+      "failedLogin": "Failed to login"
+    }
+  }
+}

@@ -52,6 +52,18 @@ export default function SecuritySettingsTab() {
   const searchParams = useSearchParams()
 
   React.useEffect(() => {
+    if (session) return
+    void ory
+      .toSession()
+      .then((currentSession) => {
+        updateSession(currentSession)
+      })
+      .catch(() => {
+        // Keep local session undefined for logged-out state.
+      })
+  }, [session, updateSession])
+
+  React.useEffect(() => {
     if (flow?.id || isFlowPending) {
       return
     }

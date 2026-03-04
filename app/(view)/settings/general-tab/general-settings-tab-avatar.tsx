@@ -2,7 +2,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { FormField, FormItem, FormMessage } from '@/components/ui/form'
 import LoadingSpinner from '@/components/ui/loading-spinner'
-import { uploadAvatarForPreview } from '@/hooks/api-endpoints-client'
+import { useUploadAvatarForPreviewMutation } from '@/hooks/mutations/use-profile-mutations'
 import { UploadIcon, UserIcon } from 'lucide-react'
 import Image from 'next/image'
 import React from 'react'
@@ -17,6 +17,7 @@ type Props = {
 export default function GeneralSettingsTabAvatar({ form }: Props) {
   const [isAvatarUploading, startAvatarUpload] = React.useTransition()
   const avatarInputRef = React.useRef<HTMLInputElement>(null)
+  const uploadAvatarForPreviewMutation = useUploadAvatarForPreviewMutation()
 
   const handleFileChange = (files: FileList | null) => {
     if (files && files[0]) {
@@ -27,7 +28,9 @@ export default function GeneralSettingsTabAvatar({ form }: Props) {
         formData.append('file', file)
 
         try {
-          const response = await uploadAvatarForPreview(formData)
+          const response = await uploadAvatarForPreviewMutation.mutateAsync(
+            formData,
+          )
           if (response.url) {
             form.setValue('avatarUrl', response.url + '?ts=' + Date.now(), {
               shouldDirty: true,

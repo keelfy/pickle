@@ -11,22 +11,26 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import DropdownMenuDialogWrapper from '@/components/view/dialog/dropdown-menu-dialog-wrapper'
-import TrackTwitchChannelRewardDialog from '@/components/view/dialog/track-twitch-reward/track-twitch-reward-dialog'
-import getCurrentSession from '@/hooks/getCurrentSession'
 import { DetailedUser } from '@/lib/model/user'
 import { cn } from '@/lib/utils'
-import { ModalType } from '@/stores/modal'
 import { MessageCircle, Settings, UserIcon } from 'lucide-react'
+import { getTranslations } from 'next-intl/server'
 import Link from 'next/link'
 import LoggedOutProfileNavSection from './logged-out-nav-menu-button'
 import DropdownMenuSignOutItem from './sign-out-button'
 
-type Props = { className?: string; user: DetailedUser | undefined }
+type Props = {
+  className?: string
+  user: DetailedUser | undefined
+}
 
-export default async function ProfileDropdownMenu({ className, user }: Props) {
-  const session = await getCurrentSession()
+export default async function ProfileDropdownMenu({
+  className,
+  user,
+}: Props) {
+  const t = await getTranslations('nav')
 
-  if (!session?.active) {
+  if (!user) {
     return <LoggedOutProfileNavSection />
   }
 
@@ -46,7 +50,7 @@ export default async function ProfileDropdownMenu({ className, user }: Props) {
               <div className="flex flex-col gap-0.5">
                 <div className="text-md">{user?.displayName}</div>
                 <div className="text-xs text-muted-foreground">
-                  {session?.identity?.traits.email}
+                  @{user.username}
                 </div>
               </div>
               <Badge>
@@ -55,7 +59,7 @@ export default async function ProfileDropdownMenu({ className, user }: Props) {
             </div>
 
             <Button className="w-full" variant="secondary" asChild>
-              <Link href={`/${user?.username}`}>My profile</Link>
+              <Link href={`/${user?.username}`}>{t('myProfile')}</Link>
             </Button>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
@@ -63,12 +67,12 @@ export default async function ProfileDropdownMenu({ className, user }: Props) {
             <DropdownMenuItem className="cursor-pointer" asChild>
               <Link href="/settings">
                 <Settings />
-                Settings
+                {t('settings')}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem disabled>
               <MessageCircle />
-              Support
+              {t('support')}
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />

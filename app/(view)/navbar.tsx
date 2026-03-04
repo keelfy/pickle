@@ -10,12 +10,12 @@ import {
   navigationMenuTriggerStyle,
 } from '@/components/ui/navigation-menu'
 import { Sheet, SheetTrigger } from '@/components/ui/sheet'
-import { fetchUser } from '@/hooks/api-endpoints-server'
 import { DetailedUser } from '@/lib/model/user'
 import { cn } from '@/lib/utils'
 import { Bell, MenuIcon } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
+import { getTranslations } from 'next-intl/server'
 import MenuItemUnderline from './[username]/menu-item-underline'
 import ProfileDropdownMenu from './profile-dropdown-menu'
 
@@ -28,29 +28,23 @@ const DynamicMenuSheetContent = dynamic(
 
 type Props = {
   className?: string
+  user?: DetailedUser
 }
 
-const MENU_ITEMS = [
-  {
-    href: `/following`,
-    label: `Following`,
-    disabled: true,
-  },
-  {
-    href: `/browse`,
-    label: `Browse`,
-    disabled: true,
-  },
-]
-
-export default async function Navbar({ className }: Props) {
-  let user: DetailedUser | undefined = undefined
-
-  try {
-    user = await fetchUser('md')
-  } catch (error) {
-    console.error('Failed to fetch navbar user:', error)
-  }
+export default async function Navbar({ className, user }: Props) {
+  const t = await getTranslations('nav')
+  const MENU_ITEMS = [
+    {
+      href: `/following`,
+      label: t('following'),
+      disabled: true,
+    },
+    {
+      href: `/browse`,
+      label: t('browse'),
+      disabled: true,
+    },
+  ]
 
   return (
     <Sheet>
@@ -99,7 +93,7 @@ export default async function Navbar({ className }: Props) {
         <SheetTrigger asChild>
           <Button variant="ghost" size="icon" className="lg:hidden">
             <MenuIcon />
-            <span className="sr-only">Menu</span>
+            <span className="sr-only">{t('menu')}</span>
           </Button>
         </SheetTrigger>
       </nav>

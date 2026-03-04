@@ -1,11 +1,13 @@
 'use client'
 
-import { fetchCollectionItems } from '@/hooks/api-endpoints-client'
+import { queryKeys } from '@/lib/query-keys'
 import {
   BatchCollectionItems,
   Collection,
   CollectionItem,
 } from '@/lib/model/collection'
+import { useQueryClient } from '@tanstack/react-query'
+import { fetchApi } from '@/utils/api/client'
 import { Paginated } from '@/utils/api/response'
 import React, { createContext } from 'react'
 
@@ -49,6 +51,7 @@ export const CollectionsProvider = ({
   collections,
   itemBatches,
 }: React.PropsWithChildren<CollectionsProviderProps>) => {
+  const queryClient = useQueryClient()
   const defaultCollectionContext = collections.map((collection) => {
     const itemsBatch = itemBatches.find(
       (item) => item.collectionId === collection.id,
@@ -161,11 +164,23 @@ export const CollectionsProvider = ({
         (c) => c.collection.id === collectionId,
       )
       if (!collectionState) return
-      const paginatedItems = await fetchCollectionItems(
-        collectionId,
-        collectionState.page + 1,
-        collectionState.size,
-      )
+      const nextPage = collectionState.page + 1
+      const paginatedItems = await queryClient.fetchQuery({
+        queryKey: queryKeys.collections.items(
+          collectionId,
+          nextPage,
+          collectionState.size,
+        ),
+        queryFn: () =>
+          fetchApi<Paginated<CollectionItem>>(
+            `/v1/collections/${collectionId}/items`,
+            new URLSearchParams([
+              ['page', nextPage.toString()],
+              ['size', collectionState.size.toString()],
+            ]),
+            { method: 'GET' },
+          ),
+      })
       setCollectionsState((prev) =>
         prev.map((c) =>
           c.collection.id === collectionId
@@ -180,7 +195,7 @@ export const CollectionsProvider = ({
         ),
       )
     },
-    [collectionsState],
+    [collectionsState, queryClient],
   )
 
   return (

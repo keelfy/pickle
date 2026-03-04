@@ -3,6 +3,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { NextPage } from 'next'
 
+export const dynamic = 'force-dynamic'
+
 type Props = {
   searchParams: Promise<Message>
 }

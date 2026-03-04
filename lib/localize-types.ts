@@ -1,6 +1,34 @@
 import { ContentCategory, ContentCategoryEnum } from '@/lib/model/content'
 import { ContentNoteStatus } from './model/content-note'
 
+export const getContentCategoryMessageKey = (
+  category: ContentCategory,
+  plural: boolean = false,
+) => {
+  switch (category) {
+    case ContentCategoryEnum.Games:
+      return plural ? 'contentCategory.games.plural' : 'contentCategory.games.one'
+    case ContentCategoryEnum.Videos:
+      return plural
+        ? 'contentCategory.videos.plural'
+        : 'contentCategory.videos.one'
+    case ContentCategoryEnum.Movies:
+      return plural
+        ? 'contentCategory.movies.plural'
+        : 'contentCategory.movies.one'
+    case ContentCategoryEnum.Series:
+      return plural
+        ? 'contentCategory.series.plural'
+        : 'contentCategory.series.one'
+    case ContentCategoryEnum.Anime:
+      return plural ? 'contentCategory.anime.plural' : 'contentCategory.anime.one'
+    default:
+      return plural
+        ? 'contentCategory.content.plural'
+        : 'contentCategory.content.one'
+  }
+}
+
 export const localizeContentCategory = (
   category: ContentCategory,
   plural: boolean = false,
@@ -18,6 +46,29 @@ export const localizeContentCategory = (
       return plural ? 'Anime' : 'Anime'
     default:
       return plural ? 'Content' : 'Content'
+  }
+}
+
+export const getContentNoteStatusMessageKey = (
+  status: ContentNoteStatus | undefined,
+) => {
+  switch (status) {
+    case 'playing':
+      return 'contentNoteStatus.playing'
+    case 'paused':
+      return 'contentNoteStatus.paused'
+    case 'dropped':
+      return 'contentNoteStatus.dropped'
+    case 'finished':
+      return 'contentNoteStatus.finished'
+    case 'watched':
+      return 'contentNoteStatus.watched'
+    case 'skipped':
+      return 'contentNoteStatus.skipped'
+    case 'planned':
+      return 'contentNoteStatus.planned'
+    default:
+      return 'contentNoteStatus.unknown'
   }
 }
 
@@ -44,12 +95,25 @@ export const localizeContentNoteStatus = (
   }
 }
 
+export const getOrderSourceMessageKey = (source: string) => {
+  switch (source) {
+    case 'pickle-suggestion':
+      return 'orderSource.pickle'
+    case 'twitch-channel-points':
+      return 'orderSource.twitch'
+    default:
+      return 'orderSource.unknown'
+  }
+}
+
 export const localizeOrderSource = (source: string) => {
   switch (source) {
     case 'pickle-suggestion':
       return 'Pickle'
     case 'twitch-channel-points':
       return 'Twitch'
+    default:
+      return 'Unknown'
   }
 }
 

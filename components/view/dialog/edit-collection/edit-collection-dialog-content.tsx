@@ -19,7 +19,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import LoadingSpinner from '@/components/ui/loading-spinner'
-import { fetchUpdateCollection } from '@/hooks/api-endpoints-client'
+import { useUpdateCollectionMutation } from '@/hooks/mutations/use-collection-mutations'
 import { toastError } from '@/lib/toasts'
 import { useModalStore } from '@/providers/modal'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -48,6 +48,7 @@ const formSchema = z.object({
 export default function EditCollectionDialogContent() {
   const { modalParams, closeModal } = useModalStore((state) => state)
   const [isLoading, startTransition] = React.useTransition()
+  const updateCollectionMutation = useUpdateCollectionMutation()
   const { states: collectionStates, updateCollection } = useCollectionContext()
 
   const collectionState = React.useMemo(() => {
@@ -75,10 +76,10 @@ export default function EditCollectionDialogContent() {
       updateCollection(optimisticCollection.id, optimisticCollection)
 
       try {
-        const newCollection = await fetchUpdateCollection(
-          updatedCollection.id,
+        const newCollection = await updateCollectionMutation.mutateAsync({
+          collectionId: updatedCollection.id,
           data,
-        )
+        })
         updateCollection(optimisticCollection.id, newCollection)
         closeModal()
         toast.success(data.name, {

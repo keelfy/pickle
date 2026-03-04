@@ -8,7 +8,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import LoadingSpinner from '@/components/ui/loading-spinner'
-import { rejectOrderById } from '@/hooks/api-endpoints-client'
+import { useRejectOrderMutation } from '@/hooks/mutations/use-order-mutations'
 import { toastError } from '@/lib/toasts'
 import { useModalStore } from '@/providers/modal'
 import { useProfileStore } from '@/providers/profile-store'
@@ -27,13 +27,14 @@ export default function RejectOrderDialogContent() {
   )
 
   const [isLoading, startTransition] = React.useTransition()
+  const rejectOrderMutation = useRejectOrderMutation()
 
   const onConfirm = () =>
     startTransition(async () => {
       if (!profile || !params?.id) return
 
       try {
-        await rejectOrderById(profile, params.id)
+        await rejectOrderMutation.mutateAsync({ user: profile, orderId: params.id })
         closeModal()
         toast.success(`Order rejected successfully`, {
           description: `${params.odn ?? 'The user'} will not be notified!`,

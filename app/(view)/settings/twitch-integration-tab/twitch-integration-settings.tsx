@@ -12,14 +12,16 @@ import { Drawer, DrawerContent } from '@/components/ui/drawer'
 import { Label } from '@/components/ui/label'
 import LoadingSpinner from '@/components/ui/loading-spinner'
 import LoadingDialogContent from '@/components/view/dialog/loading-dialog-content'
-import { fetchImportRedemptions } from '@/hooks/api-endpoints-client'
+import {
+  useImportRedemptionsMutation,
+  useSaveTwitchPreferencesMutation,
+  useTwitchPreferences,
+} from '@/hooks/mutations/use-twitch-mutations'
 import { ContentCategory } from '@/lib/model/content'
 import { toastError } from '@/lib/toasts'
 import { useIsDesktop } from '@/lib/use-media-query'
 import { cn } from '@/lib/utils'
-import { fetchApi } from '@/utils/api/client'
 import {
-  BroadcasterPreferencesReq,
   TrackedRewardReq,
 } from '@/utils/api/request'
 import { BroadcasterPreferences, TwitchChannelReward } from '@/utils/api/types'
@@ -43,6 +45,9 @@ const DynamicTrackTwitchChannelRewardDialogContent = dynamic(
 
 export default function TwitchIntegrationSettings() {
   const [preferences, setPreferences] = React.useState<BroadcasterPreferences>()
+  const { data: fetchedPreferences, error: preferencesError } = useTwitchPreferences()
+  const savePreferencesMutation = useSaveTwitchPreferencesMutation()
+  const importRedemptionsMutation = useImportRedemptionsMutation()
   const isDesktop = useIsDesktop()
   const [trackingStatus, setTrackingStatus] = React.useState<
     'healthy' | 'issues' | 'loading'
@@ -54,22 +59,18 @@ export default function TwitchIntegrationSettings() {
     React.useState(false)
 
   React.useEffect(() => {
-    loadPreferences()
-  }, [])
+    if (fetchedPreferences) {
+      setPreferences(fetchedPreferences)
+      setTrackingStatus(fetchedPreferences.rewards.isActive ? 'healthy' : 'issues')
+    }
+  }, [fetchedPreferences])
 
-  const loadPreferences = () =>
-    startTransition(async () => {
-      try {
-        const res = await fetchApi<BroadcasterPreferences>(
-          '/twitch-harbor/v1/broadcaster/preferences',
-        )
-        setPreferences(res)
-        setTrackingStatus(res.rewards.isActive ? 'healthy' : 'issues')
-      } catch (e) {
-        console.error(e)
-        setTrackingStatus('issues')
-      }
-    })
+  React.useEffect(() => {
+    if (preferencesError) {
+      setTrackingStatus('issues')
+      toastError('Failed to load twitch preferences', preferencesError)
+    }
+  }, [preferencesError])
 
   const savePreferences = () =>
     startTransition(async () => {
@@ -81,16 +82,8 @@ export default function TwitchIntegrationSettings() {
             category: r.category || 'any',
           }) as TrackedRewardReq,
       )
-      const req: BroadcasterPreferencesReq = {
-        rewards: {
-          trackedRewards,
-        },
-      }
       try {
-        await fetchApi(`/twitch-harbor/v1/broadcaster/preferences`, undefined, {
-          method: 'POST',
-          body: JSON.stringify(req),
-        })
+        await savePreferencesMutation.mutateAsync(trackedRewards)
       } catch (e) {
         toastError('Failed to save preferences', e)
       }
@@ -99,7 +92,7 @@ export default function TwitchIntegrationSettings() {
   const handleImportRedemptions = () =>
     startImporting(async () => {
       try {
-        await fetchImportRedemptions()
+        await importRedemptionsMutation.mutateAsync()
       } catch (e) {
         toastError('Failed to import redemptions', e)
       }

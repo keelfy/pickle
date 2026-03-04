@@ -7,7 +7,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { fetchDeleteCollection } from '@/hooks/api-endpoints-client'
+import { useDeleteCollectionMutation } from '@/hooks/mutations/use-collection-mutations'
 import { toastError } from '@/lib/toasts'
 import { useModalStore } from '@/providers/modal'
 import { Trash, X } from 'lucide-react'
@@ -25,6 +25,7 @@ export default function DeleteContentAlertDialogContent() {
       state.modalParams as DeleteCollectionAlertModalParams | undefined,
   )
   const [isLoading, startTransition] = React.useTransition()
+  const deleteCollectionMutation = useDeleteCollectionMutation()
   const {
     states: collections,
     deleteCollection,
@@ -41,7 +42,9 @@ export default function DeleteContentAlertDialogContent() {
 
       deleteCollection(modalParams?.id)
       try {
-        await fetchDeleteCollection(modalParams?.id)
+        await deleteCollectionMutation.mutateAsync({
+          collectionId: modalParams?.id,
+        })
         closeModal()
         toast.success('Collection deleted successfully', {
           description: `The collection ${modalParams?.name} has been deleted.`,

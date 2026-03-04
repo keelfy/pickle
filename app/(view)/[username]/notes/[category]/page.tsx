@@ -25,7 +25,6 @@ import { DetailedGameNote, DetailedMovieNote } from '@/lib/model/content-note'
 import { useMediaQuery } from '@/lib/use-media-query'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import React from 'react'
 
 const getGamesCursorValue = (
   item: DetailedGameNote,

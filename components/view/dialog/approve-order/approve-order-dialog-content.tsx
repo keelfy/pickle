@@ -33,10 +33,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import {
-  approveOrderById,
-  fetchContentSearch,
-  fetchOrderById,
-} from '@/hooks/api-endpoints-client'
+  useApproveOrderMutation,
+  useOrderDetail,
+} from '@/hooks/mutations/use-order-mutations'
+import { useContentSearchInfinite } from '@/hooks/queries/use-content-search-infinite'
+import { useDebounce } from '@/hooks/use-debounce'
 import { toastError } from '@/lib/toasts'
 import { localizeContentCategory } from '@/lib/localize-types'
 import { Content, ContentCategory } from '@/lib/model/content'
@@ -79,23 +80,17 @@ export default function ApproveOrderDialogContent() {
     [rawModalParams],
   )
   const { profile } = useProfileStore((state) => state)
-  const [order, setOrder] = React.useState<DetailedOrder>()
+  const { data: order, error: orderError } = useOrderDetail(
+    profile ?? undefined,
+    modalParams?.id,
+  )
+  const approveOrderMutation = useApproveOrderMutation()
 
   const [contentSearchQuery, setContentSearchQuery] = React.useState<string>('')
-
-  const [contentSearchResults, setContentSearchResults] =
-    React.useState<Paginated<Content>>()
-
-  const [externalSearchResults, setExternalSearchResults] =
-    React.useState<Paginated<Content>>()
+  const debouncedContentQuery = useDebounce(contentSearchQuery, 200)
 
   const [isOrderApproving, startOrderApprovingTransition] =
     React.useTransition()
-
-  const [debouncedContentQuery, setDebouncedContentQuery] =
-    React.useState<string>('')
-
-  const [contentSearchPage, setContentSearchPage] = React.useState<number>(0)
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -114,121 +109,40 @@ export default function ApproveOrderDialogContent() {
       debouncedContentQuery.length <= 100,
     [debouncedContentQuery],
   )
+  const category = form.watch('category')
+  const {
+    data: externalSearchPages,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+    error: contentSearchError,
+  } = useContentSearchInfinite({
+    category,
+    query: debouncedContentQuery,
+    size: 5,
+    userId: profile?.id,
+  })
 
-  React.useEffect(() => {
-    const timeout = setTimeout(() => {
-      setDebouncedContentQuery(contentSearchQuery)
-    }, 200)
-
-    return () => clearTimeout(timeout)
-  }, [contentSearchQuery])
-
-  React.useEffect(() => {
-    setContentSearchPage(0)
-  }, [debouncedContentQuery])
-
-  React.useEffect(() => {
-    if (!isSearchQueryValid) {
-      setContentSearchResults(undefined)
-      setExternalSearchResults(undefined)
-      return
+  const externalSearchResults = React.useMemo((): Paginated<Content> | undefined => {
+    if (!externalSearchPages?.pages?.length || !isSearchQueryValid) return undefined
+    const lastPage = externalSearchPages.pages[externalSearchPages.pages.length - 1]
+    return {
+      ...lastPage,
+      content: externalSearchPages.pages.flatMap((page) => page.content),
     }
-
-    // (async () => {
-    //     try {
-    //         const response = await fetchProfileContentSearch(profile, debouncedContentQuery, contentSearchPage, 5);
-    //         setContentSearchResults(response);
-    //     } catch (error: any) {
-    //         toast({
-    //             title: "Failed to fetch search results",
-    //             description: error.message ?? "An error occurred",
-    //         });
-    //     }
-    // })();
-
-    ;(async () => {
-      try {
-        const response = await fetchContentSearch(
-          form.watch('category'),
-          debouncedContentQuery,
-          contentSearchPage,
-          5,
-          profile?.id,
-        )
-        setExternalSearchResults(response)
-      } catch (error) {
-        toastError('Failed to fetch search results', error)
-      }
-    })()
-  }, [debouncedContentQuery])
+  }, [externalSearchPages?.pages, isSearchQueryValid])
 
   React.useEffect(() => {
-    if (!isSearchQueryValid || contentSearchPage === 0) {
-      return
+    if (contentSearchError) {
+      toastError('Failed to fetch search results', contentSearchError)
     }
-
-    // (async () => {
-    //     try {
-    //         const response = await fetchProfileContentSearch(profile, debouncedContentQuery, contentSearchPage, 5);
-
-    //         if (contentSearchResults?.content && response?.content) {
-    //             setContentSearchResults({
-    //                 ...response,
-    //                 content: [
-    //                     ...contentSearchResults.content,
-    //                     ...response.content,
-    //                 ],
-    //             });
-    //         } else {
-    //             setContentSearchResults(response);
-    //         }
-    //     } catch (error: any) {
-    //         toast({
-    //             title: "Failed to fetch search results",
-    //             description: error.message ?? "An error occurred",
-    //         });
-    //     }
-    // })();
-
-    ;(async () => {
-      try {
-        const response = await fetchContentSearch(
-          form.watch('category'),
-          debouncedContentQuery,
-          contentSearchPage,
-          5,
-          profile?.id,
-        )
-        if (response?.content) {
-          if (externalSearchResults?.content) {
-            setExternalSearchResults({
-              ...response,
-              content: [...externalSearchResults.content, ...response.content],
-            })
-          } else {
-            setExternalSearchResults(response)
-          }
-        }
-      } catch (error) {
-        toastError('Failed to fetch search results', error)
-      }
-    })()
-  }, [contentSearchPage])
+  }, [contentSearchError])
 
   React.useEffect(() => {
-    if (!modalParams?.id || !profile) {
-      return
+    if (orderError) {
+      toastError('Failed to fetch the order', orderError)
     }
-
-    ;(async () => {
-      try {
-        const response = await fetchOrderById(profile, modalParams.id)
-        setOrder(response)
-      } catch (error) {
-        toastError('Failed to fetch the order', error)
-      }
-    })()
-  }, [modalParams?.id, profile])
+  }, [orderError])
 
   React.useEffect(() => {
     onReset()
@@ -272,9 +186,13 @@ export default function ApproveOrderDialogContent() {
 
     startOrderApprovingTransition(async () => {
       try {
-        const res = await approveOrderById(profile, modalParams.id, {
+        const res = await approveOrderMutation.mutateAsync({
+          user: profile,
+          orderId: modalParams.id,
+          order: {
           category: values.category,
           contentId: values.content?.id,
+          },
         })
 
         // if (!res?.contentCreated) {
@@ -460,14 +378,17 @@ export default function ApproveOrderDialogContent() {
                     )}
                   {externalSearchResults?.content &&
                     externalSearchResults.content.length > 0 &&
-                    externalSearchResults.totalPages - 1 >
-                      externalSearchResults.page && (
+                    hasNextPage && (
                       <CommandItem
                         onSelect={() => {
-                          setContentSearchPage(contentSearchPage + 1)
+                          if (!isFetchingNextPage) {
+                            void fetchNextPage()
+                          }
                         }}
                       >
-                        -- Show more results --
+                        {isFetchingNextPage
+                          ? '-- Loading more results --'
+                          : '-- Show more results --'}
                       </CommandItem>
                     )}
                 </CommandGroup>

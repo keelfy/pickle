@@ -14,9 +14,11 @@ import { Label } from '@/components/ui/label'
 import LoadingSpinner from '@/components/ui/loading-spinner'
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import {
-  fetchContentNote,
-  updateContentNote,
-} from '@/hooks/api-endpoints-client'
+  useCreateContentNoteMutation,
+  useUpdateContentNoteMutation,
+} from '@/hooks/mutations/use-content-note-mutations'
+import { useContentDetail } from '@/hooks/queries/use-content-detail'
+import { useContentNote } from '@/hooks/queries/use-content-note'
 import { localizeContentCategory } from '@/lib/localize-types'
 import {
   ContentCategory,
@@ -43,104 +45,171 @@ import React from 'react'
 import { useForm, UseFormReturn } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
-import CommentFormItem from './comment-form-item'
-import getContentSourceLinks from './get-content-source-links'
-import RateFormItem from './rate-form-item'
-import StatusSelectFormItem from './status-select-form-item'
+import CommentFormItem from '../content-note-editor/comment-form-item'
+import getContentSourceLinks from '../content-note-editor/get-content-source-links'
+import RateFormItem from '../content-note-editor/rate-form-item'
+import StatusSelectFormItem from '../content-note-editor/status-select-form-item'
 
 const baseFormSchema = z.object({
-  contentId: z.string(),
   status: z.custom<ContentNoteStatus>(),
   comment: z.string().optional(),
   rate: z.number().max(10).min(1).optional(),
+  contentId: z.string(),
 })
 
-export type EditContentNoteBaseFormValues = z.infer<typeof baseFormSchema>
+export type ContentNoteBaseFormValues = z.infer<typeof baseFormSchema>
+export type ContentNoteFormMode = 'create' | 'edit'
+export type ContentNoteFormValues = ContentNoteBaseFormValues & {
+  watchedAt?: Date
+  lastPlayedAt?: Date
+}
 
-type Props<
-  V extends EditContentNoteBaseFormValues,
+type DefaultValuesContext<T extends DetailedContentNote> = {
+  mode: ContentNoteFormMode
+  contentId?: string
+  contentNote?: T
+  content?: DetailedGame | DetailedMovie
+}
+
+type ContentNoteFormConfig<
+  T extends DetailedContentNote,
   R extends Partial<CreateContentNoteReq>,
 > = {
+  schema: z.ZodTypeAny
+  defaultValues: (ctx: DefaultValuesContext<T>) => ContentNoteFormValues
+  toRequest: (values: ContentNoteFormValues) => R
+  renderAdditionalFields?: (
+    form: UseFormReturn<ContentNoteFormValues>,
+  ) => React.ReactNode
+}
+
+type Props<
+  T extends DetailedContentNote,
+  R extends Partial<CreateContentNoteReq>,
+> = {
+  mode: ContentNoteFormMode
   category: ContentCategory
-  contentNoteId: string
-  formExtension?: object
+  contentId?: string
+  noteId?: string
   statusOptions: ApiType<ContentNoteStatus>[]
-  getAdditionalFormFields?: (form: UseFormReturn<V>) => React.ReactNode
-  getContentYears?: (content: DetailedGame | DetailedMovie) => string
-  mapToReq: (values: V) => R
+  config: ContentNoteFormConfig<T, R>
   isDesktop: boolean | undefined
 }
 
-export default function ContentNoteEditorDialogContent<
-  V extends EditContentNoteBaseFormValues,
+export default function ContentNoteFormDialogContent<
   T extends DetailedContentNote,
   R extends Partial<CreateContentNoteReq>,
 >({
+  mode,
   category,
-  contentNoteId,
-  formExtension,
+  contentId,
+  noteId,
   statusOptions,
-  getAdditionalFormFields = () => null,
-  getContentYears = () => '',
-  mapToReq = (values) => values as unknown as R,
+  config,
   isDesktop,
-}: Props<V, R>) {
+}: Props<T, R>) {
   const closeModal = useModalStore((state) => state.closeModal)
   const profile = useProfileStore((state) => state.profile)
-
-  const [contentNote, setContentNote] = React.useState<T>()
-
   const [isLoading, startTransition] = React.useTransition()
+  const createMutation = useCreateContentNoteMutation<T, CreateContentNoteReq>()
+  const updateMutation = useUpdateContentNoteMutation<T, R>()
 
-  const formSchema = baseFormSchema.extend(formExtension ?? {})
+  const {
+    data: content,
+    error: contentError,
+    isPending: isContentPending,
+  } = useContentDetail({
+    category,
+    contentId: contentId ?? '',
+    coverSize: 'lg',
+  })
+  const {
+    data: contentNote,
+    error: contentNoteError,
+    isPending: isContentNotePending,
+  } = useContentNote<T>({
+    user: profile ?? undefined,
+    category,
+    noteId: noteId ?? '',
+    coverSize: 'lg',
+  })
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      status: (contentNote?.status as ContentNoteStatus) ?? 'planned',
-      comment: contentNote?.comment ?? '',
-      rate: contentNote?.rate ?? undefined,
-      contentId: contentNote?.content?.id,
-    },
+  const currentContent = mode === 'edit' ? contentNote?.content : content
+  const isDataPending = mode === 'edit' ? isContentNotePending : isContentPending
+  const isSubmitDisabled =
+    isLoading || isDataPending || (mode === 'edit' && !contentNote)
+  const formDefaultValues = React.useMemo(
+    () =>
+      config.defaultValues({
+        mode,
+        contentId,
+        contentNote,
+        content,
+      }),
+    [config, content, contentId, contentNote, mode],
+  )
+
+  const form = useForm<ContentNoteFormValues>({
+    resolver: zodResolver(config.schema as never),
+    defaultValues: formDefaultValues,
   })
 
   React.useEffect(() => {
-    form.reset({
-      status: (contentNote?.status as ContentNoteStatus) ?? 'planned',
-      comment: contentNote?.comment ?? '',
-      rate: contentNote?.rate ?? undefined,
-      contentId: contentNote?.content?.id,
-    })
-  }, [contentNote?.id])
+    form.reset(formDefaultValues)
+  }, [form, formDefaultValues])
 
   React.useEffect(() => {
-    if (!contentNoteId || !profile?.id) return
-    fetchContentNote<T>(profile, category, contentNoteId, 'lg')
-      .then(setContentNote)
-      .catch((err) => {
-        toastError(`Failed to fetch the content note`, err)
-      })
-  }, [contentNoteId, profile?.id])
+    if (mode === 'edit' && contentNoteError) {
+      toastError('Failed to fetch the content note', contentNoteError)
+      return
+    }
+    if (mode === 'create' && contentError) {
+      toastError('Failed to fetch the content', contentError)
+    }
+  }, [contentError, contentNoteError, mode])
 
   const onSubmit = form.handleSubmit((values) => {
     if (!profile?.id) return
+    if (mode === 'edit' && !contentNote) return
 
     startTransition(async () => {
       try {
-        const req = mapToReq(values as V)
-        await updateContentNote<T, R>(profile, category, contentNoteId, req)
-        toast.success(contentNote?.content?.title ?? 'Untitled content', {
-          description: 'The content note was updated.',
-        })
+        const request = config.toRequest(values)
+        if (mode === 'edit') {
+          if (!noteId) return
+          await updateMutation.mutateAsync({
+            user: profile,
+            category,
+            noteId,
+            note: request,
+          })
+          toast.success(currentContent?.title ?? 'Untitled content', {
+            description: 'The content note was updated.',
+          })
+        } else {
+          await createMutation.mutateAsync({
+            user: profile,
+            category,
+            note: request as CreateContentNoteReq,
+          })
+          toast.success(currentContent?.title ?? 'Untitled content', {
+            description: 'The content note was created.',
+          })
+        }
         closeModal()
       } catch (error) {
-        toastError('Failed to update content note', error)
+        toastError(
+          mode === 'edit'
+            ? 'Failed to update content note'
+            : 'Failed to create content note',
+          error,
+        )
       }
     })
   })
 
   const SourceIcon =
-    contentNote?.content?.sourceType?.toLowerCase() === 'igdb' ? (
+    currentContent?.sourceType?.toLowerCase() === 'igdb' ? (
       <IGDBIcon className="w-12" />
     ) : (
       <SiThemoviedatabase className="size-7" color={SiThemoviedatabaseHex} />
@@ -150,8 +219,16 @@ export default function ContentNoteEditorDialogContent<
     <>
       <DialogWrapperHeader isDesktop={isDesktop}>
         <DialogWrapperTitle isDesktop={isDesktop}>
-          {contentNote?.content?.title}
-          {contentNote?.content && getContentYears(contentNote.content)}
+          {currentContent?.title ?? (isDataPending ? 'Loading...' : undefined)}
+          {mode === 'create' && content?.releaseDate && (
+            <span className="text-sm text-muted-foreground">
+              &nbsp;(
+              {new Date(content.releaseDate).toLocaleDateString(undefined, {
+                year: 'numeric',
+              })}
+              )
+            </span>
+          )}
         </DialogWrapperTitle>
         <DialogWrapperDescription isDesktop={isDesktop}>
           Fill your thoughts about this&nbsp;
@@ -164,9 +241,9 @@ export default function ContentNoteEditorDialogContent<
           <div className="flex flex-col gap-6 px-4 lg:px-0">
             <div className="flex items-start space-x-4">
               <ContentNotePoster
-                posterUrl={contentNote?.content?.coverUrl}
+                posterUrl={currentContent?.coverUrl}
                 size={isDesktop ? 'md' : 'sm'}
-                loading={isLoading}
+                loading={isLoading || isDataPending}
               />
               <div className="flex min-h-[144px] w-full flex-col lg:min-h-[225px]">
                 <div className="flex-0 grid grid-cols-2 gap-2">
@@ -186,16 +263,16 @@ export default function ContentNoteEditorDialogContent<
                       )}
                     />
                   </div>
-                  {getAdditionalFormFields(form as unknown as UseFormReturn<V>)}
+                  {config.renderAdditionalFields?.(form)}
                 </div>
                 <div className="mb-1 mt-auto flex items-center gap-3">
-                  {contentNote?.content?.sourceUrl && (
-                    <Link href={contentNote.content.sourceUrl} target="_blank">
+                  {currentContent?.sourceUrl && (
+                    <Link href={currentContent.sourceUrl} target="_blank">
                       {SourceIcon}
                     </Link>
                   )}
-                  {contentNote?.content?.websites &&
-                    getContentSourceLinks(contentNote.content.websites)}
+                  {currentContent?.websites &&
+                    getContentSourceLinks(currentContent.websites)}
                 </div>
               </div>
             </div>
@@ -236,20 +313,18 @@ export default function ContentNoteEditorDialogContent<
                 Cancel
               </Button>
             )}
-            {contentNoteId && (
-              <Button
-                variant="secondary"
-                type="button"
-                onClick={() => form.reset()}
-                disabled={isLoading || !form.formState.isDirty}
-              >
-                <CircleOff />
-                Reset
-              </Button>
-            )}
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? <LoadingSpinner /> : <Check />}
-              Confirm changes
+            <Button
+              variant="secondary"
+              type="button"
+              onClick={() => form.reset()}
+              disabled={isSubmitDisabled || !form.formState.isDirty}
+            >
+              <CircleOff />
+              Reset
+            </Button>
+            <Button type="submit" disabled={isSubmitDisabled}>
+              {isSubmitDisabled ? <LoadingSpinner /> : <Check />}
+              {mode === 'edit' ? 'Confirm changes' : 'Add to my profile'}
             </Button>
           </DialogWrapperFooter>
         </form>

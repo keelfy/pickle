@@ -3,7 +3,10 @@
 import { Button } from '@/components/ui/button'
 import { Form, FormRootError } from '@/components/ui/form'
 import LoadingSpinner from '@/components/ui/loading-spinner'
-import { fetchMyAvatar, updateMe } from '@/hooks/api-endpoints-client'
+import {
+  useMyAvatar,
+  useUpdateMeMutation,
+} from '@/hooks/mutations/use-profile-mutations'
 import { toastError } from '@/lib/toasts'
 import { useAuthStore } from '@/providers/auth-store'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -22,6 +25,8 @@ import { UpdateProfileReq } from '@/utils/api/request'
 export default function GeneralSettingsTab() {
   const { user, updateUser } = useAuthStore((state) => state)
   const [isLoading, startTransition] = React.useTransition()
+  const { data: myAvatar } = useMyAvatar('lg')
+  const updateMeMutation = useUpdateMeMutation()
 
   const [avatarUrl, setAvatarUrl] = React.useState<string>(
     user?.avatarUrl ?? '',
@@ -40,19 +45,8 @@ export default function GeneralSettingsTab() {
 
   React.useEffect(() => {
     resetForm()
-    if (!user?.id) return
-    const fetchAvatar = async () => {
-      let avatarUrl = user?.avatarUrl ?? ''
-      try {
-        const res = await fetchMyAvatar('lg')
-        avatarUrl = res?.url ?? user?.avatarUrl ?? ''
-      } catch (error) {
-        console.error('Error fetching avatar:', error)
-      }
-      setAvatarUrl(avatarUrl)
-    }
-    fetchAvatar()
-  }, [user?.id])
+    setAvatarUrl(myAvatar?.url ?? user?.avatarUrl ?? '')
+  }, [user?.id, myAvatar?.url])
 
   React.useEffect(() => {
     form.reset({
@@ -69,7 +63,7 @@ export default function GeneralSettingsTab() {
           suggestionPreferences: user.suggestionPreferences,
           ...data,
         }
-        await updateMe(req)
+        await updateMeMutation.mutateAsync(req)
         updateUser({
           ...user,
           ...data,

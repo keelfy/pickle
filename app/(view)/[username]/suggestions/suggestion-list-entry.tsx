@@ -21,6 +21,73 @@ type Props = {
   order: OrderWithDecision
 }
 
+type OrderDecisionSectionProps = {
+  order: OrderWithDecision
+  profileDisplayName?: string
+  variant: 'desktop' | 'mobile'
+  onOpenRelatedContentNote: () => void
+}
+
+function OrderDecisionSection({
+  order,
+  profileDisplayName,
+  variant,
+  onOpenRelatedContentNote,
+}: OrderDecisionSectionProps) {
+  const decision = order.decision
+  if (!decision) return null
+
+  const isDesktop = variant === 'desktop'
+  const isRejected = decision.status === 'rejected'
+  const isApproved = decision.status === 'approved'
+  const statusText = isApproved
+    ? decision.contentNote?.content?.title ??
+      localizeContentCategory(
+        decision.contentNote?.content?.category ?? order.category,
+        false,
+      ).toLowerCase()
+    : profileDisplayName
+
+  return (
+    <div className={cn(isDesktop ? 'flex w-full items-center gap-2 pl-4' : 'block w-full lg:hidden')}>
+      {isDesktop && <CornerDownRightIcon className="size-5" />}
+      <Button
+        variant="outline"
+        className={cn(
+          'h-full w-full rounded-t-none bg-primary-foreground hover:bg-primary-foreground/80',
+          isDesktop && 'justify-start border-t-0',
+          isDesktop && isRejected && 'pointer-events-none',
+        )}
+        onClick={onOpenRelatedContentNote}
+      >
+        <div className="flex items-center justify-start gap-1">
+          <div
+            className={cn(
+              'h-2 w-2 animate-pulse rounded-full',
+              isApproved ? 'bg-green-500' : 'bg-red-500',
+            )}
+          />
+          {isApproved ? (
+            <p className="whitespace-break-spaces">
+              <span className="font-bold">Accepted</span>
+              <span>&nbsp;as&nbsp;</span>
+              <span className="font-semibold">{statusText}</span>
+            </p>
+          ) : (
+            <p className="whitespace-break-spaces">
+              <span className="font-bold">Rejected</span>
+              <span>&nbsp;by&nbsp;</span>
+              <span className="font-semibold">{statusText}</span>
+              {!isDesktop && <span className="text-xs">&nbsp;😔</span>}
+            </p>
+          )}
+          {isApproved && <ArrowRightIcon className="h-4 w-4" />}
+        </div>
+      </Button>
+    </div>
+  )
+}
+
 export default function SuggestionListEntry({ order }: Props) {
   const { openModal } = useModalStore((state) => state)
   const { profile } = useProfileStore((state) => state)
@@ -91,103 +158,16 @@ export default function SuggestionListEntry({ order }: Props) {
           </div>
         )}
       </div>
-      {order.decision &&
-        (isDesktop ? (
-          <div className="flex w-full items-center gap-2 pl-4">
-            <CornerDownRightIcon className="size-5" />
-            <Button
-              variant="outline"
-              className={cn(
-                'h-full w-full justify-start rounded-t-none border-t-0 bg-primary-foreground hover:bg-primary-foreground/80',
-                order.decision.status == 'rejected' && 'pointer-events-none',
-              )}
-              onClick={() => handleOpenRelatedContentNote(order.decision!)}
-            >
-              <div className="flex items-center justify-start gap-1">
-                <div
-                  className={cn(
-                    'h-2 w-2 animate-pulse rounded-full',
-                    order.decision.status == 'approved'
-                      ? 'bg-green-500'
-                      : 'bg-red-500',
-                  )}
-                />
-                {order.decision.status == 'approved' ? (
-                  <p className="whitespace-break-spaces">
-                    <span className="font-bold">Accepted</span>
-                    <span>&nbsp;as&nbsp;</span>
-                    <span className="font-semibold">
-                      {order.decision.contentNote?.content?.title ??
-                        localizeContentCategory(
-                          order.decision.contentNote?.content?.category ??
-                            order.category,
-                          false,
-                        ).toLowerCase()}
-                    </span>
-                  </p>
-                ) : (
-                  <p className="whitespace-break-spaces">
-                    <span className="font-bold">Rejected</span>
-                    <span>&nbsp;by&nbsp;</span>
-                    <span className="font-semibold">
-                      {profile?.displayName}
-                    </span>
-                  </p>
-                )}
-                {order.decision.status == 'approved' && (
-                  <ArrowRightIcon className="h-4 w-4" />
-                )}
-              </div>
-            </Button>
-          </div>
-        ) : (
-          <div className="block w-full lg:hidden">
-            <Button
-              variant="outline"
-              className={cn(
-                'h-full w-full rounded-t-none bg-primary-foreground hover:bg-primary-foreground/80',
-              )}
-              onClick={() => handleOpenRelatedContentNote(order.decision!)}
-            >
-              <div className="flex items-center gap-1">
-                <div
-                  className={cn(
-                    'h-2 w-2 animate-pulse rounded-full',
-                    order.decision.status == 'approved'
-                      ? 'bg-green-500'
-                      : 'bg-red-500',
-                  )}
-                />
-                {order.decision.status == 'approved' ? (
-                  <p className="whitespace-break-spaces">
-                    <span className="font-bold">Accepted</span>
-                    <span>&nbsp;as&nbsp;</span>
-                    <span className="font-semibold">
-                      {order.decision.contentNote?.content?.title ??
-                        localizeContentCategory(
-                          order.decision.contentNote?.content?.category ??
-                            order.category,
-                          false,
-                        ).toLowerCase()}
-                    </span>
-                  </p>
-                ) : (
-                  <p className="whitespace-break-spaces">
-                    <span className="font-bold">Rejected</span>
-                    <span>&nbsp;by&nbsp;</span>
-                    <span className="font-semibold">
-                      {profile?.displayName}
-                    </span>
-                    <span className="text-xs">&nbsp;😔</span>
-                  </p>
-                )}
-                {order.decision.status == 'approved' && (
-                  <ArrowRightIcon className="h-4 w-4" />
-                )}
-              </div>
-            </Button>
-          </div>
-        ))}
+      {order.decision && (
+        <OrderDecisionSection
+          order={order}
+          profileDisplayName={profile?.displayName}
+          variant={isDesktop ? 'desktop' : 'mobile'}
+          onOpenRelatedContentNote={() =>
+            handleOpenRelatedContentNote(order.decision!)
+          }
+        />
+      )}
     </div>
   )
 }

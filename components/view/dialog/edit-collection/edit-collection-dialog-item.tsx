@@ -9,7 +9,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { fetchDeleteCollectionItem } from '@/hooks/api-endpoints-client'
+import { useDeleteCollectionItemMutation } from '@/hooks/mutations/use-collection-mutations'
 import { toastError } from '@/lib/toasts'
 import { localizeContentCategory } from '@/lib/localize-types'
 import { CollectionItem } from '@/lib/model/collection'
@@ -24,6 +24,7 @@ type Props = {
 
 export default function EditCollectionDialogItem({ item }: Props) {
   const [isDeleting, startTransition] = React.useTransition()
+  const deleteCollectionItemMutation = useDeleteCollectionItemMutation()
   const { states, deleteItemFromCollection, addItemToCollection } =
     useCollectionContext()
 
@@ -37,7 +38,10 @@ export default function EditCollectionDialogItem({ item }: Props) {
       deleteItemFromCollection(item.collectionId, deletedItem.id)
 
       try {
-        await fetchDeleteCollectionItem(item.collectionId, item.id)
+        await deleteCollectionItemMutation.mutateAsync({
+          collectionId: item.collectionId,
+          itemId: item.id,
+        })
       } catch (error) {
         addItemToCollection(item.collectionId, deletedItem)
         toastError('Error while deleting item', error)

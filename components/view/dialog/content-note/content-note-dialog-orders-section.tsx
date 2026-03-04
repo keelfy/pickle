@@ -20,15 +20,12 @@ import {
 import { PopoverTrigger } from '@/components/ui/popover'
 import { Separator } from '@/components/ui/separator'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import { fetchContentNoteOrders } from '@/hooks/api-endpoints-client'
+import { useContentNoteOrders } from '@/hooks/queries/use-content-note-orders'
 import { getTimeAgoText } from '@/lib/localize-types'
 import { ContentCategory } from '@/lib/model/content'
 import { DetailedContentNote } from '@/lib/model/content-note'
-import { Order } from '@/lib/model/order'
-import { toastError } from '@/lib/toasts'
 import { cn } from '@/lib/utils'
 import { useProfileStore } from '@/providers/profile-store'
-import { Paginated } from '@/utils/api/response'
 import { ChevronLeftIcon, UserPlusIcon } from 'lucide-react'
 import React from 'react'
 
@@ -45,33 +42,18 @@ export const ContentNoteDialogOrdersSection = ({
 }: Props) => {
   const { profile } = useProfileStore((state) => state)
   const [detailsOpen, setDetailsOpen] = React.useState(false)
-
-  const [orders, setOrders] = React.useState<Paginated<Order>>()
   const [ordersPage, setOrdersPage] = React.useState(0)
-  const [areOrdersLoading, startOrdersTransition] = React.useTransition()
-
-  React.useEffect(() => {
-    if (!areOrdersLoading && detailsOpen && !orders && profile && contentNote) {
-      startOrdersTransition(async () => {
-        try {
-          const response = await fetchContentNoteOrders(
-            profile,
-            category,
-            contentNote.id,
-            ordersPage,
-            5,
-          )
-          setOrders(response)
-        } catch (error) {
-          toastError('Failed to load suggesters', error)
-        }
-      })
-    }
-  }, [detailsOpen, ordersPage])
+  const { data: orders, isPending: areOrdersLoading } = useContentNoteOrders({
+    user: profile ?? undefined,
+    category,
+    noteId: contentNote?.id,
+    page: ordersPage,
+    size: 5,
+    enabled: detailsOpen,
+  })
 
   React.useEffect(() => {
     setDetailsOpen(false)
-    setOrders(undefined)
     setOrdersPage(0)
   }, [contentNote?.id])
 
@@ -121,7 +103,7 @@ export const ContentNoteDialogOrdersSection = ({
             )}
             {orders && orders.content.length > 0 && (
               <div className="grid gap-2">
-                {orders?.content.map((order, index) => {
+                {orders.content.map((order) => {
                   return (
                     <OrdererPopover
                       key={order.id}
@@ -179,7 +161,9 @@ export const ContentNoteDialogOrdersSection = ({
                   </PaginationLink>
                 </PaginationItem>
                 <PaginationItem
-                  className={ordersPage >= orders.totalPages ? 'invisible' : ''}
+                  className={
+                    ordersPage >= orders.totalPages - 1 ? 'invisible' : ''
+                  }
                 >
                   <PaginationLink
                     href="#"
@@ -192,10 +176,10 @@ export const ContentNoteDialogOrdersSection = ({
                 <PaginationItem>
                   <PaginationNext
                     href="#"
-                    tabIndex={ordersPage >= orders.totalPages ? -1 : undefined}
+                    tabIndex={ordersPage >= orders.totalPages - 1 ? -1 : undefined}
                     size="sm"
                     className={
-                      ordersPage >= orders.totalPages
+                      ordersPage >= orders.totalPages - 1
                         ? 'pointer-events-none opacity-50'
                         : undefined
                     }

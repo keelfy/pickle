@@ -32,6 +32,7 @@ import {
 import { CheckIcon, MailIcon } from 'lucide-react'
 import Link from 'next/link'
 import { parseAsString, useQueryState } from 'nuqs'
+import { useTranslations } from 'next-intl'
 import React from 'react'
 import { FieldErrors, useForm } from 'react-hook-form'
 import { toast } from 'sonner'
@@ -69,6 +70,8 @@ const VerificationForm = ({
   updateFlow,
   isFlowLoading = false,
 }: Props) => {
+  const t = useTranslations('auth.verification')
+  const tAuth = useTranslations('auth')
   const [goto] = useQueryState('goto', parseAsString.withDefault(''))
   const [codeParam, setCodeParam] = useQueryState(
     'code',
@@ -161,10 +164,10 @@ const VerificationForm = ({
             }
           } else {
             const res = (await error.response.json()) as ErrorGeneric
-            toastError('Failed to register', res.error)
+            toastError(t('failedRegister'), res.error)
           }
         } else {
-          toastError('Failed to register', error)
+          toastError(t('failedRegister'), error)
         }
       }
     })
@@ -183,9 +186,8 @@ const VerificationForm = ({
         })
         updateFlow(res)
         if (res.state === 'sent_email') {
-          toast.success('Verification code sent', {
-            description:
-              'A verification code has been sent to your email address.',
+          toast.success(t('codeSentTitle'), {
+            description: t('codeSentDescription'),
           })
         }
       } catch (error) {
@@ -201,16 +203,16 @@ const VerificationForm = ({
             }
           } else {
             const res = (await error.response.json()) as ErrorGeneric
-            toastError('Failed to register', res.error)
+            toastError(t('failedRegister'), res.error)
           }
         } else {
-          toastError('Failed to register', error)
+          toastError(t('failedRegister'), error)
         }
       }
     })
 
   const onSubmitError = (errors: FieldErrors<z.infer<typeof formSchema>>) => {
-    toastError('Failed to submit the form', errors)
+    toastError(t('failedSubmit'), errors)
   }
 
   React.useEffect(() => {
@@ -242,11 +244,11 @@ const VerificationForm = ({
               name="code"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel htmlFor="code">Verification code</FormLabel>
+                  <FormLabel htmlFor="code">{t('codeLabel')}</FormLabel>
                   <FormControl>
                     <Input
                       required
-                      placeholder="123456"
+                      placeholder={t('codePlaceholder')}
                       type="text"
                       autoComplete="one-time-code"
                       {...field}
@@ -270,7 +272,9 @@ const VerificationForm = ({
                       className={`h-4 w-4 ${flow?.state === 'passed_challenge' ? 'text-green-500' : ''}`}
                     />
                   )}
-                  {flow?.state === 'passed_challenge' ? 'Verified' : 'Verify'}
+                  {flow?.state === 'passed_challenge'
+                    ? t('verified')
+                    : t('verify')}
                 </Button>
               )}
               <Button
@@ -285,7 +289,7 @@ const VerificationForm = ({
                 ) : (
                   <MailIcon className="h-4 w-4" />
                 )}
-                {flow?.state === 'sent_email' ? 'Resend code' : 'Send code'}
+                {flow?.state === 'sent_email' ? t('resendCode') : t('sendCode')}
               </Button>
               {form.formState.errors.root && <FormRootError />}
             </div>
@@ -302,10 +306,10 @@ const VerificationForm = ({
           className="grid gap-4"
         >
           <div className="grid gap-3">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{t('emailLabel')}</Label>
             <Input
               required
-              placeholder="mail@example.com"
+              placeholder={t('emailPlaceholder')}
               type="email"
               autoComplete="username"
               value={email}
@@ -318,7 +322,7 @@ const VerificationForm = ({
             disabled={isLoading || isFlowLoading}
           >
             {isLoading || (isFlowLoading && <LoadingSpinner />)}
-            Continue
+            {t('continue')}
           </Button>
         </form>
       )
@@ -353,13 +357,13 @@ const VerificationForm = ({
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-2xl">
           <CheckIcon className="h-6 w-6 text-green-500" />
-          Verify email address
+          {t('title')}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {getFlowStateForm()}
         <div className="text-center text-sm">
-          Don&apos;t have an account?&nbsp;
+          {tAuth('dontHaveAccount')}&nbsp;
           <Link
             href={{
               pathname: '/auth/login',
@@ -367,7 +371,7 @@ const VerificationForm = ({
             }}
             className="underline"
           >
-            Sign Up
+            {tAuth('signUp')}
           </Link>
         </div>
       </CardContent>

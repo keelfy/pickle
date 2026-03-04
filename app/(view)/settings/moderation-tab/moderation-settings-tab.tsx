@@ -10,9 +10,9 @@ import {
 import { Input } from '@/components/ui/input'
 import LoadingSpinner from '@/components/ui/loading-spinner'
 import {
-  fetchAddModerator,
-  fetchModeratorProfiles,
-} from '@/hooks/api-endpoints-client'
+  useAddModeratorMutation,
+  useModerators,
+} from '@/hooks/mutations/use-moderator-mutations'
 import { Moderator } from '@/lib/model/moderator'
 import { toastError } from '@/lib/toasts'
 import { useAuthStore } from '@/providers/auth-store'
@@ -45,8 +45,10 @@ export default function ModerationSettingsTab() {
   const [moderatorProfiles, setModeratorProfiles] = React.useState<
     ModeratorEntry[]
   >([])
-  const [isFetchingModerators, startFetchingModerators] = React.useTransition()
   const [isAddingModerator, startAddingModerator] = React.useTransition()
+  const addModeratorMutation = useAddModeratorMutation()
+  const { data: fetchedModerators, isPending: isModeratorsLoading } =
+    useModerators(user ?? undefined)
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -56,15 +58,8 @@ export default function ModerationSettingsTab() {
   })
 
   React.useEffect(() => {
-    if (!user) return
-    startFetchingModerators(() =>
-      fetchModeratorProfiles(user)
-        .then(setModeratorProfiles)
-        .catch((error) => {
-          toastError('Error fetching moderators', error)
-        }),
-    )
-  }, [user?.id])
+    setModeratorProfiles(fetchedModerators ?? [])
+  }, [fetchedModerators])
 
   function onSubmit(data: z.infer<typeof formSchema>) {
     if (!user) return
@@ -82,7 +77,10 @@ export default function ModerationSettingsTab() {
       }
       setModeratorProfiles([...prevModeratorProfiles, optimisticModerator])
       try {
-        const addedModerator = await fetchAddModerator(user, data.username)
+        const addedModerator = await addModeratorMutation.mutateAsync({
+          user,
+          username: data.username,
+        })
         setModeratorProfiles([
           ...prevModeratorProfiles,
           {
@@ -123,7 +121,7 @@ export default function ModerationSettingsTab() {
           Moderators
         </h2>
         {moderatorProfiles.length === 0 ? (
-          isFetchingModerators ? (
+          isModeratorsLoading ? (
             <div className="flex w-full items-center justify-center">
               <LoadingSpinner />
             </div>

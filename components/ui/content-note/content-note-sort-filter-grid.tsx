@@ -15,17 +15,13 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import {
-  fetchBatchContentNoteReactions,
-  fetchProfileContentNotes,
-} from '@/hooks/api-endpoints-client'
+  ContentNoteReactions,
+} from '@/lib/model/note-reaction'
 import { toastError } from '@/lib/toasts'
 import { localizeContentCategory } from '@/lib/localize-types'
 import { ContentCategory } from '@/lib/model/content'
 import { DetailedContentNote } from '@/lib/model/content-note'
-import {
-  ContentNoteReaction,
-  ContentNoteReactions,
-} from '@/lib/model/note-reaction'
+import { ContentNoteReaction } from '@/lib/model/note-reaction'
 import { useSortFilterFetch } from '@/lib/sort-filter-fetch'
 import { useMediaQuery } from '@/lib/use-media-query'
 import { useProfileStore } from '@/providers/profile-store'
@@ -33,6 +29,8 @@ import useFilterQueryState, { Filter } from '@/query-params/filter'
 import useSortQueryState from '@/query-params/sort'
 import { FilterIcon, SortAscIcon, SortDescIcon } from 'lucide-react'
 import React from 'react'
+import { useQueries } from '@tanstack/react-query'
+import { fetchApi } from '@/utils/api/client'
 import FiltersDrawer, { FiltersDrawerFilter } from '../filters-drawer'
 import SortDrawer from '../sort-drawer'
 import ContentNoteGridFilters, {
@@ -69,7 +67,6 @@ export default function ContentNoteSortFilterGrid<
   header,
 }: Props<T>) {
   const profile = useProfileStore((state) => state.profile)
-  const [reactions, setReactions] = React.useState<ContentNoteReactions[]>()
   const isSmallScreen = useMediaQuery('(max-width: 640px)')
   const isDesktop = useMediaQuery('(min-width: 1024px)')
 
@@ -81,26 +78,21 @@ export default function ContentNoteSortFilterGrid<
 
   const {
     filters,
-    getFilter,
-    addFilter,
-    removeFilter,
-    clearFilters,
     setFilters,
     isInitialized: isFilterInitialized,
   } = useFilterQueryState()
 
-  const [requester, setRequester] = React.useState<string>(
-    getFilter('requester')?.value ?? '',
-  )
-
-  const { contents, viewRef, isLoading } = useSortFilterFetch<T>({
+  const { contents, pages, viewRef, isLoading } = useSortFilterFetch<T>({
     sort,
     filters,
     isInitialized: isSortInitialized && isFilterInitialized,
     fetchFunction: async (params) => {
       if (!profile) return []
       try {
-        return await fetchProfileContentNotes<T>(profile, category, params)
+          return await fetchApi<T[]>(
+            `/v1/users/${profile.id}/content-notes/${category}`,
+            params,
+          )
       } catch (error) {
         toastError(
           `Failed to fetch ${localizeContentCategory(category, false).toLowerCase()} notes`,
@@ -113,6 +105,26 @@ export default function ContentNoteSortFilterGrid<
     trackedValue: category,
   })
 
+  const reactionPageQueries = useQueries({
+    queries: pages.map((page, pageIndex) => {
+      const noteIds = page.map((note) => note.id)
+      return {
+        queryKey: ['content-note-reactions', category, pageIndex, noteIds],
+        queryFn: () =>
+          fetchApi<ContentNoteReactions[]>(
+            `/v1/users/${profile!.id}/content-notes/${category}/reactions`,
+            new URLSearchParams([['contentNoteIds', noteIds.join(',')]]),
+          ),
+        enabled: Boolean(profile?.id) && noteIds.length > 0,
+      }
+    }),
+  })
+
+  const reactions = React.useMemo(
+    () => reactionPageQueries.flatMap((query) => query.data ?? []),
+    [reactionPageQueries],
+  )
+
   const handleSortChange = (newSort: string) => {
     setSort(newSort)
   }
@@ -120,25 +132,6 @@ export default function ContentNoteSortFilterGrid<
   const handleFiltersChange = (newFilters: Filter[]) => {
     setFilters(newFilters)
   }
-
-  React.useEffect(() => {
-    if (!contents || contents.length === 0 || !profile?.id) return
-    const fetchReactions = async () => {
-      try {
-        const reactions = await fetchBatchContentNoteReactions(
-          profile,
-          category,
-          contents.map((note) => note.id),
-        )
-        if (reactions) {
-          setReactions(reactions)
-        }
-      } catch (error) {
-        console.error(error)
-      }
-    }
-    fetchReactions()
-  }, [contents])
 
   const filterDrawerFilters: FiltersDrawerFilter[] = [
     {

@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
-import { suggestContent } from '@/hooks/api-endpoints-client'
+import { useSuggestContentMutation } from '@/hooks/mutations/use-order-mutations'
 import { toastError } from '@/lib/toasts'
 import { localizeContentCategory } from '@/lib/localize-types'
 import {
@@ -97,6 +97,7 @@ const CURRENCY_NAMES: Record<string, string> = {
 export default function OrderForm({ profile, className }: Props) {
   const user = useAuthStore((state) => state.user)
   const [isLoading, startTransition] = React.useTransition()
+  const suggestContentMutation = useSuggestContentMutation()
   const router = useRouter()
 
   const [selectedCurrency, setSelectedCurrency] = React.useState('USD')
@@ -128,7 +129,7 @@ export default function OrderForm({ profile, className }: Props) {
           contentId: data.contentId,
           message: data.message,
         }
-        await suggestContent(profile, req)
+        await suggestContentMutation.mutateAsync({ user: profile, order: req })
         router.push(`/${profile.username}`)
       } catch (error) {
         toastError('Failed to create order', error)

@@ -1,9 +1,9 @@
 'use client'
 
 import {
-  deletePosterPreview,
-  uploadPosterPreview,
-} from '@/hooks/api-endpoints-client'
+  useDeletePosterPreviewMutation,
+  useUploadPosterPreviewMutation,
+} from '@/hooks/mutations/use-profile-mutations'
 import { cn } from '@/lib/utils'
 import { useProfileStore } from '@/providers/profile-store'
 import { Upload } from 'lucide-react'
@@ -20,6 +20,8 @@ type Props = {
 
 const EditablePoster = ({ value, defaultImageUrl, onChange }: Props) => {
   const profile = useProfileStore((state) => state.profile)
+  const uploadPosterPreviewMutation = useUploadPosterPreviewMutation()
+  const deletePosterPreviewMutation = useDeletePosterPreviewMutation()
   const [previewUrl, setPreviewUrl] = React.useState<string | undefined>(
     defaultImageUrl,
   )
@@ -28,19 +30,27 @@ const EditablePoster = ({ value, defaultImageUrl, onChange }: Props) => {
     if (!profile) return
     const formData = new FormData()
     formData.append('file', file)
-    return uploadPosterPreview(profile, formData, 'md')
+    return uploadPosterPreviewMutation.mutateAsync({
+      user: profile,
+      formData,
+      size: 'md',
+    })
   }
 
   async function deleteImage(id: string) {
     if (!profile) return
-    deletePosterPreview(profile, id)
+    deletePosterPreviewMutation.mutateAsync({ user: profile, id })
   }
 
   async function embedImage(url: string) {
     if (!profile) return
     const formData = new FormData()
     formData.append('url', url)
-    return uploadPosterPreview(profile, formData, 'md')
+    return uploadPosterPreviewMutation.mutateAsync({
+      user: profile,
+      formData,
+      size: 'md',
+    })
   }
 
   function onImagePreviewChanged(preview: CoverPreview | undefined) {

@@ -8,10 +8,9 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command'
-import { fetchContentSearch } from '@/hooks/api-endpoints-client'
+import { useContentSearch } from '@/hooks/queries/use-content-search'
 import { useDebounce } from '@/hooks/use-debounce'
 import { Content, ContentCategory } from '@/lib/model/content'
-import { Paginated } from '@/lib/model/types'
 import { toastError } from '@/lib/toasts'
 import { useModalStore } from '@/providers/modal'
 import { useProfileStore } from '@/providers/profile-store'
@@ -32,7 +31,13 @@ export default function SelectContentItemDialogContent() {
     modalParams?.query ?? '',
   )
   const debouncedQuery = useDebounce(query, 300)
-  const [result, setResult] = React.useState<Paginated<Content>>()
+  const { data: result, error } = useContentSearch({
+    category: modalParams?.category as ContentCategory | undefined,
+    query: debouncedQuery,
+    page: 0,
+    size: 10,
+    userId: profile?.id,
+  })
 
   const [selectedIndex, setSelectedIndex] = React.useState<number>(0)
 
@@ -43,33 +48,10 @@ export default function SelectContentItemDialogContent() {
   }, [debouncedQuery, modalParams?.category, modalParams?.query, setModalParams])
 
   React.useEffect(() => {
-    if (!modalParams) {
-      return
+    if (error) {
+      toastError('Failed to fetch search results', error)
     }
-    if (
-      !debouncedQuery ||
-      debouncedQuery.length < 2 ||
-      debouncedQuery.length > 100
-    ) {
-      setResult(undefined)
-      return
-    }
-
-    ;(async () => {
-      try {
-        const response = await fetchContentSearch(
-          modalParams.category as ContentCategory,
-          debouncedQuery,
-          0,
-          10,
-          profile?.id,
-        )
-        setResult(response)
-      } catch (error) {
-        toastError('Failed to fetch search results', error)
-      }
-    })()
-  }, [debouncedQuery, modalParams, profile?.id])
+  }, [error])
 
   React.useEffect(() => {
     setSelectedIndex(0)

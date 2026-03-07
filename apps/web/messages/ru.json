@@ -1,0 +1,118 @@
+{
+  "common": {
+    "menu": "Меню"
+  },
+  "language": {
+    "short": {
+      "en": "АНГ",
+      "ru": "РУС"
+    },
+    "english": "English",
+    "russian": "Русский"
+  },
+  "nav": {
+    "following": "Подписки",
+    "browse": "Обзор",
+    "menu": "Меню",
+    "settings": "Настройки",
+    "support": "Поддержка",
+    "myProfile": "Мой профиль"
+  },
+  "footer": {
+    "poweredBy": "Работает на",
+    "termsOfService": "Условия использования",
+    "privacyPolicy": "Политика конфиденциальности"
+  },
+  "profile": {
+    "followersLabel": "подписчиков",
+    "howPeopleSeeProfile": "Как люди видят мой профиль?",
+    "tabs": {
+      "overview": "Обзор",
+      "content": "Контент",
+      "suggestions": "Предложения",
+      "collections": "Коллекции",
+      "auctions": "Аукционы"
+    }
+  },
+  "contentCategory": {
+    "games": { "one": "Игра", "plural": "Игры" },
+    "videos": { "one": "Видео", "plural": "Видео" },
+    "movies": { "one": "Фильм", "plural": "Фильмы" },
+    "series": { "one": "Сериал", "plural": "Сериалы" },
+    "anime": { "one": "Аниме", "plural": "Аниме" },
+    "content": { "one": "Контент", "plural": "Контент" }
+  },
+  "contentNoteStatus": {
+    "playing": "В процессе",
+    "paused": "Пауза",
+    "dropped": "Брошено",
+    "finished": "Завершено",
+    "watched": "Просмотрено",
+    "skipped": "Пропущено",
+    "planned": "Запланировано",
+    "unknown": "Неизвестно"
+  },
+  "orderSource": {
+    "pickle": "Pickle",
+    "twitch": "Twitch",
+    "unknown": "Неизвестно"
+  },
+  "settings": {
+    "title": "Настройки",
+    "groups": {
+      "profile": "Профиль",
+      "account": "Аккаунт",
+      "integrations": "Интеграции"
+    },
+    "tabs": {
+      "general": "Основные",
+      "security": "Безопасность",
+      "notifications": "Уведомления",
+      "moderation": "Модерация",
+      "suggestions": "Предложения",
+      "payments": "Платежи",
+      "twitch-integration": "Интеграция Twitch"
+    }
+  },
+  "auth": {
+    "loginTitle": "Вход",
+    "registrationTitle": "Регистрация",
+    "refreshTitle": "Подтвердите личность",
+    "loginDescription": "Войдите с помощью email и пароля или через соцсеть",
+    "registrationDescription": "Создайте аккаунт с помощью email и пароля или через соцсеть",
+    "refreshDescription": "Подтвердите личность с помощью email и пароля или через соцсеть",
+    "alreadyHaveAccount": "Уже есть аккаунт?",
+    "dontHaveAccount": "Нет аккаунта?",
+    "signIn": "Войти",
+    "signUp": "Зарегистрироваться",
+    "recovery": {
+      "title": "Сброс пароля",
+      "alreadyHaveAccount": "Уже есть аккаунт?",
+      "emailLabel": "Email",
+      "emailPlaceholder": "you@example.com",
+      "submit": "Сбросить пароль"
+    },
+    "verification": {
+      "title": "Подтвердите email",
+      "emailLabel": "Email",
+      "emailPlaceholder": "mail@example.com",
+      "codeLabel": "Код подтверждения",
+      "codePlaceholder": "123456",
+      "verified": "Подтверждено",
+      "verify": "Подтвердить",
+      "resendCode": "Отправить код повторно",
+      "sendCode": "Отправить код",
+      "continue": "Продолжить",
+      "failedRegister": "Не удалось выполнить регистрацию",
+      "failedSubmit": "Не удалось отправить форму",
+      "codeSentTitle": "Код подтверждения отправлен",
+      "codeSentDescription": "Код подтверждения отправлен на ваш email."
+    },
+    "error": {
+      "title": "Не удалось обработать ваш запрос авторизации"
+    },
+    "errors": {
+      "failedLogin": "Не удалось войти"
+    }
+  }
+}

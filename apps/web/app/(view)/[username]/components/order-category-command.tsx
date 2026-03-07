@@ -1,0 +1,24 @@
+'use client'
+
+import ApiTypeCommand from '@/components/ui/api-type-command'
+import { ContentCategory } from '@/lib/model/content'
+import { ApiType, contentCategoryLabels } from '@/utils/api/constants'
+
+type Props = {
+  value: ContentCategory
+  onSelect: (value: ContentCategory) => void
+  getLabel: (category: ApiType<ContentCategory>) => string | React.ReactNode
+}
+
+const OrderCategoryCommand = (props: Props) => {
+  return (
+    <ApiTypeCommand
+      entries={contentCategoryLabels}
+      placeholder="Search category..."
+      nothingFound="No category found."
+      {...props}
+    />
+  )
+}
+
+export default OrderCategoryCommand

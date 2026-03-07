@@ -1,0 +1,9 @@
+DROP TYPE IF EXISTS external_sync_status;
+DROP TYPE IF EXISTS external_sync_type;
+DROP TYPE IF EXISTS order_decision_status;
+DROP TYPE IF EXISTS image_key_type;
+DROP TYPE IF EXISTS movie_note_status;
+DROP TYPE IF EXISTS game_note_status;
+DROP TYPE IF EXISTS content_category;
+DROP TYPE IF EXISTS order_status;
+DROP TYPE IF EXISTS reaction_source;

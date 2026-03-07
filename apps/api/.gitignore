@@ -1,0 +1,9 @@
+# vscode
+.vscode
+
+# environment
+.env
+
+go
+bin
+artifacts

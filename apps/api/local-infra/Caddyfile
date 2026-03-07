@@ -1,0 +1,26 @@
+{
+	local_certs
+	# auto_https disable_redirects
+}
+
+local-dev.pickle.pw {
+	# tls internal
+
+	handle_path /ory/* {
+		reverse_proxy localhost:4433
+	}
+
+	handle_path /ory-admin/* {
+		reverse_proxy localhost:4434
+	}
+
+	handle_path /api/twitch-harbor/* {
+		reverse_proxy localhost:8081
+	}
+
+	handle_path /api/* {
+		reverse_proxy localhost:8080
+	}
+
+	reverse_proxy localhost:3000
+}

@@ -1,0 +1,41 @@
+{
+  "id": "22022025_1_tmdb_movies_index",
+  "index": "tmdb_movies",
+  "query": {
+    "settings": {
+      "number_of_shards": 4,
+      "number_of_replicas": 1
+    },
+    "mappings": {
+      "properties": {
+        "popularity": {
+          "type": "float"
+        },
+        "image_key": {
+          "type": "text",
+          "index": false
+        },
+        "image_key_type": {
+          "type": "text",
+          "index": false
+        },
+        "name_en": {
+          "type": "text",
+          "analyzer": "english"
+        },
+        "name_ru": {
+          "type": "text",
+          "analyzer": "russian"
+        },
+        "name_de": {
+          "type": "text",
+          "analyzer": "german"
+        },
+        "name_es": {
+          "type": "text",
+          "analyzer": "spanish"
+        }
+      }
+    }
+  }
+}

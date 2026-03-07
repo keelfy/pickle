@@ -10,6 +10,7 @@ import (
 	"github.com/pickle.pw/monolith/internal/transport/http/binders"
 	"github.com/pickle.pw/monolith/internal/transport/http/responses"
 	"github.com/pickle.pw/monolith/internal/utils"
+	"go.uber.org/zap"
 )
 
 type ContentHandler interface {
@@ -22,17 +23,18 @@ type contentHandler struct {
 	elastic            storage.ElasticStorage
 	contentNoteService services.ContentNoteService
 	contentService     services.ContentService
+	logger             *zap.SugaredLogger
 }
 
 func NewContentHandler(
 	elastic storage.ElasticStorage,
 	contentNoteService services.ContentNoteService,
-	contentService services.ContentService,
+	contentService services.ContentService, zapLogger *zap.SugaredLogger,
 ) ContentHandler {
 	return &contentHandler{
 		elastic:            elastic,
 		contentNoteService: contentNoteService,
-		contentService:     contentService,
+		contentService:     contentService, logger: zapLogger,
 	}
 }
 

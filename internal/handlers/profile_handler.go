@@ -9,6 +9,7 @@ import (
 	"github.com/pickle.pw/monolith/internal/services"
 	"github.com/pickle.pw/monolith/internal/transport/http/binders"
 	"github.com/pickle.pw/monolith/internal/utils"
+	"go.uber.org/zap"
 )
 
 type ProfileHandler interface {
@@ -21,6 +22,7 @@ type profileHandler struct {
 	avatarService   services.AvatarService
 	orderService    services.OrderService
 	followerService services.FollowerService
+	logger          *zap.SugaredLogger
 }
 
 func NewProfileHandler(
@@ -28,14 +30,14 @@ func NewProfileHandler(
 	profileService services.ProfileService,
 	avatarService services.AvatarService,
 	orderService services.OrderService,
-	followerService services.FollowerService,
+	followerService services.FollowerService, zapLogger *zap.SugaredLogger,
 ) ProfileHandler {
 	return &profileHandler{
 		userService:     userService,
 		profileService:  profileService,
 		avatarService:   avatarService,
 		orderService:    orderService,
-		followerService: followerService,
+		followerService: followerService, logger: zapLogger,
 	}
 }
 

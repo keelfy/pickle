@@ -12,6 +12,7 @@ import (
 	resp "github.com/pickle.pw/monolith/internal/transport/http/responses"
 	"github.com/pickle.pw/monolith/internal/usecases"
 	"github.com/pickle.pw/monolith/internal/utils"
+	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -39,6 +40,7 @@ type contentNoteHandler struct {
 	contentService                       services.ContentService
 	createContentNoteUseCase             usecases.CreateContentNoteUseCase
 	getSortedContentNotesByUserIDUseCase usecases.GetSortedContentNotesByUserIDUseCase
+	logger                               *zap.SugaredLogger
 }
 
 func NewContentNoteHandler(
@@ -51,7 +53,7 @@ func NewContentNoteHandler(
 	contentNoteReactionService services.ContentNoteReactionService,
 	contentService services.ContentService,
 	createContentNoteUseCase usecases.CreateContentNoteUseCase,
-	getSortedContentNotesByUserIDUseCase usecases.GetSortedContentNotesByUserIDUseCase,
+	getSortedContentNotesByUserIDUseCase usecases.GetSortedContentNotesByUserIDUseCase, zapLogger *zap.SugaredLogger,
 ) ContentNoteHandler {
 	return &contentNoteHandler{
 		orderService:                         orderService,
@@ -63,7 +65,7 @@ func NewContentNoteHandler(
 		contentNoteReactionService:           contentNoteReactionService,
 		contentService:                       contentService,
 		createContentNoteUseCase:             createContentNoteUseCase,
-		getSortedContentNotesByUserIDUseCase: getSortedContentNotesByUserIDUseCase,
+		getSortedContentNotesByUserIDUseCase: getSortedContentNotesByUserIDUseCase, logger: zapLogger,
 	}
 }
 
@@ -175,7 +177,7 @@ func (h *contentNoteHandler) GetDetailedContentNoteByID(w http.ResponseWriter, r
 
 	initialOrderer, err := h.ordererService.GetOrdererWithUserByID(ctx, contentNote.GetInitialOrdererID())
 	if err != nil {
-		logger.Errorf(ctx, "failed to get initial orderer: %v", err)
+		logger.WithRequestID(ctx, h.logger).Errorf("failed to get initial orderer: %v", err)
 	}
 
 	var (
@@ -196,7 +198,7 @@ func (h *contentNoteHandler) GetDetailedContentNoteByID(w http.ResponseWriter, r
 			defer wg.Done()
 			initialOrdererAvatarURL, err = h.avatarService.GetAvatarURLByUserID(ctx, *initialOrderer.UserID, cmd.InitialOrdererAvatarSize)
 			if err != nil {
-				logger.Errorf(ctx, "failed to get initial orderer avatar URL: %v", err)
+				logger.WithRequestID(ctx, h.logger).Errorf("failed to get initial orderer avatar URL: %v", err)
 			}
 		}()
 	}
@@ -265,7 +267,7 @@ func (h *contentNoteHandler) GetOrdersByContentNoteID(w http.ResponseWriter, r *
 			if orders[i].Orderer.UserID != nil {
 				ordererAvatarURL, err = h.avatarService.GetAvatarURLByUserID(ctx, *orders[i].Orderer.UserID, domain.AvatarSizeSmall)
 				if err != nil {
-					logger.Errorf(ctx, "failed to get orderer avatar URL: %v", err)
+					logger.WithRequestID(ctx, h.logger).Errorf("failed to get orderer avatar URL: %v", err)
 				}
 			}
 

@@ -11,10 +11,10 @@ import (
 	"github.com/pickle.pw/monolith/internal/commands"
 	"github.com/pickle.pw/monolith/internal/config"
 	"github.com/pickle.pw/monolith/internal/domain"
-	"github.com/pickle.pw/monolith/internal/logger"
 	"github.com/pickle.pw/monolith/internal/storage"
 	"github.com/pickle.pw/monolith/internal/storage/sql"
 	"github.com/pickle.pw/monolith/internal/utils"
+	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 )
 
@@ -32,20 +32,21 @@ type avatarService struct {
 	s3Client     storage.FileStorage
 	imageService ImageService
 	sfGroup      singleflight.Group
+	logger       *zap.SugaredLogger
 }
 
 func NewAvatarService(
 	sqlDb storage.RelationalStorage,
 	cache storage.CacheStorage,
 	s3Client storage.FileStorage,
-	imageService ImageService,
+	imageService ImageService, zapLogger *zap.SugaredLogger,
 ) AvatarService {
 	return &avatarService{
 		sqlDb:        sqlDb,
 		cache:        cache,
 		s3Client:     s3Client,
 		imageService: imageService,
-		sfGroup:      singleflight.Group{},
+		sfGroup:      singleflight.Group{}, logger: zapLogger,
 	}
 }
 
@@ -153,7 +154,7 @@ func (s *avatarService) UploadAvatarForPreviewByID(ctx context.Context, cmd *com
 	})
 	if err != nil {
 		if err1 := s.s3Client.DeleteObject(ctx, bucketName, previewKey); err1 != nil {
-			logger.Errorf(ctx, "failed to delete preview avatar: %v", err1)
+			s.logger.Errorf("failed to delete preview avatar: %v", err1)
 		}
 		return "", utils.NewInternalServerError("failed to update profile", err)
 	}
@@ -193,7 +194,7 @@ func (s *avatarService) ConfirmAvatarByUserID(ctx context.Context, userID uuid.U
 	if avatarKey != nil && avatarKey != &key {
 		err = s.s3Client.DeleteObject(ctx, bucketName, *avatarKey)
 		if err != nil {
-			logger.Errorf(ctx, "failed to delete preview avatar: %v", err)
+			s.logger.Errorf("failed to delete preview avatar: %v", err)
 		}
 	}
 
@@ -201,7 +202,7 @@ func (s *avatarService) ConfirmAvatarByUserID(ctx context.Context, userID uuid.U
 		cacheKey := fmt.Sprintf("avatar:%s:%s", avatar.UserID, size)
 		err = s.cache.DeleteKey(ctx, cacheKey)
 		if err != nil {
-			logger.Errorf(ctx, "failed to delete avatar URL from cache: %v", err)
+			s.logger.Errorf("failed to delete avatar URL from cache: %v", err)
 		}
 	}
 

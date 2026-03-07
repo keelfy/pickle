@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/pickle.pw/monolith/internal/domain"
-	"github.com/pickle.pw/monolith/internal/logger"
 	"github.com/pickle.pw/monolith/internal/services"
 	"github.com/pickle.pw/monolith/internal/storage"
+	"go.uber.org/zap"
 )
 
 type TMDBScheduler interface {
@@ -17,12 +17,13 @@ type TMDBScheduler interface {
 type tmdbScheduler struct {
 	tmdbSyncService services.TMDBSyncService
 	db              storage.RelationalStorage
+	logger          *zap.SugaredLogger
 }
 
-func NewTMDBScheduler(tmdbSyncService services.TMDBSyncService, db storage.RelationalStorage) TMDBScheduler {
+func NewTMDBScheduler(tmdbSyncService services.TMDBSyncService, db storage.RelationalStorage, zapLogger *zap.SugaredLogger) TMDBScheduler {
 	return &tmdbScheduler{
 		tmdbSyncService: tmdbSyncService,
-		db:              db,
+		db:              db, logger: zapLogger,
 	}
 }
 
@@ -36,7 +37,7 @@ func (s *tmdbScheduler) SetupTMDBSync(ctx context.Context) error {
 				return
 			case <-ticker.C:
 				if err := s.tmdbSyncService.SyncMovies(ctx, domain.SyncTypeIncremental); err != nil {
-					logger.Errorf(ctx, "TMDB sync failed: %v", err)
+					s.logger.Errorf("TMDB sync failed: %v", err)
 				}
 			}
 		}

@@ -17,6 +17,7 @@ import (
 
 	"github.com/pickle.pw/monolith/internal/config"
 	"github.com/pickle.pw/monolith/internal/utils"
+	"go.uber.org/zap"
 )
 
 type ImageService interface {
@@ -32,10 +33,11 @@ type ImageService interface {
 }
 
 type imageService struct {
+	logger *zap.SugaredLogger
 }
 
-func NewImageService() ImageService {
-	return &imageService{}
+func NewImageService(zapLogger *zap.SugaredLogger) ImageService {
+	return &imageService{logger: zapLogger}
 }
 
 var allowedExtensions = []string{

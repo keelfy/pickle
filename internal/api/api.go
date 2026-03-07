@@ -12,18 +12,18 @@ import (
 	"github.com/pickle.pw/monolith/internal/clients"
 	"github.com/pickle.pw/monolith/internal/config"
 	"github.com/pickle.pw/monolith/internal/handlers"
-	"github.com/pickle.pw/monolith/internal/logger"
 	"github.com/pickle.pw/monolith/internal/middleware"
 	"github.com/pickle.pw/monolith/internal/schedulers"
 	"github.com/pickle.pw/monolith/internal/services"
 	httpSwagger "github.com/swaggo/http-swagger"
+	"go.uber.org/zap"
 )
 
 type PickleAPI interface {
 	BuildAPI(ctx context.Context) (*chi.Mux, error)
 }
 
-type pickleAPI struct {
+type PickleAPIImpl struct {
 	userHandler          handlers.UserHandler
 	profileHandler       handlers.ProfileHandler
 	statusHandler        handlers.StatusHandler
@@ -42,6 +42,7 @@ type pickleAPI struct {
 	tmdbSyncService      services.TMDBSyncService
 	oryAPI               clients.OryAPI
 	followerHandler      handlers.FollowerHandler
+	logger               *zap.SugaredLogger
 }
 
 func NewPickleAPI(
@@ -62,8 +63,9 @@ func NewPickleAPI(
 	tmdbSyncService services.TMDBSyncService,
 	oryAPI clients.OryAPI,
 	followerHandler handlers.FollowerHandler,
+	zapLogger *zap.SugaredLogger,
 ) PickleAPI {
-	return &pickleAPI{
+	return &PickleAPIImpl{
 		userHandler:          userHandler,
 		profileHandler:       profileHandler,
 		statusHandler:        statusHandler,
@@ -81,24 +83,24 @@ func NewPickleAPI(
 		tmdbSyncService:      tmdbSyncService,
 		oryAPI:               oryAPI,
 		tokenAuth:            jwtAuth.New("HS256", config.GetJWTSecret(), nil),
-		followerHandler:      followerHandler,
+		followerHandler:      followerHandler, logger: zapLogger,
 	}
 }
 
-func (api *pickleAPI) BuildAPI(ctx context.Context) (*chi.Mux, error) {
+func (api *PickleAPIImpl) BuildAPI(ctx context.Context) (*chi.Mux, error) {
 	// Setup IGDB sync scheduler
 	err := api.igdbSyncScheduler.SetupIGDBSync(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("Error occurred during IGDB sync scheduler setup: %v", err)
 	}
-	logger.Info(ctx, "IGDB sync scheduler setup completed")
+	api.logger.Info("IGDB sync scheduler setup completed")
 
 	// Setup TMDB sync scheduler
 	err = api.tmdbSyncScheduler.SetupTMDBSync(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("Error occurred during TMDB sync scheduler setup: %v", err)
 	}
-	logger.Info(ctx, "TMDB sync scheduler setup completed")
+	api.logger.Info("TMDB sync scheduler setup completed")
 
 	r := chi.NewRouter()
 
@@ -118,24 +120,23 @@ func (api *pickleAPI) BuildAPI(ctx context.Context) (*chi.Mux, error) {
 	r.Get("/swagger/*", httpSwagger.Handler(
 		httpSwagger.URL("/swagger/doc.json"),
 	))
-
-	logger.Info(ctx, "API is ready")
+	api.logger.Info("API is ready")
 	return r, nil
 }
 
-func (api *pickleAPI) useProtectedRoutes(r chi.Router) {
+func (api *PickleAPIImpl) useProtectedRoutes(r chi.Router) {
 	r.Use(middleware.SessionMiddleware(api.oryAPI, false))
 }
 
-func (api *pickleAPI) useUnprotectedRoutes(r chi.Router) {
+func (api *PickleAPIImpl) useUnprotectedRoutes(r chi.Router) {
 	r.Use(middleware.SessionMiddleware(api.oryAPI, true))
 }
 
-func (api *pickleAPI) useApiKey(r chi.Router) {
+func (api *PickleAPIImpl) useApiKey(r chi.Router) {
 	r.Use(middleware.ApiKey())
 }
 
-func (api *pickleAPI) v1RouteHandler(ctx context.Context) http.Handler {
+func (api *PickleAPIImpl) v1RouteHandler(ctx context.Context) http.Handler {
 	r := chi.NewRouter()
 
 	r.Get("/health", api.statusHandler.Health)

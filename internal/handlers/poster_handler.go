@@ -11,6 +11,7 @@ import (
 	"github.com/pickle.pw/monolith/internal/transport/http/binders"
 	"github.com/pickle.pw/monolith/internal/transport/http/responses"
 	"github.com/pickle.pw/monolith/internal/utils"
+	"go.uber.org/zap"
 )
 
 type PosterHandler interface {
@@ -22,11 +23,12 @@ type PosterHandler interface {
 
 type posterHandler struct {
 	posterService services.PosterService
+	logger        *zap.SugaredLogger
 }
 
-func NewPosterHandler(posterService services.PosterService) PosterHandler {
+func NewPosterHandler(posterService services.PosterService, zapLogger *zap.SugaredLogger) PosterHandler {
 	return &posterHandler{
-		posterService: posterService,
+		posterService: posterService, logger: zapLogger,
 	}
 }
 
@@ -157,7 +159,7 @@ func (h *posterHandler) GetPosterPreviews(w http.ResponseWriter, r *http.Request
 	for i, preview := range previews {
 		imageURL, err := h.posterService.GetPosterImageURL(ctx, "preview", size, preview.ObjectKey, &preview.CreatedAt)
 		if err != nil {
-			logger.Errorf(ctx, "Error occurred getting poster preview image URL: %v", err)
+			logger.WithRequestID(ctx, h.logger).Errorf("Error occurred getting poster preview image URL: %v", err)
 			continue
 		}
 

@@ -13,11 +13,11 @@ import (
 	"github.com/pickle.pw/monolith/internal/clients"
 	"github.com/pickle.pw/monolith/internal/config"
 	"github.com/pickle.pw/monolith/internal/domain"
-	"github.com/pickle.pw/monolith/internal/logger"
 	"github.com/pickle.pw/monolith/internal/mapper"
 	"github.com/pickle.pw/monolith/internal/storage"
 	"github.com/pickle.pw/monolith/internal/storage/sql"
 	"github.com/pickle.pw/monolith/internal/utils"
+	"go.uber.org/zap"
 )
 
 type TMDBSyncService interface {
@@ -29,13 +29,14 @@ type tmdbSyncService struct {
 	sqlDB      storage.RelationalStorage
 	elastic    storage.ElasticStorage
 	tmdbClient clients.TMDBClient
+	logger     *zap.SugaredLogger
 }
 
-func NewTMDBSyncService(sqlDB storage.RelationalStorage, elastic storage.ElasticStorage, tmdbClient clients.TMDBClient) TMDBSyncService {
+func NewTMDBSyncService(sqlDB storage.RelationalStorage, elastic storage.ElasticStorage, tmdbClient clients.TMDBClient, zapLogger *zap.SugaredLogger) TMDBSyncService {
 	return &tmdbSyncService{
 		sqlDB:      sqlDB,
 		elastic:    elastic,
-		tmdbClient: tmdbClient,
+		tmdbClient: tmdbClient, logger: zapLogger,
 	}
 }
 
@@ -43,7 +44,7 @@ func (s *tmdbSyncService) TriggerMoviesSync(apiCtx context.Context, w http.Respo
 	go func() {
 		err := s.SyncMovies(apiCtx, domain.SyncTypeFull)
 		if err != nil {
-			logger.Errorf(apiCtx, "[TMDB Sync] Sync failed: %v", err)
+			s.logger.Errorf("[TMDB Sync] Sync failed: %v", err)
 		}
 	}()
 	w.WriteHeader(http.StatusOK)
@@ -64,7 +65,7 @@ func (s *tmdbSyncService) getLastSyncTimestamp(ctx context.Context, syncType dom
 	if err == nil {
 		return lastSync.CompletedAt
 	} else if err != pgx.ErrNoRows {
-		logger.Errorf(ctx, "[TMDB Sync] Error getting last successful sync timestamp: %v", err)
+		s.logger.Errorf("[TMDB Sync] Error getting last successful sync timestamp: %v", err)
 		return nil
 	}
 	return nil
@@ -73,7 +74,7 @@ func (s *tmdbSyncService) getLastSyncTimestamp(ctx context.Context, syncType dom
 func (s *tmdbSyncService) createTmdbSyncLog(ctx context.Context, syncType domain.SyncType) (*domain.ExternalSyncLog, error) {
 	syncLog, err := s.sqlDB.Queries().CreateExternalSync(ctx, syncType)
 	if err != nil {
-		logger.Errorf(ctx, "[TMDB Sync] Error creating sync log: %v", err)
+		s.logger.Errorf("[TMDB Sync] Error creating sync log: %v", err)
 		return nil, err
 	}
 	return syncLog, nil
@@ -84,14 +85,14 @@ func (s *tmdbSyncService) completeTmdbSyncLog(ctx context.Context, syncLog *doma
 
 	if syncError != nil {
 		err = s.sqlDB.Queries().CompleteExternalSyncWithError(ctx, syncLog.ID, syncError.Error())
-		logger.Errorf(ctx, "[TMDB Sync] Sync failed: %v", err)
+		s.logger.Errorf("[TMDB Sync] Sync failed: %v", err)
 	} else {
 		err = s.sqlDB.Queries().CompleteExternalSync(ctx, syncLog.ID, moviesProcessed)
-		logger.Infof(ctx, "[TMDB Sync] Sync completed: %v", syncLog.ID)
+		s.logger.Infof("[TMDB Sync] Sync completed: %v", syncLog.ID)
 	}
 
 	if err != nil {
-		logger.Errorf(ctx, "[TMDB Sync] Error completing sync log: %v", err)
+		s.logger.Errorf("[TMDB Sync] Error completing sync log: %v", err)
 	}
 }
 
@@ -120,10 +121,10 @@ func (s *tmdbSyncService) fetchMoviesDetails(ctx context.Context, movies []domai
 		startTime := time.Now()
 		movieDetails[i], err = s.tmdbClient.GetMovieDetails(ctx, movie.ID)
 		if err != nil {
-			logger.Warnf(ctx, "[TMDB Sync] Error fetching movie details: %v", err)
+			s.logger.Warnf("[TMDB Sync] Error fetching movie details: %v", err)
 			continue
 		}
-		logger.Debugf(ctx, "[TMDB Sync] Fetched movie details for %d (%s) in %vms.", movie.ID, movieDetails[i].Title, time.Since(startTime).Milliseconds())
+		s.logger.Debugf("[TMDB Sync] Fetched movie details for %d (%s) in %vms.", movie.ID, movieDetails[i].Title, time.Since(startTime).Milliseconds())
 
 		// avoid rate limiting
 		time.Sleep(tmdbRequestDelay)
@@ -153,7 +154,7 @@ func (s *tmdbSyncService) upsertMovie(ctx context.Context, qtx sql.Queries, movi
 			rawMessage := json.RawMessage(jsonBytes)
 			serializedWebsites = &rawMessage
 		} else {
-			logger.Errorf(ctx, "[TMDB Sync] Error marshalling websites: %v", err)
+			s.logger.Errorf("[TMDB Sync] Error marshalling websites: %v", err)
 		}
 	}
 
@@ -163,7 +164,7 @@ func (s *tmdbSyncService) upsertMovie(ctx context.Context, qtx sql.Queries, movi
 		if err == nil {
 			releaseDate = &date
 		} else {
-			logger.Errorf(ctx, "[TMDB Sync] Error parsing release date: %v", err)
+			s.logger.Errorf("[TMDB Sync] Error parsing release date: %v", err)
 		}
 	}
 
@@ -202,7 +203,7 @@ func (s *tmdbSyncService) upsertMovieLocalizations(ctx context.Context, qtx sql.
 			Title:     title,
 		})
 		if err != nil {
-			logger.Warnf(ctx, "[TMDB Sync] Error upserting movie localization: %v. Locale %s for movie %d (%s) skipped.", err, locale, contentID, localizations[utils.EnglishLocale])
+			s.logger.Warnf("[TMDB Sync] Error upserting movie localization: %v. Locale %s for movie %d (%s) skipped.", err, locale, contentID, localizations[utils.EnglishLocale])
 			continue
 		}
 	}
@@ -231,7 +232,7 @@ func (s *tmdbSyncService) SyncMovies(ctx context.Context, syncType domain.SyncTy
 	if err != nil {
 		return err
 	}
-	logger.Infof(ctx, "[TMDB Sync] Full sync started: %v", syncLog.ID)
+	s.logger.Infof("[TMDB Sync] Full sync started: %v", syncLog.ID)
 
 	var moviesProcessed int64
 
@@ -242,7 +243,7 @@ func (s *tmdbSyncService) SyncMovies(ctx context.Context, syncType domain.SyncTy
 	var lastSyncTimestamp *time.Time
 	if syncType == domain.SyncTypeIncremental {
 		lastSyncTimestamp = s.getLastSyncTimestamp(ctx, domain.SyncTypeIncremental)
-		logger.Debugf(ctx, "[TMDB Sync] Last successful sync: %v", lastSyncTimestamp)
+		s.logger.Debugf("[TMDB Sync] Last successful sync: %v", lastSyncTimestamp)
 	}
 
 	var initialResponse *domain.TMDBMovieChangesResponse
@@ -256,7 +257,7 @@ func (s *tmdbSyncService) SyncMovies(ctx context.Context, syncType domain.SyncTy
 	if err != nil {
 		return err
 	}
-	logger.Debugf(ctx, "[TMDB Sync] Found %d movies (%d pages)", initialResponse.TotalResults, initialResponse.TotalPages)
+	s.logger.Debugf("[TMDB Sync] Found %d movies (%d pages)", initialResponse.TotalResults, initialResponse.TotalPages)
 
 	pagesToProcess, moviesToProcess := s.getMoviesToProcess(initialResponse)
 
@@ -278,16 +279,16 @@ func (s *tmdbSyncService) SyncMovies(ctx context.Context, syncType domain.SyncTy
 			response, err = s.tmdbClient.GetChangedMovieIDs(ctx, page, lastSyncTimestamp)
 		}
 		if err != nil {
-			logger.Warnf(ctx, "[TMDB Sync] Error fetching movies: %v. Page %d/%d skipped.", err, page, pagesToProcess)
+			s.logger.Warnf("[TMDB Sync] Error fetching movies: %v. Page %d/%d skipped.", err, page, pagesToProcess)
 			continue
 		}
-		logger.Debugf(ctx, "[TMDB Sync] Fetched %d movies from page %d/%d.", len(response.Results), page, pagesToProcess)
+		s.logger.Debugf("[TMDB Sync] Fetched %d movies from page %d/%d.", len(response.Results), page, pagesToProcess)
 
 		pagesToProcess, moviesToProcess = s.getMoviesToProcess(response)
 
 		// request movie details
 		movieDetails := s.fetchMoviesDetails(ctx, response.Results)
-		logger.Debugf(ctx, "[TMDB Sync] Fetched %d movie details.", len(movieDetails))
+		s.logger.Debugf("[TMDB Sync] Fetched %d movie details.", len(movieDetails))
 
 		// Begin transaction
 		err = s.sqlDB.BeginTx(ctx, func(qtx sql.Queries) error {
@@ -296,14 +297,14 @@ func (s *tmdbSyncService) SyncMovies(ctx context.Context, syncType domain.SyncTy
 			for _, movie := range movieDetails {
 				id, err := s.upsertMovie(ctx, qtx, movie)
 				if err != nil {
-					logger.Warnf(ctx, "[TMDB Sync] Error upserting movie: %v. Movie %d (%s) skipped.", err, movie.ID, movie.Title)
+					s.logger.Warnf("[TMDB Sync] Error upserting movie: %v. Movie %d (%s) skipped.", err, movie.ID, movie.Title)
 					continue
 				}
 
 				localizations := s.getLocalizations(movie)
 				err = s.upsertMovieLocalizations(ctx, qtx, id, localizations)
 				if err != nil {
-					logger.Warnf(ctx, "[TMDB Sync] Error upserting movie localizations: %v. Movie %d (%s) skipped.", err, movie.ID, movie.Title)
+					s.logger.Warnf("[TMDB Sync] Error upserting movie localizations: %v. Movie %d (%s) skipped.", err, movie.ID, movie.Title)
 					continue
 				}
 
@@ -315,13 +316,13 @@ func (s *tmdbSyncService) SyncMovies(ctx context.Context, syncType domain.SyncTy
 
 			err = s.elastic.BulkIndexDocuments(ctx, "tmdb_movies", documents)
 			if err != nil {
-				logger.Warnf(ctx, "[TMDB Sync] Error indexing documents: %v. Page %d/%d skipped.", err, page, pagesToProcess)
+				s.logger.Warnf("[TMDB Sync] Error indexing documents: %v. Page %d/%d skipped.", err, page, pagesToProcess)
 				return err
 			}
 			return nil
 		})
 		if err != nil {
-			logger.Warnf(ctx, "[TMDB Sync] Error upserting movies: %v. Page %d/%d skipped.", err, page, pagesToProcess)
+			s.logger.Warnf("[TMDB Sync] Error upserting movies: %v. Page %d/%d skipped.", err, page, pagesToProcess)
 			continue
 		}
 
@@ -338,7 +339,7 @@ func (s *tmdbSyncService) SyncMovies(ctx context.Context, syncType domain.SyncTy
 		pagesLeft := pagesToProcess - page
 		// calculate estimated time left
 		timeLeft := medianDuration.Seconds() * float64(pagesLeft)
-		logger.Infof(ctx, "[TMDB Sync] Committed %d/%d movies (%.2f%%, %d/%d pages) in %vms. Estimated time left: %.2fs.", moviesProcessed, moviesToProcess, moviesPercentage, page, pagesToProcess, duration.Milliseconds(), timeLeft)
+		s.logger.Infof("[TMDB Sync] Committed %d/%d movies (%.2f%%, %d/%d pages) in %vms. Estimated time left: %.2fs.", moviesProcessed, moviesToProcess, moviesPercentage, page, pagesToProcess, duration.Milliseconds(), timeLeft)
 	}
 
 	return nil

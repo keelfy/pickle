@@ -11,6 +11,7 @@ import (
 	"github.com/pickle.pw/monolith/internal/storage"
 	"github.com/pickle.pw/monolith/internal/storage/sql"
 	"github.com/pickle.pw/monolith/internal/utils"
+	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 )
 
@@ -36,14 +37,15 @@ type collectionService struct {
 	cache             storage.CacheStorage
 	singleflightGroup singleflight.Group
 	permissionService PermissionService
+	logger            *zap.SugaredLogger
 }
 
-func NewCollectionService(sqlDB storage.RelationalStorage, cache storage.CacheStorage, permissionService PermissionService) CollectionService {
+func NewCollectionService(sqlDB storage.RelationalStorage, cache storage.CacheStorage, permissionService PermissionService, zapLogger *zap.SugaredLogger) CollectionService {
 	return &collectionService{
 		sqlDB:             sqlDB,
 		cache:             cache,
 		singleflightGroup: singleflight.Group{},
-		permissionService: permissionService,
+		permissionService: permissionService, logger: zapLogger,
 	}
 }
 

@@ -14,6 +14,7 @@ import (
 	"github.com/pickle.pw/monolith/internal/storage"
 	"github.com/pickle.pw/monolith/internal/storage/sql"
 	"github.com/pickle.pw/monolith/internal/utils"
+	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 )
 
@@ -46,6 +47,7 @@ type contentNoteService struct {
 	userService       UserService
 	countPlayedSFG    singleflight.Group
 	countWatchedSFG   singleflight.Group
+	logger            *zap.SugaredLogger
 }
 
 func NewContentNoteService(
@@ -56,7 +58,7 @@ func NewContentNoteService(
 	ordererService OrdererService,
 	permissionService PermissionService,
 	contentService ContentService,
-	userService UserService,
+	userService UserService, zapLogger *zap.SugaredLogger,
 ) ContentNoteService {
 	return &contentNoteService{
 		sqlDB:             sqlDB,
@@ -68,7 +70,7 @@ func NewContentNoteService(
 		contentService:    contentService,
 		userService:       userService,
 		countPlayedSFG:    singleflight.Group{},
-		countWatchedSFG:   singleflight.Group{},
+		countWatchedSFG:   singleflight.Group{}, logger: zapLogger,
 	}
 }
 

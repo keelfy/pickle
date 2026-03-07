@@ -11,6 +11,7 @@ import (
 	"github.com/pickle.pw/monolith/internal/transport/http/responses"
 	"github.com/pickle.pw/monolith/internal/usecases"
 	"github.com/pickle.pw/monolith/internal/utils"
+	"go.uber.org/zap"
 )
 
 type UserHandler interface {
@@ -32,6 +33,7 @@ type userHandler struct {
 	ordererService services.OrdererService
 	//use cases
 	getUserByIDUseCase usecases.GetUserByIDUseCase
+	logger             *zap.SugaredLogger
 }
 
 func NewUserHandler(
@@ -39,14 +41,14 @@ func NewUserHandler(
 	userService services.UserService,
 	avatarService services.AvatarService,
 	getUserByIDUseCase usecases.GetUserByIDUseCase,
-	ordererService services.OrdererService,
+	ordererService services.OrdererService, zapLogger *zap.SugaredLogger,
 ) UserHandler {
 	return &userHandler{
 		sqlDb:              sqlDb,
 		userService:        userService,
 		avatarService:      avatarService,
 		getUserByIDUseCase: getUserByIDUseCase,
-		ordererService:     ordererService,
+		ordererService:     ordererService, logger: zapLogger,
 	}
 }
 

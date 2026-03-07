@@ -12,6 +12,7 @@ import (
 	"github.com/pickle.pw/monolith/internal/transport/http/binders"
 	"github.com/pickle.pw/monolith/internal/transport/http/responses"
 	"github.com/pickle.pw/monolith/internal/utils"
+	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -32,19 +33,20 @@ type collectionHandler struct {
 	noteService       services.ContentNoteService
 	contentService    services.ContentService
 	permissionService services.PermissionService
+	logger            *zap.SugaredLogger
 }
 
 func NewCollectionHandler(
 	collectionService services.CollectionService,
 	noteService services.ContentNoteService,
 	contentService services.ContentService,
-	permissionService services.PermissionService,
+	permissionService services.PermissionService, zapLogger *zap.SugaredLogger,
 ) CollectionHandler {
 	return &collectionHandler{
 		collectionService: collectionService,
 		noteService:       noteService,
 		contentService:    contentService,
-		permissionService: permissionService,
+		permissionService: permissionService, logger: zapLogger,
 	}
 }
 
@@ -409,7 +411,7 @@ func (h *collectionHandler) GetItemsByUserID(w http.ResponseWriter, r *http.Requ
 			defer wg.Done()
 			totalElements, err := h.collectionService.CountCollectionItemsByCollectionID(ctx, collectionID)
 			if err != nil {
-				logger.Errorf(ctx, "failed to count collection items by collection ID: %v", err)
+				logger.WithRequestID(ctx, h.logger).Errorf("failed to count collection items by collection ID: %v", err)
 				return
 			}
 

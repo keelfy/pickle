@@ -13,6 +13,7 @@ import (
 	"github.com/pickle.pw/monolith/internal/storage"
 	"github.com/pickle.pw/monolith/internal/storage/sql"
 	"github.com/pickle.pw/monolith/internal/utils"
+	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 )
 
@@ -34,17 +35,18 @@ type moderatorService struct {
 	sfGroup       singleflight.Group
 	avatarService AvatarService
 	userService   UserService
+	logger        *zap.SugaredLogger
 }
 
 func NewModeratorService(sqlDb storage.RelationalStorage, cache storage.CacheStorage,
-	avatarService AvatarService, userService UserService,
+	avatarService AvatarService, userService UserService, zapLogger *zap.SugaredLogger,
 ) ModeratorService {
 	return &moderatorService{
 		sqlDb:         sqlDb,
 		cache:         cache,
 		sfGroup:       singleflight.Group{},
 		avatarService: avatarService,
-		userService:   userService,
+		userService:   userService, logger: zapLogger,
 	}
 }
 

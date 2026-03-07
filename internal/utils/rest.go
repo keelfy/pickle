@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/pickle.pw/monolith/internal/logger"
+	"go.uber.org/zap"
 )
 
 const HeaderContentType = "Content-Type"
@@ -44,11 +44,13 @@ func HttpBusinessError(ctx context.Context, w http.ResponseWriter, msg string, s
 	HttpError(ctx, w, err)
 }
 
+// Deprecated: This function uses the global zap logger. It should be refactored
+// to accept *zap.SugaredLogger as a parameter.
 func WriteHttpJsonResponse[T any](ctx context.Context, w http.ResponseWriter, res T) {
 	w.Header().Set(HeaderContentType, ApplicationJsonType)
 	w.WriteHeader(http.StatusOK)
 
 	if err := json.NewEncoder(w).Encode(res); err != nil {
-		logger.Errorf(ctx, "Error data marshalling: %v", err)
+		zap.S().Errorf("Error data marshalling: %v", err)
 	}
 }

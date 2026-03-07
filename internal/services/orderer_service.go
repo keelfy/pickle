@@ -10,6 +10,7 @@ import (
 	"github.com/pickle.pw/monolith/internal/storage"
 	"github.com/pickle.pw/monolith/internal/storage/sql"
 	"github.com/pickle.pw/monolith/internal/utils"
+	"go.uber.org/zap"
 )
 
 type OrdererService interface {
@@ -22,12 +23,13 @@ type OrdererService interface {
 type ordererService struct {
 	sqlDb       storage.RelationalStorage
 	userService UserService
+	logger      *zap.SugaredLogger
 }
 
-func NewOrdererService(sqlDb storage.RelationalStorage, userService UserService) OrdererService {
+func NewOrdererService(sqlDb storage.RelationalStorage, userService UserService, zapLogger *zap.SugaredLogger) OrdererService {
 	return &ordererService{
 		sqlDb:       sqlDb,
-		userService: userService,
+		userService: userService, logger: zapLogger,
 	}
 }
 

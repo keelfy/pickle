@@ -10,6 +10,7 @@ import (
 	"github.com/pickle.pw/monolith/internal/domain"
 	"github.com/pickle.pw/monolith/internal/storage"
 	"github.com/pickle.pw/monolith/internal/utils"
+	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 )
 
@@ -22,16 +23,17 @@ type FollowerService interface {
 }
 
 type followerService struct {
-	sqlDb storage.RelationalStorage
-	cache storage.CacheStorage
-	group singleflight.Group
+	sqlDb  storage.RelationalStorage
+	cache  storage.CacheStorage
+	group  singleflight.Group
+	logger *zap.SugaredLogger
 }
 
-func NewFollowerService(sqlDb storage.RelationalStorage, cache storage.CacheStorage) FollowerService {
+func NewFollowerService(sqlDb storage.RelationalStorage, cache storage.CacheStorage, zapLogger *zap.SugaredLogger) FollowerService {
 	return &followerService{
 		sqlDb: sqlDb,
 		cache: cache,
-		group: singleflight.Group{},
+		group: singleflight.Group{}, logger: zapLogger,
 	}
 }
 

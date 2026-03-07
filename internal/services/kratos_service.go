@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/pickle.pw/monolith/internal/clients"
+	"go.uber.org/zap"
 )
 
 type KratosService interface {
@@ -13,11 +14,12 @@ type KratosService interface {
 
 type kratosService struct {
 	oryAPI clients.OryAPI
+	logger *zap.SugaredLogger
 }
 
-func NewKratosService(oryAPI clients.OryAPI) KratosService {
+func NewKratosService(oryAPI clients.OryAPI, zapLogger *zap.SugaredLogger) KratosService {
 	return &kratosService{
-		oryAPI: oryAPI,
+		oryAPI: oryAPI, logger: zapLogger,
 	}
 }
 

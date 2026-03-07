@@ -9,6 +9,7 @@ import (
 
 	"github.com/pickle.pw/monolith/internal/config"
 	"github.com/pickle.pw/monolith/internal/domain"
+	"go.uber.org/zap"
 )
 
 const (
@@ -31,9 +32,10 @@ type tmdbClient struct {
 	httpClient *http.Client
 	apiKey     string
 	baseURL    string
+	logger     *zap.SugaredLogger
 }
 
-func NewTMDBClient() TMDBClient {
+func NewTMDBClient(zapLogger *zap.SugaredLogger) TMDBClient {
 	baseURL := config.GetTMDBBaseURL()
 	if baseURL == "" {
 		baseURL = tmdbBaseURL
@@ -42,7 +44,7 @@ func NewTMDBClient() TMDBClient {
 	return &tmdbClient{
 		httpClient: &http.Client{Timeout: 10 * time.Second},
 		apiKey:     config.GetTMDBAPIKey(),
-		baseURL:    baseURL,
+		baseURL:    baseURL, logger: zapLogger,
 	}
 }
 

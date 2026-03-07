@@ -6,10 +6,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/pickle.pw/monolith/internal/commands"
-	"github.com/pickle.pw/monolith/internal/logger"
 	"github.com/pickle.pw/monolith/internal/presenter"
 	"github.com/pickle.pw/monolith/internal/services"
 	"github.com/pickle.pw/monolith/internal/transport/http/responses"
+	"go.uber.org/zap"
 )
 
 type GetSortedContentNotesByUserIDUseCase interface {
@@ -20,17 +20,18 @@ type getSortedContentNotesByUserIDUseCase struct {
 	contentNoteService services.ContentNoteService
 	contentService     services.ContentService
 	avatarService      services.AvatarService
+	logger             *zap.SugaredLogger
 }
 
 func NewGetSortedContentNotesByUserIDUseCase(
 	contentNoteService services.ContentNoteService,
 	contentService services.ContentService,
-	avatarService services.AvatarService,
+	avatarService services.AvatarService, zapLogger *zap.SugaredLogger,
 ) GetSortedContentNotesByUserIDUseCase {
 	return &getSortedContentNotesByUserIDUseCase{
 		contentNoteService: contentNoteService,
 		contentService:     contentService,
-		avatarService:      avatarService,
+		avatarService:      avatarService, logger: zapLogger,
 	}
 }
 
@@ -72,7 +73,7 @@ func (uc *getSortedContentNotesByUserIDUseCase) Handle(ctx context.Context, cmd 
 			if orderer.UserID != nil {
 				avatarURL, err = uc.avatarService.GetAvatarURLByUserID(ctx, *orderer.UserID, cmd.InitialOrdererAvatarSize)
 				if err != nil {
-					logger.Errorf(ctx, "failed to get avatar URL by user ID: %v", err)
+					uc.logger.Errorf("failed to get avatar URL by user ID: %v", err)
 				}
 			}
 

@@ -10,6 +10,7 @@ import (
 	"github.com/pickle.pw/monolith/internal/storage"
 	"github.com/pickle.pw/monolith/internal/storage/sql"
 	"github.com/pickle.pw/monolith/internal/utils"
+	"go.uber.org/zap"
 )
 
 type CreateOrderUseCase interface {
@@ -23,6 +24,7 @@ type createOrderUseCase struct {
 	ordererService services.OrdererService
 	contentService services.ContentService
 	ordersBroker   services.OrdersBrokerService
+	logger         *zap.SugaredLogger
 }
 
 func NewCreateOrderUseCase(
@@ -31,7 +33,7 @@ func NewCreateOrderUseCase(
 	orderService services.OrderService,
 	ordererService services.OrdererService,
 	contentService services.ContentService,
-	ordersBroker services.OrdersBrokerService,
+	ordersBroker services.OrdersBrokerService, zapLogger *zap.SugaredLogger,
 ) CreateOrderUseCase {
 	return &createOrderUseCase{
 		sqlDb:          sqlDb,
@@ -39,7 +41,7 @@ func NewCreateOrderUseCase(
 		orderService:   orderService,
 		ordererService: ordererService,
 		contentService: contentService,
-		ordersBroker:   ordersBroker,
+		ordersBroker:   ordersBroker, logger: zapLogger,
 	}
 }
 

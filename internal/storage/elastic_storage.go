@@ -18,7 +18,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/pickle.pw/monolith/internal/config"
 	"github.com/pickle.pw/monolith/internal/domain"
-	"github.com/pickle.pw/monolith/internal/logger"
+	"go.uber.org/zap"
 )
 
 type ElasticStorage interface {
@@ -33,11 +33,10 @@ type ElasticStorage interface {
 
 type elasticStorage struct {
 	client *elasticsearch.TypedClient
+	logger *zap.SugaredLogger
 }
 
-func NewElasticStorage(ctx context.Context) (ElasticStorage, error) {
-	logger.Infof(ctx, "%v Elasticsearch %v", strings.Repeat("~", 11), strings.Repeat("~", 11))
-
+func NewElasticStorage(zapLogger *zap.SugaredLogger) (ElasticStorage, error) {
 	client, err := elasticsearch.NewTypedClient(elasticsearch.Config{
 		Addresses: config.GetElasticsearchUrls(),
 		Username:  config.GetElasticsearchUsername(),
@@ -49,10 +48,10 @@ func NewElasticStorage(ctx context.Context) (ElasticStorage, error) {
 
 	storage := &elasticStorage{
 		client: client,
+		logger: zapLogger,
 	}
 
 	// storage.logElasticsearchClusterInfo()
-	logger.Infof(ctx, "%s", strings.Repeat("~", 37))
 	return storage, nil
 }
 
@@ -60,12 +59,11 @@ func (storage *elasticStorage) logElasticsearchClusterInfo() {
 	ctx := context.Background()
 	info, err := storage.client.Info().Do(ctx)
 	if err != nil {
-		logger.Fatalf(ctx, "Error getting response: %s", err)
+		storage.logger.Fatalf("Error getting response: %s", err)
 	}
-
 	// Print client and server version numbers.
-	logger.Infof(ctx, "Client: %s", elasticsearch.Version)
-	logger.Infof(ctx, "Server: %s", info.Version.Int)
+	storage.logger.Infof("Client: %s", elasticsearch.Version)
+	storage.logger.Infof("Server: %s", info.Version.Int)
 }
 
 var (
@@ -76,7 +74,7 @@ var (
 func (storage *elasticStorage) Ping(ctx context.Context) error {
 	_, err := storage.client.Info().Do(ctx)
 	if err != nil {
-		logger.Errorf(ctx, "[ELASTIC] Error pinging Elasticsearch: %v", err)
+		storage.logger.Errorf("[ELASTIC] Error pinging Elasticsearch: %v", err)
 		return err
 	}
 	return nil
@@ -89,13 +87,13 @@ func (storage *elasticStorage) CreateOrUpdateIndex(ctx context.Context, indexNam
 		if err != nil {
 			return err
 		}
-		logger.Infof(ctx, "Mapping for index %s updated successfully.", indexName)
+		storage.logger.Infof("Mapping for index %s updated successfully.", indexName)
 	} else if err == nil {
 		err := storage.createIndex(ctx, indexName, query)
 		if err != nil {
 			return fmt.Errorf("error creating index %s: %w", indexName, err)
 		}
-		logger.Infof(ctx, "Index %s created successfully.", indexName)
+		storage.logger.Infof("Index %s created successfully.", indexName)
 	} else {
 		return fmt.Errorf("error checking if index exists: %w", err)
 	}
@@ -128,11 +126,10 @@ func (storage *elasticStorage) createIndex(ctx context.Context, indexName string
 func (storage *elasticStorage) IndexDocument(ctx context.Context, indexName, id string, document any) (*index.Response, error) {
 	response, err := storage.client.Index(indexName).Id(id).Document(document).Do(ctx)
 	if err != nil {
-		logger.Debugf(ctx, "[ELASTIC] Error indexing document: %v", err)
+		storage.logger.Debugf("[ELASTIC] Error indexing document: %v", err)
 		return nil, err
 	}
-
-	logger.Debugf(ctx, "[ELASTIC] Document indexed: %s", response.Result)
+	storage.logger.Debugf("[ELASTIC] Document indexed: %s", response.Result)
 	return response, nil
 }
 
@@ -159,8 +156,7 @@ func (storage *elasticStorage) BulkIndexDocuments(ctx context.Context, indexName
 	if err != nil {
 		return fmt.Errorf("error bulk indexing documents: %w", err)
 	}
-
-	logger.Debugf(ctx, "[ELASTIC] Documents indexed: %d", len(response.Items))
+	storage.logger.Debugf("[ELASTIC] Documents indexed: %d", len(response.Items))
 	return nil
 }
 
@@ -174,11 +170,10 @@ func (storage *elasticStorage) Search(ctx context.Context, indexName string, que
 		}).
 		Do(ctx)
 	if err != nil {
-		logger.Debugf(ctx, "[ELASTIC] Error searching documents: %v", err)
+		storage.logger.Debugf("[ELASTIC] Error searching documents: %v", err)
 		return nil, err
 	}
-
-	logger.Debugf(ctx, "[ELASTIC] Documents found: %d", response.Hits.Total.Value)
+	storage.logger.Debugf("[ELASTIC] Documents found: %d", response.Hits.Total.Value)
 	return response, nil
 }
 
@@ -222,11 +217,10 @@ func (storage *elasticStorage) SearchUserContent(ctx context.Context, query stri
 	indexes := strings.Join([]string{IGDBGamesIndex, TMDBMoviesIndex}, ",")
 	response, err := storage.Search(ctx, indexes, esQuery, pagination)
 	if err != nil {
-		logger.Debugf(ctx, "[ELASTIC] Error searching content: %v", err)
+		storage.logger.Debugf("[ELASTIC] Error searching content: %v", err)
 		return nil, err
 	}
-
-	logger.Debugf(ctx, "[ELASTIC] Content found: %d", response.Hits.Total.Value)
+	storage.logger.Debugf("[ELASTIC] Content found: %d", response.Hits.Total.Value)
 	return response, nil
 }
 
@@ -262,10 +256,9 @@ func (storage *elasticStorage) SearchIndexedContent(ctx context.Context, categor
 
 	response, err := storage.Search(ctx, indexName, esQuery, pagination)
 	if err != nil {
-		logger.Debugf(ctx, "[ELASTIC] Error searching %s: %v", category, err)
+		storage.logger.Debugf("[ELASTIC] Error searching %s: %v", category, err)
 		return nil, err
 	}
-
-	logger.Debugf(ctx, "[ELASTIC] %s found: %d", category, response.Hits.Total.Value)
+	storage.logger.Debugf("[ELASTIC] %s found: %d", category, response.Hits.Total.Value)
 	return response, nil
 }

@@ -16,6 +16,7 @@ import (
 	resp "github.com/pickle.pw/monolith/internal/transport/http/responses"
 	"github.com/pickle.pw/monolith/internal/usecases"
 	"github.com/pickle.pw/monolith/internal/utils"
+	"go.uber.org/zap"
 )
 
 type OrderHandler interface {
@@ -39,6 +40,7 @@ type orderHandler struct {
 	ordersBroker       services.OrdersBrokerService
 	// usecases
 	createOrderUseCase usecases.CreateOrderUseCase
+	logger             *zap.SugaredLogger
 }
 
 func NewOrdersHandler(
@@ -51,7 +53,7 @@ func NewOrdersHandler(
 	contentNoteService services.ContentNoteService,
 	permissionService services.PermissionService,
 	ordersBroker services.OrdersBrokerService,
-	createOrderUseCase usecases.CreateOrderUseCase,
+	createOrderUseCase usecases.CreateOrderUseCase, zapLogger *zap.SugaredLogger,
 ) OrderHandler {
 	return &orderHandler{
 		sqlDb:              sqlDb,
@@ -63,7 +65,7 @@ func NewOrdersHandler(
 		contentNoteService: contentNoteService,
 		permissionService:  permissionService,
 		ordersBroker:       ordersBroker,
-		createOrderUseCase: createOrderUseCase,
+		createOrderUseCase: createOrderUseCase, logger: zapLogger,
 	}
 }
 
@@ -109,7 +111,7 @@ func (h *orderHandler) GetOrderByID(w http.ResponseWriter, r *http.Request) {
 	if orderer.UserID != nil {
 		url, err := h.avatarService.GetAvatarURLByUserID(ctx, *orderer.UserID, domain.AvatarSizeMedium)
 		if err != nil {
-			logger.Errorf(ctx, "failed to get avatar URL by user ID: %v", err)
+			logger.WithRequestID(ctx, h.logger).Errorf("failed to get avatar URL by user ID: %v", err)
 		}
 		ordererAvatarURL = url
 	}
@@ -165,7 +167,7 @@ func (h *orderHandler) GetSortedOrdersByUserID(w http.ResponseWriter, r *http.Re
 				defer wg.Done()
 				avatarURL, err := h.avatarService.GetAvatarURLByUserID(ctx, userID, cmd.AvatarSize)
 				if err != nil {
-					logger.Errorf(ctx, "failed to get avatar URL by user ID: %v", err)
+					logger.WithRequestID(ctx, h.logger).Errorf("failed to get avatar URL by user ID: %v", err)
 					return
 				}
 				ordererAvatarURLs.Store(ordererID, avatarURL)
@@ -188,7 +190,7 @@ func (h *orderHandler) GetSortedOrdersByUserID(w http.ResponseWriter, r *http.Re
 				defer wg.Done()
 				avatarURL, err := h.avatarService.GetAvatarURLByUserID(ctx, decidedBy, cmd.AvatarSize)
 				if err != nil {
-					logger.Errorf(ctx, "failed to get avatar URL by user ID: %v", err)
+					logger.WithRequestID(ctx, h.logger).Errorf("failed to get avatar URL by user ID: %v", err)
 					return
 				}
 				decidedByAvatarURLs.Store(decidedBy, avatarURL)
@@ -425,7 +427,7 @@ func (h *orderHandler) ApproveOrderByID(w http.ResponseWriter, r *http.Request) 
 			defer wg.Done()
 			ordererAvatarURL, err = h.avatarService.GetAvatarURLByUserID(ctx, *order.Orderer.UserID, cmd.AvatarSize)
 			if err != nil {
-				logger.Errorf(ctx, "failed to get orderer avatar URL: %v", err)
+				logger.WithRequestID(ctx, h.logger).Errorf("failed to get orderer avatar URL: %v", err)
 			}
 		}()
 	}
@@ -435,7 +437,7 @@ func (h *orderHandler) ApproveOrderByID(w http.ResponseWriter, r *http.Request) 
 		defer wg.Done()
 		decidedByAvatarURL, err = h.avatarService.GetAvatarURLByUserID(ctx, approver.ID, cmd.AvatarSize)
 		if err != nil {
-			logger.Errorf(ctx, "failed to get decided by avatar URL: %v", err)
+			logger.WithRequestID(ctx, h.logger).Errorf("failed to get decided by avatar URL: %v", err)
 		}
 	}()
 
@@ -524,7 +526,7 @@ func (h *orderHandler) RejectOrderByID(w http.ResponseWriter, r *http.Request) {
 
 	avatarURL, err := h.avatarService.GetAvatarURLByUserID(ctx, initiator.ID, cmd.AvatarSize)
 	if err != nil {
-		logger.Errorf(ctx, "failed to get initiator avatar URL: %v", err)
+		logger.WithRequestID(ctx, h.logger).Errorf("failed to get initiator avatar URL: %v", err)
 	}
 
 	initiatorResp := presenter.PresentUser(initiator, avatarURL)

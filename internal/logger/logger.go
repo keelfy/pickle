@@ -2,97 +2,40 @@ package logger
 
 import (
 	"context"
-	"fmt"
-	"log"
 
-	"github.com/fatih/color"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
+	"go.uber.org/zap"
+
 	"github.com/pickle.pw/monolith/internal/config"
 )
 
-func PrepareLogger() {
-	log.SetFlags(log.LstdFlags)
-	color.NoColor = false // enable color output
-}
+// NewLogger creates a new *zap.SugaredLogger configured for the current environment.
+// When DEBUG=true, uses zap.NewDevelopment() (console encoder, debug level).
+// Otherwise, uses zap.NewProduction() (JSON encoder, info level).
+// This function is intended to be used as a Wire provider.
+func NewLogger() (*zap.SugaredLogger, error) {
+	var zapLogger *zap.Logger
+	var err error
 
-func println(ctx context.Context, level, message string) {
-	var colorFunc func(format string, a ...any) string
-
-	switch level {
-	case "INFO":
-		colorFunc = color.New(color.FgGreen).SprintfFunc()
-	case "DEBUG":
-		colorFunc = color.New(color.FgBlue).SprintfFunc()
-	case "ERROR":
-		colorFunc = color.New(color.FgRed).SprintfFunc()
-	case "WARN":
-		colorFunc = color.New(color.FgYellow).SprintfFunc()
-	case "FATAL":
-		colorFunc = color.New(color.FgHiRed).SprintfFunc()
-	default:
-		colorFunc = color.New(color.FgWhite).SprintfFunc()
-	}
-
-	coloredLevel := colorFunc("[%s]", level)
-
-	requestId := chiMiddleware.GetReqID(ctx)
-	if requestId == "" {
-		requestId = "—"
-	}
-
-	coloredRequestId := color.New(color.FgYellow).Sprintf("[%s]", requestId)
-
-	log.Println(fmt.Sprintf("%s %s %s", coloredRequestId, coloredLevel, message))
-
-	if level == "FATAL" {
-		log.Fatalln("Exiting...")
-	}
-}
-
-func printf(ctx context.Context, level, message string, v ...any) {
-	println(ctx, level, fmt.Sprintf(message, v...))
-}
-
-func Infof(ctx context.Context, message string, v ...any) {
-	printf(ctx, "INFO", message, v...)
-}
-
-func Info(ctx context.Context, message string) {
-	println(ctx, "INFO", message)
-}
-
-func Debugf(ctx context.Context, message string, v ...any) {
 	if config.IsDebug() {
-		printf(ctx, "DEBUG", message, v...)
+		zapLogger, err = zap.NewDevelopment()
+	} else {
+		zapLogger, err = zap.NewProduction()
 	}
-}
-
-func Debug(ctx context.Context, message string) {
-	if config.IsDebug() {
-		println(ctx, "DEBUG", message)
+	if err != nil {
+		return nil, err
 	}
+
+	return zapLogger.Sugar(), nil
 }
 
-func Errorf(ctx context.Context, message string, v ...any) {
-	printf(ctx, "ERROR", message, v...)
-}
+// WithRequestID returns a new SugaredLogger with the chi request ID
+// from the given context added as a "request_id" field.
+// If no request ID is found in context, the logger is returned unchanged.
+func WithRequestID(ctx context.Context, log *zap.SugaredLogger) *zap.SugaredLogger {
+	if reqID := chiMiddleware.GetReqID(ctx); reqID != "" {
+		return log.With("request_id", reqID)
+	}
 
-func Error(ctx context.Context, message string) {
-	println(ctx, "ERROR", message)
-}
-
-func Warnf(ctx context.Context, message string, v ...any) {
-	printf(ctx, "WARN", message, v...)
-}
-
-func Warn(ctx context.Context, message string) {
-	println(ctx, "WARN", message)
-}
-
-func Fatalf(ctx context.Context, message string, v ...any) {
-	printf(ctx, "FATAL", message, v...)
-}
-
-func Fatal(ctx context.Context, message string) {
-	println(ctx, "FATAL", message)
+	return log
 }

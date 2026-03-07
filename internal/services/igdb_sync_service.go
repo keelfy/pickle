@@ -10,11 +10,11 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/pickle.pw/monolith/internal/clients"
 	"github.com/pickle.pw/monolith/internal/domain"
-	"github.com/pickle.pw/monolith/internal/logger"
 	"github.com/pickle.pw/monolith/internal/mapper"
 	"github.com/pickle.pw/monolith/internal/storage"
 	"github.com/pickle.pw/monolith/internal/storage/sql"
 	"github.com/pickle.pw/monolith/internal/utils"
+	"go.uber.org/zap"
 )
 
 type IGDBSyncService interface {
@@ -26,13 +26,14 @@ type igdbSyncService struct {
 	sqlDB      storage.RelationalStorage
 	elastic    storage.ElasticStorage
 	igdbClient clients.IGDBClient
+	logger     *zap.SugaredLogger
 }
 
-func NewIGDBSyncService(sqlDB storage.RelationalStorage, elastic storage.ElasticStorage, igdbClient clients.IGDBClient) IGDBSyncService {
+func NewIGDBSyncService(sqlDB storage.RelationalStorage, elastic storage.ElasticStorage, igdbClient clients.IGDBClient, zapLogger *zap.SugaredLogger) IGDBSyncService {
 	return &igdbSyncService{
 		sqlDB:      sqlDB,
 		elastic:    elastic,
-		igdbClient: igdbClient,
+		igdbClient: igdbClient, logger: zapLogger,
 	}
 }
 
@@ -43,7 +44,7 @@ func (s *igdbSyncService) TriggerGamesSync(w http.ResponseWriter, r *http.Reques
 
 		err := s.SyncGames(ctx, domain.SyncTypeFull)
 		if err != nil {
-			logger.Errorf(ctx, "[IGDB Sync] Sync failed: %v", err)
+			s.logger.Errorf("[IGDB Sync] Sync failed: %v", err)
 		}
 	}()
 	w.WriteHeader(http.StatusOK)
@@ -54,16 +55,16 @@ func (s *igdbSyncService) SyncGames(ctx context.Context, syncType domain.SyncTyp
 	if err != nil {
 		return err
 	}
-	logger.Infof(ctx, "[IGDB Sync] Sync started: %v", syncLog.ID)
+	s.logger.Infof("[IGDB Sync] Sync started: %v", syncLog.ID)
 
 	var gamesProcessed int64
 	defer func() {
 		if err != nil {
 			_ = s.sqlDB.Queries().CompleteExternalSyncWithError(ctx, syncLog.ID, err.Error())
-			logger.Errorf(ctx, "[IGDB Sync] Sync failed: %v", err)
+			s.logger.Errorf("[IGDB Sync] Sync failed: %v", err)
 		} else {
 			_ = s.sqlDB.Queries().CompleteExternalSync(ctx, syncLog.ID, gamesProcessed)
-			logger.Infof(ctx, "[IGDB Sync] Sync completed: %v", syncLog.ID)
+			s.logger.Infof("[IGDB Sync] Sync completed: %v", syncLog.ID)
 		}
 	}()
 
@@ -76,7 +77,7 @@ func (s *igdbSyncService) SyncGames(ctx context.Context, syncType domain.SyncTyp
 		} else if lErr != nil && lErr != pgx.ErrNoRows {
 			return lErr
 		}
-		logger.Debugf(ctx, "[IGDB Sync] Last successful sync: %v", lastSyncTimestamp)
+		s.logger.Debugf("[IGDB Sync] Last successful sync: %v", lastSyncTimestamp)
 	}
 
 	// Fetch games from IGDB
@@ -84,7 +85,7 @@ func (s *igdbSyncService) SyncGames(ctx context.Context, syncType domain.SyncTyp
 	if gErr != nil {
 		return gErr
 	}
-	logger.Debugf(ctx, "[IGDB Sync] Fetched %d games", len(games))
+	s.logger.Debugf("[IGDB Sync] Fetched %d games", len(games))
 
 	total := len(games)
 	if total == 0 {
@@ -131,7 +132,7 @@ func (s *igdbSyncService) SyncGames(ctx context.Context, syncType domain.SyncTyp
 							raw := json.RawMessage(jsonBytes)
 							serializedWebsites = &raw
 						} else {
-							logger.Errorf(ctx, "[IGDB Sync] Error marshalling websites: %v", mErr)
+							s.logger.Errorf("[IGDB Sync] Error marshalling websites: %v", mErr)
 						}
 					}
 				}
@@ -165,7 +166,7 @@ func (s *igdbSyncService) SyncGames(ctx context.Context, syncType domain.SyncTyp
 					SourceType:   domain.ContentSourceIGDB,
 				})
 				if uErr != nil {
-					logger.Warnf(ctx, "[IGDB Sync] Error upserting game: %v. Game %d (%s) skipped.", uErr, game.ID, game.Name)
+					s.logger.Warnf("[IGDB Sync] Error upserting game: %v. Game %d (%s) skipped.", uErr, game.ID, game.Name)
 					continue
 				}
 
@@ -193,7 +194,7 @@ func (s *igdbSyncService) SyncGames(ctx context.Context, syncType domain.SyncTyp
 						Locale:    locale,
 						Title:     title,
 					}); lErr != nil {
-						logger.Warnf(ctx, "[IGDB Sync] Error upserting game localization: %v. Locale %s for game %s skipped.", lErr, locale, id)
+						s.logger.Warnf("[IGDB Sync] Error upserting game localization: %v. Locale %s for game %s skipped.", lErr, locale, id)
 						continue
 					}
 				}
@@ -221,13 +222,13 @@ func (s *igdbSyncService) SyncGames(ctx context.Context, syncType domain.SyncTyp
 			}
 
 			if biErr := s.elastic.BulkIndexDocuments(ctx, "igdb_games", documents); biErr != nil {
-				logger.Warnf(ctx, "[IGDB Sync] Error indexing documents: %v. Batch %d/%d skipped.", biErr, b+1, totalBatches)
+				s.logger.Warnf("[IGDB Sync] Error indexing documents: %v. Batch %d/%d skipped.", biErr, b+1, totalBatches)
 				return biErr
 			}
 			return nil
 		})
 		if err != nil {
-			logger.Warnf(ctx, "[IGDB Sync] Error processing batch: %v. Batch %d/%d skipped.", err, b+1, totalBatches)
+			s.logger.Warnf("[IGDB Sync] Error processing batch: %v. Batch %d/%d skipped.", err, b+1, totalBatches)
 			continue
 		}
 
@@ -238,7 +239,7 @@ func (s *igdbSyncService) SyncGames(ctx context.Context, syncType domain.SyncTyp
 		batchesLeft := totalBatches - (b + 1)
 		timeLeft := medianDuration.Seconds() * float64(batchesLeft)
 		percent := float64(gamesProcessed) / float64(total) * 100
-		logger.Infof(ctx, "[IGDB Sync] Committed %d/%d games (%.2f%%, %d/%d batches) in %vms. Estimated time left: %.2fs.", gamesProcessed, total, percent, b+1, totalBatches, duration.Milliseconds(), timeLeft)
+		s.logger.Infof("[IGDB Sync] Committed %d/%d games (%.2f%%, %d/%d batches) in %vms. Estimated time left: %.2fs.", gamesProcessed, total, percent, b+1, totalBatches, duration.Milliseconds(), timeLeft)
 	}
 
 	return nil

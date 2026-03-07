@@ -10,6 +10,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 )
 
 type testCase[T any] struct {
@@ -29,12 +30,11 @@ func setupTestRedis(t *testing.T) (*miniredis.Miniredis, CacheStorage) {
 		Addr: mr.Addr(),
 	})
 
-	return mr, &cacheStorage{client: client}
+	return mr, &cacheStorage{client: client, logger: zap.NewNop().Sugar()}
 }
 
 func TestNewCacheClient(t *testing.T) {
 	// don't run this test in parallel since it modifies environment variables
-	ctx := context.Background()
 	originalURL := os.Getenv("REDIS_URL")
 	defer os.Setenv("REDIS_URL", originalURL) // Restore original value after test
 
@@ -65,7 +65,7 @@ func TestNewCacheClient(t *testing.T) {
 			// Set up environment for this test case
 			os.Setenv("REDIS_URL", tt.redisURL)
 
-			client, err := NewCacheStorage(ctx)
+			client, err := NewCacheStorage(zap.NewNop().Sugar())
 			if tt.wantErr {
 				assert.Error(t, err)
 				assert.Nil(t, client)

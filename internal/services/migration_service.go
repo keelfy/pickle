@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/pickle.pw/monolith/internal/logger"
 	"github.com/pickle.pw/monolith/internal/storage"
+	"go.uber.org/zap"
 )
 
 type MigrationService interface {
@@ -21,12 +21,13 @@ type MigrationService interface {
 type migrationService struct {
 	sqlDb   storage.RelationalStorage
 	elastic storage.ElasticStorage
+	logger  *zap.SugaredLogger
 }
 
-func NewMigrationService(sqlDb storage.RelationalStorage, elastic storage.ElasticStorage) MigrationService {
+func NewMigrationService(sqlDb storage.RelationalStorage, elastic storage.ElasticStorage, zapLogger *zap.SugaredLogger) MigrationService {
 	return &migrationService{
 		sqlDb:   sqlDb,
-		elastic: elastic,
+		elastic: elastic, logger: zapLogger,
 	}
 }
 
@@ -44,7 +45,7 @@ func (service *migrationService) ApplyElasticMigration(ctx context.Context, migr
 	}
 
 	if mlog.Name == migration.ID {
-		logger.Warnf(ctx, "Migration %s has already been applied.", migration.ID)
+		service.logger.Warnf("Migration %s has already been applied.", migration.ID)
 		return nil
 	}
 

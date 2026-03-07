@@ -15,6 +15,7 @@ import (
 	"github.com/pickle.pw/monolith/internal/storage/sql"
 	req "github.com/pickle.pw/monolith/internal/transport/http/requests"
 	"github.com/pickle.pw/monolith/internal/utils"
+	"go.uber.org/zap"
 )
 
 type UserService interface {
@@ -32,6 +33,7 @@ type userService struct {
 	cache           storage.CacheStorage
 	avatarService   AvatarService
 	followerService FollowerService
+	logger          *zap.SugaredLogger
 }
 
 func NewUserService(
@@ -39,14 +41,14 @@ func NewUserService(
 	s3Client storage.FileStorage,
 	cache storage.CacheStorage,
 	avatarService AvatarService,
-	followerService FollowerService,
+	followerService FollowerService, zapLogger *zap.SugaredLogger,
 ) UserService {
 	return &userService{
 		sqlDb:           sqlDb,
 		s3Client:        s3Client,
 		cache:           cache,
 		avatarService:   avatarService,
-		followerService: followerService,
+		followerService: followerService, logger: zapLogger,
 	}
 }
 

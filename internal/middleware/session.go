@@ -8,6 +8,7 @@ import (
 	ory "github.com/ory/client-go"
 	"github.com/pickle.pw/monolith/internal/clients"
 	"github.com/pickle.pw/monolith/internal/logger"
+	"go.uber.org/zap"
 )
 
 func SessionMiddleware(oryAPI clients.OryAPI, optional bool) func(http.Handler) http.Handler {
@@ -17,7 +18,7 @@ func SessionMiddleware(oryAPI clients.OryAPI, optional bool) func(http.Handler) 
 
 			session, err := oryAPI.GetSession(r.Context(), cookies)
 			if (err != nil || session == nil || !*session.Active) && !optional {
-				logger.Debugf(r.Context(), "Session %v is not active: %v", session, err)
+				logger.WithRequestID(r.Context(), zap.S()).Debugf("Session %v is not active: %v", session, err)
 				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 				return
 			}

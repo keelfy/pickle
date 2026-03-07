@@ -2,39 +2,48 @@ package main
 
 import (
 	"context"
+	"log"
 
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/pickle.pw/monolith/internal/logger"
 	"github.com/pickle.pw/monolith/internal/services"
 	"github.com/pickle.pw/monolith/internal/storage"
+	"go.uber.org/zap"
 )
 
 func main() {
 	ctx := context.Background()
-	logger.PrepareLogger()
-
-	relationalStorage, cleanup, err := storage.NewRelationalStorage(ctx)
+	zapLogger, err := logger.NewLogger()
 	if err != nil {
-		logger.Fatalf(ctx, "Failed to initialize relational storage: %v", err)
+		log.Fatalf("Failed to initialize logger: %v", err)
+	}
+	defer func() {
+		_ = zapLogger.Desugar().Sync()
+	}()
+	zap.ReplaceGlobals(zapLogger.Desugar())
+
+	relationalStorage, cleanup, err := storage.NewRelationalStorage(ctx, zapLogger)
+	if err != nil {
+		zapLogger.Fatalf("Failed to initialize relational storage: %v", err)
 	}
 	defer cleanup()
 
-	elasticStorage, err := storage.NewElasticStorage(ctx)
+	elasticStorage, err := storage.NewElasticStorage(zapLogger)
 	if err != nil {
-		logger.Fatalf(ctx, "Failed to initialize elastic storage: %v", err)
+		zapLogger.Fatalf("Failed to initialize elastic storage: %v", err)
 	}
 
-	migrationService := services.NewMigrationService(relationalStorage, elasticStorage)
+	migrationService := services.NewMigrationService(relationalStorage, elasticStorage, zapLogger)
 	migrations, err := migrationService.LoadElasticMigrations("./db/elasticsearch/migration")
 	if err != nil {
-		logger.Fatalf(ctx, "Failed to load elasticsearch migrations: %v", err)
+		zapLogger.Fatalf("Failed to load elasticsearch migrations: %v", err)
 	}
 
 	for _, migration := range migrations {
 		if err := migrationService.ApplyElasticMigration(ctx, migration); err != nil {
-			logger.Fatalf(ctx, "Failed to apply elasticsearch migration %s: %v", migration.ID, err)
+			zapLogger.Fatalf("Failed to apply elasticsearch migration %s: %v", migration.ID, err)
 		}
 	}
 
-	logger.Infof(ctx, "Applied %d elasticsearch migrations", len(migrations))
+	zapLogger.Infof("Applied %d elasticsearch migrations", len(migrations))
 }

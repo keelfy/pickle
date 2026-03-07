@@ -8,6 +8,7 @@ import (
 	"github.com/pickle.pw/monolith/internal/storage"
 	"github.com/pickle.pw/monolith/internal/storage/sql"
 	"github.com/pickle.pw/monolith/internal/utils"
+	"go.uber.org/zap"
 )
 
 type ContentNoteReactionService interface {
@@ -17,11 +18,12 @@ type ContentNoteReactionService interface {
 }
 
 type contentNoteReactionService struct {
-	sqlDB storage.RelationalStorage
+	sqlDB  storage.RelationalStorage
+	logger *zap.SugaredLogger
 }
 
-func NewContentNoteReactionService(sqlDB storage.RelationalStorage) ContentNoteReactionService {
-	return &contentNoteReactionService{sqlDB: sqlDB}
+func NewContentNoteReactionService(sqlDB storage.RelationalStorage, zapLogger *zap.SugaredLogger) ContentNoteReactionService {
+	return &contentNoteReactionService{sqlDB: sqlDB, logger: zapLogger}
 }
 
 func (s *contentNoteReactionService) AddContentNoteReaction(ctx context.Context, cmd *commands.AddContentNoteReactionCommand) error {

@@ -14,10 +14,10 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/pickle.pw/monolith/internal/config"
 	"github.com/pickle.pw/monolith/internal/domain"
-	"github.com/pickle.pw/monolith/internal/logger"
 	"github.com/pickle.pw/monolith/internal/storage"
 	"github.com/pickle.pw/monolith/internal/storage/sql"
 	"github.com/pickle.pw/monolith/internal/utils"
+	"go.uber.org/zap"
 )
 
 type PosterService interface {
@@ -43,18 +43,19 @@ type posterService struct {
 	cache        storage.CacheStorage
 	imageService ImageService
 	userService  UserService
+	logger       *zap.SugaredLogger
 }
 
 func NewPosterService(
 	sqlDB storage.RelationalStorage, s3 storage.FileStorage, cache storage.CacheStorage,
-	imageService ImageService, userService UserService,
+	imageService ImageService, userService UserService, zapLogger *zap.SugaredLogger,
 ) PosterService {
 	return &posterService{
 		sqlDB:        sqlDB,
 		s3:           s3,
 		cache:        cache,
 		imageService: imageService,
-		userService:  userService,
+		userService:  userService, logger: zapLogger,
 	}
 }
 
@@ -115,7 +116,7 @@ func (s *posterService) uploadPosterForPreview(ctx context.Context, userId uuid.
 	})
 	if err != nil {
 		if err1 := s.s3.DeleteObject(ctx, bucketName, previewKey); err1 != nil {
-			logger.Errorf(ctx, "Error occurred deleting preview avatar: %v", err1)
+			s.logger.Errorf("Error occurred deleting preview avatar: %v", err1)
 		}
 		return uuid.Nil, "", utils.NewInternalServerError("Error occurred inserting poster preview", err)
 	}
@@ -124,7 +125,7 @@ func (s *posterService) uploadPosterForPreview(ctx context.Context, userId uuid.
 
 	existingPreviews, err := s.sqlDB.Queries().FindPosterPreviewByCreatedBy(ctx, user.ID)
 	if err != nil {
-		logger.Errorf(ctx, "Error occurred getting poster previews: %v", err)
+		s.logger.Errorf("Error occurred getting poster previews: %v", err)
 	}
 
 	keysToDelete := make([]string, 0)
@@ -346,7 +347,7 @@ func (s *posterService) DeletePosterKey(ctx context.Context, prefix, posterKey s
 		cacheKey := fmt.Sprintf("poster:%s:%s:%s", prefix, posterKey, sizeName)
 		err = s.cache.DeleteKey(ctx, cacheKey)
 		if err != nil {
-			logger.Errorf(ctx, "Error occurred deleting poster cache: %v", err)
+			s.logger.Errorf("Error occurred deleting poster cache: %v", err)
 		}
 	}
 

@@ -8,6 +8,7 @@ import (
 	"github.com/pickle.pw/monolith/internal/storage"
 	"github.com/pickle.pw/monolith/internal/transport/http/responses"
 	"github.com/pickle.pw/monolith/internal/utils"
+	"go.uber.org/zap"
 )
 
 type StatusHandler interface {
@@ -18,13 +19,14 @@ type statusHandler struct {
 	sqlDb   storage.RelationalStorage
 	elastic storage.ElasticStorage
 	cache   storage.CacheStorage
+	logger  *zap.SugaredLogger
 }
 
-func NewStatusHandler(sqlDb storage.RelationalStorage, elastic storage.ElasticStorage, cache storage.CacheStorage) StatusHandler {
+func NewStatusHandler(sqlDb storage.RelationalStorage, elastic storage.ElasticStorage, cache storage.CacheStorage, zapLogger *zap.SugaredLogger) StatusHandler {
 	return &statusHandler{
 		sqlDb:   sqlDb,
 		elastic: elastic,
-		cache:   cache,
+		cache:   cache, logger: zapLogger,
 	}
 }
 
@@ -69,6 +71,6 @@ func (handler *statusHandler) Health(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(statusCode)
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		logger.Errorf(ctx, "Error writing data: %v", err)
+		logger.WithRequestID(ctx, handler.logger).Errorf("Error writing data: %v", err)
 	}
 }

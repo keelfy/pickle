@@ -11,6 +11,7 @@ import (
 	"github.com/pickle.pw/monolith/internal/transport/http/binders"
 	resp "github.com/pickle.pw/monolith/internal/transport/http/responses"
 	"github.com/pickle.pw/monolith/internal/utils"
+	"go.uber.org/zap"
 )
 
 type ModeratorHandler interface {
@@ -24,19 +25,20 @@ type moderatorHandler struct {
 	userService       services.UserService
 	avatarService     services.AvatarService
 	permissionService services.PermissionService
+	logger            *zap.SugaredLogger
 }
 
 func NewModeratorHandler(
 	moderatorService services.ModeratorService,
 	userService services.UserService,
 	avatarService services.AvatarService,
-	permissionService services.PermissionService,
+	permissionService services.PermissionService, zapLogger *zap.SugaredLogger,
 ) ModeratorHandler {
 	return &moderatorHandler{
 		moderatorService:  moderatorService,
 		userService:       userService,
 		avatarService:     avatarService,
-		permissionService: permissionService,
+		permissionService: permissionService, logger: zapLogger,
 	}
 }
 
@@ -80,7 +82,7 @@ func (h *moderatorHandler) AddModeratorByUsername(w http.ResponseWriter, r *http
 
 	avatarURL, err := h.avatarService.GetAvatarURLByUserID(ctx, moderator.ModeratorID, cmd.AvatarSize)
 	if err != nil {
-		logger.Errorf(ctx, "failed to get avatar URL by user ID: %v", err)
+		logger.WithRequestID(ctx, h.logger).Errorf("failed to get avatar URL by user ID: %v", err)
 	}
 
 	h.moderatorService.ClearModeratorsCache(ctx, user.GetID())
@@ -155,7 +157,7 @@ func (h *moderatorHandler) GetModeratorsByUserID(w http.ResponseWriter, r *http.
 			defer group.Done()
 			avatarUrl, err := h.avatarService.GetAvatarURLByUserID(ctx, moderator.ModeratorID, domain.AvatarSize(avatarSize))
 			if err != nil {
-				logger.Errorf(ctx, "failed to get avatar URL by user ID: %v", err)
+				logger.WithRequestID(ctx, h.logger).Errorf("failed to get avatar URL by user ID: %v", err)
 			}
 			moderatorProfiles[i] = presenter.PresentModerator(moderator, avatarUrl)
 		}(i, moderator)

@@ -5,9 +5,9 @@ import (
 
 	"github.com/pickle.pw/monolith/internal/commands"
 	"github.com/pickle.pw/monolith/internal/domain"
-	"github.com/pickle.pw/monolith/internal/logger"
 	"github.com/pickle.pw/monolith/internal/services"
 	"github.com/pickle.pw/monolith/internal/utils"
+	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -19,17 +19,18 @@ type getUserByIDUseCase struct {
 	userService    services.UserService
 	avatarService  services.AvatarService
 	profileService services.ProfileService
+	logger         *zap.SugaredLogger
 }
 
 func NewGetUserByIDUseCase(
 	userService services.UserService,
 	avatarService services.AvatarService,
-	profileService services.ProfileService,
+	profileService services.ProfileService, zapLogger *zap.SugaredLogger,
 ) GetUserByIDUseCase {
 	return &getUserByIDUseCase{
 		userService:    userService,
 		avatarService:  avatarService,
-		profileService: profileService,
+		profileService: profileService, logger: zapLogger,
 	}
 }
 
@@ -44,7 +45,7 @@ func (uc *getUserByIDUseCase) Handle(ctx context.Context, cmd *commands.GetUserB
 	wg.Go(func() error {
 		u, err := uc.userService.GetUserByID(ctx, cmd.ID)
 		if err != nil {
-			logger.Errorf(ctx, "failed to get user by ID: %v", err)
+			uc.logger.Errorf("failed to get user by ID: %v", err)
 		}
 		user = u
 		return err
@@ -53,7 +54,7 @@ func (uc *getUserByIDUseCase) Handle(ctx context.Context, cmd *commands.GetUserB
 	wg.Go(func() error {
 		url, err := uc.avatarService.GetAvatarURLByUserID(ctx, cmd.ID, cmd.AvatarSize)
 		if err != nil {
-			logger.Errorf(ctx, "failed to get avatar URL by user ID: %v", err)
+			uc.logger.Errorf("failed to get avatar URL by user ID: %v", err)
 		}
 		avatarURL = url
 		return nil
@@ -62,7 +63,7 @@ func (uc *getUserByIDUseCase) Handle(ctx context.Context, cmd *commands.GetUserB
 	wg.Go(func() error {
 		context, err := uc.profileService.GetProfileContext(ctx, cmd.ID)
 		if err != nil {
-			logger.Errorf(ctx, "failed to get profile context: %v", err)
+			uc.logger.Errorf("failed to get profile context: %v", err)
 		}
 		userCtx = context
 		return nil

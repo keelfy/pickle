@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/pickle.pw/monolith/internal/domain"
+	"go.uber.org/zap"
 )
 
 type OrdersBrokerService interface {
@@ -18,12 +19,13 @@ type OrdersBrokerService interface {
 type ordersBrokerService struct {
 	clients map[uuid.UUID][]chan *domain.Order
 	mu      sync.Mutex
+	logger  *zap.SugaredLogger
 }
 
-func NewOrdersBrokerService() OrdersBrokerService {
+func NewOrdersBrokerService(zapLogger *zap.SugaredLogger) OrdersBrokerService {
 	return &ordersBrokerService{
 		clients: make(map[uuid.UUID][]chan *domain.Order),
-		mu:      sync.Mutex{},
+		mu:      sync.Mutex{}, logger: zapLogger,
 	}
 }
 

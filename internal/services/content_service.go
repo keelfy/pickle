@@ -9,11 +9,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/pickle.pw/monolith/internal/commands"
 	"github.com/pickle.pw/monolith/internal/domain"
-	"github.com/pickle.pw/monolith/internal/logger"
 	"github.com/pickle.pw/monolith/internal/mapper"
 	"github.com/pickle.pw/monolith/internal/middleware"
 	"github.com/pickle.pw/monolith/internal/storage"
 	"github.com/pickle.pw/monolith/internal/utils"
+	"go.uber.org/zap"
 )
 
 type ContentService interface {
@@ -29,17 +29,18 @@ type contentService struct {
 	sqlDB         storage.RelationalStorage
 	elastic       storage.ElasticStorage
 	posterService PosterService
+	logger        *zap.SugaredLogger
 }
 
 func NewContentService(
 	sqlDB storage.RelationalStorage,
 	elastic storage.ElasticStorage,
-	posterService PosterService,
+	posterService PosterService, zapLogger *zap.SugaredLogger,
 ) ContentService {
 	return &contentService{
 		sqlDB:         sqlDB,
 		elastic:       elastic,
-		posterService: posterService,
+		posterService: posterService, logger: zapLogger,
 	}
 }
 
@@ -98,7 +99,7 @@ func (s *contentService) GetContentCoverURL(ctx context.Context, content domain.
 
 	url, err := s.posterService.GetCoverImageURL(ctx, coverSize, *coverKey, *coverKeyType)
 	if err != nil {
-		logger.Errorf(ctx, "failed to get content cover URL: %v", err)
+		s.logger.Errorf("failed to get content cover URL: %v", err)
 		return nil
 	}
 
@@ -146,14 +147,14 @@ func (s *contentService) SearchContent(ctx context.Context, cmd *commands.Search
 
 	for _, searchHit := range searchHits {
 		if searchHit.Id_ == nil {
-			logger.Warnf(ctx, "search hit ID is nil, skipping")
+			s.logger.Warnf("search hit ID is nil, skipping")
 			continue
 		}
 
 		mediaID := *searchHit.Id_
 		category, contentID, err := mapper.MapMediaIDToContentID(mediaID)
 		if err != nil {
-			logger.Warnf(ctx, "failed to parse search hit ID: %v", err)
+			s.logger.Warnf("failed to parse search hit ID: %v", err)
 			continue
 		}
 
@@ -165,7 +166,7 @@ func (s *contentService) SearchContent(ctx context.Context, cmd *commands.Search
 
 		title, err := s.getTitleFromElasticContent(ctx, dbSource, locale)
 		if err != nil {
-			logger.Warnf(ctx, "failed to localize title: %v", err)
+			s.logger.Warnf("failed to localize title: %v", err)
 			title = dbSource.EnglishName
 		}
 
@@ -226,14 +227,14 @@ func (s *contentService) SearchUserContent(ctx context.Context, cmd *commands.Se
 
 	for _, searchHit := range searchHits {
 		if searchHit.Id_ == nil {
-			logger.Warnf(ctx, "search hit ID is nil, skipping")
+			s.logger.Warnf("search hit ID is nil, skipping")
 			continue
 		}
 
 		mediaID := *searchHit.Id_
 		category, contentID, err := mapper.MapMediaIDToContentID(mediaID)
 		if err != nil {
-			logger.Warnf(ctx, "failed to parse search hit ID: %v", err)
+			s.logger.Warnf("failed to parse search hit ID: %v", err)
 			continue
 		}
 
@@ -245,7 +246,7 @@ func (s *contentService) SearchUserContent(ctx context.Context, cmd *commands.Se
 
 		title, err := s.getTitleFromElasticContent(ctx, dbSource, locale)
 		if err != nil {
-			logger.Warnf(ctx, "failed to get title from elastic content: %v", err)
+			s.logger.Warnf("failed to get title from elastic content: %v", err)
 			title = dbSource.EnglishName
 		}
 

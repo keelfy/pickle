@@ -9,6 +9,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 )
 
 // mockS3Client is a mock implementation of S3Client for testing
@@ -65,7 +66,7 @@ func TestNewFileStorage(t *testing.T) {
 		os.Setenv("AWS_ACCESS_KEY_ID", "test")
 		os.Setenv("AWS_SECRET_ACCESS_KEY", "test")
 
-		client, err := NewFileStorage(ctx)
+		client, err := NewFileStorage(ctx, zap.NewNop().Sugar())
 		assert.NoError(t, err)
 		assert.NotNil(t, client)
 	})
@@ -75,7 +76,7 @@ func TestNewFileStorage(t *testing.T) {
 		os.Unsetenv("AWS_ACCESS_KEY_ID")
 		os.Unsetenv("AWS_SECRET_ACCESS_KEY")
 
-		client, err := NewFileStorage(ctx)
+		client, err := NewFileStorage(ctx, zap.NewNop().Sugar())
 		assert.Error(t, err)
 		assert.Nil(t, client)
 	})
@@ -120,7 +121,7 @@ func TestUploadFile(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			mock := &mockS3Client{putObjectFunc: tt.mockFunc}
-			storage := &fileStorage{client: mock}
+			storage := &fileStorage{client: mock, logger: zap.NewNop().Sugar()}
 
 			err := storage.UploadFile(ctx, tt.bucketName, tt.key, strings.NewReader(tt.fileContent))
 			if tt.wantErr {
@@ -168,7 +169,7 @@ func TestDeleteObject(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			mock := &mockS3Client{deleteObjectFunc: tt.mockFunc}
-			storage := &fileStorage{client: mock}
+			storage := &fileStorage{client: mock, logger: zap.NewNop().Sugar()}
 
 			err := storage.DeleteObject(ctx, tt.bucketName, tt.key)
 			if tt.wantErr {
@@ -216,7 +217,7 @@ func TestBulkDeleteObject(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			mock := &mockS3Client{deleteObjectsFunc: tt.mockFunc}
-			storage := &fileStorage{client: mock}
+			storage := &fileStorage{client: mock, logger: zap.NewNop().Sugar()}
 
 			err := storage.BulkDeleteObject(ctx, tt.bucketName, tt.keys)
 			if tt.wantErr {
@@ -271,7 +272,7 @@ func TestCopyObject(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			mock := &mockS3Client{copyObjectFunc: tt.mockFunc}
-			storage := &fileStorage{client: mock}
+			storage := &fileStorage{client: mock, logger: zap.NewNop().Sugar()}
 
 			err := storage.CopyObject(ctx, tt.oldBucketName, tt.newBucketName, tt.oldKey, tt.newKey)
 			if tt.wantErr {
@@ -347,7 +348,7 @@ func TestMoveObject(t *testing.T) {
 				copyObjectFunc:   tt.copyMockFunc,
 				deleteObjectFunc: tt.deleteMockFunc,
 			}
-			storage := &fileStorage{client: mock}
+			storage := &fileStorage{client: mock, logger: zap.NewNop().Sugar()}
 
 			err := storage.MoveObject(ctx, tt.oldBucketName, tt.newBucketName, tt.oldKey, tt.newKey)
 			if tt.wantErr {

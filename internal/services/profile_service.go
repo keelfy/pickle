@@ -6,8 +6,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/pickle.pw/monolith/internal/domain"
-	"github.com/pickle.pw/monolith/internal/logger"
 	"github.com/pickle.pw/monolith/internal/utils"
+	"go.uber.org/zap"
 )
 
 type ProfileService interface {
@@ -22,12 +22,13 @@ type profileService struct {
 	orderService       OrderService
 	userService        UserService
 	contentNoteService ContentNoteService
+	logger             *zap.SugaredLogger
 }
 
 func NewProfileService(
 	avatarService AvatarService, followerService FollowerService,
 	moderatorService ModeratorService, orderService OrderService,
-	userService UserService, contentNoteService ContentNoteService,
+	userService UserService, contentNoteService ContentNoteService, zapLogger *zap.SugaredLogger,
 ) ProfileService {
 	return &profileService{
 		avatarService:      avatarService,
@@ -35,7 +36,7 @@ func NewProfileService(
 		moderatorService:   moderatorService,
 		orderService:       orderService,
 		userService:        userService,
-		contentNoteService: contentNoteService,
+		contentNoteService: contentNoteService, logger: zapLogger,
 	}
 }
 
@@ -49,7 +50,7 @@ func (s *profileService) GetProfileCounts(ctx context.Context, userID uuid.UUID)
 		defer wg.Done()
 		playedCount, playedErr := s.contentNoteService.CountPlayedContentByUserID(ctx, userID)
 		if playedErr != nil {
-			logger.Errorf(ctx, "Error occurred during played count: %v", playedErr)
+			s.logger.Errorf("Error occurred during played count: %v", playedErr)
 			return
 		}
 		counts.Played = playedCount
@@ -60,7 +61,7 @@ func (s *profileService) GetProfileCounts(ctx context.Context, userID uuid.UUID)
 		defer wg.Done()
 		watchedCount, watchedErr := s.contentNoteService.CountWatchedContentByUserID(ctx, userID)
 		if watchedErr != nil {
-			logger.Errorf(ctx, "Error occurred during watched count: %v", watchedErr)
+			s.logger.Errorf("Error occurred during watched count: %v", watchedErr)
 			return
 		}
 		counts.Watched = watchedCount
@@ -71,7 +72,7 @@ func (s *profileService) GetProfileCounts(ctx context.Context, userID uuid.UUID)
 		defer wg.Done()
 		orderedCount, orderedErr := s.orderService.CountOrdersByReceiverID(ctx, userID)
 		if orderedErr != nil {
-			logger.Errorf(ctx, "Error occurred during ordered count: %v", orderedErr)
+			s.logger.Errorf("Error occurred during ordered count: %v", orderedErr)
 			return
 		}
 		counts.Ordered = orderedCount
@@ -82,7 +83,7 @@ func (s *profileService) GetProfileCounts(ctx context.Context, userID uuid.UUID)
 		defer wg.Done()
 		followerCount, followerErr := s.followerService.CountFollowers(ctx, userID)
 		if followerErr != nil {
-			logger.Errorf(ctx, "Error occurred during followers count: %v", followerErr)
+			s.logger.Errorf("Error occurred during followers count: %v", followerErr)
 			return
 		}
 		counts.Followers = followerCount
@@ -114,7 +115,7 @@ func (s *profileService) GetProfileContext(ctx context.Context, userID uuid.UUID
 		defer wg.Done()
 		isFollowing, isFollowingErr := s.followerService.IsFollowing(ctx, userID, *authUserID)
 		if isFollowingErr != nil {
-			logger.Errorf(ctx, "Error occurred during following status check: %v", isFollowingErr)
+			s.logger.Errorf("Error occurred during following status check: %v", isFollowingErr)
 			return
 		}
 		profileCtx.IsFollowing = isFollowing
@@ -125,7 +126,7 @@ func (s *profileService) GetProfileContext(ctx context.Context, userID uuid.UUID
 		defer wg.Done()
 		isModerator, isModeratorErr := s.moderatorService.IsModeratorOf(ctx, userID, *authUserID)
 		if isModeratorErr != nil {
-			logger.Errorf(ctx, "Error occurred during authorization check: %v", isModeratorErr)
+			s.logger.Errorf("Error occurred during authorization check: %v", isModeratorErr)
 		}
 		profileCtx.IsAuthorized = isModerator || *authUserID == userID
 		profileCtx.IsModerator = isModerator

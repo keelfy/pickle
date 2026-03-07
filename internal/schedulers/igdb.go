@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/pickle.pw/monolith/internal/domain"
-	"github.com/pickle.pw/monolith/internal/logger"
 	"github.com/pickle.pw/monolith/internal/services"
 	"github.com/pickle.pw/monolith/internal/storage"
+	"go.uber.org/zap"
 )
 
 type IGDBScheduler interface {
@@ -17,12 +17,13 @@ type IGDBScheduler interface {
 type igdbScheduler struct {
 	igdbSyncService services.IGDBSyncService
 	db              storage.RelationalStorage
+	logger          *zap.SugaredLogger
 }
 
-func NewIGDBScheduler(igdbSyncService services.IGDBSyncService, db storage.RelationalStorage) IGDBScheduler {
+func NewIGDBScheduler(igdbSyncService services.IGDBSyncService, db storage.RelationalStorage, zapLogger *zap.SugaredLogger) IGDBScheduler {
 	return &igdbScheduler{
 		igdbSyncService: igdbSyncService,
-		db:              db,
+		db:              db, logger: zapLogger,
 	}
 }
 
@@ -36,7 +37,7 @@ func (s *igdbScheduler) SetupIGDBSync(ctx context.Context) error {
 				return
 			case <-ticker.C:
 				if err := s.igdbSyncService.SyncGames(ctx, domain.SyncTypeIncremental); err != nil {
-					logger.Errorf(ctx, "IGDB sync failed: %v", err)
+					s.logger.Errorf("IGDB sync failed: %v", err)
 				}
 			}
 		}

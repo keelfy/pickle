@@ -11,7 +11,7 @@ import (
 
 	"github.com/pickle.pw/monolith/internal/config"
 	"github.com/pickle.pw/monolith/internal/domain"
-	"github.com/pickle.pw/monolith/internal/logger"
+	"go.uber.org/zap"
 )
 
 const (
@@ -35,6 +35,7 @@ type idgbClient struct {
 	clientSecret string
 	accessToken  string
 	tokenExpiry  time.Time
+	logger       *zap.SugaredLogger
 }
 
 type TwitchAuthResponse struct {
@@ -43,11 +44,11 @@ type TwitchAuthResponse struct {
 	TokenType   string `json:"token_type"`
 }
 
-func NewIGDBClient() IGDBClient {
+func NewIGDBClient(zapLogger *zap.SugaredLogger) IGDBClient {
 	return &idgbClient{
 		httpClient:   &http.Client{Timeout: 10 * time.Second},
 		clientID:     config.GetTwitchClientID(),
-		clientSecret: config.GetTwitchClientSecret(),
+		clientSecret: config.GetTwitchClientSecret(), logger: zapLogger,
 	}
 }
 
@@ -103,8 +104,7 @@ func (c *idgbClient) GetUpdatedGames(ctx context.Context, lastSyncTimestamp *tim
 	if count > igdbItemsLimit && igdbItemsLimit > 0 {
 		count = igdbItemsLimit
 	}
-
-	logger.Debugf(ctx, "[IGDB Sync] Total games to fetch: %d", count)
+	c.logger.Debugf("[IGDB Sync] Total games to fetch: %d", count)
 
 	offset := 0
 	allGames := []*domain.IGDBGame{}
@@ -118,10 +118,9 @@ func (c *idgbClient) GetUpdatedGames(ctx context.Context, lastSyncTimestamp *tim
 		}
 		allGames = append(allGames, games...)
 		offset = len(allGames)
-		logger.Debugf(ctx, "[IGDB Sync] Fetched %d/%d games...", offset, count)
+		c.logger.Debugf("[IGDB Sync] Fetched %d/%d games...", offset, count)
 	}
-
-	logger.Debugf(ctx, "[IGDB Sync] Fetched all %d games", len(allGames))
+	c.logger.Debugf("[IGDB Sync] Fetched all %d games", len(allGames))
 	return allGames, nil
 }
 

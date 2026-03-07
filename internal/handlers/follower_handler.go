@@ -6,6 +6,7 @@ import (
 	"github.com/pickle.pw/monolith/internal/services"
 	"github.com/pickle.pw/monolith/internal/transport/http/binders"
 	"github.com/pickle.pw/monolith/internal/utils"
+	"go.uber.org/zap"
 )
 
 type FollowerHandler interface {
@@ -15,22 +16,25 @@ type FollowerHandler interface {
 
 type followerHandler struct {
 	followerService services.FollowerService
+	logger          *zap.SugaredLogger
 }
 
-func NewFollowerHandler(followerService services.FollowerService) FollowerHandler {
-	return &followerHandler{followerService: followerService}
+func NewFollowerHandler(followerService services.FollowerService, zapLogger *zap.SugaredLogger) FollowerHandler {
+	return &followerHandler{followerService: followerService, logger:
+
+	// @Summary Follow profile
+	// @Description Follow profile
+	// @Tags profiles
+	// @Accept json
+	// @Produce json
+	// @Param userId path string true "User ID"
+	// @Success 204
+	// @Failure 400 {object} string
+	// @Failure 500 {object} string
+	// @Router /v1/users/{userId}/follows [post]
+	zapLogger}
 }
 
-// @Summary Follow profile
-// @Description Follow profile
-// @Tags profiles
-// @Accept json
-// @Produce json
-// @Param userId path string true "User ID"
-// @Success 204
-// @Failure 400 {object} string
-// @Failure 500 {object} string
-// @Router /v1/users/{userId}/follows [post]
 func (h *followerHandler) FollowUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 

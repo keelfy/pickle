@@ -2,11 +2,10 @@ package clients
 
 import (
 	"context"
-	"strings"
 
 	ory "github.com/ory/client-go"
 	"github.com/pickle.pw/monolith/internal/config"
-	"github.com/pickle.pw/monolith/internal/logger"
+	"go.uber.org/zap"
 )
 
 type OryAPI interface {
@@ -16,11 +15,10 @@ type OryAPI interface {
 
 type oryAPI struct {
 	client *ory.APIClient
+	logger *zap.SugaredLogger
 }
 
-func NewOryAPI(ctx context.Context) (OryAPI, error) {
-	logger.Infof(ctx, "%v Ory %v", strings.Repeat("~", 12), strings.Repeat("~", 13))
-
+func NewOryAPI(zapLogger *zap.SugaredLogger) OryAPI {
 	c := ory.NewConfiguration()
 	c.Servers = ory.ServerConfigurations{
 		{
@@ -30,10 +28,10 @@ func NewOryAPI(ctx context.Context) (OryAPI, error) {
 	oryClient := ory.NewAPIClient(c)
 	wrapper := &oryAPI{
 		client: oryClient,
+		logger: zapLogger,
 	}
 
-	logger.Infof(ctx, "%s", strings.Repeat("~", 37))
-	return wrapper, nil
+	return wrapper
 }
 
 func (api *oryAPI) GetSession(ctx context.Context, cookies string) (*ory.Session, error) {

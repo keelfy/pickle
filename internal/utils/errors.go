@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/pickle.pw/monolith/internal/logger"
+	"go.uber.org/zap"
 )
 
 // CustomError represents an error with an associated HTTP status code.
@@ -36,19 +36,25 @@ func ExtractErrorMessage(err error) string {
 	return err.Error()
 }
 
+// Deprecated: This function uses the global zap logger. It should be refactored
+// to accept *zap.SugaredLogger as a parameter.
 func LogCustomError(ctx context.Context, err error) {
+	_ = ctx
 	if customErr, ok := err.(*CustomError); ok {
-		logger.Errorf(ctx, "%v: %v", customErr.Message, customErr.OriginalError)
+		zap.S().Errorf("%v: %v", customErr.Message, customErr.OriginalError)
 	} else {
-		logger.Errorf(ctx, "Error: %v", err)
+		zap.S().Errorf("Error: %v", err)
 	}
 }
 
+// Deprecated: This function uses the global zap logger. It should be refactored
+// to accept *zap.SugaredLogger as a parameter.
 func LogError(ctx context.Context, err error) {
+	_ = ctx
 	if customErr, ok := err.(*CustomError); ok {
-		logger.Errorf(ctx, "%v: %v\n", customErr.Message, customErr.OriginalError)
+		zap.S().Errorf("%v: %v\n", customErr.Message, customErr.OriginalError)
 	} else {
-		logger.Errorf(ctx, "Error: %v\n", err)
+		zap.S().Errorf("Error: %v\n", err)
 	}
 }
 

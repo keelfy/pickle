@@ -6,10 +6,10 @@ import (
 
 	"github.com/pickle.pw/monolith/internal/commands"
 	"github.com/pickle.pw/monolith/internal/domain"
-	"github.com/pickle.pw/monolith/internal/logger"
 	"github.com/pickle.pw/monolith/internal/services"
 	"github.com/pickle.pw/monolith/internal/storage"
 	"github.com/pickle.pw/monolith/internal/utils"
+	"go.uber.org/zap"
 )
 
 type CreateContentNoteUseCase interface {
@@ -24,6 +24,7 @@ type createContentNoteUseCase struct {
 	ordererService     services.OrdererService
 	contentService     services.ContentService
 	avatarService      services.AvatarService
+	logger             *zap.SugaredLogger
 }
 
 func NewCreateContentNoteUseCase(
@@ -33,7 +34,7 @@ func NewCreateContentNoteUseCase(
 	userService services.UserService,
 	ordererService services.OrdererService,
 	contentService services.ContentService,
-	avatarService services.AvatarService,
+	avatarService services.AvatarService, zapLogger *zap.SugaredLogger,
 ) CreateContentNoteUseCase {
 	return &createContentNoteUseCase{
 		sqlDB:              sqlDB,
@@ -42,7 +43,7 @@ func NewCreateContentNoteUseCase(
 		userService:        userService,
 		ordererService:     ordererService,
 		contentService:     contentService,
-		avatarService:      avatarService,
+		avatarService:      avatarService, logger: zapLogger,
 	}
 }
 
@@ -112,7 +113,7 @@ func (uc *createContentNoteUseCase) Handle(ctx context.Context, cmd commands.ICr
 	go func() {
 		initialOrdererAvatarURL, err = uc.avatarService.GetAvatarURLByUserID(ctx, *initialOrderer.UserID, cmd.GetInitialOrdererAvatarSize())
 		if err != nil {
-			logger.Errorf(ctx, "failed to get initial orderer avatar url: %v", err)
+			uc.logger.Errorf("failed to get initial orderer avatar url: %v", err)
 		}
 		wg.Done()
 	}()

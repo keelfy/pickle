@@ -25,7 +25,7 @@ Note that this is a first version of the infrastructure, and it will be changed 
 
 This project ships with `mise.toml` to manage tool versions and common tasks.
 
-1. Install mise: https://mise.jdx.dev/getting-started.html
+1. Install mise: <https://mise.jdx.dev/getting-started.html>
 2. Activate mise in your shell (zsh):
    - `echo 'eval "$(mise activate zsh)"' >> ~/.zshrc`
    - `source ~/.zshrc`

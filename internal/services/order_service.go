@@ -11,6 +11,7 @@ import (
 	"github.com/pickle.pw/monolith/internal/storage"
 	"github.com/pickle.pw/monolith/internal/storage/sql"
 	"github.com/pickle.pw/monolith/internal/utils"
+	"go.uber.org/zap"
 )
 
 type OrderService interface {
@@ -34,6 +35,7 @@ type orderService struct {
 	contentService    ContentNoteService
 	permissionService PermissionService
 	ordersBroker      OrdersBrokerService
+	logger            *zap.SugaredLogger
 }
 
 func NewOrderService(
@@ -42,7 +44,7 @@ func NewOrderService(
 	ordererService OrdererService,
 	contentService ContentNoteService,
 	permissionService PermissionService,
-	ordersBroker OrdersBrokerService,
+	ordersBroker OrdersBrokerService, zapLogger *zap.SugaredLogger,
 ) OrderService {
 	return &orderService{
 		sqlDb:             sqlDb,
@@ -50,7 +52,7 @@ func NewOrderService(
 		ordererService:    ordererService,
 		contentService:    contentService,
 		permissionService: permissionService,
-		ordersBroker:      ordersBroker,
+		ordersBroker:      ordersBroker, logger: zapLogger,
 	}
 }
 

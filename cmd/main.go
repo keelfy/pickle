@@ -4,7 +4,9 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"log"
 	"net/http"
+	"os"
 	"os/signal"
 	"syscall"
 
@@ -14,6 +16,7 @@ import (
 	_ "github.com/pickle.pw/monolith/docs"
 	"github.com/pickle.pw/monolith/internal/config"
 	"github.com/pickle.pw/monolith/internal/logger"
+	"go.uber.org/zap"
 )
 
 // @title Pickle API
@@ -32,21 +35,28 @@ import (
 // @BasePath /v1
 func main() {
 	// Create a context with cancellation
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	logger.PrepareLogger()
+	zapLogger, err := logger.NewLogger()
+	if err != nil {
+		log.Fatalf("Failed to initialize logger: %v", err)
+	}
+	defer func() {
+		_ = zapLogger.Desugar().Sync()
+	}()
+	zap.ReplaceGlobals(zapLogger.Desugar())
 
 	// Initialize dependencies with Wire
-	api, cleanup, err := InitializeAPI(ctx)
+	api, err := InitializeAPI(ctx)
 	if err != nil {
-		logger.Fatalf(ctx, "Failed to initialize app: %v", err)
+		zapLogger.Fatalf("Failed to initialize app: %v", err)
 	}
-	defer cleanup() // Ensure resources are cleaned up
+	// defer cleanup() // Ensure resources are cleaned up
 
 	r, err := api.BuildAPI(ctx)
 	if err != nil {
-		logger.Fatalf(ctx, "Failed to build API: %v", err)
+		zapLogger.Fatalf("Failed to build API: %v", err)
 	}
 
 	port := config.GetPort()
@@ -62,9 +72,9 @@ func main() {
 		},
 	})
 
-	logger.Infof(ctx, "Starting the server on port %v", port)
+	zapLogger.Infof("Starting the server on port %v", port)
 	if err := graceful.Graceful(server.ListenAndServe, server.Shutdown); err != nil {
-		logger.Fatal(ctx, "Failed to gracefully shutdown")
+		zapLogger.Fatal("Failed to gracefully shutdown")
 	}
-	logger.Infof(ctx, "Server was shutdown gracefully")
+	zapLogger.Info("Server was shutdown gracefully")
 }

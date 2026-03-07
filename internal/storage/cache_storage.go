@@ -3,12 +3,11 @@ package storage
 import (
 	"context"
 	"errors"
-	"strings"
 	"time"
 
 	"github.com/pickle.pw/monolith/internal/config"
-	"github.com/pickle.pw/monolith/internal/logger"
 	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
 )
 
 type CacheStorage interface {
@@ -21,10 +20,10 @@ type CacheStorage interface {
 
 type cacheStorage struct {
 	client *redis.Client
+	logger *zap.SugaredLogger
 }
 
-func NewCacheStorage(ctx context.Context) (CacheStorage, error) {
-	logger.Infof(ctx, "%v Redis %v", strings.Repeat("~", 15), strings.Repeat("~", 15))
+func NewCacheStorage(zapLogger *zap.SugaredLogger) (CacheStorage, error) {
 	url := config.GetRedisURL()
 	opts, err := redis.ParseURL(url)
 	if err != nil {
@@ -33,17 +32,16 @@ func NewCacheStorage(ctx context.Context) (CacheStorage, error) {
 	client := redis.NewClient(opts)
 	cacheClient := &cacheStorage{
 		client: client,
+		logger: zapLogger,
 	}
 
-	logger.Infof(ctx, "Client created")
-	logger.Infof(ctx, "%s", strings.Repeat("~", 37))
 	return cacheClient, nil
 }
 
 func (storage *cacheStorage) Ping(ctx context.Context) error {
 	err := storage.client.Ping(ctx).Err()
 	if err != nil {
-		logger.Debugf(ctx, "[CACHE] Error pinging Redis: %v", err)
+		storage.logger.Debugf("[CACHE] Error pinging Redis: %v", err)
 	}
 	return err
 }
@@ -56,11 +54,10 @@ func (storage *cacheStorage) GetKey(ctx context.Context, key string) (string, er
 
 	value, err := stringCmd.Result()
 	if err != nil {
-		logger.Debugf(ctx, "[CACHE] Error getting key '%s': %v", key, err)
+		storage.logger.Debugf("[CACHE] Error getting key '%s': %v", key, err)
 		return "", err
 	}
-
-	logger.Debugf(ctx, "[CACHE] Retrieved value of '%s'", key)
+	storage.logger.Debugf("[CACHE] Retrieved value of '%s'", key)
 	return value, nil
 }
 
@@ -72,11 +69,10 @@ func (storage *cacheStorage) GetInt64(ctx context.Context, key string) (int64, e
 
 	value, err := int64Cmd.Int64()
 	if err != nil {
-		logger.Debugf(ctx, "[CACHE] Error getting key '%s': %v", key, err)
+		storage.logger.Debugf("[CACHE] Error getting key '%s': %v", key, err)
 		return 0, err
 	}
-
-	logger.Debugf(ctx, "[CACHE] Retrieved value of '%s'", key)
+	storage.logger.Debugf("[CACHE] Retrieved value of '%s'", key)
 	return value, nil
 }
 
@@ -88,11 +84,10 @@ func (storage *cacheStorage) SetKey(ctx context.Context, key string, value inter
 
 	err := setCmd.Err()
 	if err != nil {
-		logger.Debugf(ctx, "[CACHE] Error adding key '%s': %v", key, err)
+		storage.logger.Debugf("[CACHE] Error adding key '%s': %v", key, err)
 		return err
 	}
-
-	logger.Debugf(ctx, "[CACHE] Added '%s' = '%s'", key, value)
+	storage.logger.Debugf("[CACHE] Added '%s' = '%s'", key, value)
 	return nil
 }
 
@@ -106,9 +101,8 @@ func (storage *cacheStorage) DeleteKey(ctx context.Context, key string) error {
 	if err == redis.Nil {
 		return nil
 	} else if err != nil {
-		logger.Debugf(ctx, "[CACHE] Error deleting key '%s': %v", key, err)
+		storage.logger.Debugf("[CACHE] Error deleting key '%s': %v", key, err)
 	}
-
-	logger.Debugf(ctx, "[CACHE] Deleted key '%s'", key)
+	storage.logger.Debugf("[CACHE] Deleted key '%s'", key)
 	return err
 }

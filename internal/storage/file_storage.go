@@ -5,13 +5,12 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsConfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	s3Types "github.com/aws/aws-sdk-go-v2/service/s3/types"
-	"github.com/pickle.pw/monolith/internal/logger"
+	"go.uber.org/zap"
 )
 
 type S3Client interface {
@@ -31,11 +30,10 @@ type FileStorage interface {
 
 type fileStorage struct {
 	client S3Client
+	logger *zap.SugaredLogger
 }
 
-func NewFileStorage(ctx context.Context) (FileStorage, error) {
-	logger.Infof(ctx, "%v S3 Uploader %v", strings.Repeat("~", 12), strings.Repeat("~", 12))
-
+func NewFileStorage(ctx context.Context, zapLogger *zap.SugaredLogger) (FileStorage, error) {
 	// Check required environment variables
 	region := os.Getenv("AWS_REGION")
 	accessKey := os.Getenv("AWS_ACCESS_KEY_ID")
@@ -53,10 +51,9 @@ func NewFileStorage(ctx context.Context) (FileStorage, error) {
 	client := s3.NewFromConfig(cfg)
 	s3Client := &fileStorage{
 		client: client,
+		logger: zapLogger,
 	}
 
-	logger.Infof(ctx, "S3 client created")
-	logger.Infof(ctx, "%s", strings.Repeat("~", 37))
 	return s3Client, nil
 }
 
@@ -86,11 +83,10 @@ func (storage *fileStorage) UploadFile(ctx context.Context, bucketName, key stri
 		Body:   tempFile,
 	})
 	if err != nil {
-		logger.Debugf(ctx, "[S3] Error uploading file to S3: %v", err)
+		storage.logger.Debugf("[S3] Error uploading file to S3: %v", err)
 		return fmt.Errorf("failed to upload file to S3: %w", err)
 	}
-
-	logger.Debugf(ctx, "[S3] File uploaded to S3: %s/%s", bucketName, key)
+	storage.logger.Debugf("[S3] File uploaded to S3: %s/%s", bucketName, key)
 	return nil
 }
 
@@ -100,11 +96,10 @@ func (storage *fileStorage) DeleteObject(ctx context.Context, bucketName, key st
 		Key:    aws.String(key),
 	})
 	if err != nil {
-		logger.Debugf(ctx, "[S3] Error deleting object: %v", err)
+		storage.logger.Debugf("[S3] Error deleting object: %v", err)
 		return fmt.Errorf("failed to delete object: %w", err)
 	}
-
-	logger.Debugf(ctx, "[S3] Object deleted from %s/%s [DeleteMarker=%v,RequestCharged=%v]", bucketName, key, output.DeleteMarker, output.RequestCharged)
+	storage.logger.Debugf("[S3] Object deleted from %s/%s [DeleteMarker=%v,RequestCharged=%v]", bucketName, key, output.DeleteMarker, output.RequestCharged)
 	return nil
 }
 
@@ -123,11 +118,10 @@ func (storage *fileStorage) BulkDeleteObject(ctx context.Context, bucketName str
 		},
 	})
 	if err != nil {
-		logger.Debugf(ctx, "[S3] Error bulk deleting objects: %v", err)
+		storage.logger.Debugf("[S3] Error bulk deleting objects: %v", err)
 		return fmt.Errorf("failed to bulk delete objects: %w", err)
 	}
-
-	logger.Debugf(ctx, "[S3] Bulk objects deleted from %s: %v [RequestCharged=%v]", bucketName, keys, output.RequestCharged)
+	storage.logger.Debugf("[S3] Bulk objects deleted from %s: %v [RequestCharged=%v]", bucketName, keys, output.RequestCharged)
 	return nil
 }
 
@@ -138,11 +132,10 @@ func (storage *fileStorage) CopyObject(ctx context.Context, oldBucketName, newBu
 		Key:        aws.String(newKey),
 	})
 	if err != nil {
-		logger.Debugf(ctx, "[S3] Failed to copy object %s to %s: %v", oldKey, newKey, err)
+		storage.logger.Debugf("[S3] Failed to copy object %s to %s: %v", oldKey, newKey, err)
 		return fmt.Errorf("failed to copy object: %w", err)
 	}
-
-	logger.Debugf(ctx, "[S3] File copied from %s/%s to %s/%s [RequestCharged=%v]", oldBucketName, oldKey, newBucketName, newKey, output.RequestCharged)
+	storage.logger.Debugf("[S3] File copied from %s/%s to %s/%s [RequestCharged=%v]", oldBucketName, oldKey, newBucketName, newKey, output.RequestCharged)
 	return nil
 }
 

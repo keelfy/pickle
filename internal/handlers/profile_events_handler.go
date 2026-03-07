@@ -15,6 +15,7 @@ import (
 	"github.com/pickle.pw/monolith/internal/services"
 	"github.com/pickle.pw/monolith/internal/transport/http/binders"
 	"github.com/pickle.pw/monolith/internal/utils"
+	"go.uber.org/zap"
 )
 
 type ProfileEventsHandler interface {
@@ -24,13 +25,11 @@ type ProfileEventsHandler interface {
 type profileEventsHandler struct {
 	profileService services.ProfileService
 	ordersBroker   services.OrdersBrokerService
+	logger         *zap.SugaredLogger
 }
 
-func NewProfileEventsHandler(profileService services.ProfileService) ProfileEventsHandler {
-	return &profileEventsHandler{
-		profileService: profileService,
-		ordersBroker:   services.NewOrdersBrokerService(),
-	}
+func NewProfileEventsHandler(profileService services.ProfileService, ordersBroker services.OrdersBrokerService, zapLogger *zap.SugaredLogger) ProfileEventsHandler {
+	return &profileEventsHandler{profileService: profileService, ordersBroker: ordersBroker, logger: zapLogger}
 }
 
 var upgrader = websocket.Upgrader{

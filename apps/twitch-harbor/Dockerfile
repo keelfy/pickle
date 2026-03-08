@@ -19,7 +19,7 @@ COPY . .
 RUN if [ ! -f cmd/wire_gen.go ]; then cd cmd && wire; fi
 
 # Build binary with limited memory usage
-RUN GOOS=linux CGO_ENABLED=0 GOARCH=amd64 go build -ldflags='-s' -o twitch-harbor ./cmd
+RUN GOOS=linux CGO_ENABLED=0 GOARCH=amd64 go build -ldflags='-s' -o ./bin/twitch-harbor ./cmd
 
 # Runtime stage
 FROM debian:bookworm-slim
@@ -29,10 +29,10 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
 
 # Copy binary from buildx
-COPY --from=buildx /app/twitch-harbor .
+COPY --from=buildx /app/bin/twitch-harbor .
 
 # Expose port (adjust if needed)
 EXPOSE 8080
 
 # Run the binary
-CMD ["./twitch-harbor"]
+CMD ["./bin/twitch-harbor"]

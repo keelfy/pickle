@@ -5,6 +5,7 @@ import (
 
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 
 	"github.com/pickle.pw/monolith/internal/config"
 )
@@ -14,14 +15,16 @@ import (
 // Otherwise, uses zap.NewProduction() (JSON encoder, info level).
 // This function is intended to be used as a Wire provider.
 func NewLogger() (*zap.SugaredLogger, error) {
-	var zapLogger *zap.Logger
-	var err error
+	var zapConfig zap.Config
 
 	if config.IsDebug() {
-		zapLogger, err = zap.NewDevelopment()
+		zapConfig = zap.NewDevelopmentConfig()
 	} else {
-		zapLogger, err = zap.NewProduction()
+		zapConfig = zap.NewProductionConfig()
 	}
+
+	zapConfig.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+	zapLogger, err := zapConfig.Build()
 	if err != nil {
 		return nil, err
 	}

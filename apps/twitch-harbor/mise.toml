@@ -1,0 +1,37 @@
+[settings]
+env_shell_expand = true
+
+[tools]
+go = "1.24.4"
+
+[env]
+GOPATH = "$HOME/go"
+CGO_ENABLED = 0
+GOMAXPROCS = 2
+_.path = ["$GOPATH/bin", "$GOROOT/bin"]
+
+[vars]
+DATABASE_URL = "postgres://postgres:1q2w3e4r@localhost:5432/harbor?sslmode=disable"
+
+[tasks.dev]
+depends = ["generate"]
+run = "go run ./cmd"
+
+[tasks.build]
+depends = ["generate"]
+run = "go build -ldflags='-s' -o ./bin/twitch-harbor ./cmd"
+
+[tasks.generate]
+run = "go generate ./cmd"
+
+[tasks.migrate-up]
+run = "migrate -database {{vars.DATABASE_URL}} -path ./db/migration up"
+
+[tasks.migrate-down]
+run = "migrate -database {{vars.DATABASE_URL}} -path ./db/migration down"
+
+[tasks.add-migration]
+usage = '''
+arg "<name>" help="The name of the migration in snake_case"
+'''
+run = "migrate create -ext sql -dir ./db/migration {{usage.name}}"

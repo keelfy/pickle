@@ -15,6 +15,7 @@ require (
 	github.com/jackc/pgx/v5 v5.7.5
 	github.com/joho/godotenv v1.5.1
 	github.com/keelfy/helix/v2 v2.31.2
+	github.com/mazrean/kessoku v1.1.0
 	github.com/ory/client-go v1.20.11
 	github.com/ory/graceful v0.1.3
 	github.com/rs/cors v1.11.1
@@ -22,6 +23,7 @@ require (
 )
 
 require (
+	github.com/alecthomas/kong v1.13.0 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/coder/websocket v1.8.12 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
@@ -32,8 +34,12 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	golang.org/x/crypto v0.37.0 // indirect
+	golang.org/x/mod v0.31.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
-	golang.org/x/sync v0.13.0 // indirect
-	golang.org/x/sys v0.32.0 // indirect
+	golang.org/x/sync v0.19.0 // indirect
+	golang.org/x/sys v0.39.0 // indirect
 	golang.org/x/text v0.24.0 // indirect
+	golang.org/x/tools v0.40.0 // indirect
 )
+
+tool github.com/mazrean/kessoku/cmd/kessoku

@@ -1,0 +1,9 @@
+{
+  "name": "api",
+  "private": true,
+  "scripts": {
+    "dev": "mise run dev",
+    "build": "mise run build",
+    "generate": "mise run generate"
+  }
+}

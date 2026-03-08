@@ -21,11 +21,11 @@ func main() {
 
 	logger.PrepareLogger()
 
-	api, cleanup, err := InitializeService(ctx)
+	api, err := InitializeService(ctx)
 	if err != nil {
 		logger.Fatalf(ctx, "Failed to initialize app: %v", err)
 	}
-	defer cleanup()
+	// defer cleanup()
 
 	r, err := api.BuildAPI(ctx)
 	if err != nil {

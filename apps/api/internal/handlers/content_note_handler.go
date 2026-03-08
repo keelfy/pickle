@@ -9,12 +9,16 @@ import (
 	"github.com/pickle.pw/monolith/internal/presenter"
 	"github.com/pickle.pw/monolith/internal/services"
 	"github.com/pickle.pw/monolith/internal/transport/http/binders"
+	"github.com/pickle.pw/monolith/internal/transport/http/requests"
 	resp "github.com/pickle.pw/monolith/internal/transport/http/responses"
 	"github.com/pickle.pw/monolith/internal/usecases"
 	"github.com/pickle.pw/monolith/internal/utils"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 )
+
+// Referenced by swag in @Param body annotations.
+var _ = requests.CreateContentNoteReq{}
 
 type ContentNoteHandler interface {
 	CreateContentNote(w http.ResponseWriter, r *http.Request)
@@ -75,7 +79,7 @@ func NewContentNoteHandler(
 // @Accept json
 // @Produce json
 // @Param userId path string true "User ID"
-// @Param contentNoteReq body req.CreateContentNoteReq true "Content note request"
+// @Param contentNoteReq body requests.CreateContentNoteReq true "Content note request"
 // @Success 200
 // @Failure 400 {object} string
 // @Failure 500 {object} string
@@ -115,7 +119,7 @@ func (h *contentNoteHandler) CreateContentNote(w http.ResponseWriter, r *http.Re
 // @Param limit query int false "Limit"
 // @Param column query string false "Column"
 // @Param direction query string false "Direction"
-// @Success 200
+// @Success 200 {object} resp.Paginated[resp.DetailedContentNote]
 // @Failure 400 {object} string
 // @Failure 500 {object} string
 // @Router /v1/users/{userId}/content-notes/{category} [get]
@@ -150,7 +154,7 @@ func (h *contentNoteHandler) GetSortedContentNotesByUserID(w http.ResponseWriter
 // @Produce json
 // @Param category path string true "Category"
 // @Param contentNoteId path string true "Content note ID"
-// @Success 200 {object} any
+// @Success 200 {object} resp.DetailedContentNote
 // @Failure 400 {object} string
 // @Failure 500 {object} string
 // @Router /v1/content-notes/{category}/{contentNoteId} [get]
@@ -217,7 +221,7 @@ func (h *contentNoteHandler) GetDetailedContentNoteByID(w http.ResponseWriter, r
 // @Produce json
 // @Param userId path string true "User ID"
 // @Param noteId path string true "Note ID"
-// @Success 200
+// @Success 200 {object} resp.Paginated[resp.Order]
 // @Failure 400 {object} string
 // @Failure 500 {object} string
 // @Router /v1/content-notes/{category}/{contentNoteId}/orders [get]
@@ -287,7 +291,7 @@ func (h *contentNoteHandler) GetOrdersByContentNoteID(w http.ResponseWriter, r *
 // @Produce json
 // @Param contentNoteId path string true "Content note ID"
 // @Param resetApprovedOrders query string true "Reset approved orders"
-// @Success 204
+// @Success 200 {object} resp.ContentNote
 // @Failure 400 {object} string
 // @Failure 500 {object} string
 // @Router /v1/content-notes/{category}/{contentNoteId} [delete]
@@ -340,7 +344,7 @@ func (h *contentNoteHandler) DeleteContentNote(w http.ResponseWriter, r *http.Re
 // @Param userId path string true "User ID"
 // @Param noteId path string true "Note ID"
 // @Param contentNoteReq body requests.CreateContentNoteReq true "Content note request"
-// @Success 204
+// @Success 200 {object} resp.ContentNote
 // @Failure 400 {object} string
 // @Failure 500 {object} string
 // @Router /v1/content-notes/{category}/{contentNoteId} [put]
@@ -397,7 +401,7 @@ func (h *contentNoteHandler) UpdateContentNote(w http.ResponseWriter, r *http.Re
 // @Accept json
 // @Produce json
 // @Param contentNoteIds query string true "Content note IDs"
-// @Success 200
+// @Success 200 {object} resp.ContentNoteReactions
 // @Failure 400 {object} string
 // @Failure 500 {object} string
 // @Router /v1/users/{userId}/content-notes/reactions [get]
@@ -433,7 +437,7 @@ func (h *contentNoteHandler) GetBatchContentNoteReactions(w http.ResponseWriter,
 // @Produce json
 // @Param category path string true "Category"
 // @Param contentNoteId path string true "Content note ID"
-// @Success 204
+// @Success 200 {object} resp.ContentNoteReaction
 // @Failure 400 {object} string
 // @Failure 500 {object} string
 // @Router /v1/content-notes/{category}/{contentNoteId}/reactions [post]
@@ -462,7 +466,7 @@ func (h *contentNoteHandler) AddContentNoteReaction(w http.ResponseWriter, r *ht
 // @Produce json
 // @Param category path string true "Category"
 // @Param contentNoteId path string true "Content note ID"
-// @Success 204
+// @Success 200 {object} resp.ContentNoteReaction
 // @Failure 400 {object} string
 // @Failure 500 {object} string
 // @Router /v1/users/{userId}/content-notes/{category}/{noteId}/reactions [delete]
@@ -491,7 +495,7 @@ func (h *contentNoteHandler) RemoveContentNoteReaction(w http.ResponseWriter, r 
 // @Produce json
 // @Param contentId path string true "Content ID"
 // @Param category path string true "Category"
-// @Success 200 {object} models.ContentNote
+// @Success 200 {object} domain.IContentNote
 // @Failure 400 {object} string
 // @Failure 500 {object} string
 // @Router /v1/users/{userId}/content-notes/{category}/by-content-id/{contentId} [get]

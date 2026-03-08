@@ -19,13 +19,13 @@ run = "go run ./cmd"
 
 [tasks.build]
 depends = ["generate", "swagger"]
-run = "go build -ldflags='-s' -o monolith ./cmd"
+run = "go build -ldflags='-s' -o ./bin/api ./cmd"
 
 [tasks.generate]
 run = "go generate ./cmd"
 
 [tasks.swagger]
-run = "swag init -g ./cmd/main.go -d ./internal --parseDependency --parseInternal"
+run = "swag init -g cmd/main.go --parseDependency --parseInternal"
 
 [tasks.migrate-up]
 run = "migrate -database {{vars.DATABASE_URL}} -path ./db/migration up"
@@ -40,7 +40,7 @@ arg "<name>" help="The name of the migration in snake_case"
 run = "migrate create -ext sql -dir ./db/migration {{usage.name}}"
 
 [tasks.es-migrate-up]
-run = "go run ./cmd/migrate/main.go"
+run = "go run ./cmd/migrate"
 
 [tasks.add-es-migration]
 usage = '''

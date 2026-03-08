@@ -57,7 +57,7 @@ func NewCollectionHandler(
 // @Produce json
 // @Param userId path string true "User ID"
 // @Param name body string true "Name"
-// @Success 200 {object} types.CollectionRes
+// @Success 200 {object} responses.Collection
 // @Failure 400 {object} string
 // @Failure 500 {object} string
 // @Router /v1/users/{userId}/collections [post]
@@ -153,8 +153,8 @@ func (h *collectionHandler) DeleteCollectionByID(w http.ResponseWriter, r *http.
 // @Accept json
 // @Produce json
 // @Param collectionId path string true "Collection ID"
-// @Body types.UpdateCollectionReq true "Update collection request"
-// @Success 200 {object} types.CollectionRes
+// @Body requests.UpdateCollection true "Update collection request"
+// @Success 200 {object} responses.Collection
 // @Failure 400 {object} string
 // @Failure 500 {object} string
 // @Router /v1/collections/{collectionId} [patch]
@@ -207,7 +207,7 @@ func (h *collectionHandler) UpdateCollectionByID(w http.ResponseWriter, r *http.
 // @Param collectionId path string true "Collection ID"
 // @Param noteId path string true "Note ID"
 // @Param category body string true "Category"
-// @Success 200 {object} types.CollectionItemRes
+// @Success 200 {object} responses.CollectionItem
 // @Failure 400 {object} string
 // @Failure 500 {object} string
 // @Router /v1/users/{userId}/collections/{collectionId}/items [post]
@@ -321,7 +321,7 @@ func (h *collectionHandler) RemoveItemFromCollection(w http.ResponseWriter, r *h
 // @Accept json
 // @Produce json
 // @Param userId path string true "User ID"
-// @Success 200 {object} []types.CollectionRes
+// @Success 200 {object} []responses.Collection
 // @Failure 400 {object} string
 // @Failure 500 {object} string
 // @Router /v1/users/{userId}/collections [get]
@@ -434,7 +434,7 @@ func (h *collectionHandler) GetItemsByUserID(w http.ResponseWriter, r *http.Requ
 // @Accept json
 // @Produce json
 // @Param collectionId path string true "Collection ID"
-// @Success 200 {object} types.CollectionRes
+// @Success 200 {object} responses.Collection
 // @Failure 400 {object} string
 // @Failure 500 {object} string
 // @Router /v1/collections/{collectionId} [get]
@@ -462,7 +462,7 @@ func (h *collectionHandler) GetCollectionByID(w http.ResponseWriter, r *http.Req
 // @Accept json
 // @Produce json
 // @Param collectionId path string true "Collection ID"
-// @Success 200 {object} []types.CollectionItemRes
+// @Success 200 {object} []responses.CollectionItem
 // @Failure 400 {object} string
 // @Failure 500 {object} string
 // @Router /v1/collections/{collectionId}/items [get]

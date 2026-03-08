@@ -13,11 +13,15 @@ import (
 	"github.com/pickle.pw/monolith/internal/storage"
 	"github.com/pickle.pw/monolith/internal/storage/sql"
 	"github.com/pickle.pw/monolith/internal/transport/http/binders"
+	"github.com/pickle.pw/monolith/internal/transport/http/requests"
 	resp "github.com/pickle.pw/monolith/internal/transport/http/responses"
 	"github.com/pickle.pw/monolith/internal/usecases"
 	"github.com/pickle.pw/monolith/internal/utils"
 	"go.uber.org/zap"
 )
+
+// Referenced by swag in @Param body annotations.
+var _ = requests.CreateOrder{}
 
 type OrderHandler interface {
 	GetOrderByID(w http.ResponseWriter, r *http.Request)
@@ -76,7 +80,7 @@ func NewOrdersHandler(
 // @Produce json
 // @Param orderId path string true "Order ID"
 // @Param userId path string true "User ID"
-// @Success 200 {object} types.OrderRes
+// @Success 200 {object} resp.DetailedOrder
 // @Failure 400 {object} string
 // @Failure 500 {object} string
 // @Router /v1/users/{userId}/orders/{orderId} [get]
@@ -127,7 +131,7 @@ func (h *orderHandler) GetOrderByID(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Param userId path string true "User ID"
-// @Success 200
+// @Success 200 {object} []resp.OrderWithDecision
 // @Failure 400 {object} string
 // @Failure 500 {object} string
 // @Router /v1/users/{userId}/orders [get]
@@ -250,7 +254,7 @@ func (h *orderHandler) GetSortedOrdersByUserID(w http.ResponseWriter, r *http.Re
 // @Tags orders
 // @Accept json
 // @Produce json
-// @Param createOrderReq body types.CreateOrderReq true "Create order request"
+// @Param createOrderReq body requests.CreateOrder true "Create order request"
 // @Param userId path string true "User ID"
 // @Success 200
 // @Failure 400 {object} string
@@ -279,7 +283,7 @@ func (h *orderHandler) CreatePickleSuggestionOrder(w http.ResponseWriter, r *htt
 // @Tags orders
 // @Accept json
 // @Produce json
-// @Param createOrderReq body types.CreateOrderReq true "Create order request"
+// @Param createOrderReq body requests.CreateOrder true "Create order request"
 // @Param userId path string true "User ID"
 // @Success 200
 // @Failure 400 {object} string
@@ -310,7 +314,7 @@ func (h *orderHandler) CreateOrderWebhook(w http.ResponseWriter, r *http.Request
 // @Produce json
 // @Param orderId path string true "Order ID"
 // @Param locale query string true "Locale"
-// @Success 200
+// @Success 200 {object} resp.OrderWithDecision
 // @Failure 400 {object} string
 // @Failure 500 {object} string
 // @Router /v1/users/{userId}/orders/{orderId}/approve [post]
@@ -465,7 +469,7 @@ func (h *orderHandler) ApproveOrderByID(w http.ResponseWriter, r *http.Request) 
 // @Accept json
 // @Produce json
 // @Param orderId path string true "Order ID"
-// @Success 200
+// @Success 200 {object} resp.OrderWithDecision
 // @Failure 400 {object} string
 // @Failure 500 {object} string
 // @Router /v1/users/{userId}/orders/{orderId}/reject [post]

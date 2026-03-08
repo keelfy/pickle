@@ -8,11 +8,15 @@ import (
 	"github.com/pickle.pw/monolith/internal/storage"
 	"github.com/pickle.pw/monolith/internal/storage/sql"
 	"github.com/pickle.pw/monolith/internal/transport/http/binders"
+	"github.com/pickle.pw/monolith/internal/transport/http/requests"
 	"github.com/pickle.pw/monolith/internal/transport/http/responses"
 	"github.com/pickle.pw/monolith/internal/usecases"
 	"github.com/pickle.pw/monolith/internal/utils"
 	"go.uber.org/zap"
 )
+
+// Referenced by swag in @Param body annotations.
+var _ = requests.AfterOryRegistrationWebhook{}
 
 type UserHandler interface {
 	GetUserByID(w http.ResponseWriter, r *http.Request)
@@ -21,7 +25,6 @@ type UserHandler interface {
 	GetUserAvatarURL(w http.ResponseWriter, r *http.Request)
 	GetMyAvatarURL(w http.ResponseWriter, r *http.Request)
 	UploadAvatarForMyProfile(w http.ResponseWriter, r *http.Request)
-	CreateUserWebhook(w http.ResponseWriter, r *http.Request)
 	ValidateUsername(w http.ResponseWriter, r *http.Request)
 	AfterOryRegistrationWebhook(w http.ResponseWriter, r *http.Request)
 }
@@ -277,42 +280,13 @@ func (h *userHandler) UploadAvatarForMyProfile(w http.ResponseWriter, r *http.Re
 	utils.WriteHttpJsonResponse(ctx, w, res)
 }
 
-// @Summary Create profile webhook
-// @Description Create profile webhook
-// @Tags profiles
-// @Accept json
-// @Produce json
-// @Param body body types.SupabaseWebhookPayload true "Webhook payload"
-// @Success 204
-// @Failure 400 {object} string
-// @Failure 500 {object} string
-// @Router /v1/supabase-webhooks/users [post]
-func (h *userHandler) CreateUserWebhook(w http.ResponseWriter, r *http.Request) {
-	// ctx := r.Context()
-
-	// req := &types.SupabaseWebhookPayload{}
-	// err := json.NewDecoder(r.Body).Decode(req)
-	// if err != nil {
-	// 	utils.HttpError(ctx, w, err)
-	// 	return
-	// }
-
-	// _, err = h.userService.CreateUserWebhook(ctx, req)
-	// if err != nil {
-	// 	utils.HttpError(ctx, w, err)
-	// 	return
-	// }
-
-	w.WriteHeader(http.StatusOK)
-}
-
 // @Summary Validate username
 // @Description Validate username
 // @Tags profiles
 // @Accept json
 // @Produce json
 // @Param username query string true "Username"
-// @Success 200 {object} types.UsernameValidationRes
+// @Success 200 {object} responses.UsernameValidation
 // @Failure 400 {object} string
 // @Failure 500 {object} string
 // @Router /v1/users/validate-username [get]
@@ -344,7 +318,7 @@ func (h *userHandler) ValidateUsername(w http.ResponseWriter, r *http.Request) {
 // @Tags profiles
 // @Accept json
 // @Produce json
-// @Param body body commands.CreateUserCommand true "Webhook payload"
+// @Param body body requests.AfterOryRegistrationWebhook true "Webhook payload"
 // @Success 200
 // @Failure 400 {object} string
 // @Failure 500 {object} string

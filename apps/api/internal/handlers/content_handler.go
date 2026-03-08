@@ -95,7 +95,7 @@ func (h *contentHandler) SearchProfileContent(w http.ResponseWriter, r *http.Req
 // @Param locale query string false "Locale"
 // @Param page query string false "Page"
 // @Param size query string false "Size"
-// @Success 200 []responses.Content
+// @Success 200 {object} responses.Paginated[responses.IContent]
 // @Failure 400
 // @Failure 500
 // @Router /v1/content/{category} [get]
@@ -142,7 +142,7 @@ func (h *contentHandler) SearchContent(w http.ResponseWriter, r *http.Request) {
 // @Param id path string true "Content ID"
 // @Param category path string true "Category"
 // @Param coverSize query string false "Cover Size"
-// @Success 200
+// @Success 200 {object} responses.DetailedContent
 // @Failure 400
 // @Failure 500
 // @Router /v1/content/{category}/{contentId} [get]

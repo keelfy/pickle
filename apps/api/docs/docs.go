@@ -24,75 +24,6 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/v1/auth/clear-cookie": {
-            "post": {
-                "description": "Clears the HTTP-only JWT cookie used for authentication",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Clear JWT Cookie",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/auth/set-cookie": {
-            "post": {
-                "description": "Sets an HTTP-only cookie with the provided JWT token for authentication",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Set JWT Cookie",
-                "parameters": [
-                    {
-                        "description": "JWT token and optional max age",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/internal_handlers.SetJWTCookieRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
         "/v1/collections/{collectionId}": {
             "get": {
                 "description": "Get collection by ID",
@@ -119,7 +50,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.CollectionRes"
+                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.Collection"
                         }
                     },
                     "400": {
@@ -203,7 +134,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.CollectionRes"
+                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.Collection"
                         }
                     },
                     "400": {
@@ -249,66 +180,8 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.CollectionItemRes"
+                                "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.CollectionItem"
                             }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "description": "Add item to collection",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "collections"
-                ],
-                "summary": "Add item to collection",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Collection ID",
-                        "name": "collectionId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Note ID",
-                        "name": "noteId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Category",
-                        "name": "category",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.CollectionItemRes"
                         }
                     },
                     "400": {
@@ -360,6 +233,266 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/content-notes/{category}/{contentNoteId}": {
+            "get": {
+                "description": "Get content note by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "content-notes"
+                ],
+                "summary": "Get content note by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Category",
+                        "name": "category",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Content note ID",
+                        "name": "contentNoteId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.DetailedContentNote"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update a content note",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "content-notes"
+                ],
+                "summary": "Update a content note",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Note ID",
+                        "name": "noteId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Content note request",
+                        "name": "contentNoteReq",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_requests.CreateContentNoteReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.ContentNote"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete a content note",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "content-notes"
+                ],
+                "summary": "Delete a content note",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Content note ID",
+                        "name": "contentNoteId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Reset approved orders",
+                        "name": "resetApprovedOrders",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.ContentNote"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/content-notes/{category}/{contentNoteId}/orders": {
+            "get": {
+                "description": "Get orders by content note ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "content-notes"
+                ],
+                "summary": "Get orders by content note ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Note ID",
+                        "name": "noteId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.Paginated-github_com_pickle_pw_monolith_internal_transport_http_responses_Order"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/content-notes/{category}/{contentNoteId}/reactions": {
+            "post": {
+                "description": "Add content note reaction",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "content-notes"
+                ],
+                "summary": "Add content note reaction",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Category",
+                        "name": "category",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Content note ID",
+                        "name": "contentNoteId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.ContentNoteReaction"
                         }
                     },
                     "400": {
@@ -434,16 +567,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.ContentRes"
-                            }
+                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.Paginated-github_com_pickle_pw_monolith_internal_transport_http_responses_IContent"
                         }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
                     }
                 }
             }
         },
-        "/v1/content/{category}/{id}": {
+        "/v1/content/{category}/{contentId}": {
             "get": {
                 "description": "Get content by ID",
                 "consumes": [
@@ -473,18 +609,25 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Locale",
-                        "name": "locale",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
                         "description": "Cover Size",
                         "name": "coverSize",
                         "in": "query"
                     }
                 ],
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.DetailedContent"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
             }
         },
         "/v1/health": {
@@ -504,13 +647,56 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.StatusRes"
+                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.StatusRes"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.StatusRes"
+                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.StatusRes"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/ory-webhooks/users": {
+            "post": {
+                "description": "After Ory registration webhook",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profiles"
+                ],
+                "summary": "After Ory registration webhook",
+                "parameters": [
+                    {
+                        "description": "Webhook payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_requests.AfterOryRegistrationWebhook"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }
@@ -547,49 +733,6 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "OK"
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/supabase-webhooks/users": {
-            "post": {
-                "description": "Create profile webhook",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "profiles"
-                ],
-                "summary": "Create profile webhook",
-                "parameters": [
-                    {
-                        "description": "Webhook payload",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.SupabaseWebhookPayload"
-                        }
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No Content"
                     },
                     "400": {
                         "description": "Bad Request",
@@ -657,20 +800,9 @@ const docTemplate = `{
                     "profiles"
                 ],
                 "summary": "Update my profile",
-                "parameters": [
-                    {
-                        "description": "Update profile request",
-                        "name": "updateProfileReq",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_models_requests.UpdateProfileReq"
-                        }
-                    }
-                ],
                 "responses": {
-                    "204": {
-                        "description": "No Content"
+                    "200": {
+                        "description": "OK"
                     },
                     "400": {
                         "description": "Bad Request",
@@ -710,10 +842,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.ImageRes"
-                        }
+                        "description": "OK"
                     },
                     "400": {
                         "description": "Bad Request",
@@ -758,53 +887,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.ImagePreviewRes"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/users/me/suggestion-preferences": {
-            "patch": {
-                "description": "Update suggestion preferences",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "profiles"
-                ],
-                "summary": "Update suggestion preferences",
-                "parameters": [
-                    {
-                        "description": "Suggestion preferences",
-                        "name": "suggestionPreferences",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_models_requests.SuggestionPreferencesReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No Content"
+                        "description": "OK"
                     },
                     "400": {
                         "description": "Bad Request",
@@ -847,7 +930,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.UsernameValidationRes"
+                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.UsernameValidation"
                         }
                     },
                     "400": {
@@ -936,10 +1019,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.ImageRes"
-                        }
+                        "description": "OK"
                     },
                     "400": {
                         "description": "Bad Request",
@@ -984,7 +1064,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.CollectionRes"
+                                "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.Collection"
                             }
                         }
                     },
@@ -1036,7 +1116,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.CollectionRes"
+                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.Collection"
                         }
                     },
                     "400": {
@@ -1078,12 +1158,66 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/users/{userId}/collections/{collectionId}/items": {
+            "post": {
+                "description": "Add item to collection",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "collections"
+                ],
+                "summary": "Add item to collection",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Collection ID",
+                        "name": "collectionId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Note ID",
+                        "name": "noteId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Category",
+                        "name": "category",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.CollectionItemRes"
-                            }
+                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.CollectionItem"
                         }
                     },
                     "400": {
@@ -1117,8 +1251,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Note IDs",
-                        "name": "noteIds",
+                        "description": "Content note IDs",
+                        "name": "contentNoteIds",
                         "in": "query",
                         "required": true
                     }
@@ -1127,10 +1261,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.BatchNoteReactionsRes"
-                            }
+                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.ContentNoteReactions"
                         }
                     },
                     "400": {
@@ -1198,8 +1329,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {}
+                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.Paginated-github_com_pickle_pw_monolith_internal_transport_http_responses_DetailedContentNote"
                         }
                     },
                     "400": {
@@ -1241,7 +1371,9 @@ const docTemplate = `{
                         "name": "contentNoteReq",
                         "in": "body",
                         "required": true,
-                        "schema": {}
+                        "schema": {
+                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_requests.CreateContentNoteReq"
+                        }
                     }
                 ],
                 "responses": {
@@ -1312,323 +1444,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/users/{userId}/content-notes/{category}/{noteId}": {
-            "get": {
-                "description": "Get content note by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "content-notes"
-                ],
-                "summary": "Get content note by ID",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "User ID",
-                        "name": "userId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Note ID",
-                        "name": "noteId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {}
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "description": "Update a content note",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "content-notes"
-                ],
-                "summary": "Update a content note",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "User ID",
-                        "name": "userId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Note ID",
-                        "name": "noteId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Content note request",
-                        "name": "contentNoteReq",
-                        "in": "body",
-                        "required": true,
-                        "schema": {}
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No Content"
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "description": "Delete a content note",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "content-notes"
-                ],
-                "summary": "Delete a content note",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "User ID",
-                        "name": "userId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Note ID",
-                        "name": "noteId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Reset approved orders",
-                        "name": "resetApprovedOrders",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No Content"
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/users/{userId}/content-notes/{category}/{noteId}/orders": {
-            "get": {
-                "description": "Get orders by content note ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "content-notes"
-                ],
-                "summary": "Get orders by content note ID",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "User ID",
-                        "name": "userId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Note ID",
-                        "name": "noteId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.OrderRes"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
         "/v1/users/{userId}/content-notes/{category}/{noteId}/reactions": {
-            "get": {
-                "description": "Get content note reactions",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "content-notes"
-                ],
-                "summary": "Get content note reactions",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "User ID",
-                        "name": "userId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Note ID",
-                        "name": "noteId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_models.ReactionStack"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "description": "Add content note reaction",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "content-notes"
-                ],
-                "summary": "Add content note reaction",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "User ID",
-                        "name": "userId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Note ID",
-                        "name": "noteId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Reaction request",
-                        "name": "reactionReq",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.ReactionReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No Content"
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            },
             "delete": {
                 "description": "Remove content note reaction",
                 "consumes": [
@@ -1644,31 +1460,25 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "User ID",
-                        "name": "userId",
+                        "description": "Category",
+                        "name": "category",
                         "in": "path",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "Note ID",
-                        "name": "noteId",
+                        "description": "Content note ID",
+                        "name": "contentNoteId",
                         "in": "path",
                         "required": true
-                    },
-                    {
-                        "description": "Reaction request",
-                        "name": "reactionReq",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.ReactionReq"
-                        }
                     }
                 ],
                 "responses": {
-                    "204": {
-                        "description": "No Content"
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.ContentNoteReaction"
+                        }
                     },
                     "400": {
                         "description": "Bad Request",
@@ -1720,53 +1530,20 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.ContentRes"
+                                "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.UserContent"
                             }
                         }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
                     }
                 }
             }
         },
         "/v1/users/{userId}/follows": {
-            "post": {
-                "description": "Follow profile",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "profiles"
-                ],
-                "summary": "Follow profile",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "User ID",
-                        "name": "userId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No Content"
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            },
             "delete": {
                 "description": "Unfollow profile",
                 "consumes": [
@@ -1831,7 +1608,13 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.OrderWithDecision"
+                            }
+                        }
                     },
                     "400": {
                         "description": "Bad Request",
@@ -1846,9 +1629,11 @@ const docTemplate = `{
                         }
                     }
                 }
-            },
+            }
+        },
+        "/v1/users/{userId}/orders/suggest": {
             "post": {
-                "description": "Create an order",
+                "description": "Create a suggestion order",
                 "consumes": [
                     "application/json"
                 ],
@@ -1858,7 +1643,7 @@ const docTemplate = `{
                 "tags": [
                     "orders"
                 ],
-                "summary": "Create an order",
+                "summary": "Create a suggestion order",
                 "parameters": [
                     {
                         "description": "Create order request",
@@ -1866,7 +1651,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.CreateOrderReq"
+                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_requests.CreateOrder"
                         }
                     },
                     {
@@ -1878,8 +1663,8 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "201": {
-                        "description": "Created"
+                    "200": {
+                        "description": "OK"
                     },
                     "400": {
                         "description": "Bad Request",
@@ -1929,7 +1714,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.OrderRes"
+                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.DetailedOrder"
                         }
                     },
                     "400": {
@@ -1978,7 +1763,10 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.OrderWithDecision"
+                        }
                     },
                     "400": {
                         "description": "Bad Request",
@@ -2019,7 +1807,10 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.OrderWithDecision"
+                        }
                     },
                     "400": {
                         "description": "Bad Request",
@@ -2071,7 +1862,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.PosterPreviewRes"
+                                "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.CoverPreview"
                             }
                         }
                     },
@@ -2127,7 +1918,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.ImagePreviewRes"
+                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.CoverPreview"
                         }
                     },
                     "400": {
@@ -2171,7 +1962,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.PosterPreviewRes"
+                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.CoverPreview"
                         }
                     },
                     "400": {
@@ -2263,8 +2054,58 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.ImageRes"
+                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.Cover"
                         }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/webhooks/orders/{userId}": {
+            "post": {
+                "description": "Create an order",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "summary": "Create an order",
+                "parameters": [
+                    {
+                        "description": "Create order request",
+                        "name": "createOrderReq",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_requests.CreateOrder"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
                     },
                     "400": {
                         "description": "Bad Request",
@@ -2283,200 +2124,45 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "github_com_pickle_pw_monolith_db_sqlc.ContentCategory": {
-            "type": "string",
-            "enum": [
-                "games",
-                "movies",
-                "video",
-                "anime",
-                "series",
-                "custom",
-                "any"
-            ],
-            "x-enum-varnames": [
-                "ContentCategoryGames",
-                "ContentCategoryMovies",
-                "ContentCategoryVideo",
-                "ContentCategoryAnime",
-                "ContentCategorySeries",
-                "ContentCategoryCustom",
-                "ContentCategoryAny"
-            ]
-        },
-        "github_com_pickle_pw_monolith_db_sqlc.OrderStatus": {
-            "type": "string",
-            "enum": [
-                "pending",
-                "approved",
-                "rejected"
-            ],
-            "x-enum-varnames": [
-                "OrderStatusPending",
-                "OrderStatusApproved",
-                "OrderStatusRejected"
-            ]
-        },
-        "github_com_pickle_pw_monolith_db_sqlc.ReactionSource": {
-            "type": "string",
-            "enum": [
-                "unicode_emoji",
-                "7tv",
-                "custom"
-            ],
-            "x-enum-varnames": [
-                "ReactionSourceUnicodeEmoji",
-                "ReactionSource7tv",
-                "ReactionSourceCustom"
-            ]
-        },
-        "github_com_pickle_pw_monolith_internal_models.ReactionStack": {
+        "github_com_pickle_pw_monolith_internal_transport_http_requests.AfterOryRegistrationWebhook": {
             "type": "object",
             "properties": {
-                "count": {
+                "identityId": {
+                    "type": "string"
+                },
+                "traits": {
+                    "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_requests.OryUserTraits"
+                }
+            }
+        },
+        "github_com_pickle_pw_monolith_internal_transport_http_requests.CreateContentNoteReq": {
+            "type": "object",
+            "properties": {
+                "comment": {
+                    "type": "string"
+                },
+                "contentId": {
+                    "type": "string"
+                },
+                "rate": {
                     "type": "integer"
                 },
-                "emoteId": {
-                    "type": "string"
-                },
-                "noteId": {
-                    "type": "string"
-                },
-                "source": {
-                    "$ref": "#/definitions/github_com_pickle_pw_monolith_db_sqlc.ReactionSource"
-                },
-                "userReacted": {
-                    "type": "boolean"
-                }
-            }
-        },
-        "github_com_pickle_pw_monolith_internal_models_requests.ProfileLinkReq": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "position": {
-                    "type": "integer"
-                },
-                "url": {
+                "status": {
                     "type": "string"
                 }
             }
         },
-        "github_com_pickle_pw_monolith_internal_models_requests.SuggestionPreferencesReq": {
-            "type": "object",
-            "properties": {
-                "allowedAnonymously": {
-                    "type": "boolean"
-                },
-                "allowedFree": {
-                    "type": "boolean"
-                },
-                "categories": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_pickle_pw_monolith_db_sqlc.ContentCategory"
-                    }
-                },
-                "enabled": {
-                    "type": "boolean"
-                }
-            }
-        },
-        "github_com_pickle_pw_monolith_internal_models_requests.UpdateProfileReq": {
-            "type": "object",
-            "properties": {
-                "description": {
-                    "type": "string"
-                },
-                "displayName": {
-                    "type": "string"
-                },
-                "links": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_models_requests.ProfileLinkReq"
-                    }
-                },
-                "username": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_pickle_pw_monolith_internal_types.BatchNoteReactionsRes": {
-            "type": "object",
-            "properties": {
-                "noteId": {
-                    "type": "string"
-                },
-                "reactions": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_models.ReactionStack"
-                    }
-                }
-            }
-        },
-        "github_com_pickle_pw_monolith_internal_types.CollectionItemRes": {
-            "type": "object",
-            "properties": {
-                "collectionId": {
-                    "type": "string"
-                },
-                "content": {
-                    "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_types.ContentRes"
-                },
-                "coverUrl": {
-                    "type": "string"
-                },
-                "createdAt": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_pickle_pw_monolith_internal_types.CollectionRes": {
-            "type": "object",
-            "properties": {
-                "createdAt": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_pickle_pw_monolith_internal_types.ContentRes": {
+        "github_com_pickle_pw_monolith_internal_transport_http_requests.CreateOrder": {
             "type": "object",
             "properties": {
                 "category": {
-                    "$ref": "#/definitions/github_com_pickle_pw_monolith_db_sqlc.ContentCategory"
-                },
-                "id": {
                     "type": "string"
                 },
-                "title": {
+                "contentId": {
                     "type": "string"
                 },
-                "userId": {
+                "idempotencyKey": {
                     "type": "string"
-                }
-            }
-        },
-        "github_com_pickle_pw_monolith_internal_types.CreateOrderReq": {
-            "type": "object",
-            "properties": {
-                "category": {
-                    "$ref": "#/definitions/github_com_pickle_pw_monolith_db_sqlc.ContentCategory"
                 },
                 "isAnonymously": {
                     "type": "boolean"
@@ -2498,18 +2184,107 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_pickle_pw_monolith_internal_types.ImagePreviewRes": {
+        "github_com_pickle_pw_monolith_internal_transport_http_requests.OryUserTraits": {
             "type": "object",
             "properties": {
-                "previewId": {
+                "avatar_url": {
                     "type": "string"
                 },
-                "previewUrl": {
+                "email": {
+                    "type": "string"
+                },
+                "username": {
                     "type": "string"
                 }
             }
         },
-        "github_com_pickle_pw_monolith_internal_types.ImageRes": {
+        "github_com_pickle_pw_monolith_internal_transport_http_responses.Collection": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_pickle_pw_monolith_internal_transport_http_responses.CollectionItem": {
+            "type": "object",
+            "properties": {
+                "collectionId": {
+                    "type": "string"
+                },
+                "content": {},
+                "createdAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_pickle_pw_monolith_internal_transport_http_responses.ContentNote": {
+            "type": "object",
+            "properties": {
+                "content": {},
+                "id": {
+                    "type": "string"
+                },
+                "userId": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_pickle_pw_monolith_internal_transport_http_responses.ContentNoteReaction": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "emoteId": {
+                    "type": "string"
+                },
+                "source": {
+                    "type": "string"
+                },
+                "userReacted": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "github_com_pickle_pw_monolith_internal_transport_http_responses.ContentNoteReactions": {
+            "type": "object",
+            "properties": {
+                "contentNoteId": {
+                    "type": "string"
+                },
+                "reactions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.ContentNoteReaction"
+                    }
+                }
+            }
+        },
+        "github_com_pickle_pw_monolith_internal_transport_http_responses.ContentWebsite": {
+            "type": "object",
+            "properties": {
+                "trusted": {
+                    "type": "boolean"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_pickle_pw_monolith_internal_transport_http_responses.Cover": {
             "type": "object",
             "properties": {
                 "url": {
@@ -2517,18 +2292,89 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_pickle_pw_monolith_internal_types.OrderRes": {
+        "github_com_pickle_pw_monolith_internal_transport_http_responses.CoverPreview": {
             "type": "object",
             "properties": {
-                "amount": {
-                    "type": "number"
+                "createdAt": {
+                    "type": "string"
                 },
+                "previewId": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_pickle_pw_monolith_internal_transport_http_responses.DetailedContent": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "type": "string"
+                },
+                "coverUrl": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "sourceType": {
+                    "type": "string"
+                },
+                "sourceUrl": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "websites": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.ContentWebsite"
+                    }
+                }
+            }
+        },
+        "github_com_pickle_pw_monolith_internal_transport_http_responses.DetailedContentNote": {
+            "type": "object",
+            "properties": {
+                "comment": {
+                    "type": "string"
+                },
+                "content": {},
+                "createdAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "initialOrderer": {
+                    "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.Orderer"
+                },
+                "ordererCount": {
+                    "type": "integer"
+                },
+                "rate": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "userId": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_pickle_pw_monolith_internal_transport_http_responses.DetailedOrder": {
+            "type": "object",
+            "properties": {
                 "anonymous": {
                     "type": "boolean"
                 },
                 "category": {
-                    "$ref": "#/definitions/github_com_pickle_pw_monolith_db_sqlc.ContentCategory"
+                    "type": "string"
                 },
+                "content": {},
                 "createdAt": {
                     "type": "string"
                 },
@@ -2538,58 +2384,170 @@ const docTemplate = `{
                 "message": {
                     "type": "string"
                 },
-                "ordererDisplayName": {
-                    "type": "string"
-                },
-                "ordererId": {
-                    "type": "string"
-                },
-                "paymentType": {
-                    "type": "integer"
-                },
-                "reference": {
-                    "type": "string"
+                "orderer": {
+                    "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.Orderer"
                 },
                 "source": {
-                    "type": "string"
-                },
-                "status": {
-                    "$ref": "#/definitions/github_com_pickle_pw_monolith_db_sqlc.OrderStatus"
-                },
-                "updatedAt": {
-                    "type": "string"
-                },
-                "updatedBy": {
                     "type": "string"
                 }
             }
         },
-        "github_com_pickle_pw_monolith_internal_types.PosterPreviewRes": {
+        "github_com_pickle_pw_monolith_internal_transport_http_responses.Order": {
             "type": "object",
             "properties": {
+                "anonymous": {
+                    "type": "boolean"
+                },
                 "createdAt": {
                     "type": "string"
                 },
                 "id": {
                     "type": "string"
                 },
-                "url": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_pickle_pw_monolith_internal_types.ReactionReq": {
-            "type": "object",
-            "properties": {
-                "emoteId": {
-                    "type": "string"
+                "orderer": {
+                    "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.Orderer"
                 },
                 "source": {
                     "type": "string"
                 }
             }
         },
-        "github_com_pickle_pw_monolith_internal_types.StatusRes": {
+        "github_com_pickle_pw_monolith_internal_transport_http_responses.OrderDecision": {
+            "type": "object",
+            "properties": {
+                "contentNote": {},
+                "decidedAt": {
+                    "type": "string"
+                },
+                "decidedBy": {
+                    "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.User"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_pickle_pw_monolith_internal_transport_http_responses.OrderWithDecision": {
+            "type": "object",
+            "properties": {
+                "anonymous": {
+                    "type": "boolean"
+                },
+                "category": {
+                    "type": "string"
+                },
+                "content": {},
+                "createdAt": {
+                    "type": "string"
+                },
+                "decision": {
+                    "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.OrderDecision"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "orderer": {
+                    "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.Orderer"
+                },
+                "source": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_pickle_pw_monolith_internal_transport_http_responses.Orderer": {
+            "type": "object",
+            "properties": {
+                "avatarUrl": {
+                    "type": "string"
+                },
+                "displayName": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "source": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                },
+                "userId": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_pickle_pw_monolith_internal_transport_http_responses.Paginated-github_com_pickle_pw_monolith_internal_transport_http_responses_DetailedContentNote": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.DetailedContentNote"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "size": {
+                    "type": "integer"
+                },
+                "totalElements": {
+                    "type": "integer"
+                },
+                "totalPages": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_pickle_pw_monolith_internal_transport_http_responses.Paginated-github_com_pickle_pw_monolith_internal_transport_http_responses_IContent": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "array",
+                    "items": {}
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "size": {
+                    "type": "integer"
+                },
+                "totalElements": {
+                    "type": "integer"
+                },
+                "totalPages": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_pickle_pw_monolith_internal_transport_http_responses.Paginated-github_com_pickle_pw_monolith_internal_transport_http_responses_Order": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.Order"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "size": {
+                    "type": "integer"
+                },
+                "totalElements": {
+                    "type": "integer"
+                },
+                "totalPages": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_pickle_pw_monolith_internal_transport_http_responses.StatusRes": {
             "type": "object",
             "properties": {
                 "api": {
@@ -2612,29 +2570,44 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_pickle_pw_monolith_internal_types.SupabaseWebhookPayload": {
+        "github_com_pickle_pw_monolith_internal_transport_http_responses.User": {
             "type": "object",
             "properties": {
-                "old_record": {
-                    "type": "object",
-                    "additionalProperties": {}
-                },
-                "record": {
-                    "type": "object",
-                    "additionalProperties": {}
-                },
-                "schema": {
+                "avatarUrl": {
                     "type": "string"
                 },
-                "table": {
+                "displayName": {
                     "type": "string"
                 },
-                "type": {
+                "id": {
+                    "type": "string"
+                },
+                "username": {
                     "type": "string"
                 }
             }
         },
-        "github_com_pickle_pw_monolith_internal_types.UsernameValidationRes": {
+        "github_com_pickle_pw_monolith_internal_transport_http_responses.UserContent": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "type": "string"
+                },
+                "coverUrl": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "noteId": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_pickle_pw_monolith_internal_transport_http_responses.UsernameValidation": {
             "type": "object",
             "properties": {
                 "message": {
@@ -2642,18 +2615,6 @@ const docTemplate = `{
                 },
                 "valid": {
                     "type": "boolean"
-                }
-            }
-        },
-        "internal_handlers.SetJWTCookieRequest": {
-            "type": "object",
-            "properties": {
-                "maxAge": {
-                    "description": "Optional, defaults to 24 hours",
-                    "type": "integer"
-                },
-                "token": {
-                    "type": "string"
                 }
             }
         }

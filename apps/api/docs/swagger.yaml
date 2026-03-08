@@ -1,139 +1,31 @@
 basePath: /v1
 definitions:
-  github_com_pickle_pw_monolith_db_sqlc.ContentCategory:
-    enum:
-    - games
-    - movies
-    - video
-    - anime
-    - series
-    - custom
-    - any
-    type: string
-    x-enum-varnames:
-    - ContentCategoryGames
-    - ContentCategoryMovies
-    - ContentCategoryVideo
-    - ContentCategoryAnime
-    - ContentCategorySeries
-    - ContentCategoryCustom
-    - ContentCategoryAny
-  github_com_pickle_pw_monolith_db_sqlc.OrderStatus:
-    enum:
-    - pending
-    - approved
-    - rejected
-    type: string
-    x-enum-varnames:
-    - OrderStatusPending
-    - OrderStatusApproved
-    - OrderStatusRejected
-  github_com_pickle_pw_monolith_db_sqlc.ReactionSource:
-    enum:
-    - unicode_emoji
-    - 7tv
-    - custom
-    type: string
-    x-enum-varnames:
-    - ReactionSourceUnicodeEmoji
-    - ReactionSource7tv
-    - ReactionSourceCustom
-  github_com_pickle_pw_monolith_internal_models.ReactionStack:
+  github_com_pickle_pw_monolith_internal_transport_http_requests.AfterOryRegistrationWebhook:
     properties:
-      count:
+      identityId:
+        type: string
+      traits:
+        $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_requests.OryUserTraits'
+    type: object
+  github_com_pickle_pw_monolith_internal_transport_http_requests.CreateContentNoteReq:
+    properties:
+      comment:
+        type: string
+      contentId:
+        type: string
+      rate:
         type: integer
-      emoteId:
-        type: string
-      noteId:
-        type: string
-      source:
-        $ref: '#/definitions/github_com_pickle_pw_monolith_db_sqlc.ReactionSource'
-      userReacted:
-        type: boolean
-    type: object
-  github_com_pickle_pw_monolith_internal_models_requests.ProfileLinkReq:
-    properties:
-      id:
-        type: string
-      name:
-        type: string
-      position:
-        type: integer
-      url:
+      status:
         type: string
     type: object
-  github_com_pickle_pw_monolith_internal_models_requests.SuggestionPreferencesReq:
-    properties:
-      allowedAnonymously:
-        type: boolean
-      allowedFree:
-        type: boolean
-      categories:
-        items:
-          $ref: '#/definitions/github_com_pickle_pw_monolith_db_sqlc.ContentCategory'
-        type: array
-      enabled:
-        type: boolean
-    type: object
-  github_com_pickle_pw_monolith_internal_models_requests.UpdateProfileReq:
-    properties:
-      description:
-        type: string
-      displayName:
-        type: string
-      links:
-        items:
-          $ref: '#/definitions/github_com_pickle_pw_monolith_internal_models_requests.ProfileLinkReq'
-        type: array
-      username:
-        type: string
-    type: object
-  github_com_pickle_pw_monolith_internal_types.BatchNoteReactionsRes:
-    properties:
-      noteId:
-        type: string
-      reactions:
-        items:
-          $ref: '#/definitions/github_com_pickle_pw_monolith_internal_models.ReactionStack'
-        type: array
-    type: object
-  github_com_pickle_pw_monolith_internal_types.CollectionItemRes:
-    properties:
-      collectionId:
-        type: string
-      content:
-        $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.ContentRes'
-      coverUrl:
-        type: string
-      createdAt:
-        type: string
-      id:
-        type: string
-    type: object
-  github_com_pickle_pw_monolith_internal_types.CollectionRes:
-    properties:
-      createdAt:
-        type: string
-      id:
-        type: string
-      name:
-        type: string
-    type: object
-  github_com_pickle_pw_monolith_internal_types.ContentRes:
+  github_com_pickle_pw_monolith_internal_transport_http_requests.CreateOrder:
     properties:
       category:
-        $ref: '#/definitions/github_com_pickle_pw_monolith_db_sqlc.ContentCategory'
-      id:
         type: string
-      title:
+      contentId:
         type: string
-      userId:
+      idempotencyKey:
         type: string
-    type: object
-  github_com_pickle_pw_monolith_internal_types.CreateOrderReq:
-    properties:
-      category:
-        $ref: '#/definitions/github_com_pickle_pw_monolith_db_sqlc.ContentCategory'
       isAnonymously:
         type: boolean
       message:
@@ -147,66 +39,245 @@ definitions:
       source:
         type: string
     type: object
-  github_com_pickle_pw_monolith_internal_types.ImagePreviewRes:
+  github_com_pickle_pw_monolith_internal_transport_http_requests.OryUserTraits:
     properties:
-      previewId:
+      avatar_url:
         type: string
-      previewUrl:
+      email:
+        type: string
+      username:
         type: string
     type: object
-  github_com_pickle_pw_monolith_internal_types.ImageRes:
+  github_com_pickle_pw_monolith_internal_transport_http_responses.Collection:
+    properties:
+      createdAt:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  github_com_pickle_pw_monolith_internal_transport_http_responses.CollectionItem:
+    properties:
+      collectionId:
+        type: string
+      content: {}
+      createdAt:
+        type: string
+      id:
+        type: string
+    type: object
+  github_com_pickle_pw_monolith_internal_transport_http_responses.ContentNote:
+    properties:
+      content: {}
+      id:
+        type: string
+      userId:
+        type: string
+    type: object
+  github_com_pickle_pw_monolith_internal_transport_http_responses.ContentNoteReaction:
+    properties:
+      count:
+        type: integer
+      emoteId:
+        type: string
+      source:
+        type: string
+      userReacted:
+        type: boolean
+    type: object
+  github_com_pickle_pw_monolith_internal_transport_http_responses.ContentNoteReactions:
+    properties:
+      contentNoteId:
+        type: string
+      reactions:
+        items:
+          $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.ContentNoteReaction'
+        type: array
+    type: object
+  github_com_pickle_pw_monolith_internal_transport_http_responses.ContentWebsite:
+    properties:
+      trusted:
+        type: boolean
+      type:
+        type: string
+      url:
+        type: string
+    type: object
+  github_com_pickle_pw_monolith_internal_transport_http_responses.Cover:
     properties:
       url:
         type: string
     type: object
-  github_com_pickle_pw_monolith_internal_types.OrderRes:
+  github_com_pickle_pw_monolith_internal_transport_http_responses.CoverPreview:
     properties:
-      amount:
-        type: number
+      createdAt:
+        type: string
+      previewId:
+        type: string
+      url:
+        type: string
+    type: object
+  github_com_pickle_pw_monolith_internal_transport_http_responses.DetailedContent:
+    properties:
+      category:
+        type: string
+      coverUrl:
+        type: string
+      id:
+        type: string
+      sourceType:
+        type: string
+      sourceUrl:
+        type: string
+      title:
+        type: string
+      websites:
+        items:
+          $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.ContentWebsite'
+        type: array
+    type: object
+  github_com_pickle_pw_monolith_internal_transport_http_responses.DetailedContentNote:
+    properties:
+      comment:
+        type: string
+      content: {}
+      createdAt:
+        type: string
+      id:
+        type: string
+      initialOrderer:
+        $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.Orderer'
+      ordererCount:
+        type: integer
+      rate:
+        type: integer
+      status:
+        type: string
+      userId:
+        type: string
+    type: object
+  github_com_pickle_pw_monolith_internal_transport_http_responses.DetailedOrder:
+    properties:
       anonymous:
         type: boolean
       category:
-        $ref: '#/definitions/github_com_pickle_pw_monolith_db_sqlc.ContentCategory'
+        type: string
+      content: {}
       createdAt:
         type: string
       id:
         type: string
       message:
         type: string
-      ordererDisplayName:
-        type: string
-      ordererId:
-        type: string
-      paymentType:
-        type: integer
-      reference:
-        type: string
+      orderer:
+        $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.Orderer'
       source:
         type: string
-      status:
-        $ref: '#/definitions/github_com_pickle_pw_monolith_db_sqlc.OrderStatus'
-      updatedAt:
-        type: string
-      updatedBy:
-        type: string
     type: object
-  github_com_pickle_pw_monolith_internal_types.PosterPreviewRes:
+  github_com_pickle_pw_monolith_internal_transport_http_responses.Order:
     properties:
+      anonymous:
+        type: boolean
       createdAt:
         type: string
       id:
         type: string
-      url:
-        type: string
-    type: object
-  github_com_pickle_pw_monolith_internal_types.ReactionReq:
-    properties:
-      emoteId:
-        type: string
+      orderer:
+        $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.Orderer'
       source:
         type: string
     type: object
-  github_com_pickle_pw_monolith_internal_types.StatusRes:
+  github_com_pickle_pw_monolith_internal_transport_http_responses.OrderDecision:
+    properties:
+      contentNote: {}
+      decidedAt:
+        type: string
+      decidedBy:
+        $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.User'
+      status:
+        type: string
+    type: object
+  github_com_pickle_pw_monolith_internal_transport_http_responses.OrderWithDecision:
+    properties:
+      anonymous:
+        type: boolean
+      category:
+        type: string
+      content: {}
+      createdAt:
+        type: string
+      decision:
+        $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.OrderDecision'
+      id:
+        type: string
+      message:
+        type: string
+      orderer:
+        $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.Orderer'
+      source:
+        type: string
+    type: object
+  github_com_pickle_pw_monolith_internal_transport_http_responses.Orderer:
+    properties:
+      avatarUrl:
+        type: string
+      displayName:
+        type: string
+      id:
+        type: string
+      source:
+        type: string
+      url:
+        type: string
+      userId:
+        type: string
+    type: object
+  ? github_com_pickle_pw_monolith_internal_transport_http_responses.Paginated-github_com_pickle_pw_monolith_internal_transport_http_responses_DetailedContentNote
+  : properties:
+      content:
+        items:
+          $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.DetailedContentNote'
+        type: array
+      page:
+        type: integer
+      size:
+        type: integer
+      totalElements:
+        type: integer
+      totalPages:
+        type: integer
+    type: object
+  ? github_com_pickle_pw_monolith_internal_transport_http_responses.Paginated-github_com_pickle_pw_monolith_internal_transport_http_responses_IContent
+  : properties:
+      content:
+        items: {}
+        type: array
+      page:
+        type: integer
+      size:
+        type: integer
+      totalElements:
+        type: integer
+      totalPages:
+        type: integer
+    type: object
+  ? github_com_pickle_pw_monolith_internal_transport_http_responses.Paginated-github_com_pickle_pw_monolith_internal_transport_http_responses_Order
+  : properties:
+      content:
+        items:
+          $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.Order'
+        type: array
+      page:
+        type: integer
+      size:
+        type: integer
+      totalElements:
+        type: integer
+      totalPages:
+        type: integer
+    type: object
+  github_com_pickle_pw_monolith_internal_transport_http_responses.StatusRes:
     properties:
       api:
         type: string
@@ -221,35 +292,36 @@ definitions:
       storage:
         type: string
     type: object
-  github_com_pickle_pw_monolith_internal_types.SupabaseWebhookPayload:
+  github_com_pickle_pw_monolith_internal_transport_http_responses.User:
     properties:
-      old_record:
-        additionalProperties: {}
-        type: object
-      record:
-        additionalProperties: {}
-        type: object
-      schema:
+      avatarUrl:
         type: string
-      table:
+      displayName:
         type: string
-      type:
+      id:
+        type: string
+      username:
         type: string
     type: object
-  github_com_pickle_pw_monolith_internal_types.UsernameValidationRes:
+  github_com_pickle_pw_monolith_internal_transport_http_responses.UserContent:
+    properties:
+      category:
+        type: string
+      coverUrl:
+        type: string
+      id:
+        type: string
+      noteId:
+        type: string
+      title:
+        type: string
+    type: object
+  github_com_pickle_pw_monolith_internal_transport_http_responses.UsernameValidation:
     properties:
       message:
         type: string
       valid:
         type: boolean
-    type: object
-  internal_handlers.SetJWTCookieRequest:
-    properties:
-      maxAge:
-        description: Optional, defaults to 24 hours
-        type: integer
-      token:
-        type: string
     type: object
 host: api.pickle.pw
 info:
@@ -265,51 +337,6 @@ info:
   title: Pickle API
   version: "1.0"
 paths:
-  /v1/auth/clear-cookie:
-    post:
-      consumes:
-      - application/json
-      description: Clears the HTTP-only JWT cookie used for authentication
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Clear JWT Cookie
-      tags:
-      - auth
-  /v1/auth/set-cookie:
-    post:
-      consumes:
-      - application/json
-      description: Sets an HTTP-only cookie with the provided JWT token for authentication
-      parameters:
-      - description: JWT token and optional max age
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/internal_handlers.SetJWTCookieRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-      summary: Set JWT Cookie
-      tags:
-      - auth
   /v1/collections/{collectionId}:
     delete:
       consumes:
@@ -355,7 +382,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.CollectionRes'
+            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.Collection'
         "400":
           description: Bad Request
           schema:
@@ -383,7 +410,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.CollectionRes'
+            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.Collection'
         "400":
           description: Bad Request
           schema:
@@ -413,7 +440,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.CollectionItemRes'
+              $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.CollectionItem'
             type: array
         "400":
           description: Bad Request
@@ -424,45 +451,6 @@ paths:
           schema:
             type: string
       summary: Get items by collection ID
-      tags:
-      - collections
-    post:
-      consumes:
-      - application/json
-      description: Add item to collection
-      parameters:
-      - description: Collection ID
-        in: path
-        name: collectionId
-        required: true
-        type: string
-      - description: Note ID
-        in: path
-        name: noteId
-        required: true
-        type: string
-      - description: Category
-        in: body
-        name: category
-        required: true
-        schema:
-          type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.CollectionItemRes'
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Add item to collection
       tags:
       - collections
   /v1/collections/{collectionId}/items/{itemId}:
@@ -499,6 +487,180 @@ paths:
       summary: Remove item from collection
       tags:
       - collections
+  /v1/content-notes/{category}/{contentNoteId}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a content note
+      parameters:
+      - description: Content note ID
+        in: path
+        name: contentNoteId
+        required: true
+        type: string
+      - description: Reset approved orders
+        in: query
+        name: resetApprovedOrders
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.ContentNote'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Delete a content note
+      tags:
+      - content-notes
+    get:
+      consumes:
+      - application/json
+      description: Get content note by ID
+      parameters:
+      - description: Category
+        in: path
+        name: category
+        required: true
+        type: string
+      - description: Content note ID
+        in: path
+        name: contentNoteId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.DetailedContentNote'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get content note by ID
+      tags:
+      - content-notes
+    put:
+      consumes:
+      - application/json
+      description: Update a content note
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: Note ID
+        in: path
+        name: noteId
+        required: true
+        type: string
+      - description: Content note request
+        in: body
+        name: contentNoteReq
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_requests.CreateContentNoteReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.ContentNote'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Update a content note
+      tags:
+      - content-notes
+  /v1/content-notes/{category}/{contentNoteId}/orders:
+    get:
+      consumes:
+      - application/json
+      description: Get orders by content note ID
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: Note ID
+        in: path
+        name: noteId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.Paginated-github_com_pickle_pw_monolith_internal_transport_http_responses_Order'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get orders by content note ID
+      tags:
+      - content-notes
+  /v1/content-notes/{category}/{contentNoteId}/reactions:
+    post:
+      consumes:
+      - application/json
+      description: Add content note reaction
+      parameters:
+      - description: Category
+        in: path
+        name: category
+        required: true
+        type: string
+      - description: Content note ID
+        in: path
+        name: contentNoteId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.ContentNoteReaction'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Add content note reaction
+      tags:
+      - content-notes
   /v1/content/{category}:
     get:
       consumes:
@@ -537,13 +699,15 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.ContentRes'
-            type: array
+            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.Paginated-github_com_pickle_pw_monolith_internal_transport_http_responses_IContent'
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
       summary: Search content
       tags:
       - content
-  /v1/content/{category}/{id}:
+  /v1/content/{category}/{contentId}:
     get:
       consumes:
       - application/json
@@ -559,17 +723,21 @@ paths:
         name: category
         required: true
         type: string
-      - description: Locale
-        in: query
-        name: locale
-        type: string
       - description: Cover Size
         in: query
         name: coverSize
         type: string
       produces:
       - application/json
-      responses: {}
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.DetailedContent'
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
       summary: Get content by ID
       tags:
       - content
@@ -585,14 +753,42 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.StatusRes'
+            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.StatusRes'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.StatusRes'
+            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.StatusRes'
       summary: Get system health status
       tags:
       - status
+  /v1/ory-webhooks/users:
+    post:
+      consumes:
+      - application/json
+      description: After Ory registration webhook
+      parameters:
+      - description: Webhook payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_requests.AfterOryRegistrationWebhook'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: After Ory registration webhook
+      tags:
+      - profiles
   /v1/profiles/{username}:
     get:
       consumes:
@@ -622,34 +818,6 @@ paths:
           schema:
             type: string
       summary: Get profile by username
-      tags:
-      - profiles
-  /v1/supabase-webhooks/users:
-    post:
-      consumes:
-      - application/json
-      description: Create profile webhook
-      parameters:
-      - description: Webhook payload
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.SupabaseWebhookPayload'
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: No Content
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Create profile webhook
       tags:
       - profiles
   /v1/users/{userId}:
@@ -699,8 +867,6 @@ paths:
       responses:
         "200":
           description: OK
-          schema:
-            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.ImageRes'
         "400":
           description: Bad Request
           schema:
@@ -730,7 +896,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.CollectionRes'
+              $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.Collection'
             type: array
         "400":
           description: Bad Request
@@ -765,7 +931,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.CollectionRes'
+            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.Collection'
         "400":
           description: Bad Request
           schema:
@@ -775,6 +941,46 @@ paths:
           schema:
             type: string
       summary: Create collection
+      tags:
+      - collections
+  /v1/users/{userId}/collections/{collectionId}/items:
+    post:
+      consumes:
+      - application/json
+      description: Add item to collection
+      parameters:
+      - description: Collection ID
+        in: path
+        name: collectionId
+        required: true
+        type: string
+      - description: Note ID
+        in: path
+        name: noteId
+        required: true
+        type: string
+      - description: Category
+        in: body
+        name: category
+        required: true
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.CollectionItem'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Add item to collection
       tags:
       - collections
   /v1/users/{userId}/collections/items:
@@ -793,10 +999,6 @@ paths:
       responses:
         "200":
           description: OK
-          schema:
-            items:
-              $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.CollectionItemRes'
-            type: array
         "400":
           description: Bad Request
           schema:
@@ -841,8 +1043,7 @@ paths:
         "200":
           description: OK
           schema:
-            items: {}
-            type: array
+            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.Paginated-github_com_pickle_pw_monolith_internal_transport_http_responses_DetailedContentNote'
         "400":
           description: Bad Request
           schema:
@@ -868,7 +1069,8 @@ paths:
         in: body
         name: contentNoteReq
         required: true
-        schema: {}
+        schema:
+          $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_requests.CreateContentNoteReq'
       produces:
       - application/json
       responses:
@@ -885,174 +1087,29 @@ paths:
       summary: Create a content note
       tags:
       - content-notes
-  /v1/users/{userId}/content-notes/{category}/{noteId}:
-    delete:
-      consumes:
-      - application/json
-      description: Delete a content note
-      parameters:
-      - description: User ID
-        in: path
-        name: userId
-        required: true
-        type: string
-      - description: Note ID
-        in: path
-        name: noteId
-        required: true
-        type: string
-      - description: Reset approved orders
-        in: query
-        name: resetApprovedOrders
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: No Content
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Delete a content note
-      tags:
-      - content-notes
-    get:
-      consumes:
-      - application/json
-      description: Get content note by ID
-      parameters:
-      - description: User ID
-        in: path
-        name: userId
-        required: true
-        type: string
-      - description: Note ID
-        in: path
-        name: noteId
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema: {}
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Get content note by ID
-      tags:
-      - content-notes
-    put:
-      consumes:
-      - application/json
-      description: Update a content note
-      parameters:
-      - description: User ID
-        in: path
-        name: userId
-        required: true
-        type: string
-      - description: Note ID
-        in: path
-        name: noteId
-        required: true
-        type: string
-      - description: Content note request
-        in: body
-        name: contentNoteReq
-        required: true
-        schema: {}
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: No Content
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Update a content note
-      tags:
-      - content-notes
-  /v1/users/{userId}/content-notes/{category}/{noteId}/orders:
-    get:
-      consumes:
-      - application/json
-      description: Get orders by content note ID
-      parameters:
-      - description: User ID
-        in: path
-        name: userId
-        required: true
-        type: string
-      - description: Note ID
-        in: path
-        name: noteId
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.OrderRes'
-            type: array
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Get orders by content note ID
-      tags:
-      - content-notes
   /v1/users/{userId}/content-notes/{category}/{noteId}/reactions:
     delete:
       consumes:
       - application/json
       description: Remove content note reaction
       parameters:
-      - description: User ID
+      - description: Category
         in: path
-        name: userId
+        name: category
         required: true
         type: string
-      - description: Note ID
+      - description: Content note ID
         in: path
-        name: noteId
+        name: contentNoteId
         required: true
         type: string
-      - description: Reaction request
-        in: body
-        name: reactionReq
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.ReactionReq'
       produces:
       - application/json
       responses:
-        "204":
-          description: No Content
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.ContentNoteReaction'
         "400":
           description: Bad Request
           schema:
@@ -1062,78 +1119,6 @@ paths:
           schema:
             type: string
       summary: Remove content note reaction
-      tags:
-      - content-notes
-    get:
-      consumes:
-      - application/json
-      description: Get content note reactions
-      parameters:
-      - description: User ID
-        in: path
-        name: userId
-        required: true
-        type: string
-      - description: Note ID
-        in: path
-        name: noteId
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/github_com_pickle_pw_monolith_internal_models.ReactionStack'
-            type: array
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Get content note reactions
-      tags:
-      - content-notes
-    post:
-      consumes:
-      - application/json
-      description: Add content note reaction
-      parameters:
-      - description: User ID
-        in: path
-        name: userId
-        required: true
-        type: string
-      - description: Note ID
-        in: path
-        name: noteId
-        required: true
-        type: string
-      - description: Reaction request
-        in: body
-        name: reactionReq
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.ReactionReq'
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: No Content
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Add content note reaction
       tags:
       - content-notes
   /v1/users/{userId}/content-notes/{category}/by-content-id/{contentId}:
@@ -1175,9 +1160,9 @@ paths:
       - application/json
       description: Get batch content note reactions
       parameters:
-      - description: Note IDs
+      - description: Content note IDs
         in: query
-        name: noteIds
+        name: contentNoteIds
         required: true
         type: string
       produces:
@@ -1186,9 +1171,7 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.BatchNoteReactionsRes'
-            type: array
+            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.ContentNoteReactions'
         "400":
           description: Bad Request
           schema:
@@ -1223,8 +1206,12 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.ContentRes'
+              $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.UserContent'
             type: array
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
       summary: Search content
       tags:
       - content
@@ -1255,32 +1242,6 @@ paths:
       summary: Unfollow profile
       tags:
       - profiles
-    post:
-      consumes:
-      - application/json
-      description: Follow profile
-      parameters:
-      - description: User ID
-        in: path
-        name: userId
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: No Content
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Follow profile
-      tags:
-      - profiles
   /v1/users/{userId}/orders:
     get:
       consumes:
@@ -1297,6 +1258,10 @@ paths:
       responses:
         "200":
           description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.OrderWithDecision'
+            type: array
         "400":
           description: Bad Request
           schema:
@@ -1306,38 +1271,6 @@ paths:
           schema:
             type: string
       summary: Get sorted orders by receiver link
-      tags:
-      - orders
-    post:
-      consumes:
-      - application/json
-      description: Create an order
-      parameters:
-      - description: Create order request
-        in: body
-        name: createOrderReq
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.CreateOrderReq'
-      - description: User ID
-        in: path
-        name: userId
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Create an order
       tags:
       - orders
   /v1/users/{userId}/orders/{orderId}:
@@ -1362,7 +1295,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.OrderRes'
+            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.DetailedOrder'
         "400":
           description: Bad Request
           schema:
@@ -1395,6 +1328,8 @@ paths:
       responses:
         "200":
           description: OK
+          schema:
+            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.OrderWithDecision'
         "400":
           description: Bad Request
           schema:
@@ -1422,6 +1357,8 @@ paths:
       responses:
         "200":
           description: OK
+          schema:
+            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.OrderWithDecision'
         "400":
           description: Bad Request
           schema:
@@ -1431,6 +1368,39 @@ paths:
           schema:
             type: string
       summary: Reject an order
+      tags:
+      - orders
+  /v1/users/{userId}/orders/suggest:
+    post:
+      consumes:
+      - application/json
+      description: Create a suggestion order
+      parameters:
+      - description: Create order request
+        in: body
+        name: createOrderReq
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_requests.CreateOrder'
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Create a suggestion order
       tags:
       - orders
   /v1/users/{userId}/posters/previews:
@@ -1456,7 +1426,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.PosterPreviewRes'
+              $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.CoverPreview'
             type: array
         "400":
           description: Bad Request
@@ -1494,7 +1464,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.ImagePreviewRes'
+            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.CoverPreview'
         "400":
           description: Bad Request
           schema:
@@ -1551,7 +1521,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.PosterPreviewRes'
+            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.CoverPreview'
         "400":
           description: Bad Request
           schema:
@@ -1584,7 +1554,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.ImageRes'
+            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.Cover'
         "400":
           description: Bad Request
           schema:
@@ -1626,18 +1596,11 @@ paths:
       consumes:
       - application/json
       description: Update my profile
-      parameters:
-      - description: Update profile request
-        in: body
-        name: updateProfileReq
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_pickle_pw_monolith_internal_models_requests.UpdateProfileReq'
       produces:
       - application/json
       responses:
-        "204":
-          description: No Content
+        "200":
+          description: OK
         "400":
           description: Bad Request
           schema:
@@ -1664,8 +1627,6 @@ paths:
       responses:
         "200":
           description: OK
-          schema:
-            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.ImageRes'
         "400":
           description: Bad Request
           schema:
@@ -1696,8 +1657,6 @@ paths:
       responses:
         "200":
           description: OK
-          schema:
-            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.ImagePreviewRes'
         "400":
           description: Bad Request
           schema:
@@ -1707,34 +1666,6 @@ paths:
           schema:
             type: string
       summary: Upload avatar
-      tags:
-      - profiles
-  /v1/users/me/suggestion-preferences:
-    patch:
-      consumes:
-      - application/json
-      description: Update suggestion preferences
-      parameters:
-      - description: Suggestion preferences
-        in: body
-        name: suggestionPreferences
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_pickle_pw_monolith_internal_models_requests.SuggestionPreferencesReq'
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: No Content
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Update suggestion preferences
       tags:
       - profiles
   /v1/users/validate-username:
@@ -1754,7 +1685,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_types.UsernameValidationRes'
+            $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_responses.UsernameValidation'
         "400":
           description: Bad Request
           schema:
@@ -1766,4 +1697,37 @@ paths:
       summary: Validate username
       tags:
       - profiles
+  /v1/webhooks/orders/{userId}:
+    post:
+      consumes:
+      - application/json
+      description: Create an order
+      parameters:
+      - description: Create order request
+        in: body
+        name: createOrderReq
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_pickle_pw_monolith_internal_transport_http_requests.CreateOrder'
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Create an order
+      tags:
+      - orders
 swagger: "2.0"

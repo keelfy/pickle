@@ -4,6 +4,7 @@ const withNextIntl = createNextIntlPlugin()
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: NODE_ENV === 'production' ? 'standalone' : undefined,
   images: {
     remotePatterns: [
       { hostname: 'flowbite.com' },

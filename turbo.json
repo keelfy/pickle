@@ -1,6 +1,8 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
   "ui": "tui",
+  "globalDependencies": ["tsconfig.json"],
+  "globalPassThroughEnv": ["NODE_ENV", "CI"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -13,6 +15,12 @@
     "check-types": {
       "dependsOn": ["^check-types"]
     },
+    "test": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", ".env.test*"],
+      "outputs": ["coverage/**"]
+    },
+    "format:check": {},
     "dev": {
       "cache": false,
       "persistent": true

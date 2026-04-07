@@ -4,6 +4,8 @@
   "scripts": {
     "dev": "mise run dev",
     "build": "mise run build",
+    "lint": "go vet ./...",
+    "test": "go test ./... -v -count=1",
     "generate": "mise run generate"
   }
 }

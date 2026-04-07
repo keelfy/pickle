@@ -1,0 +1,10 @@
+# Staging overrides — use with:
+#   docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d
+
+services:
+  pickle-elastic:
+    environment:
+      - ES_JAVA_OPTS=-Xms256m -Xmx256m
+
+  pickle-redis:
+    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru

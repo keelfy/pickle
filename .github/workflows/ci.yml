@@ -1,0 +1,224 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      web: ${{ steps.filter.outputs.web }}
+      api: ${{ steps.filter.outputs.api }}
+      twitch-harbor: ${{ steps.filter.outputs.twitch-harbor }}
+      packages: ${{ steps.filter.outputs.packages }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Detect changed paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            web:
+              - 'apps/web/**'
+              - 'packages/ui/**'
+              - 'packages/typescript-config/**'
+              - 'packages/eslint-config/**'
+              - 'package.json'
+              - 'bun.lock'
+              - 'turbo.json'
+            api:
+              - 'apps/api/**'
+            twitch-harbor:
+              - 'apps/twitch-harbor/**'
+            packages:
+              - 'packages/**'
+
+  # ─── Web (Next.js) ────────────────────────────────────────────
+
+  lint-web:
+    name: "Lint: web"
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-bun
+      - run: bunx turbo run lint --filter=frontend
+
+  check-types-web:
+    name: "Type-check: web"
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-bun
+      - run: bunx turbo run check-types --filter=frontend
+
+  build-web:
+    name: "Build: web"
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-bun
+      - run: bunx turbo run build --filter=frontend
+        env:
+          NEXT_PUBLIC_DOMAIN: ${{ vars.NEXT_PUBLIC_DOMAIN }}
+          NEXT_PUBLIC_BACKEND_URL: ${{ vars.NEXT_PUBLIC_BACKEND_URL }}
+          NEXT_PUBLIC_BACKEND_WS: ${{ vars.NEXT_PUBLIC_BACKEND_WS }}
+          NEXT_PUBLIC_ORY_SDK_URL: ${{ vars.NEXT_PUBLIC_ORY_SDK_URL }}
+
+  # ─── Shared packages ──────────────────────────────────────────
+
+  lint-packages:
+    name: "Lint: packages"
+    needs: changes
+    if: needs.changes.outputs.packages == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-bun
+      - run: bunx turbo run lint --filter='./packages/*'
+
+  check-types-packages:
+    name: "Type-check: packages"
+    needs: changes
+    if: needs.changes.outputs.packages == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-bun
+      - run: bunx turbo run check-types --filter='./packages/*'
+
+  # ─── API (Go) ─────────────────────────────────────────────────
+
+  lint-api:
+    name: "Lint: api"
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache-dependency-path: apps/api/go.sum
+
+      - name: Run go vet
+        working-directory: apps/api
+        run: go vet ./...
+
+      - name: Run staticcheck
+        uses: dominikh/staticcheck-action@v1
+        with:
+          working-directory: apps/api
+
+  test-api:
+    name: "Test: api"
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache-dependency-path: apps/api/go.sum
+
+      - name: Run tests
+        working-directory: apps/api
+        run: go test ./... -v -count=1 -race
+
+  build-api:
+    name: "Build: api"
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache-dependency-path: apps/api/go.sum
+
+      - name: Build binary
+        working-directory: apps/api
+        run: go build -ldflags='-s' -o ./bin/api ./cmd
+
+  # ─── Twitch Harbor (Go) ───────────────────────────────────────
+
+  lint-twitch-harbor:
+    name: "Lint: twitch-harbor"
+    needs: changes
+    if: needs.changes.outputs.twitch-harbor == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache-dependency-path: apps/twitch-harbor/go.sum
+
+      - name: Run go vet
+        working-directory: apps/twitch-harbor
+        run: go vet ./...
+
+      - name: Run staticcheck
+        uses: dominikh/staticcheck-action@v1
+        with:
+          working-directory: apps/twitch-harbor
+
+  test-twitch-harbor:
+    name: "Test: twitch-harbor"
+    needs: changes
+    if: needs.changes.outputs.twitch-harbor == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache-dependency-path: apps/twitch-harbor/go.sum
+
+      - name: Run tests
+        working-directory: apps/twitch-harbor
+        run: go test ./... -v -count=1 -race
+
+  build-twitch-harbor:
+    name: "Build: twitch-harbor"
+    needs: changes
+    if: needs.changes.outputs.twitch-harbor == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache-dependency-path: apps/twitch-harbor/go.sum
+
+      - name: Build binary
+        working-directory: apps/twitch-harbor
+        run: go build -ldflags='-s' -o ./bin/twitch-harbor ./cmd

@@ -1,0 +1,23 @@
+{
+	email {$CADDY_ACME_EMAIL}
+}
+
+{$PICKLE_DOMAIN} {
+	handle_path /ory/* {
+		reverse_proxy pickle-kratos:4433
+	}
+
+	handle_path /ory-admin/* {
+		reverse_proxy pickle-kratos:4434
+	}
+
+	handle_path /api/twitch-harbor/* {
+		reverse_proxy pickle-twitch-harbor:8080
+	}
+
+	handle_path /api/* {
+		reverse_proxy pickle-api:8080
+	}
+
+	reverse_proxy pickle-web:3000
+}

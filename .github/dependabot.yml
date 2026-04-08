@@ -1,0 +1,54 @@
+version: 2
+
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      npm-minor:
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "gomod"
+    directory: "/apps/api"
+    schedule:
+      interval: "weekly"
+    groups:
+      go-api:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "gomod"
+    directory: "/apps/twitch-harbor"
+    schedule:
+      interval: "weekly"
+    groups:
+      go-twitch-harbor:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "docker"
+    directory: "/apps/api"
+    schedule:
+      interval: "monthly"
+
+  - package-ecosystem: "docker"
+    directory: "/apps/web"
+    schedule:
+      interval: "monthly"
+
+  - package-ecosystem: "docker"
+    directory: "/apps/twitch-harbor"
+    schedule:
+      interval: "monthly"

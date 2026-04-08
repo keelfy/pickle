@@ -1,0 +1,157 @@
+services:
+  # ─── Application Services ─────────────────────────────────────
+
+  pickle-web:
+    image: ghcr.io/keelfy/pickle-web:${IMAGE_TAG:-latest}
+    container_name: pickle-web
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    networks:
+      - pickle
+    depends_on:
+      pickle-api:
+        condition: service_started
+
+  pickle-api:
+    image: ghcr.io/keelfy/pickle-api:${IMAGE_TAG:-latest}
+    container_name: pickle-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    networks:
+      - pickle
+    depends_on:
+      pickle-postgres:
+        condition: service_healthy
+      pickle-redis:
+        condition: service_healthy
+      pickle-elastic:
+        condition: service_healthy
+
+  pickle-twitch-harbor:
+    image: ghcr.io/keelfy/pickle-twitch-harbor:${IMAGE_TAG:-latest}
+    container_name: pickle-twitch-harbor
+    restart: unless-stopped
+    env_file:
+      - .env
+    networks:
+      - pickle
+    depends_on:
+      pickle-postgres:
+        condition: service_healthy
+
+  # ─── Data Services ────────────────────────────────────────────
+
+  pickle-postgres:
+    image: postgres:16
+    container_name: pickle-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - ${DATA_PATH:-/mnt/data}/postgres:/var/lib/postgresql/data
+      - ./init-db:/docker-entrypoint-initdb.d
+    networks:
+      - pickle
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pickle-redis:
+    image: redis:6
+    container_name: pickle-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - ${DATA_PATH:-/mnt/data}/redis:/data
+    networks:
+      - pickle
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pickle-elastic:
+    image: elasticsearch:8.17.0
+    container_name: pickle-elastic
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    volumes:
+      - ${DATA_PATH:-/mnt/data}/elasticsearch:/usr/share/elasticsearch/data
+    networks:
+      - pickle
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsSL http://localhost:9200/_cluster/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  # ─── Authentication ───────────────────────────────────────────
+
+  pickle-kratos-migrate:
+    image: oryd/kratos:v1.3.1
+    container_name: pickle-kratos-migrate
+    environment:
+      - DSN=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pickle-postgres:5432/kratos?sslmode=disable
+    volumes:
+      - ./kratos:/etc/config/kratos:ro
+    networks:
+      - pickle
+    depends_on:
+      pickle-postgres:
+        condition: service_healthy
+    command: -c /etc/config/kratos/kratos.yml migrate sql -e --yes
+    restart: on-failure
+
+  pickle-kratos:
+    image: oryd/kratos:v1.3.1
+    container_name: pickle-kratos
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - DSN=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pickle-postgres:5432/kratos?sslmode=disable
+    volumes:
+      - ./kratos:/etc/config/kratos:ro
+    networks:
+      - pickle
+    depends_on:
+      pickle-kratos-migrate:
+        condition: service_completed_successfully
+
+  # ─── Reverse Proxy ────────────────────────────────────────────
+
+  pickle-caddy:
+    image: caddy:2-alpine
+    container_name: pickle-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - pickle
+    depends_on:
+      - pickle-web
+      - pickle-api
+
+networks:
+  pickle:
+    driver: bridge
+
+volumes:
+  caddy-data:
+  caddy-config:

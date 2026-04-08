@@ -1,0 +1,14 @@
+name: "Setup Bun & Dependencies"
+description: "Install Bun runtime and project dependencies with caching"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: "1.2.22"
+
+    - name: Install dependencies
+      shell: bash
+      run: bun install --frozen-lockfile
